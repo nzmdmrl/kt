@@ -178,6 +178,9 @@ class Room:
             return
         await self.broadcast({"type": "guess_result", **result})
         await self.broadcast_state()
+        # Harflerin sırayla belirmesi ve sonucun görülmesi için kısa duraklama.
+        await asyncio.sleep(1.6)
+        await self.broadcast_state()
         if result["round_over"]:
             if self._timer_task and not self._timer_task.done():
                 self._timer_task.cancel()

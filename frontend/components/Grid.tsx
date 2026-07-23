@@ -52,12 +52,18 @@ export default function Grid({
       }}
     >
       {/* Doldurulmuş tahmin satırları */}
-      {rows.map((row, i) => (
-        <div key={i} style={{ position: "relative", flexShrink: 0 }}>
-          <Line tiles={row.tiles.map((t) => ({ letter: t.letter, bg: TILE[t.state] }))} />
-          <Tag>{nameOf(row.player_id)}</Tag>
-        </div>
-      ))}
+      {rows.map((row, i) => {
+        const isLast = i === rows.length - 1;
+        return (
+          <div key={i} style={{ position: "relative", flexShrink: 0 }}>
+            <Line
+              tiles={row.tiles.map((t) => ({ letter: t.letter, bg: TILE[t.state] }))}
+              animate={isLast}
+            />
+            <Tag>{nameOf(row.player_id)}</Tag>
+          </div>
+        );
+      })}
 
       {/* Tur bitti ve kimse bilemediyse: doğru cevabı göster */}
       {finished && reveal_word && (
@@ -84,11 +90,17 @@ export default function Grid({
   );
 }
 
-function Line({ tiles }: { tiles: { letter: string; bg: string; dim?: boolean }[] }) {
+function Line({ tiles, animate }: { tiles: { letter: string; bg: string; dim?: boolean }[]; animate?: boolean }) {
   return (
     <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
       {tiles.map((t, i) => (
-        <span key={i} style={tileStyle(t.bg, t.dim ? "var(--text-dim)" : "#fff", t.dim)}>
+        <span
+          key={i}
+          style={{
+            ...tileStyle(t.bg, t.dim ? "var(--text-dim)" : "#fff", t.dim),
+            animation: animate ? `flipIn .4s ease ${i * 0.22}s both` : undefined,
+          }}
+        >
           {t.letter}
         </span>
       ))}

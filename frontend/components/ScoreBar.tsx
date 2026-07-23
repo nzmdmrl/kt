@@ -63,14 +63,14 @@ export default function ScoreBar({
             <div
               style={{
                 height: "100%",
-                width: `${(answerLeft / 10) * 100}%`,
-                background: answerLeft <= 3 ? "var(--accent-hot)" : "var(--accent)",
+                width: `${Math.min(100, (answerLeft / 20) * 100)}%`,
+                background: answerLeft <= 5 ? "var(--accent-hot)" : "var(--accent)",
                 transition: "width 1s linear, background .3s",
               }}
             />
           </div>
           <div style={{ textAlign: "center", fontSize: 12, color: "var(--text-soft)" }}>
-            cevap süresi: <strong style={{ color: answerLeft <= 3 ? "var(--accent-hot)" : "var(--accent)" }}>{answerLeft}s</strong>
+            cevap süresi: <strong style={{ color: answerLeft <= 5 ? "var(--accent-hot)" : "var(--accent)" }}>{answerLeft}s</strong>
           </div>
         </div>
       )}

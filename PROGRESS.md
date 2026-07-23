@@ -218,3 +218,18 @@ Frontend:
 - Doğru cevap gösterimi: RoundState.reveal_word (bilinince VEYA süre bitince target).
   Grid'de RevealLine ile amber kutucuklarda flip animasyonuyla gösterilir.
 - Tur arası 4→10sn (REVEAL_SECONDS) — doğru cevabı görme süresi.
+
+## Faz 4 UX DÜZELTMELERİ v4 (Nazım üçüncü test — kritik buglar)
+1. ✅ SEVGİ/SERGİ "listede yok" BUG: tahmin doğrulaması gevşetildi (match.py).
+   Havuz üyeliği ŞART DEĞİL — is_valid_word_shape (uzunluk+TR harf+ilk harf) yeter.
+   Wordle mantığı: tahmin serbest, hedef havuzdan. Artık SEVGİ ile SE serisi görünür.
+2. ✅ Cevap çubuğu 20sn'ye ayarlandı (ScoreBar answerLeft/20, kırmızı eşik son 5sn).
+3. ✅ Arka arkaya tahmin (frontend): locked state eklendi. Tahmin gönderilince input
+   kilitlenir, guess_result gelince çözülür. canType = !locked && (myTurn||turnFree).
+   (Backend zaten sağlamdı; sorun frontend input kilidinde idi.)
+4. ✅ Çift basma (K'ya 2 kez): harf artık HER ZAMAN kaydedilir (setDraft önce),
+   buzzer ayrı tetiklenir. onType canType'a bağlı, buzzer'dan bağımsız.
+5. ✅ Harfler sırayla belirir: Grid Line animate prop, son satır flipIn ile
+   harf harf (0.22s stagger). RevealLine de animasyonlu.
+6. ✅ Tempo: handle_guess'te tahmin sonrası 1.6sn duraklama (harfler görünsün);
+   bot yazma gecikmesi 0.8-1.8 → 1.8-3.2sn (bot çok hızlı geçmesin).

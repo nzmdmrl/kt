@@ -92,8 +92,8 @@ class BotController:
 
         # Buzzer'a bas.
         await self.room.handle_buzzer(self.bot_id)
-        # Kısa bir "yazma" gecikmesi, sonra tahmin.
-        await asyncio.sleep(random.uniform(0.8, 1.8))
+        # "Yazma" gecikmesi — oyuncu botun düşündüğünü görsün (tempo).
+        await asyncio.sleep(random.uniform(1.8, 3.2))
         await self._make_guess(match, r)
 
     async def _make_guess(self, match, r) -> None:

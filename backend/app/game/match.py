@@ -97,7 +97,6 @@ class Match:
         if r.turn_player_id != player_id:
             raise MatchError("Sıra sizde değil.")
 
-        pool = get_pool(r.length, self.lang)
         g = normalize(guess)
 
         # Uzunluk kontrolü
@@ -106,9 +105,12 @@ class Match:
         # İlk harf sabit ipucuna uymalı
         if g[0] != r.target[0]:
             raise MatchError(f"Kelime '{r.target[0]}' harfi ile başlamalı.")
-        # Havuzda geçerli kelime mi?
-        if not pool.is_valid(g):
-            raise MatchError("Bu kelime listede yok.")
+        # Sadece geçerli Türkçe harflerden oluşmalı (havuz üyeliği ŞART DEĞİL —
+        # Wordle mantığı: oyuncu herhangi geçerli bir kelime deneyebilir, sistem
+        # renk verir. Hedef kelime havuzdan seçilir ama tahmin serbesttir).
+        from app.game.word_engine import is_valid_word_shape
+        if not is_valid_word_shape(g, r.length):
+            raise MatchError("Geçerli bir kelime yaz (sadece harfler).")
 
         # Değerlendir
         letter_results = evaluate_guess(g, r.target)

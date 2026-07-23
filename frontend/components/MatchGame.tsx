@@ -26,38 +26,49 @@ export default function MatchGame({
     botElo
   );
   const [draft, setDraft] = useState("");
+  const [locked, setLocked] = useState(false); // tahmin gönderildi, yanıt bekleniyor
 
   const round = state?.round ?? null;
   const myTurn = round?.turn_player_id === playerId;
   const turnFree = round?.turn_player_id == null;
   const phase = state?.phase;
 
+  // Yazabilir miyim? Sıra bende VEYA sıra boş (ilk kapan) ise. Kilitliyse hayır.
+  const canType = !locked && phase === "round_active" && (myTurn || turnFree);
+
+  // Tur/sıra değişince taslağı ve kilidi temizle.
   useEffect(() => {
     setDraft("");
+    setLocked(false);
   }, [state?.round_index, round?.turn_player_id]);
 
-  // Kullanıcı TAM kelimeyi yazar (ilk harf dahil). İlk harf ipucu olarak
-  // gösterilir ama kullanıcı onu da yazabilir — çakışma yok.
+  // Tahmin sonucu gelince kilidi çöz (yeni sıra durumuna göre input yeniden değerlenir).
+  useEffect(() => {
+    if (lastEvent?.type === "guess_result") {
+      setLocked(false);
+    }
+  }, [lastEvent]);
+
+  // Harf yazma: harf HER ZAMAN kaydedilir (sıra bende/boşsa). Sıra boşsa
+  // ayrıca buzzer tetiklenir — ama harf buzzer'dan bağımsız düşmez.
   const onType = useCallback(
     (value: string) => {
-      if (phase !== "round_active" || !round) return;
-      // Rakibin kesin sırasıysa yazma engellenir.
-      if (!myTurn && !turnFree) return;
-      // Sıra boşsa buzzer al — ama yazılan harfi de HEMEN kaydet (çift basma yok).
-      if (turnFree) buzzer();
+      if (!round || !canType) return;
       const clean = value.toUpperCase().replace(/[^A-ZÇĞİÖŞÜI]/g, "").slice(0, round.length);
       setDraft(clean);
+      // Sıra boşsa ve ilk harf yazıldıysa buzzer al (sırayı kap).
+      if (turnFree && clean.length > 0) buzzer();
     },
-    [phase, round, turnFree, myTurn, buzzer]
+    [round, canType, turnFree, buzzer]
   );
 
   const submit = useCallback(() => {
-    if (!round || !myTurn) return;
+    if (!round || !canType) return;
     if (draft.length !== round.length) return;
-    // İlk harf kontrolü kullanıcıya bırakılmaz; backend zaten doğruluyor.
     guess(draft);
     setDraft("");
-  }, [round, myTurn, draft, guess]);
+    setLocked(true); // yanıt gelene kadar kilitle (arka arkaya tahmini önler)
+  }, [round, canType, draft, guess]);
 
   if (!connected && !state) {
     return <Centered>Bağlanılıyor…</Centered>;
@@ -179,7 +190,7 @@ export default function MatchGame({
               value={draft}
               onChange={(e) => onType(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && submit()}
-              disabled={!myTurn && !turnFree}
+              disabled={!canType}
               placeholder={
                 round.first_letter
                   ? `${round.first_letter} ile başla, ${round.length} harf`
@@ -190,7 +201,7 @@ export default function MatchGame({
               style={{
                 padding: "13px 16px",
                 borderRadius: 10,
-                border: myTurn ? "2px solid var(--tile-correct)" : "2px solid var(--tile-border)",
+                border: canType ? "2px solid var(--tile-correct)" : "2px solid var(--tile-border)",
                 background: "var(--bg-elevated)",
                 color: "var(--text-strong)",
                 fontSize: 20,
@@ -199,10 +210,10 @@ export default function MatchGame({
                 textAlign: "center",
                 letterSpacing: "0.2em",
                 textTransform: "uppercase",
-                opacity: !myTurn && !turnFree ? 0.5 : 1,
+                opacity: canType ? 1 : 0.5,
               }}
             />
-            <button onClick={submit} disabled={!myTurn || draft.length !== round.length} style={{ ...sendBtn, opacity: myTurn && draft.length === round.length ? 1 : 0.5 }}>
+            <button onClick={submit} disabled={!canType || draft.length !== round.length} style={{ ...sendBtn, opacity: canType && draft.length === round.length ? 1 : 0.5 }}>
               Gönder
             </button>
           </div>
