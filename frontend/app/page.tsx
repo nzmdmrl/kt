@@ -1,5 +1,6 @@
 import Logo from "@/components/Logo";
 import GridDemo from "@/components/GridDemo";
+import TopBar from "@/components/TopBar";
 import { getJSON } from "@/lib/api";
 
 type Health = {
@@ -20,17 +21,19 @@ export default async function Home() {
   const health = await fetchHealth();
 
   return (
-    <main
-      style={{
-        flex: 1,
-        maxWidth: 720,
-        width: "100%",
-        margin: "0 auto",
-        padding: "32px 20px 64px",
-        display: "grid",
-        gap: 40,
-      }}
-    >
+    <>
+      <TopBar />
+      <main
+        style={{
+          flex: 1,
+          maxWidth: 720,
+          width: "100%",
+          margin: "0 auto",
+          padding: "20px 20px 64px",
+          display: "grid",
+          gap: 40,
+        }}
+      >
       {/* Başlık */}
       <header style={{ display: "grid", gap: 20, justifyItems: "center", textAlign: "center" }}>
         <Logo size={52} />
@@ -124,7 +127,7 @@ export default async function Home() {
         </h2>
         <p style={{ color: "var(--text-dim)", fontSize: 14, marginBottom: 18 }}>
           Türkçe harf duyarlı motor çalışıyor. Bir kelime yaz, renkleri gör.
-          Gerçek karşılıklı maç bir sonraki fazda geliyor.
+          Gerçek karşılıklı maç hazır — üstten \"Oynamaya Başla\".
         </p>
         <GridDemo />
       </section>
@@ -140,6 +143,7 @@ export default async function Home() {
       >
         Kelime Tahmin · kelimetahmin.com — kurulum aşamasında
       </footer>
-    </main>
+      </main>
+    </>
   );
 }

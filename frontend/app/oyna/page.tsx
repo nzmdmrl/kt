@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { apiUrl } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 import Logo from "@/components/Logo";
 import MatchGame from "@/components/MatchGame";
 
-// Basit anonim oyuncu kimliği (Faz 3'te gerçek auth gelecek).
-function getPlayerId(): string {
+// Giriş yapmayan ziyaretçiler için anonim kimlik.
+function getAnonId(): string {
   if (typeof window === "undefined") return "";
   let id = localStorage.getItem("kt_player_id");
   if (!id) {
@@ -17,6 +18,7 @@ function getPlayerId(): string {
 }
 
 export default function OynaPage() {
+  const { user } = useAuth();
   const [playerId, setPlayerId] = useState("");
   const [name, setName] = useState("");
   const [code, setCode] = useState<string | null>(null);
@@ -25,14 +27,20 @@ export default function OynaPage() {
   const [err, setErr] = useState("");
 
   useEffect(() => {
-    setPlayerId(getPlayerId());
-    const savedName = localStorage.getItem("kt_name") || "";
-    setName(savedName);
-  }, []);
+    if (user) {
+      // Giriş yapan: gerçek hesap kimliği ve adı
+      setPlayerId(`u${user.id}`);
+      setName(user.display_name);
+    } else {
+      setPlayerId(getAnonId());
+      const savedName = localStorage.getItem("kt_name") || "";
+      setName(savedName);
+    }
+  }, [user]);
 
   function saveName(n: string) {
     setName(n);
-    localStorage.setItem("kt_name", n);
+    if (!user) localStorage.setItem("kt_name", n);
   }
 
   async function createRoom() {
@@ -88,16 +96,24 @@ export default function OynaPage() {
         </div>
 
         <div style={{ width: "100%", maxWidth: 360, display: "grid", gap: 16 }}>
-          <div>
-            <label style={labelStyle}>Görünen adın</label>
-            <input
-              value={name}
-              onChange={(e) => saveName(e.target.value)}
-              placeholder="Adın"
-              maxLength={24}
-              style={inputStyle}
-            />
-          </div>
+          {!user && (
+            <div>
+              <label style={labelStyle}>Görünen adın</label>
+              <input
+                value={name}
+                onChange={(e) => saveName(e.target.value)}
+                placeholder="Adın"
+                maxLength={24}
+                style={inputStyle}
+              />
+            </div>
+          )}
+          {user && (
+            <div style={{ fontSize: 14, color: "var(--text-soft)", textAlign: "center" }}>
+              <span style={{ color: "var(--accent)" }}>{user.display_name}</span> olarak oynuyorsun ·
+              ELO {user.elo}
+            </div>
+          )}
 
           <button onClick={createRoom} disabled={busy} style={primaryBtn}>
             {busy ? "Oluşturuluyor…" : "Yeni Oda Kur"}

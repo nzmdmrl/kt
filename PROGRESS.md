@@ -49,7 +49,7 @@ Oyun varsayılan kolay+orta havuzdan seçer.
 ## Fazlar
 - [x] **Faz 1** — İskelet + kelime motoru + kelime havuzu + Docker/Compose + frontend iskeleti
 - [x] **Faz 2** — WebSocket maç: paylaşımlı ızgara + buzzer + sıra + 3 tur + puanlama + hız bonusu + 0-0 önleme
-- [ ] **Faz 3** — Auth (Google OAuth + e-posta/şifre) + kullanıcı profili temel
+- [x] **Faz 3** — Auth (Google OAuth + e-posta/şifre) + kullanıcı profili temel
 - [ ] **Faz 4** — Matchmaking + 100 bot (ELO'lu, davranış simülasyonu) + solo mod + VS ekranı
 - [ ] **Faz 5** — Lig (günlük/aylık/yıllık/tüm zamanlar) + scheduler + kupa/madalya
 - [ ] **Faz 6** — Rozet + detaylı profil + istatistik + ısı haritası
@@ -93,3 +93,57 @@ NEXT_PUBLIC_API_BASE'in doğru olduğunu kontrol et.
 - Şu an oyuncu kimliği anonim (localStorage). Faz 3'te gerçek hesaba bağlanacak;
   `player_id` yerine kullanıcı id'si kullanılacak, oyna sayfası auth'a bağlanacak.
 - Redis (REDIS_URL) hazır ama Faz 2'de kullanılmadı; Faz 3+ session/matchmaking'de devreye girecek.
+
+## SONRA DÜZELTİLECEK — kullanıcı geri bildirimleri (Faz 4/tasarım cilası)
+Nazım'ın canlı testte gözlemleri (Faz 2 sonrası):
+1. **İlk harf girişi kafa karıştırıyor.** Sistem ilk harfi otomatik koyup kalan
+   harfleri istiyor; kullanıcı alışkanlıkla ilk harfi de yazınca çakışıyor
+   ("KKUŞ"). Çözüm: Wordle gibi TAM kelimeyi yazdır (ilk harf dahil), sistem
+   ilk harf doğruluğunu kontrol etsin — ilk kutu sadece görsel ipucu kalsın.
+   MatchGame.tsx onType/submit ve Grid.tsx DraftLine bu mantığa göre elden geçecek.
+2. **Sıra göstergesi zayıf.** "Sıra sende / rakipte" ayrımı yeterince net değil;
+   tek tarayıcıda test ederken karışıyor. ScoreBar + MatchGame'de sıra durumu
+   çok daha belirgin (büyük, renkli, animasyonlu) olmalı.
+   → İkisi de Faz 4'te BOTLA gerçek koşulda test edilip düzeltilecek (kullanıcı
+     botla oynarken daha iyi değerlendireceğini söyledi).
+
+## Faz 3'te eklenenler (TAMAMLANDI)
+Backend:
+- `core/database.py` — async SQLAlchemy engine/session; init_models() startup'ta
+  create_all yapar (deploy'da migration komutu GEREKMEZ). pool_pre_ping açık.
+- `models/user.py` — User tablosu: email/username/password_hash/google_sub,
+  display_name/avatar, elo(1000), istatistikler (matches/wins/losses/draws/
+  words_solved/total_score), solo istatistikleri, created_at. to_public/to_private.
+- `core/security.py` — ÖNEMLİ: passlib DEĞİL, doğrudan `bcrypt` (passlib güncel
+  bcrypt ile uyumsuz). Şifre SHA-256+base64 ile 72-byte sınırına indirgeniyor. JWT (30 gün).
+- `core/auth_service.py` — register_email/login_email/get_or_create_google_user,
+  benzersiz username üretimi.
+- `core/deps.py` — get_current_user / get_optional_user (Bearer token).
+- `api/routes/auth.py` — POST register/login/google, GET me, GET google/status.
+- `main.py` — auth router + startup event (DB init, 10 kez retry; DB gelmezse
+  uygulama düşmez, DB'siz uçlar çalışır).
+- requirements.txt: passlib ÇIKTI, bcrypt==4.2.1 GİRDİ.
+
+Frontend:
+- `lib/auth.tsx` — AuthProvider/useAuth: token localStorage (kt_token), /me ile
+  restore, register/login/loginGoogle/logout.
+- `components/Providers.tsx` — client wrapper; layout.tsx'e eklendi.
+- `components/TopBar.tsx` — giriş durumu (kullanıcı adı+ELO / Giriş-Kayıt); ana sayfada.
+- `app/giris/page.tsx` — giriş/kayıt sekmeli form; Google butonu google/status'a göre
+  (şu an sadece "yakında" notu — Google JS SDK entegrasyonu key girilince tamamlanacak).
+- `app/oyna/page.tsx` — giriş yapan `u{id}` + display_name ile oynar; anonim fallback korunur.
+
+### Google OAuth durumu
+Backend HAZIR (id_token doğrulama tokeninfo ile). Frontend'de Google Sign-In JS SDK
+butonu henüz BAĞLANMADI — GOOGLE_CLIENT_ID girilince eklenecek (Faz 10 admin veya
+key girildiğinde). Şu an e-posta/şifre tam çalışıyor.
+
+## Faz 4 için notlar (sonraki oturum)
+- Matchmaking: Redis kuyruğu, ELO'ya yakın eşleşme. 15 sn insan yoksa bot.
+- 100 bot: dile bağlı isim+avatar üretici, ELO'lu, davranış simülasyonu
+  (ELO×kelime zorluğu → bilme olasılığı, düşünme gecikmesi 2-8sn).
+- VS ekranı: iki oyuncu yan yana (avatar, ELO, W/L, son maçlar), sonra maçta küçülür.
+- Solo mod (skorlar lige değil profile solo panele).
+- Maç bitince istatistik güncelle (matches_played, wins/losses, elo değişimi, words_solved).
+  → users tablosu Faz 3'te hazır; Faz 4 maç sonucunu buraya yazacak.
+- BURADA "sonra düzeltilecek" UX notlarını (ilk harf girişi + sıra göstergesi) BOTLA test edip düzelt.
