@@ -267,3 +267,8 @@ JS toUpperCase() Türkçe bilmez, küçük "i" -> "I" yapıyordu (İngilizce kur
 MatchGame kelime girişi + ScoreBar/VsScreen isim baş harfi bunu kullanıyor.
 Backend normalize() zaten doğruydu (mazi->MAZİ), sadece frontend hatalıydı.
 Test: mazi->MAZİ, ışık->IŞIK doğru ayrılıyor.
+
+## Faz 4 UX v8 (tur arası geri sayım)
+- Tur bitince (round_over) frontend 10sn geri sayım başlatır (REVEAL_SECONDS).
+- Banner altında çizgi + "sonraki tur: Xs" gösterilir (doğru cevabı görürken
+  ne kadar bekleneceği belli olur). Yeni tur başlayınca sıfırlanır.

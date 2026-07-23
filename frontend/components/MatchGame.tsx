@@ -28,6 +28,7 @@ export default function MatchGame({
   );
   const [draft, setDraft] = useState("");
   const [locked, setLocked] = useState(false); // tahmin gönderildi, yanıt bekleniyor
+  const [nextRoundIn, setNextRoundIn] = useState(0); // tur arası geri sayım (sn)
 
   const round = state?.round ?? null;
   const myTurn = round?.turn_player_id === playerId;
@@ -36,6 +37,26 @@ export default function MatchGame({
 
   // Yazabilir miyim? Sıra bende VEYA sıra boş (ilk kapan) ise. Kilitliyse hayır.
   const canType = !locked && phase === "round_active" && (myTurn || turnFree);
+
+  // Tur bitince (round_over) 10 saniyelik "sonraki tur" geri sayımını başlat.
+  const REVEAL_SECONDS = 10;
+  useEffect(() => {
+    if (lastEvent?.type === "round_over") {
+      setNextRoundIn(REVEAL_SECONDS);
+    }
+  }, [lastEvent]);
+
+  // Geri sayımı saniyede bir azalt.
+  useEffect(() => {
+    if (nextRoundIn <= 0) return;
+    const t = setTimeout(() => setNextRoundIn((n) => Math.max(0, n - 1)), 1000);
+    return () => clearTimeout(t);
+  }, [nextRoundIn]);
+
+  // Yeni tur başlayınca geri sayımı sıfırla.
+  useEffect(() => {
+    setNextRoundIn(0);
+  }, [state?.round_index]);
 
   // Tur/sıra değişince taslağı ve kilidi temizle.
   useEffect(() => {
@@ -187,6 +208,25 @@ export default function MatchGame({
       >
         {turnBanner.text}
       </div>
+
+      {/* Tur bitti — sonraki tura kadar geri sayım çizgisi */}
+      {roundFinished && nextRoundIn > 0 && (
+        <div style={{ display: "grid", gap: 5 }}>
+          <div style={{ height: 8, borderRadius: 4, background: "var(--bg-elevated)", overflow: "hidden" }}>
+            <div
+              style={{
+                height: "100%",
+                width: `${(nextRoundIn / REVEAL_SECONDS) * 100}%`,
+                background: "var(--accent)",
+                transition: "width 1s linear",
+              }}
+            />
+          </div>
+          <div style={{ textAlign: "center", fontSize: 13, color: "var(--text-soft)" }}>
+            sonraki tur: <strong style={{ color: "var(--accent)" }}>{nextRoundIn}s</strong>
+          </div>
+        </div>
+      )}
 
       {/* İnce bildirim satırı */}
       <div style={{ minHeight: 18, textAlign: "center" }}>
