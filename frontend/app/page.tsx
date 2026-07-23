@@ -46,18 +46,22 @@ export default async function Home() {
             ligde yarış, kupa ve rozet kazan.
           </p>
         </div>
-        <span
+        <a
+          href="/oyna"
           style={{
-            fontSize: 13,
-            color: "var(--accent)",
-            border: "1px solid var(--border-soft)",
-            background: "var(--accent-glow)",
-            padding: "6px 14px",
-            borderRadius: 999,
+            display: "inline-block",
+            padding: "14px 32px",
+            background: "var(--accent)",
+            color: "#1a1330",
+            borderRadius: 12,
+            fontWeight: 700,
+            fontSize: 18,
+            fontFamily: "var(--font-display)",
+            boxShadow: "0 8px 28px var(--accent-glow)",
           }}
         >
-          Faz 1 · Çekirdek kuruldu
-        </span>
+          Oynamaya Başla →
+        </a>
       </header>
 
       {/* Sistem durumu */}

@@ -12,7 +12,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
-from app.api.routes import health, words
+from app.api.routes import health, words, room, match
 
 settings = get_settings()
 
@@ -35,6 +35,8 @@ app.add_middleware(
 # Rotalar — hepsi /api altında toplanır (Coolify'da yönlendirme kolay olsun).
 app.include_router(health.router, prefix="/api")
 app.include_router(words.router, prefix="/api")
+app.include_router(room.router, prefix="/api")
+app.include_router(match.router, prefix="/api")  # WebSocket: /api/ws/match/{code}
 
 
 @app.get("/")
