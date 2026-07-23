@@ -1,0 +1,74 @@
+# Kelime Tahmin — tek Compose ile tüm servisler.
+# Coolify'da "Docker Compose" tipi resource olarak bağlanır.
+# Gizli değerler Coolify'ın Environment Variables panelinden girilir.
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-kelime}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-kelime}
+      POSTGRES_DB: ${POSTGRES_DB:-kelimetahmin}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-kelime}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      APP_NAME: ${APP_NAME:-Kelime Tahmin}
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+      DEFAULT_LANG: ${DEFAULT_LANG:-tr}
+      GAME_LANG: ${GAME_LANG:-tr}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-kelime}:${POSTGRES_PASSWORD:-kelime}@db:5432/${POSTGRES_DB:-kelimetahmin}
+      REDIS_URL: redis://redis:6379/0
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-*}
+      JWT_SECRET: ${JWT_SECRET:-degistir-beni}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    # Coolify domaini bu servise (veya frontend'e) yönlendirir.
+    # Backend uçları /api altında; WebSocket /api/ws (Faz 2).
+    expose:
+      - "8000"
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_BASE: ${NEXT_PUBLIC_API_BASE:-}
+    restart: unless-stopped
+    depends_on:
+      - backend
+    expose:
+      - "3000"
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+
+volumes:
+  db_data:
+  redis_data:

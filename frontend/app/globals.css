@@ -1,0 +1,66 @@
+:root {
+  /* Arena paleti — derin gece zemini + amber enerji + grid renkleri */
+  --bg-deep: #0e0b1e;          /* en derin zemin */
+  --bg-panel: #171331;         /* panel/kart zemini */
+  --bg-elevated: #211a45;      /* yükseltilmiş yüzey */
+  --border-soft: #2e2657;      /* ince ayraç */
+
+  --text-strong: #f5f3ff;      /* ana metin */
+  --text-soft: #b4acd8;        /* ikincil metin */
+  --text-dim: #7a719e;         /* soluk/etiket */
+
+  --accent: #ffb020;           /* amber vurgu — enerji, kupa, CTA */
+  --accent-hot: #ff7a45;       /* sıcak turuncu — buzzer/aksiyon */
+  --accent-glow: rgba(255, 176, 32, 0.25);
+
+  /* Grid renkleri (Wordle mantığı) */
+  --tile-correct: #3aa76d;     /* yeşil — doğru yer */
+  --tile-present: #d8a72e;     /* sarı — yanlış yer */
+  --tile-absent: #322c52;      /* gri — yok */
+  --tile-empty: #1c1740;       /* boş kutu */
+  --tile-border: #38316b;
+
+  --radius: 14px;
+  --radius-sm: 9px;
+  --shadow-soft: 0 10px 40px rgba(0, 0, 0, 0.45);
+
+  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background:
+    radial-gradient(1200px 600px at 50% -10%, #241a4d 0%, transparent 60%),
+    var(--bg-deep);
+  color: var(--text-strong);
+  font-family: var(--font-body);
+  min-height: 100%;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+a { color: inherit; text-decoration: none; }
+
+/* Erişilebilirlik: klavye odağı görünür kalsın */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Hareket azaltma tercihine saygı */
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+
+.brand-mono {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}

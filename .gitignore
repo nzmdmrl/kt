@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Node / Next
+node_modules/
+.next/
+out/
+npm-debug.log*
+
+# Ortam
+.env
+.env.local
+
+# Ham indirilen kaynaklar (havuzlar zaten data/ içinde hazır)
+backend/app/words/raw_tr_words.txt
+backend/app/words/raw_tr_freq.txt
+
+# Sistem
+.DS_Store
