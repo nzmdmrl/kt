@@ -69,7 +69,9 @@ class BotController:
     async def _consider_turn(self, match, r) -> None:
         """Sıra boşken bot buzzer'a basmalı mı, ne zaman?"""
         # Düşünme süresi kadar bekle (bu sırada rakip önce basabilir).
-        delay = bot_engine.think_delay(self.elo)
+        # Tabana ek süre: insan oyuncuya kelimeyi yazması için makul alan bırakılır;
+        # bot tur başında hemen dalmaz.
+        delay = bot_engine.think_delay(self.elo) + random.uniform(2.5, 5.0)
         waited = 0.0
         step = 0.3
         while waited < delay:

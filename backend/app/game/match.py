@@ -111,6 +111,12 @@ class Match:
         from app.game.word_engine import is_valid_word_shape
         if not is_valid_word_shape(g, r.length):
             raise MatchError("Geçerli bir kelime yaz (sadece harfler).")
+        # Bu kelime daha önce denendiyse (kim denerse denesin) tekrar kabul edilmez.
+        already_tried = {
+            "".join(t.letter for t in row.tiles) for row in r.rows
+        }
+        if g in already_tried:
+            raise MatchError("Bu kelime zaten denendi.")
 
         # Değerlendir
         letter_results = evaluate_guess(g, r.target)

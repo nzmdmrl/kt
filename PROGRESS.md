@@ -233,3 +233,14 @@ Frontend:
    harf harf (0.22s stagger). RevealLine de animasyonlu.
 6. ✅ Tempo: handle_guess'te tahmin sonrası 1.6sn duraklama (harfler görünsün);
    bot yazma gecikmesi 0.8-1.8 → 1.8-3.2sn (bot çok hızlı geçmesin).
+
+## Faz 4 UX DÜZELTMELERİ v5 (Nazım ekran görüntülü test)
+1. ✅ Aynı kelime tekrar denenemez (match.py): r.rows'daki denenmiş kelimeler
+   kontrol edilir, "Bu kelime zaten denendi" hatası. (Resimde UMMA iki kez vardı.)
+2. ✅ Bot temposu: _consider_turn'de think_delay + 2.5-5.0sn taban eklendi.
+   Bot artık tur başında hemen dalmaz, insana yazma alanı bırakır.
+3. ✅ Banner sonuç durumu (MatchGame): tur bitince solved_by'a göre:
+   "🎉 DOĞRU! Bildin!" (yeşil) / "Rakip bildi" (turuncu) / "Kimse bilemedi" (gri).
+   Artık kazanınca "sıra sende" yazmıyor; kazanan farklı renkte.
+4. ✅ Uygunsuz kelime temizliği: app/words/blacklist.py; havuzlardan KALTAK vb.
+   küfür/argo çıkarıldı (4h:-3, 5h:-6, 6h:-6). Admin (Faz 10) genişletecek.

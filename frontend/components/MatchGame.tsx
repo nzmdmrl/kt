@@ -143,12 +143,26 @@ export default function MatchGame({
     );
   }
 
-  // Aktif oyun — GÜÇLÜ sıra göstergesi
-  const turnBanner = myTurn
-    ? { text: "▶ SIRA SENDE — kelimeyi yaz!", bg: "var(--tile-correct)", color: "#fff" }
-    : turnFree
-    ? { text: "İLK YAZAN BAŞLAR!", bg: "var(--accent)", color: "#1a1330" }
-    : { text: "⏳ RAKİBİN SIRASI — bekle", bg: "var(--bg-elevated)", color: "var(--text-soft)" };
+  // Banner: tur bittiyse sonuç, sürerken sıra durumu.
+  const roundFinished = round?.finished;
+  const solvedBy = round?.solved_by;
+  let turnBanner: { text: string; bg: string; color: string };
+
+  if (roundFinished) {
+    if (solvedBy === playerId) {
+      turnBanner = { text: "🎉 DOĞRU! Bildin!", bg: "var(--tile-correct)", color: "#fff" };
+    } else if (solvedBy) {
+      turnBanner = { text: "Rakip bildi", bg: "var(--accent-hot)", color: "#fff" };
+    } else {
+      turnBanner = { text: "Kimse bilemedi", bg: "var(--bg-elevated)", color: "var(--text-soft)" };
+    }
+  } else if (myTurn) {
+    turnBanner = { text: "▶ SIRA SENDE — kelimeyi yaz!", bg: "var(--tile-correct)", color: "#fff" };
+  } else if (turnFree) {
+    turnBanner = { text: "İLK YAZAN BAŞLAR!", bg: "var(--accent)", color: "#1a1330" };
+  } else {
+    turnBanner = { text: "⏳ RAKİBİN SIRASI — bekle", bg: "var(--bg-elevated)", color: "var(--text-soft)" };
+  }
 
   return (
     <div style={{ display: "grid", gap: 14 }}>
@@ -167,7 +181,7 @@ export default function MatchGame({
           fontSize: 17,
           letterSpacing: "0.05em",
           transition: "all .2s",
-          boxShadow: myTurn ? "0 0 24px rgba(58,167,109,.35)" : "none",
+          boxShadow: (myTurn && !roundFinished) || (roundFinished && solvedBy === playerId) ? "0 0 24px rgba(58,167,109,.35)" : "none",
         }}
       >
         {turnBanner.text}
