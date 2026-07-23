@@ -285,3 +285,10 @@ onType artık sadece harf kaydeder (emniyet buzzer'ı korunur).
 ses tanıma (Web Speech API, TR; fallback Whisper) -> oluşan kelime kutucuklara yazılır.
 Not: Faz 7'de planlı. Nazım isterse Faz 5 (lig) yerine öne alınabilir.
 Teknik dikkat: tarayıcı mikrofon izni, TR ses tanıma doğruluğu, mobil uyumu, WebView izni.
+
+## Faz 4 UX v10 (autoFocus kaldırıldı — ilk tur kutu seçili gelmiyor)
+Sorun: autoFocus yüzünden (1) oyun başında input otomatik seçili geliyordu
+(kim tıklarsa söz hakkı ona geçmeli), (2) ilk harf düşüp ikinci harfte aktif oluyordu.
+Çözüm: autoFocus kaldırıldı. hasFocus state + onFocus/onBlur eklendi. Kullanıcı
+input'a TIKLAYINCA buzzer alınır (söz hakkı geçer). writeBlocked'a hasFocus istisnası:
+focus varken input açık kalır, ilk harf düşmez. Tur/sıra değişince hasFocus sıfırlanır.

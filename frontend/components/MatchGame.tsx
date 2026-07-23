@@ -29,6 +29,7 @@ export default function MatchGame({
   const [draft, setDraft] = useState("");
   const [locked, setLocked] = useState(false); // tahmin gönderildi, yanıt bekleniyor
   const [nextRoundIn, setNextRoundIn] = useState(0); // tur arası geri sayım (sn)
+  const [hasFocus, setHasFocus] = useState(false); // input'ta focus var mı
 
   const round = state?.round ?? null;
   const myTurn = round?.turn_player_id === playerId;
@@ -36,7 +37,12 @@ export default function MatchGame({
   const phase = state?.phase;
 
   // Yazma engelli mi? (input disabled) — kilitli, tur pasif, veya kesin rakip sırası.
-  const writeBlocked = locked || phase !== "round_active" || (!myTurn && !turnFree);
+  // Focus varken (kullanıcı yazıyor) ve tur bitmemişse input açık tutulur ki
+  // buzzer alınırken oluşan kısa state gecikmesinde harf düşmesin.
+  const writeBlocked =
+    locked ||
+    phase !== "round_active" ||
+    (!myTurn && !turnFree && !hasFocus);
 
   // Tur bitince (round_over) 10 saniyelik "sonraki tur" geri sayımını başlat.
   const REVEAL_SECONDS = 10;
@@ -58,10 +64,11 @@ export default function MatchGame({
     setNextRoundIn(0);
   }, [state?.round_index]);
 
-  // Tur/sıra değişince taslağı ve kilidi temizle.
+  // Tur/sıra değişince taslağı, kilidi ve focus'u temizle.
   useEffect(() => {
     setDraft("");
     setLocked(false);
+    setHasFocus(false);
   }, [state?.round_index, round?.turn_player_id]);
 
   // Tahmin sonucu gelince kilidi çöz (yeni sıra durumuna göre input yeniden değerlenir).
@@ -74,6 +81,7 @@ export default function MatchGame({
   // Input'a odaklanınca (tıklayınca) sıra boşsa hemen buzzer al — böylece
   // yazmaya başlamadan sıra alınır ve harfler buzzer tetiklemesiyle çakışıp düşmez.
   const onFocus = useCallback(() => {
+    setHasFocus(true);
     if (round && phase === "round_active" && turnFree && !locked) {
       buzzer();
     }
@@ -257,6 +265,7 @@ export default function MatchGame({
               value={draft}
               onChange={(e) => onType(e.target.value)}
               onFocus={onFocus}
+              onBlur={() => setHasFocus(false)}
               onKeyDown={(e) => e.key === "Enter" && submit()}
               disabled={writeBlocked}
               placeholder={
@@ -265,7 +274,6 @@ export default function MatchGame({
                   : `${round.length} harf`
               }
               maxLength={round.length}
-              autoFocus
               style={{
                 padding: "13px 16px",
                 borderRadius: 10,
