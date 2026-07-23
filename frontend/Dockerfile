@@ -9,7 +9,7 @@ FROM node:20-slim AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-# API adresi build zamanında gömülür (NEXT_PUBLIC_*). Coolify build arg olarak geçer.
+RUN mkdir -p public
 ARG NEXT_PUBLIC_API_BASE=""
 ENV NEXT_PUBLIC_API_BASE=$NEXT_PUBLIC_API_BASE
 RUN npm run build
