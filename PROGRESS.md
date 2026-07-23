@@ -244,3 +244,18 @@ Frontend:
    Artık kazanınca "sıra sende" yazmıyor; kazanan farklı renkte.
 4. ✅ Uygunsuz kelime temizliği: app/words/blacklist.py; havuzlardan KALTAK vb.
    küfür/argo çıkarıldı (4h:-3, 5h:-6, 6h:-6). Admin (Faz 10) genişletecek.
+
+## Faz 4 UX DÜZELTMELERİ v6 (bot controller yeniden yazıldı — KRİTİK)
+Sorun: v5'te "aynı tahmin engeli" ve "bot tempo" eklendiği halde bot HÂLÂ
+insanla aynı anda/hemen tahmin yapıyordu. Kök neden bulundu (bot_controller.py):
+  - _acted_this_round yanlış tahmin sonrası discard ediliyordu -> bot aynı turda
+    hemen tekrar deneyebiliyordu.
+  - Sıra bota geçince gecikmesiz _make_guess çağrılıyordu -> bot anında oynuyordu.
+Çözüm: bot_controller.py TAMAMEN yeniden yazıldı (v6):
+  - _busy flag: paralel hamle imkansız (aynı anda iki tahmin olamaz).
+  - Sıra insanda ise bot HİÇBİR ŞEY yapmaz (araya girmez).
+  - Sıra boşsa _consider_open_turn: think_delay + 3-6sn taban (insana öncelik).
+  - Sıra bota geçince _take_my_turn: 2-3.5sn yazma gecikmesi (ani değil).
+  - _guess_now: denenmiş kelimeyi tekrar seçmez (8 deneme).
+Test: insan yanlış -> bot ~2.6sn sonra oynadı (ani değil); bot spam yapmadı.
+Not: İ/I ayrımı korunuyor (Türkçede farklı harfler); PİPİ≠PIPI teknik olarak doğru.
