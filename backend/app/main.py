@@ -23,15 +23,28 @@ app = FastAPI(
     description="Türkçe karşılıklı kelime tahmin oyunu — API",
 )
 
-# CORS — frontend ayrı origin'de çalışır.
-origins = ["*"] if settings.FRONTEND_ORIGIN == "*" else [settings.FRONTEND_ORIGIN]
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# CORS — frontend ayrı origin'de (www.kelimetahmin.com) çalışır.
+# FRONTEND_ORIGIN birden fazla origin içerebilir (virgülle ayrılmış).
+# Not: allow_credentials=True ile "*" birlikte KULLANILAMAZ (tarayıcı reddeder);
+# o durumda regex ile tüm origin'lere izin verilir.
+raw_origins = [o.strip() for o in settings.FRONTEND_ORIGIN.split(",") if o.strip()]
+if not raw_origins or "*" in raw_origins:
+    # Herhangi bir origin'e credentials ile izin ver (allow_origin_regex ile).
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origin_regex=".*",
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+else:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=raw_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 # Rotalar — hepsi /api altında toplanır (Coolify'da yönlendirme kolay olsun).
 app.include_router(health.router, prefix="/api")
