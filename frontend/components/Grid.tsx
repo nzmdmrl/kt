@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { RoundPublic, PublicPlayer } from "@/lib/useMatch";
+import { toUpperTr } from "@/lib/turkish";
 
 const TILE: Record<string, string> = {
   correct: "var(--tile-correct)",

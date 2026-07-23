@@ -1,6 +1,7 @@
 "use client";
 
 import { MatchState } from "@/lib/useMatch";
+import { toUpperTr } from "@/lib/turkish";
 
 export default function ScoreBar({
   state,
@@ -137,7 +138,7 @@ function PlayerChip({
           // eslint-disable-next-line @next/next/no-img-element
           <img src={player.avatar_url} alt="" width={44} height={44} />
         ) : (
-          player.name.charAt(0).toUpperCase()
+          toUpperTr(player.name.charAt(0))
         )}
       </div>
       <div style={{ textAlign: right ? "right" : "left", minWidth: 0 }}>

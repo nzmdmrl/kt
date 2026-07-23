@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useMatch } from "@/lib/useMatch";
+import { toUpperTr } from "@/lib/turkish";
 import Grid from "./Grid";
 import ScoreBar from "./ScoreBar";
 
@@ -54,7 +55,7 @@ export default function MatchGame({
   const onType = useCallback(
     (value: string) => {
       if (!round || !canType) return;
-      const clean = value.toUpperCase().replace(/[^A-ZÇĞİÖŞÜI]/g, "").slice(0, round.length);
+      const clean = toUpperTr(value).replace(/[^A-ZÇĞİÖŞÜI]/g, "").slice(0, round.length);
       setDraft(clean);
       // Sıra boşsa ve ilk harf yazıldıysa buzzer al (sırayı kap).
       if (turnFree && clean.length > 0) buzzer();

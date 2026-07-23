@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { toUpperTr } from "@/lib/turkish";
 
 type VsPlayer = {
   name: string;
@@ -117,7 +118,7 @@ function PlayerCard({ player, side }: { player: VsPlayer; side: "left" | "right"
           <img src={player.avatar_url} alt="" width={64} height={64} />
         ) : (
           <span className="brand-mono" style={{ fontSize: 28, color: "var(--accent)" }}>
-            {player.name.charAt(0).toUpperCase()}
+            {toUpperTr(player.name.charAt(0))}
           </span>
         )}
       </div>

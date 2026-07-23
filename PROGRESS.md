@@ -259,3 +259,11 @@ insanla aynı anda/hemen tahmin yapıyordu. Kök neden bulundu (bot_controller.p
   - _guess_now: denenmiş kelimeyi tekrar seçmez (8 deneme).
 Test: insan yanlış -> bot ~2.6sn sonra oynadı (ani değil); bot spam yapmadı.
 Not: İ/I ayrımı korunuyor (Türkçede farklı harfler); PİPİ≠PIPI teknik olarak doğru.
+
+## Faz 4 UX DÜZELTMESİ v7 (Türkçe İ/I büyük harf bug)
+Sorun: İ (noktalı) harfine basınca I (noktasız) giriyordu. Kök neden: frontend'de
+JS toUpperCase() Türkçe bilmez, küçük "i" -> "I" yapıyordu (İngilizce kuralı).
+Çözüm: lib/turkish.ts -> toUpperTr() (i->İ, ı->I, ş/ğ/ü/ö/ç doğru).
+MatchGame kelime girişi + ScoreBar/VsScreen isim baş harfi bunu kullanıyor.
+Backend normalize() zaten doğruydu (mazi->MAZİ), sadece frontend hatalıydı.
+Test: mazi->MAZİ, ışık->IŞIK doğru ayrılıyor.
