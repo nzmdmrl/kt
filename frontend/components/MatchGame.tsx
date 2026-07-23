@@ -9,15 +9,21 @@ export default function MatchGame({
   code,
   playerId,
   name,
+  bot,
+  botElo,
 }: {
   code: string;
   playerId: string;
   name: string;
+  bot?: boolean;
+  botElo?: number;
 }) {
   const { connected, state, lastEvent, error, flash, buzzer, guess } = useMatch(
     code,
     playerId,
-    name
+    name,
+    bot,
+    botElo
   );
   const [draft, setDraft] = useState("");
 
@@ -26,33 +32,30 @@ export default function MatchGame({
   const turnFree = round?.turn_player_id == null;
   const phase = state?.phase;
 
-  // Tur değişince taslağı temizle
   useEffect(() => {
     setDraft("");
   }, [state?.round_index, round?.turn_player_id]);
 
-  // Klavyeye yazmaya başlayınca otomatik buzzer al (sıra boşsa)
+  // Kullanıcı TAM kelimeyi yazar (ilk harf dahil). İlk harf ipucu olarak
+  // gösterilir ama kullanıcı onu da yazabilir — çakışma yok.
   const onType = useCallback(
     (value: string) => {
       if (phase !== "round_active" || !round) return;
-      // Sıra bende değilse ve boşsa -> ilk yazışta buzzer al
-      if (turnFree) {
-        buzzer();
-      }
-      if (!myTurn && !turnFree) return; // rakibin sırası, yazma
-      setDraft(value.toUpperCase());
+      // Sıra boşsa ilk tuşta buzzer al.
+      if (turnFree) buzzer();
+      if (!myTurn && !turnFree) return;
+      // Sadece harf, büyük harfe çevir, uzunlukla sınırla.
+      const clean = value.toUpperCase().replace(/[^A-ZÇĞİÖŞÜI]/g, "").slice(0, round.length);
+      setDraft(clean);
     },
     [phase, round, turnFree, myTurn, buzzer]
   );
 
   const submit = useCallback(() => {
     if (!round || !myTurn) return;
-    // İlk harf sabit; kullanıcı geri kalanı yazar. Tam kelimeyi oluştur.
-    const full = (round.first_letter + draft.replace(/^./, "").slice(0, round.length - 1))
-      .toUpperCase()
-      .slice(0, round.length);
-    if (full.length !== round.length) return;
-    guess(full);
+    if (draft.length !== round.length) return;
+    // İlk harf kontrolü kullanıcıya bırakılmaz; backend zaten doğruluyor.
+    guess(draft);
     setDraft("");
   }, [round, myTurn, draft, guess]);
 
@@ -60,7 +63,7 @@ export default function MatchGame({
     return <Centered>Bağlanılıyor…</Centered>;
   }
 
-  // Bekleme: ikinci oyuncu bekleniyor
+  // Bekleme
   if (!state || phase === "waiting" || state.players.length < 2) {
     return (
       <div style={{ display: "grid", gap: 18, justifyItems: "center" }}>
@@ -86,9 +89,6 @@ export default function MatchGame({
           >
             {code}
           </div>
-          <p style={{ color: "var(--text-dim)", fontSize: 13 }}>
-            İkinci oyuncu aynı kodla girince maç başlar.
-          </p>
         </Centered>
       </div>
     );
@@ -126,95 +126,97 @@ export default function MatchGame({
           <p style={{ color: "var(--text-soft)", marginTop: 8 }}>
             {me?.name}: {me?.score} — {opp?.name}: {opp?.score}
           </p>
-          <a
-            href="/oyna"
-            style={{
-              display: "inline-block",
-              marginTop: 18,
-              padding: "12px 24px",
-              background: "var(--accent)",
-              color: "#1a1330",
-              borderRadius: 10,
-              fontWeight: 700,
-              fontFamily: "var(--font-display)",
-            }}
-          >
-            Yeni Maç
-          </a>
+          <a href="/oyna" style={newMatchBtn}>Yeni Maç</a>
         </div>
       </div>
     );
   }
 
-  // Aktif oyun
+  // Aktif oyun — GÜÇLÜ sıra göstergesi
+  const turnBanner = myTurn
+    ? { text: "SIRA SENDE", bg: "var(--tile-correct)", color: "#fff" }
+    : turnFree
+    ? { text: "İLK YAZAN KAPAR!", bg: "var(--accent)", color: "#1a1330" }
+    : { text: "RAKİBİN SIRASI", bg: "var(--bg-elevated)", color: "var(--text-soft)" };
+
   return (
-    <div style={{ display: "grid", gap: 16 }}>
+    <div style={{ display: "grid", gap: 14 }}>
       <ScoreBar state={state} myId={playerId} />
 
-      {/* Bildirimler */}
-      <div style={{ minHeight: 22, textAlign: "center" }}>
+      {/* Büyük, net sıra göstergesi */}
+      <div
+        style={{
+          textAlign: "center",
+          padding: "10px",
+          borderRadius: 10,
+          background: turnBanner.bg,
+          color: turnBanner.color,
+          fontFamily: "var(--font-display)",
+          fontWeight: 700,
+          fontSize: 17,
+          letterSpacing: "0.05em",
+          transition: "all .2s",
+          boxShadow: myTurn ? "0 0 24px rgba(58,167,109,.35)" : "none",
+        }}
+      >
+        {turnBanner.text}
+      </div>
+
+      {/* İnce bildirim satırı */}
+      <div style={{ minHeight: 18, textAlign: "center" }}>
         {error && <span style={{ color: "var(--accent-hot)", fontSize: 14 }}>{error}</span>}
-        {!error && flash && (
-          <span style={{ color: "var(--accent)", fontSize: 14 }}>{flash}</span>
-        )}
-        {!error && !flash && round && (
-          <span style={{ color: "var(--text-dim)", fontSize: 13 }}>
-            {myTurn
-              ? "Sıra sende — kelimeyi yaz ve gönder"
-              : turnFree
-              ? "İlk yazan başlar!"
-              : "Rakibin sırası…"}
-          </span>
-        )}
+        {!error && flash && <span style={{ color: "var(--accent)", fontSize: 14 }}>{flash}</span>}
       </div>
 
       {round && (
         <Grid round={round} players={state.players} myId={playerId} draft={draft} />
       )}
 
-      {/* Kontrol alanı */}
       {round && (
         <div style={{ display: "grid", gap: 10, justifyItems: "center" }}>
-          {turnFree && (
-            <button onClick={buzzer} style={buzzerStyle}>
-              Sırayı Kap
-            </button>
-          )}
           <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
             <input
-              value={draft.replace(/^./, "")}
-              onChange={(e) => onType(round.first_letter + e.target.value)}
+              value={draft}
+              onChange={(e) => onType(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && submit()}
               disabled={!myTurn && !turnFree}
-              placeholder={`${round.length - 1} harf daha`}
-              maxLength={round.length - 1}
+              placeholder={
+                round.first_letter
+                  ? `${round.first_letter} ile başla, ${round.length} harf`
+                  : `${round.length} harf`
+              }
+              maxLength={round.length}
               autoFocus
               style={{
-                padding: "12px 16px",
+                padding: "13px 16px",
                 borderRadius: 10,
-                border: myTurn ? "2px solid var(--accent)" : "2px solid var(--tile-border)",
+                border: myTurn ? "2px solid var(--tile-correct)" : "2px solid var(--tile-border)",
                 background: "var(--bg-elevated)",
                 color: "var(--text-strong)",
-                fontSize: 18,
+                fontSize: 20,
                 fontFamily: "var(--font-display)",
-                width: 180,
+                width: 220,
                 textAlign: "center",
-                letterSpacing: "0.15em",
+                letterSpacing: "0.2em",
+                textTransform: "uppercase",
                 opacity: !myTurn && !turnFree ? 0.5 : 1,
               }}
             />
-            <button onClick={submit} disabled={!myTurn} style={{ ...buzzerStyle, opacity: myTurn ? 1 : 0.5 }}>
+            <button onClick={submit} disabled={!myTurn || draft.length !== round.length} style={{ ...sendBtn, opacity: myTurn && draft.length === round.length ? 1 : 0.5 }}>
               Gönder
             </button>
           </div>
+          <p style={{ color: "var(--text-dim)", fontSize: 12 }}>
+            İpucu: kelime <strong style={{ color: "var(--accent)" }}>{round.first_letter}</strong> harfiyle başlıyor
+          </p>
         </div>
       )}
     </div>
   );
 }
 
-const buzzerStyle: React.CSSProperties = {
-  padding: "12px 26px",
+const sendBtn: React.CSSProperties = {
+  padding: "13px 24px",
   borderRadius: 10,
   border: "none",
   background: "var(--accent)",
@@ -225,16 +227,20 @@ const buzzerStyle: React.CSSProperties = {
   fontFamily: "var(--font-display)",
 };
 
+const newMatchBtn: React.CSSProperties = {
+  display: "inline-block",
+  marginTop: 18,
+  padding: "12px 24px",
+  background: "var(--accent)",
+  color: "#1a1330",
+  borderRadius: 10,
+  fontWeight: 700,
+  fontFamily: "var(--font-display)",
+};
+
 function Centered({ children }: { children: React.ReactNode }) {
   return (
-    <div
-      style={{
-        display: "grid",
-        placeItems: "center",
-        minHeight: 240,
-        color: "var(--text-soft)",
-      }}
-    >
+    <div style={{ display: "grid", placeItems: "center", minHeight: 240, color: "var(--text-soft)" }}>
       <div>{children}</div>
     </div>
   );

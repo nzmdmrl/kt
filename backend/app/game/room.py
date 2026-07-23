@@ -38,6 +38,17 @@ class Room:
         self.buzzer_lock = asyncio.Lock()
         self._timer_task: Optional[asyncio.Task] = None
         self._round_gap_task: Optional[asyncio.Task] = None
+        self._bot_controllers: list = []   # BotController listesi
+        self.on_match_over = None          # sonuç callback (istatistik/ELO — match_ws bağlar)
+
+    def add_bot(self, bot_id: str, name: str, elo: int, avatar_url: str | None = None,
+                lang: str = "tr") -> None:
+        """Odaya bot oyuncu ekler ve kontrolcüsünü hazırlar (maç başlayınca çalışır)."""
+        from app.game.bot_controller import BotController
+        p = Player(id=bot_id, name=name, is_bot=True)
+        p.avatar_url = avatar_url  # Player'da alan yoksa yoksayılır; to_public'e eklenecek
+        self.players[bot_id] = p
+        self._bot_controllers.append(BotController(self, bot_id, elo, lang))
 
     @property
     def is_full(self) -> bool:
@@ -66,6 +77,9 @@ class Room:
         players = list(self.players.values())
         self.match = Match(self.code, players)
         await self.broadcast({"type": "match_start", "state_players": [p.to_public() for p in players]})
+        # Bot kontrolcülerini başlat (varsa).
+        for bc in self._bot_controllers:
+            bc.start()
         await self._begin_round()
 
     async def _begin_round(self) -> None:
@@ -127,8 +141,17 @@ class Room:
     async def _end_match(self) -> None:
         assert self.match is not None
         result = self.match.result()
+        # Bot kontrolcülerini durdur.
+        for bc in self._bot_controllers:
+            bc.stop()
         await self.broadcast({"type": "match_over", "result": result,
                               "players": [p.to_public() for p in self.match.players.values()]})
+        # İstatistik/ELO güncelleme callback'i (match_ws bağlar).
+        if self.on_match_over:
+            try:
+                await self.on_match_over(self.match, result)
+            except Exception:
+                pass
 
     # ---- oyuncu olayları ----
     async def handle_buzzer(self, player_id: str) -> None:

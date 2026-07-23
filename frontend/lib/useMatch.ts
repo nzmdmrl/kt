@@ -50,7 +50,13 @@ export type ServerMessage = {
   [key: string]: any;
 };
 
-export function useMatch(code: string | null, playerId: string, name: string) {
+export function useMatch(
+  code: string | null,
+  playerId: string,
+  name: string,
+  bot?: boolean,
+  botElo?: number
+) {
   const [connected, setConnected] = useState(false);
   const [state, setState] = useState<MatchState | null>(null);
   const [lastEvent, setLastEvent] = useState<ServerMessage | null>(null);
@@ -60,9 +66,12 @@ export function useMatch(code: string | null, playerId: string, name: string) {
 
   useEffect(() => {
     if (!code) return;
-    const url = `${wsBase()}/api/ws/match/${code}?player_id=${encodeURIComponent(
+    let url = `${wsBase()}/api/ws/match/${code}?player_id=${encodeURIComponent(
       playerId
     )}&name=${encodeURIComponent(name)}`;
+    if (bot) {
+      url += `&bot=1&bot_elo=${botElo ?? 1000}`;
+    }
     const ws = new WebSocket(url);
     wsRef.current = ws;
 

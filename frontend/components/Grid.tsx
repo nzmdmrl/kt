@@ -105,38 +105,49 @@ function DraftLine({
   draft: string;
   active: boolean;
 }) {
-  // draft ilk harfi içermeyebilir; ilk kutu her zaman firstLetter.
-  const letters: string[] = [firstLetter];
-  const rest = draft.toUpperCase().replace(/^./, ""); // ilk harften sonrası
-  for (let i = 1; i < length; i++) {
-    letters.push(rest[i - 1] ?? "");
+  // draft artık TAM kelime (ilk harf dahil). Her kutuya sırayla harf koy.
+  // Boş kutularda ilk kutu firstLetter'ı soluk ipucu olarak gösterir.
+  const letters: string[] = [];
+  for (let i = 0; i < length; i++) {
+    if (i < draft.length) {
+      letters.push(draft[i]);
+    } else if (i === 0 && draft.length === 0) {
+      letters.push(firstLetter); // ipucu
+    } else {
+      letters.push("");
+    }
   }
   return (
     <div style={{ display: "flex", gap: 6 }}>
-      {letters.map((ch, i) => (
-        <span
-          key={i}
-          style={{
-            width: 50,
-            height: 50,
-            display: "grid",
-            placeItems: "center",
-            borderRadius: 10,
-            fontFamily: "var(--font-display)",
-            fontWeight: 700,
-            fontSize: 22,
-            color: i === 0 ? "var(--accent)" : "#fff",
-            background: "var(--tile-empty)",
-            border: active
-              ? "2px solid var(--accent)"
-              : "1px solid var(--tile-border)",
-            boxShadow: active && i === 0 ? "0 0 0 1px var(--accent-glow)" : "none",
-            transition: "border-color .15s",
-          }}
-        >
-          {ch}
-        </span>
-      ))}
+      {letters.map((ch, i) => {
+        const isHint = i === 0 && draft.length === 0;
+        const filled = i < draft.length;
+        return (
+          <span
+            key={i}
+            style={{
+              width: 50,
+              height: 50,
+              display: "grid",
+              placeItems: "center",
+              borderRadius: 10,
+              fontFamily: "var(--font-display)",
+              fontWeight: 700,
+              fontSize: 22,
+              color: isHint ? "var(--text-dim)" : "#fff",
+              background: "var(--tile-empty)",
+              border: active
+                ? filled
+                  ? "2px solid var(--tile-correct)"
+                  : "2px solid var(--accent)"
+                : "1px solid var(--tile-border)",
+              transition: "border-color .15s",
+            }}
+          >
+            {ch}
+          </span>
+        );
+      })}
     </div>
   );
 }

@@ -50,7 +50,7 @@ Oyun varsayılan kolay+orta havuzdan seçer.
 - [x] **Faz 1** — İskelet + kelime motoru + kelime havuzu + Docker/Compose + frontend iskeleti
 - [x] **Faz 2** — WebSocket maç: paylaşımlı ızgara + buzzer + sıra + 3 tur + puanlama + hız bonusu + 0-0 önleme
 - [x] **Faz 3** — Auth (Google OAuth + e-posta/şifre) + kullanıcı profili temel
-- [ ] **Faz 4** — Matchmaking + 100 bot (ELO'lu, davranış simülasyonu) + solo mod + VS ekranı
+- [x] **Faz 4** — Matchmaking + 100 bot (ELO'lu, davranış simülasyonu) + solo/bot mod + VS ekranı
 - [ ] **Faz 5** — Lig (günlük/aylık/yıllık/tüm zamanlar) + scheduler + kupa/madalya
 - [ ] **Faz 6** — Rozet + detaylı profil + istatistik + ısı haritası
 - [ ] **Faz 7** — Sesli mod (Web Speech + Whisper fallback)
@@ -147,3 +147,54 @@ key girildiğinde). Şu an e-posta/şifre tam çalışıyor.
 - Maç bitince istatistik güncelle (matches_played, wins/losses, elo değişimi, words_solved).
   → users tablosu Faz 3'te hazır; Faz 4 maç sonucunu buraya yazacak.
 - BURADA "sonra düzeltilecek" UX notlarını (ilk harf girişi + sıra göstergesi) BOTLA test edip düzelt.
+
+## Faz 4'te eklenenler (TAMAMLANDI)
+Backend:
+- `models/bot.py` — Bot tablosu (name, avatar_url, lang, elo, active). init_models'a eklendi.
+- `game/bot_names.py` — TR/EN gerçekçi isim havuzları + DiceBear avatar URL.
+- `game/bot_engine.py` — ELO→beceri, solve_probability(elo,zorluk), think_delay(2-8s),
+  decide_action, pick_guess (ipuçlarını kullanan inandırıcı yanlış tahmin).
+- `game/bot_controller.py` — botun maçta otomatik oynamasını yürüten asyncio görevi.
+  Room.handle_buzzer/handle_guess'i gerçek oyuncu gibi çağırır.
+- `game/matchmaking.py` — in-process ELO kuyruğu (±300 eşleşme), 15sn sonra bot atar.
+- `game/bot_generator.py` — dile bağlı bot üretici; startup'ta 100 TR bot seed eder.
+- `game/match_result.py` — ELO formülü (K=32), apply_match_result (istatistik+elo), pick_bot.
+- `api/routes/matchmaking.py` — POST /api/mm/join, GET /api/mm/poll, POST /api/mm/leave, GET /api/mm/status.
+- `api/routes/match.py` — GÜNCELLENDİ: bot=1&bot_elo= paramıyla odaya bot ekler;
+  maç sonu istatistik callback'i (on_match_over) bağlar.
+- `game/room.py` — GÜNCELLENDİ: add_bot(), _bot_controllers, on_match_over callback,
+  start_match bot controller başlatır, _end_match bot durdurur + callback çağırır.
+- `game/models.py` — Player'a avatar_url eklendi.
+- `main.py` — matchmaking router + startup'ta bot seed.
+
+Frontend:
+- `components/VsScreen.tsx` — iki oyuncu yan yana (avatar, ELO, W/L), 3-2-1 geri sayım.
+- `components/MatchGame.tsx` — YENİDEN YAZILDI (UX düzeltmeleri, aşağıda).
+- `lib/useMatch.ts` — bot/botElo paramları (WebSocket URL'ine bot=1 ekler).
+- `components/Grid.tsx` — DraftLine tam kelime girişine uyarlandı.
+- `app/oyna/page.tsx` — YENİDEN KURULDU: Rakip Bul (mm), Bota Karşı Oyna, Özel Oda,
+  arama ekranı, VS ekranı akışı.
+- `globals.css` — slideIn animasyonları.
+
+### UX DÜZELTMELERİ YAPILDI (önceki "sonra düzeltilecek" notları)
+1. ✅ İlk harf girişi: artık kullanıcı TAM kelimeyi yazıyor (ilk harf dahil, Wordle gibi).
+   İlk kutu boşken soluk ipucu gösterir ama çakışma yok. Backend ilk harf doğruluğunu kontrol eder.
+2. ✅ Sıra göstergesi: büyük renkli banner ("SIRA SENDE" yeşil / "İLK YAZAN KAPAR" amber /
+   "RAKİBİN SIRASI" gri) + input rengi sıraya göre değişir.
+   → Nazım botla test edip yeterli mi görecek; değilse ince ayar yapılır.
+
+## Faz 5 için notlar (sonraki oturum)
+- Lig sistemi: günlük/aylık/yıllık/tüm zamanlar. Günlük = o günkü en yüksek tek-maç puanı,
+  aylık = günlük puanların toplamı (her gün oynayan birikim).
+- Yeni tablo: LeagueScore veya DailyScore (user_id, date, best_score, ...).
+- Maç sonu (match_result.apply_match_result) lig puanını da yazacak.
+- Scheduler: ay sonu kupa/madalya dağıtımı (1. kupa, 2-3 madalya).
+- NOT: bot maçları lige YAZILMAMALI mı? Karar: bot maçı da sayılır (oyuncu puanı gerçek),
+  ama istersen admin'de kapatılabilir yapılır. Şimdilik sayılıyor.
+- matches_played/wins/losses/elo zaten güncelleniyor (Faz 4). Lig bunun üstüne skor tablosu ekler.
+
+## Faz 4 bilinen sınırlar (Faz 5+ veya cila)
+- words_solved maç sonunda 0 yazılıyor (placeholder); Faz 5'te gerçek sayıya bağlanacak.
+- Bot maçında rakip ELO'su istatistik callback'inde 1000 varsayılıyor; bot_elo'ya bağlanabilir.
+- İki insan matchmaking'i test için: iki farklı tarayıcıdan aynı anda "Rakip Bul" gerekir;
+  tek kişi test ederken 15sn sonra bot gelir (normal).

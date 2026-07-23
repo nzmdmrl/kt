@@ -70,6 +70,7 @@ class Player:
     score: int = 0
     connected: bool = True
     is_bot: bool = False
+    avatar_url: Optional[str] = None
 
     def to_public(self) -> dict:
         return {
@@ -78,6 +79,7 @@ class Player:
             "score": self.score,
             "connected": self.connected,
             "is_bot": self.is_bot,
+            "avatar_url": self.avatar_url,
         }
 
 
