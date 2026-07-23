@@ -35,8 +35,8 @@ export default function MatchGame({
   const turnFree = round?.turn_player_id == null;
   const phase = state?.phase;
 
-  // Yazabilir miyim? Sıra bende VEYA sıra boş (ilk kapan) ise. Kilitliyse hayır.
-  const canType = !locked && phase === "round_active" && (myTurn || turnFree);
+  // Yazma engelli mi? (input disabled) — kilitli, tur pasif, veya kesin rakip sırası.
+  const writeBlocked = locked || phase !== "round_active" || (!myTurn && !turnFree);
 
   // Tur bitince (round_over) 10 saniyelik "sonraki tur" geri sayımını başlat.
   const REVEAL_SECONDS = 10;
@@ -71,26 +71,38 @@ export default function MatchGame({
     }
   }, [lastEvent]);
 
-  // Harf yazma: harf HER ZAMAN kaydedilir (sıra bende/boşsa). Sıra boşsa
-  // ayrıca buzzer tetiklenir — ama harf buzzer'dan bağımsız düşmez.
+  // Input'a odaklanınca (tıklayınca) sıra boşsa hemen buzzer al — böylece
+  // yazmaya başlamadan sıra alınır ve harfler buzzer tetiklemesiyle çakışıp düşmez.
+  const onFocus = useCallback(() => {
+    if (round && phase === "round_active" && turnFree && !locked) {
+      buzzer();
+    }
+  }, [round, phase, turnFree, locked, buzzer]);
+
+  // Harf yazma: buzzer focus'ta alındığı için burada SADECE harf kaydedilir.
+  // Yazma sırasında sıra bende/boşsa kabul; harf asla düşmez.
   const onType = useCallback(
     (value: string) => {
-      if (!round || !canType) return;
+      if (!round) return;
+      if (locked || phase !== "round_active") return;
+      // Sıra kesin rakipteyse yazma. (Boş veya bende ise kabul.)
+      if (!myTurn && !turnFree) return;
       const clean = toUpperTr(value).replace(/[^A-ZÇĞİÖŞÜI]/g, "").slice(0, round.length);
       setDraft(clean);
-      // Sıra boşsa ve ilk harf yazıldıysa buzzer al (sırayı kap).
+      // Emniyet: sıra hâlâ boşsa buzzer al (focus kaçtıysa).
       if (turnFree && clean.length > 0) buzzer();
     },
-    [round, canType, turnFree, buzzer]
+    [round, locked, phase, myTurn, turnFree, buzzer]
   );
 
   const submit = useCallback(() => {
-    if (!round || !canType) return;
+    if (!round || locked || phase !== "round_active") return;
+    if (!myTurn && !turnFree) return;
     if (draft.length !== round.length) return;
     guess(draft);
     setDraft("");
     setLocked(true); // yanıt gelene kadar kilitle (arka arkaya tahmini önler)
-  }, [round, canType, draft, guess]);
+  }, [round, locked, phase, myTurn, turnFree, draft, guess]);
 
   if (!connected && !state) {
     return <Centered>Bağlanılıyor…</Centered>;
@@ -244,8 +256,9 @@ export default function MatchGame({
             <input
               value={draft}
               onChange={(e) => onType(e.target.value)}
+              onFocus={onFocus}
               onKeyDown={(e) => e.key === "Enter" && submit()}
-              disabled={!canType}
+              disabled={writeBlocked}
               placeholder={
                 round.first_letter
                   ? `${round.first_letter} ile başla, ${round.length} harf`
@@ -256,7 +269,7 @@ export default function MatchGame({
               style={{
                 padding: "13px 16px",
                 borderRadius: 10,
-                border: canType ? "2px solid var(--tile-correct)" : "2px solid var(--tile-border)",
+                border: !writeBlocked ? "2px solid var(--tile-correct)" : "2px solid var(--tile-border)",
                 background: "var(--bg-elevated)",
                 color: "var(--text-strong)",
                 fontSize: 20,
@@ -265,10 +278,10 @@ export default function MatchGame({
                 textAlign: "center",
                 letterSpacing: "0.2em",
                 textTransform: "uppercase",
-                opacity: canType ? 1 : 0.5,
+                opacity: !writeBlocked ? 1 : 0.5,
               }}
             />
-            <button onClick={submit} disabled={!canType || draft.length !== round.length} style={{ ...sendBtn, opacity: canType && draft.length === round.length ? 1 : 0.5 }}>
+            <button onClick={submit} disabled={writeBlocked || draft.length !== round.length} style={{ ...sendBtn, opacity: !writeBlocked && draft.length === round.length ? 1 : 0.5 }}>
               Gönder
             </button>
           </div>

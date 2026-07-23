@@ -272,3 +272,16 @@ Test: mazi->MAZİ, ışık->IŞIK doğru ayrılıyor.
 - Tur bitince (round_over) frontend 10sn geri sayım başlatır (REVEAL_SECONDS).
 - Banner altında çizgi + "sonraki tur: Xs" gösterilir (doğru cevabı görürken
   ne kadar bekleneceği belli olur). Yeni tur başlayınca sıfırlanır.
+
+## Faz 4 UX v9 (harf düşme sorunu — kalıcı çözüm)
+Sorun: yazarken harf düşüyordu (ilk harfte buzzer tetikleme + React render çakışması).
+Çözüm: buzzer artık input FOCUS'ta alınıyor (onFocus) — yazmaya başlamadan sıra
+alınır, harf/buzzer çakışması biter. writeBlocked mantığı: yazma sadece kesin
+rakip sırasında/kilitliyken engellenir; sıra bende veya boşsa input hep açık.
+onType artık sadece harf kaydeder (emniyet buzzer'ı korunur).
+
+## SESLİ MOD (Faz 7) — Nazım sordu, öncelik kararı bekleniyor
+İstenen tasarım: mikrofona bas -> söz hakkı o oyuncuya geçer -> sesli cevap ->
+ses tanıma (Web Speech API, TR; fallback Whisper) -> oluşan kelime kutucuklara yazılır.
+Not: Faz 7'de planlı. Nazım isterse Faz 5 (lig) yerine öne alınabilir.
+Teknik dikkat: tarayıcı mikrofon izni, TR ses tanıma doğruluğu, mobil uyumu, WebView izni.
