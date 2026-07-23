@@ -17,15 +17,20 @@ from typing import Optional
 
 
 # Tur yapılandırması: (kelime uzunluğu, satır sayısı). Admin panelde değişebilir (Faz 10).
+# Not: rows = başlangıçta görünen kutu satırı sayısı. Daha fazla tahmin yapılırsa
+# ızgara aşağı doğru genişler (frontend kaydırmalı frame).
 ROUND_CONFIG = [
     {"length": 4, "rows": 5},
-    {"length": 5, "rows": 6},
-    {"length": 6, "rows": 7},
+    {"length": 5, "rows": 5},
+    {"length": 6, "rows": 5},
 ]
 
 # Süreler (saniye). Admin panelde değişebilir.
-ROUND_TOTAL_SECONDS = 60      # tur başına toplam geri sayım
-BUZZER_ANSWER_SECONDS = 10    # buzzer alındıktan sonra cevap penceresi
+ROUND_TOTAL_SECONDS = 90      # tur başına toplam geri sayım
+BUZZER_ANSWER_SECONDS = 20    # buzzer alındıktan sonra cevap penceresi
+
+# Kelime kimse bilemeden tur bitince doğru cevabın gösterileceği süre (saniye).
+REVEAL_SECONDS = 10
 
 # Puanlama katsayıları (admin ayarlanabilir).
 SPEED_BONUS = 10              # ilk buzzer'a basıp doğru bilene ek bonus
@@ -96,6 +101,7 @@ class RoundState:
     time_left: int = ROUND_TOTAL_SECONDS   # tur geri sayımı
     answer_time_left: int = 0              # buzzer cevap penceresi
     finished: bool = False
+    reveal_word: Optional[str] = None      # tur bitince gösterilecek doğru kelime (bilinemezse)
 
     @property
     def first_letter(self) -> str:
@@ -103,7 +109,10 @@ class RoundState:
         return self.target[0] if self.target else ""
 
     def to_public(self) -> dict:
-        """İstemciye giden güvenli görünüm — hedef kelime YOK."""
+        """
+        İstemciye giden güvenli görünüm — hedef kelime YALNIZCA tur bitince
+        (reveal_word) gönderilir; oyun sürerken gizli kalır.
+        """
         return {
             "index": self.index,
             "length": self.length,
@@ -115,4 +124,5 @@ class RoundState:
             "answer_time_left": self.answer_time_left,
             "solved_by": self.solved_by,
             "finished": self.finished,
+            "reveal_word": self.reveal_word,
         }

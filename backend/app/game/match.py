@@ -127,6 +127,7 @@ class Match:
             self.players[player_id].score += points
             r.solved_by = player_id
             r.finished = True
+            r.reveal_word = r.target   # doğru cevabı herkese göster
             round_over = True
             self.phase = MatchPhase.ROUND_OVER
         else:
@@ -135,9 +136,8 @@ class Match:
             opponent = self.opponent_of(player_id)
             r.turn_player_id = opponent
             r.answer_time_left = BUZZER_ANSWER_SECONDS
-            # Satırlar doldu mu?
-            if len(r.rows) >= r.max_rows:
-                round_over = self._finish_round_unsolved()
+            # NOT: Satır sınırı artık turu BİTİRMEZ. Tur yalnızca süre bitince
+            # veya kelime bilinince biter. Izgara gerektikçe aşağı genişler.
 
         return {
             "correct": correct,
@@ -197,6 +197,7 @@ class Match:
             self.players[pid].score += pts
         r.finished = True
         r.turn_player_id = None
+        r.reveal_word = r.target   # doğru cevabı göster (kimse bilemedi)
         self.phase = MatchPhase.ROUND_OVER
         return True
 

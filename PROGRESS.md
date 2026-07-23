@@ -208,3 +208,13 @@ Frontend:
    - Artık aynı oyuncu ARD ARDA tahmin YAPAMAZ. Test edildi ve doğrulandı.
 4. ✅ Sıra netliği: aktif oyuncunun ScoreBar kartı PARLIYOR (accent border+glow+bg) +
    banner "▶ SIRA SENDE" / "⏳ RAKİBİN SIRASI".
+
+## Faz 4 UX DÜZELTMELERİ v3 (Nazım ikinci test sonrası)
+- Süreler: tur 60→90sn, cevap penceresi 10→20sn (models.py). reveal 10sn.
+- Tüm turlar 5 satır BAŞLANGIÇ (4/5/6 harf hepsi rows=5).
+- Satır sınırı artık turu BİTİRMEZ — 5'ten fazla tahmin yapılabilir, ızgara aşağı
+  genişler ve kaydırılabilir frame olur (Grid.tsx maxHeight+overflow+autoscroll).
+  Tur yalnızca süre bitince veya kelime bilinince biter.
+- Doğru cevap gösterimi: RoundState.reveal_word (bilinince VEYA süre bitince target).
+  Grid'de RevealLine ile amber kutucuklarda flip animasyonuyla gösterilir.
+- Tur arası 4→10sn (REVEAL_SECONDS) — doğru cevabı görme süresi.

@@ -36,6 +36,7 @@ export type RoundPublic = {
   answer_time_left: number;
   solved_by: string | null;
   finished: boolean;
+  reveal_word: string | null;
 };
 export type MatchState = {
   match_id: string;

@@ -126,15 +126,17 @@ class Room:
             pass
 
     async def _after_round(self) -> None:
-        """Tur bitti — kısa ara sonra sonraki tur veya maç sonu."""
+        """Tur bitti — doğru cevabı görme arası, sonra sonraki tur veya maç sonu."""
         assert self.match is not None
+        from app.game.models import REVEAL_SECONDS
         await self.broadcast({
             "type": "round_over",
             "round_index": self.match.round_index,
             "scores": {pid: p.score for pid, p in self.match.players.items()},
+            "reveal_word": self.match.round.reveal_word if self.match.round else None,
         })
-        # 4 saniye ara, sonra sıradaki tur
-        await asyncio.sleep(4)
+        # Doğru cevabı görme arası (bilinemediyse kelime ekranda kalır).
+        await asyncio.sleep(REVEAL_SECONDS)
         if self.match:
             await self._begin_round()
 
