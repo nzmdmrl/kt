@@ -8,6 +8,8 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-kelimetahmin}
     volumes:
       - db_data:/var/lib/postgresql/data
+    networks:
+      - kt_net
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-kelime}"]
       interval: 10s
@@ -20,6 +22,8 @@ services:
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
       - redis_data:/data
+    networks:
+      - kt_net
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -45,6 +49,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    networks:
+      - kt_net
     expose:
       - "8000"
 
@@ -56,8 +62,14 @@ services:
     restart: unless-stopped
     depends_on:
       - backend
+    networks:
+      - kt_net
     expose:
       - "3000"
+
+networks:
+  kt_net:
+    driver: bridge
 
 volumes:
   db_data:
