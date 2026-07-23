@@ -130,9 +130,11 @@ class Match:
             round_over = True
             self.phase = MatchPhase.ROUND_OVER
         else:
-            # Yanlış: cevap penceresi kapanır, sıra rakibe geçer
-            r.turn_player_id = None
-            r.answer_time_left = 0
+            # Yanlış: sıra DOĞRUDAN rakibe geçer (boşa bırakılmaz).
+            # Rakip cevap penceresi içinde denemezse sıra geri döner (timer yönetir).
+            opponent = self.opponent_of(player_id)
+            r.turn_player_id = opponent
+            r.answer_time_left = BUZZER_ANSWER_SECONDS
             # Satırlar doldu mu?
             if len(r.rows) >= r.max_rows:
                 round_over = self._finish_round_unsolved()
@@ -146,12 +148,19 @@ class Match:
         }
 
     def on_answer_timeout(self) -> None:
-        """Buzzer cevap penceresi doldu — sıra rakibe geçer (satır eklenmez)."""
+        """
+        Buzzer cevap penceresi doldu — sıra rakibe geçer ve ona yeni bir
+        cevap penceresi açılır (satır eklenmez). Böylece sıra iki oyuncu
+        arasında dönüşümlü ilerler; kimse ard arda deneme yapamaz.
+        """
         self._require_active()
         r = self.round
         assert r is not None
-        r.turn_player_id = None
-        r.answer_time_left = 0
+        if r.turn_player_id is not None:
+            r.turn_player_id = self.opponent_of(r.turn_player_id)
+            r.answer_time_left = BUZZER_ANSWER_SECONDS
+        else:
+            r.answer_time_left = 0
 
     def on_round_timeout(self) -> dict:
         """Tur toplam süresi bitti — kimse bilemediyse teselli puanı, tur kapanır."""

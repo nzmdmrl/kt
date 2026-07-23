@@ -198,3 +198,13 @@ Frontend:
 - Bot maçında rakip ELO'su istatistik callback'inde 1000 varsayılıyor; bot_elo'ya bağlanabilir.
 - İki insan matchmaking'i test için: iki farklı tarayıcıdan aynı anda "Rakip Bul" gerekir;
   tek kişi test ederken 15sn sonra bot gelir (normal).
+
+## Faz 4 UX DÜZELTMELERİ v2 (Nazım botla test sonrası)
+1. ✅ İlk harf çift basma: onType artık buzzer'dan bağımsız harfi hemen kaydeder.
+2. ✅ Süre görünürlüğü: ScoreBar'da 40px büyük geri sayım + cevap süresi ÇUBUĞU (progress bar).
+3. ✅ EN ÖNEMLİ — Sıra dönüşümü düzeltildi (match.py):
+   - Yanlış tahmin → sıra BOŞA değil DOĞRUDAN rakibe geçer (opponent_of) + yeni 10sn pencere.
+   - on_answer_timeout → sıra karşıya geçer (dönüşümlü), boşa bırakmaz.
+   - Artık aynı oyuncu ARD ARDA tahmin YAPAMAZ. Test edildi ve doğrulandı.
+4. ✅ Sıra netliği: aktif oyuncunun ScoreBar kartı PARLIYOR (accent border+glow+bg) +
+   banner "▶ SIRA SENDE" / "⏳ RAKİBİN SIRASI".

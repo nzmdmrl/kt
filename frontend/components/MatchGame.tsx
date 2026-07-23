@@ -41,10 +41,10 @@ export default function MatchGame({
   const onType = useCallback(
     (value: string) => {
       if (phase !== "round_active" || !round) return;
-      // Sıra boşsa ilk tuşta buzzer al.
-      if (turnFree) buzzer();
+      // Rakibin kesin sırasıysa yazma engellenir.
       if (!myTurn && !turnFree) return;
-      // Sadece harf, büyük harfe çevir, uzunlukla sınırla.
+      // Sıra boşsa buzzer al — ama yazılan harfi de HEMEN kaydet (çift basma yok).
+      if (turnFree) buzzer();
       const clean = value.toUpperCase().replace(/[^A-ZÇĞİÖŞÜI]/g, "").slice(0, round.length);
       setDraft(clean);
     },
@@ -134,10 +134,10 @@ export default function MatchGame({
 
   // Aktif oyun — GÜÇLÜ sıra göstergesi
   const turnBanner = myTurn
-    ? { text: "SIRA SENDE", bg: "var(--tile-correct)", color: "#fff" }
+    ? { text: "▶ SIRA SENDE — kelimeyi yaz!", bg: "var(--tile-correct)", color: "#fff" }
     : turnFree
-    ? { text: "İLK YAZAN KAPAR!", bg: "var(--accent)", color: "#1a1330" }
-    : { text: "RAKİBİN SIRASI", bg: "var(--bg-elevated)", color: "var(--text-soft)" };
+    ? { text: "İLK YAZAN BAŞLAR!", bg: "var(--accent)", color: "#1a1330" }
+    : { text: "⏳ RAKİBİN SIRASI — bekle", bg: "var(--bg-elevated)", color: "var(--text-soft)" };
 
   return (
     <div style={{ display: "grid", gap: 14 }}>
