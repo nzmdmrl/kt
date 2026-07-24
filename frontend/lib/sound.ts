@@ -105,11 +105,27 @@ function playSynth(slot: Slot, opts?: { intensity?: number }) {
       tone(784, 0.12, "sine", 0.24); tone(1047, 0.28, "sine", 0.36); break;
     case "lose":
       tone(400, 0.15, "sine", 0); tone(300, 0.15, "sine", 0.15); tone(200, 0.3, "sine", 0.3); break;
-    case "round_start": tone(440, 0.1, "square", 0); tone(660, 0.12, "square", 0.1); break;
+    case "round_start":
+      // Melodik, ferah bir açılış (yükselen üçlü + oktav dokunuşu).
+      tone(587, 0.14, "sine", 0, 0.9);      // re
+      tone(740, 0.14, "sine", 0.12, 0.9);   // fa#
+      tone(880, 0.16, "sine", 0.24, 0.9);   // la
+      tone(1175, 0.22, "sine", 0.38, 0.7);  // yüksek re (parlaklık)
+      break;
     case "match_start":
-      tone(392, 0.15, "square", 0); tone(523, 0.15, "square", 0.15); tone(784, 0.25, "square", 0.3); break;
+      // Güçlü, coşkulu maç başlangıcı.
+      tone(523, 0.16, "triangle", 0, 0.9);
+      tone(659, 0.16, "triangle", 0.15, 0.9);
+      tone(784, 0.16, "triangle", 0.3, 0.9);
+      tone(1047, 0.3, "triangle", 0.45, 0.8);
+      break;
     case "opponent_found":
-      tone(660, 0.1, "sine", 0); tone(880, 0.18, "sine", 0.1); break;
+      // Sıcak, davetkâr "bulundu" melodisi (yumuşak yükselen).
+      tone(523, 0.12, "sine", 0, 0.9);      // do
+      tone(659, 0.12, "sine", 0.1, 0.9);    // mi
+      tone(784, 0.14, "sine", 0.2, 0.9);    // sol
+      tone(1047, 0.2, "sine", 0.32, 0.75);  // yüksek do
+      break;
     case "tick": {
       // Yumuşak tık. intensity 0..1 -> ses seviyesi ve hafif tizlik artar.
       const it = opts?.intensity ?? 0;
@@ -195,19 +211,17 @@ export function stopRadar() {
 }
 
 // --- Ana sayfa ambient müziği (sentetik) veya yüklü müzikler (random) ---
+// --- Ana sayfa müziği (sadece yüklü mp3; sentetik yok) ---
 let musicEl: HTMLAudioElement | null = null;
-let ambientNodes: { osc: OscillatorNode; gain: GainNode }[] = [];
-let ambientTimer: ReturnType<typeof setTimeout> | null = null;
 
 export function startMusic() {
   if (!soundEnabled) return;
   stopMusic();
-  // Yüklü müzikleri topla (music1..music6).
+  // Sadece yüklü müzik (mp3) varsa çal. Sentetik ambient YOK — admin mp3 yüklemezse
+  // ana sayfada müzik olmaz (Nazım tercihi).
   const uploaded = ["music1", "music2", "music3", "music4", "music5", "music6"].filter((m) => uploadedSlots.has(m));
   if (uploaded.length > 0) {
     playRandomUploadedMusic(uploaded);
-  } else {
-    startSyntheticAmbient();
   }
 }
 
@@ -219,50 +233,6 @@ function playRandomUploadedMusic(list: string[]) {
   musicEl.play().catch(() => {});
 }
 
-// Sentetik ambient: yumuşak, döngüsel akorlar. 6 varyasyon (rastgele).
-function startSyntheticAmbient() {
-  const c = ctx();
-  if (!c) return;
-  const chords = [
-    [220, 277, 330], [196, 247, 294], [262, 330, 392], [175, 220, 262],
-    [233, 294, 349], [208, 262, 311],
-  ];
-  const variant = Math.floor(Math.random() * chords.length);
-  const notes = chords[variant];
-  notes.forEach((freq, i) => {
-    const osc = c.createOscillator();
-    const gain = c.createGain();
-    osc.type = "sine";
-    osc.frequency.value = freq;
-    gain.gain.value = 0;
-    gain.gain.linearRampToValueAtTime(volume * 0.05, c.currentTime + 2 + i);
-    // Yumuşak dalgalanma (LFO benzeri).
-    const lfo = c.createOscillator();
-    const lfoGain = c.createGain();
-    lfo.frequency.value = 0.1 + i * 0.03;
-    lfoGain.gain.value = volume * 0.02;
-    lfo.connect(lfoGain);
-    lfoGain.connect(gain.gain);
-    osc.connect(gain);
-    gain.connect(c.destination);
-    osc.start();
-    lfo.start();
-    ambientNodes.push({ osc, gain });
-    ambientNodes.push({ osc: lfo as any, gain: lfoGain });
-  });
-  // Her 30 saniyede bir varyasyon değiştir (yeni "parça" hissi).
-  ambientTimer = setTimeout(() => { stopMusic(); startSyntheticAmbient(); }, 30000);
-}
-
 export function stopMusic() {
   if (musicEl) { musicEl.pause(); musicEl.onended = null; musicEl = null; }
-  if (ambientTimer) { clearTimeout(ambientTimer); ambientTimer = null; }
-  const c = audioCtx;
-  ambientNodes.forEach((n) => {
-    try {
-      if (c) n.gain.gain.linearRampToValueAtTime(0, c.currentTime + 0.5);
-      setTimeout(() => { try { n.osc.stop(); } catch {} }, 600);
-    } catch {}
-  });
-  ambientNodes = [];
 }

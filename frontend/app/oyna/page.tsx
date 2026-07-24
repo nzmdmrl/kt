@@ -271,6 +271,7 @@ export default function OynaPage() {
       setBot(true);
       setBotElo(elo);
       setOppInfo({ name: "Bot Rakip", elo });
+      playSound("opponent_found");
       setMode("vs");
     } catch {
       setErr("Oda oluşturulamadı");

@@ -648,3 +648,13 @@ Bu yüzden ses görselden önce geliyordu.
 flipIn: rotateX(-90->0), harf ~yarıda (200ms) görünür. Ses zamanlaması:
 i * 220ms (STAGGER) + 200ms (REVEAL_OFFSET). Bulunca correct sesi sonda +150ms.
 Sadece MatchGame guess_result ses effect'i. İkisi aynı lastEvent'le tetiklenir -> eşzaman.
+
+## Faz 10 ses v7 — melodi iyileştirme + bot rakip sesi + ana sayfa müzik
+Nazım geri bildirimi:
+1. round_start sentetik ses daha melodik: yükselen re-fa#-la + yüksek re parlaklık.
+   match_start ve opponent_found de melodik yükselen üçlüye çevrildi.
+2. Bota karşı maçta rakip bulundu sesi YOKTU: createBotSolo'ya playSound("opponent_found")
+   eklendi (menu->vs direkt geçiş, mode effect searching->vs'i yakalamıyordu).
+3. Ana sayfa sentetik ambient KALDIRILDI. startMusic sadece yüklü mp3 (music1..6) çalar;
+   yoksa sessiz. startSyntheticAmbient + ambientNodes/Timer temizlendi. stopMusic sadeleşti.
+Sadece frontend (lib/sound.ts + oyna/page.tsx). Backend değişmedi.
