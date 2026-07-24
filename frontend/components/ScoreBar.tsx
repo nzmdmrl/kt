@@ -21,48 +21,38 @@ export default function ScoreBar({
       {/* Satır 1: iki oyuncu kartı */}
       <div className="sb-players" style={{ display: "flex", alignItems: "stretch", gap: 10 }}>
         <PlayerChip player={p1} myId={myId} active={turnId === p1?.id} />
-        {/* Masaüstünde ortadaki büyük sayaç (mobilde gizli, aşağıdaki blok görünür) */}
-        <div className="sb-timer-desktop" style={{ textAlign: "center", minWidth: 84, display: "grid", placeItems: "center" }}>
-          <div className="brand-mono" style={{ fontSize: 40, lineHeight: 1, fontWeight: 700, color: timeLeft <= 10 ? "var(--accent-hot)" : "var(--accent)", transition: "color .3s" }}>
-            {timeLeft}
-          </div>
-          <div style={{ fontSize: 10, color: "var(--text-dim)", letterSpacing: "0.1em" }}>SANİYE</div>
-        </div>
         <PlayerChip player={p2} myId={myId} active={turnId === p2?.id} right />
       </div>
 
-      {/* Mobil: sayaç + tur bilgisi (sol) | cevap süresi (sağ) */}
-      <div className="sb-info-mobile" style={{ display: "none" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-            <span className="brand-mono" style={{ fontSize: 34, lineHeight: 1, fontWeight: 700, color: timeLeft <= 10 ? "var(--accent-hot)" : "var(--accent)" }}>{timeLeft}</span>
-            <span style={{ fontSize: 11, color: "var(--text-dim)" }}>sn</span>
-            {round && <span style={{ fontSize: 12, color: "var(--text-dim)", marginLeft: 4 }}>· Tur {round.index + 1}/3 · {round.length} harf</span>}
+      {/* Satır 2: [tur saniyesi] — [Tur X/3 · N harf] — [cevap süresi] üç blok */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+        {/* Sol: tur saniyesi */}
+        <div style={{ display: "flex", alignItems: "baseline", gap: 4, flex: "0 0 auto" }}>
+          <span className="brand-mono" style={{ fontSize: 30, lineHeight: 1, fontWeight: 700, color: timeLeft <= 10 ? "var(--accent-hot)" : "var(--accent)" }}>{timeLeft}</span>
+          <span style={{ fontSize: 11, color: "var(--text-dim)" }}>sn</span>
+        </div>
+
+        {/* Orta: Tur X/3 · N harf (sabit blok) */}
+        {round && (
+          <div style={{ flex: "1 1 auto", textAlign: "center", fontSize: 13, color: "var(--text-soft)", fontWeight: 600, whiteSpace: "nowrap" }}>
+            Tur {round.index + 1}/3 · {round.length} harf
           </div>
-          {turnId && answerLeft > 0 && (
-            <div style={{ fontSize: 13, color: answerLeft <= 5 ? "var(--accent-hot)" : "var(--accent)", fontWeight: 600, whiteSpace: "nowrap" }}>
+        )}
+
+        {/* Sağ: cevap süresi (sıra birindeyken) */}
+        <div style={{ flex: "0 0 auto", minWidth: 60, textAlign: "right" }}>
+          {turnId && answerLeft > 0 ? (
+            <span style={{ fontSize: 13, color: answerLeft <= 5 ? "var(--accent-hot)" : "var(--accent)", fontWeight: 600, whiteSpace: "nowrap" }}>
               cevap: {answerLeft}s
-            </div>
-          )}
+            </span>
+          ) : null}
         </div>
       </div>
 
-      {/* Cevap penceresi çubuğu (zaman çizgisi) */}
+      {/* Satır 3: zaman çizgisi (cevap penceresi) */}
       {turnId && answerLeft > 0 && (
-        <div style={{ display: "grid", gap: 4 }}>
-          <div style={{ height: 6, borderRadius: 3, background: "var(--bg-elevated)", overflow: "hidden" }}>
-            <div style={{ height: "100%", width: `${Math.min(100, (answerLeft / 20) * 100)}%`, background: answerLeft <= 5 ? "var(--accent-hot)" : "var(--accent)", transition: "width 1s linear, background .3s" }} />
-          </div>
-          <div className="sb-answer-desktop" style={{ textAlign: "center", fontSize: 12, color: "var(--text-soft)" }}>
-            cevap süresi: <strong style={{ color: answerLeft <= 5 ? "var(--accent-hot)" : "var(--accent)" }}>{answerLeft}s</strong>
-          </div>
-        </div>
-      )}
-
-      {/* Masaüstü tur bilgisi (mobilde yukarı taşındı) */}
-      {round && (
-        <div className="sb-round-desktop" style={{ textAlign: "center", fontSize: 12, color: "var(--text-dim)" }}>
-          Tur {round.index + 1}/3 · {round.length} harf
+        <div style={{ height: 6, borderRadius: 3, background: "var(--bg-elevated)", overflow: "hidden" }}>
+          <div style={{ height: "100%", width: `${Math.min(100, (answerLeft / 20) * 100)}%`, background: answerLeft <= 5 ? "var(--accent-hot)" : "var(--accent)", transition: "width 1s linear, background .3s" }} />
         </div>
       )}
     </div>

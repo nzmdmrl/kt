@@ -760,3 +760,12 @@ bot_controller.py:
 - _take_my_turn gecikmesi 2-3.5s -> 3.5-6.0s (daha insani, aceleci değil).
 Test (1000 tur, ELO1000 orta): 1.tahmin %0 bilme, 3.'te ipuçları girer, 6-7'de bilir,
 %30 hiç bilemiyor (oyuncu kazanabilir). İstenen sevdirme eğrisi ✓.
+
+## Desktop = mobil ortak ScoreBar düzeni (Nazım: 3 blok yan yana)
+Desktop artık mobil ile AYNI düzen. Orta satır 3 blok yan yana:
+[tur saniyesi] — [Tur X/3 · N harf sabit orta] — [cevap süresi sağ].
+- ScoreBar: media query kaldırıldı, tek düzen. Satır1 iki oyuncu kartı; satır2 flex
+  space-between 3 blok (sol sayaç flex:0, orta tur bilgisi flex:1 ortalı, sağ cevap flex:0);
+  satır3 zaman çizgisi. .sb-*-desktop/.sb-info-mobile class'ları ve globals.css media query
+  temizlendi (artık gereksiz).
+Sadece frontend.
