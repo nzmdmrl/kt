@@ -56,7 +56,7 @@ Oyun varsayılan kolay+orta havuzdan seçer.
 - [x] **Faz 7** — Sesli mod (Web Speech + Whisper fallback)
 - [x] **Faz 8** — Rövanş + emote + günün kelimesi + arkadaş/özel oda + sonuç kartı
 - [x] **Faz 9** — Ana sayfa (canlı) + ziyaretçi tanıtım + footer statik sayfalar
-- [~] **Faz 10** — Ses/müzik sistemi + admin panel (istatistik + üreticiler + dil yönetimi)
+- [x] **Faz 10** — Ses/müzik sistemi + admin panel (istatistik + üreticiler + dil yönetimi)
 - [ ] **Faz 11** — i18n (6 dil, genişletilebilir) + çok dilli SEO/ASO
 - [ ] **Faz 12** — Tasarım cilası + VPS/Coolify README + tek zip
 
@@ -562,3 +562,29 @@ KALICI çözüm: database.py init_models'a _add_missing_columns eklendi. create_
 her tabloyu inspect eder, modelde olup DB'de olmayan sütunları ALTER TABLE ADD COLUMN ile
 ekler (Postgres IF NOT EXISTS; default değerleriyle). Veri korunur. Test: eski şemaya
 is_admin otomatik eklendi, kullanıcı silinmedi. Gelecekte yeni sütunlar da otomatik eklenecek.
+
+## Faz 10 (KISIM 2) TAMAMLANDI — Ses/müzik sistemi (hibrit: sentetik + yüklenebilir)
+Nazım kararı: İKİSİ BİRDEN — admin her slot için mp3 yükleyebilir, yüklemezse sentetik çalar.
+Backend:
+- models/sound_asset.py: SoundAsset (slot->filename). SOUND_SLOTS: button/correct/wrong/
+  win/lose/round_start/music.
+- models/game_setting.py: sound_enabled, music_enabled, sound_volume ayarları eklendi (12 ayar).
+- core/config.py: AUDIO_DIR (env, varsayılan /app/uploads/audio).
+- api/routes/sounds.py: GET /sounds (herkes: slot listesi+uploaded), POST /sounds/{slot}
+  (admin mp3 yükle, 3MB, mp3/ogg/wav/m4a), DELETE /sounds/{slot}, GET /sounds/file/{slot}.
+- main.py + database.py: sounds router + sound_asset modeli.
+Frontend:
+- lib/sound.ts: initSound (slot durumunu sunucudan al), playSound (yüklüyse mp3, yoksa
+  Web Audio SENTETİK ton), startMusic/stopMusic. Sentetik sesler: button/correct(yükselen)/
+  wrong/win(fanfar)/lose(düşen)/round_start.
+- MatchGame.tsx: initSound + oyun olaylarına ses (round_start, guess_result correct/wrong,
+  match_over win/lose).
+- yonetim/page.tsx: 🔊 Sesler sekmesi — her slot için Yükle/Sil, "sentetik/kendi sesin" durumu.
+Test: 7 slot, yetkisiz yükleme 401, admin yükleme+servis, ayar 12, regresyon tam. ✓
+
+ÖNEMLİ — Coolify KALICI VOLUME gerekli (yoksa yüklenen sesler her deploy'da silinir):
+docker-compose.yml backend service'ine volume: ./uploads:/app/uploads ekle (veya Coolify
+Persistent Storage: /app/uploads). AUDIO_DIR=/app/uploads/audio (varsayılan zaten bu).
+Sentetik sesler her zaman çalışır (dosya gerekmez); volume sadece YÜKLENEN mp3'ler için.
+
+## Faz 10 TAMAMEN BİTTİ. Kalan fazlar: Faz 11 (i18n çoklu dil + SEO), Faz 12 (cila+README).

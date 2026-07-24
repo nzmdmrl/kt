@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useMatch } from "@/lib/useMatch";
 import { toUpperTr } from "@/lib/turkish";
 import { useSpeech } from "@/lib/useSpeech";
+import { playSound, initSound } from "@/lib/sound";
 import Grid from "./Grid";
 import ScoreBar from "./ScoreBar";
 
@@ -33,11 +34,15 @@ export default function MatchGame({
   const [matchOverData, setMatchOverData] = useState<any>(null);
   useEffect(() => {
     if (lastEvent?.type === "match_over") {
-      setMatchOverData(lastEvent.result ?? { winner: null });
+      const res = lastEvent.result;
+      setMatchOverData(res ?? { winner: null });
+      // Kazanma/kaybetme sesi.
+      if (res?.winner === playerId) playSound("win");
+      else if (res?.winner && res.winner !== playerId) playSound("lose");
     } else if (lastEvent?.type === "match_start" || lastEvent?.type === "rematch_accepted") {
       setMatchOverData(null);
     }
-  }, [lastEvent]);
+  }, [lastEvent, playerId]);
 
   // Rövanş durumu (insan-insan): isteğim beklemede mi, rakipten istek geldi mi, ret edildi mi.
   const [rematchState, setRematchState] = useState<"idle" | "requested" | "incoming" | "declined">("idle");
@@ -48,6 +53,21 @@ export default function MatchGame({
     else if (lastEvent.type === "rematch_accepted") setRematchState("idle");
     else if (lastEvent.type === "match_start") setRematchState("idle");
   }, [lastEvent]);
+  // Ses sistemini başlat.
+  useEffect(() => {
+    initSound(true, 70);
+  }, []);
+
+  // Oyun olaylarına göre ses çal.
+  useEffect(() => {
+    if (!lastEvent) return;
+    if (lastEvent.type === "round_start") playSound("round_start");
+    else if (lastEvent.type === "guess_result") {
+      if (lastEvent.correct) playSound("correct");
+      else playSound("wrong");
+    }
+  }, [lastEvent]);
+
   // Gelen emote animasyonu (kim, hangi emoji).
   const [flyingEmote, setFlyingEmote] = useState<{ id: number; emoji: string; mine: boolean } | null>(null);
   useEffect(() => {

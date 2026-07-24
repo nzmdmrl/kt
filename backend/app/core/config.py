@@ -18,6 +18,8 @@ class Settings:
     DEFAULT_LANG: str = os.getenv("DEFAULT_LANG", "tr")   # varsayılan sistem dili
     GAME_LANG: str = os.getenv("GAME_LANG", "tr")         # oyun (kelime) dili
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "production")
+    # Yüklenen ses dosyalarının klasörü (kalıcı volume ile eşlenmeli).
+    AUDIO_DIR: str = os.getenv("AUDIO_DIR", "/app/uploads/audio")
 
     # --- Veritabanı ---
     DATABASE_URL: str = os.getenv(

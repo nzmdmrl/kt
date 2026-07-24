@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
 from app.core.database import init_models
-from app.api.routes import health, words, room, match, auth, matchmaking, league, profile, daily, admin
+from app.api.routes import health, words, room, match, auth, matchmaking, league, profile, daily, admin, sounds
 
 settings = get_settings()
 
@@ -57,6 +57,7 @@ app.include_router(league.router, prefix="/api")
 app.include_router(profile.router, prefix="/api")
 app.include_router(daily.router, prefix="/api")
 app.include_router(admin.router, prefix="/api")
+app.include_router(sounds.router, prefix="/api")
 
 
 @app.on_event("startup")

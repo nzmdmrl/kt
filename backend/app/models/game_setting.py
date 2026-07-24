@@ -32,4 +32,7 @@ DEFAULT_SETTINGS = {
     "speed_bonus": {"value": "10", "label": "Hız bonusu (ilk buzzer)", "type": "int"},
     "matchmaking_bot_wait": {"value": "15", "label": "Bot atanmadan önce bekleme (saniye)", "type": "int"},
     "bot_matches_count_league": {"value": "1", "label": "Bot maçları lige sayılsın (1/0)", "type": "bool"},
+    "sound_enabled": {"value": "1", "label": "Ses efektleri açık (1/0)", "type": "bool"},
+    "music_enabled": {"value": "0", "label": "Arka plan müziği açık (1/0)", "type": "bool"},
+    "sound_volume": {"value": "70", "label": "Ses seviyesi (0-100)", "type": "int"},
 }

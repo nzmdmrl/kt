@@ -15,6 +15,7 @@ const TABS = [
   { key: "settings", label: "⚙️ Ayarlar" },
   { key: "bots", label: "🤖 Botlar" },
   { key: "words", label: "📚 Kelimeler" },
+  { key: "sounds", label: "🔊 Sesler" },
 ];
 
 export default function AdminPage() {
@@ -44,6 +45,7 @@ export default function AdminPage() {
       {tab === "settings" && <Settings />}
       {tab === "bots" && <Bots />}
       {tab === "words" && <Words />}
+      {tab === "sounds" && <Sounds />}
     </Wrap>
   );
 }
@@ -191,6 +193,61 @@ function Words() {
           </span>
         ))}
       </div>
+    </div>
+  );
+}
+
+function Sounds() {
+  const [slots, setSlots] = useState<any[]>([]);
+  const [msg, setMsg] = useState("");
+
+  function load() {
+    fetch(apiUrl("/api/sounds")).then((r) => r.json()).then((d) => setSlots(d.slots || []));
+  }
+  useEffect(() => { load(); }, []);
+
+  function upload(slot: string, file: File) {
+    const fd = new FormData();
+    fd.append("file", file);
+    const t = localStorage.getItem("kt_token");
+    fetch(apiUrl(`/api/sounds/${slot}`), {
+      method: "POST",
+      headers: t ? { Authorization: `Bearer ${t}` } : {},
+      body: fd,
+    }).then((r) => r.json()).then((d) => {
+      setMsg(d.ok ? "Yüklendi ✓" : (d.detail || "Hata"));
+      setTimeout(() => setMsg(""), 2000);
+      load();
+    });
+  }
+  function remove(slot: string) {
+    fetch(apiUrl(`/api/sounds/${slot}`), { method: "DELETE", headers: authHeaders() })
+      .then(() => load());
+  }
+
+  return (
+    <div style={{ display: "grid", gap: 10 }}>
+      <p style={{ color: "var(--text-dim)", fontSize: 13 }}>
+        Yüklemezsen oyun otomatik (sentetik) ses çalar. Kendi mp3&apos;ünü yükleyerek değiştirebilirsin. (En fazla 3 MB)
+      </p>
+      {slots.map((s) => (
+        <div key={s.slot} style={{ display: "flex", alignItems: "center", gap: 10, background: "var(--bg-panel)", borderRadius: 10, padding: "10px 14px" }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 14, color: "var(--text-strong)" }}>{s.label}</div>
+            <div style={{ fontSize: 11, color: s.uploaded ? "var(--tile-correct)" : "var(--text-dim)" }}>
+              {s.uploaded ? "Kendi sesin yüklü" : "Sentetik (otomatik)"}
+            </div>
+          </div>
+          <label style={{ padding: "6px 12px", borderRadius: 8, background: "var(--bg-elevated)", color: "var(--text-strong)", cursor: "pointer", fontSize: 13, border: "1px solid var(--border-soft)" }}>
+            Yükle
+            <input type="file" accept="audio/*" style={{ display: "none" }} onChange={(e) => e.target.files?.[0] && upload(s.slot, e.target.files[0])} />
+          </label>
+          {s.uploaded && (
+            <button onClick={() => remove(s.slot)} style={{ padding: "6px 10px", borderRadius: 8, border: "none", background: "transparent", color: "var(--accent-hot)", cursor: "pointer", fontSize: 13 }}>Sil</button>
+          )}
+        </div>
+      ))}
+      {msg && <p style={{ fontSize: 13, color: "var(--accent)" }}>{msg}</p>}
     </div>
   );
 }
