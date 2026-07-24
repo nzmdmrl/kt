@@ -640,3 +640,11 @@ mini kaydırmalı ses düğmesi. Sağda açık, sola kayınca kapalı.
   sağında SoundToggle. HomeMusic sadeleşti (görünmez müzik başlatıcı; toggle açık+etkileşim
   varsa müzik başlar/kapanınca durur). Eski sağ-alt yuvarlak düğme kaldırıldı.
 Sadece frontend. Backend değişmedi.
+
+## Faz 10 ses v6 — harf sesi senkronu (Nazım: sesler erken geliyor)
+Sorun: harf sesleri 180ms staggerle çalıyordu ama Grid flip animasyonu i*220ms.
+Bu yüzden ses görselden önce geliyordu.
+Çözüm: Grid'in GERÇEK değerleriyle senkron. Grid Line: animation flipIn .4s ease i*0.22s.
+flipIn: rotateX(-90->0), harf ~yarıda (200ms) görünür. Ses zamanlaması:
+i * 220ms (STAGGER) + 200ms (REVEAL_OFFSET). Bulunca correct sesi sonda +150ms.
+Sadece MatchGame guess_result ses effect'i. İkisi aynı lastEvent'le tetiklenir -> eşzaman.

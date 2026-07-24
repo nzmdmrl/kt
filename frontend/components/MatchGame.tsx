@@ -66,19 +66,23 @@ export default function MatchGame({
     } else if (lastEvent.type === "round_start") {
       playSound("round_start");
     } else if (lastEvent.type === "guess_result") {
-      // Harfler tek tek yerleşirken renk sesine göre çal (gecikmeli).
+      // Harfler tek tek yerleşirken renk sesine göre çal.
+      // Grid senkronu: her harf `i * 220ms` gecikmeyle flip başlar (flipIn .4s).
+      // Harf/renk flip'in ortasında (~200ms) görünür olur; sesi o ana denk getir.
       const tiles = lastEvent.tiles || [];
+      const STAGGER = 220;   // Grid: i * 0.22s
+      const REVEAL_OFFSET = 200; // flipIn .4s -> harf ~yarıda görünür
       tiles.forEach((t: any, i: number) => {
         setTimeout(() => {
           if (t.state === "correct") playSound("tile_correct");
           else if (t.state === "present") playSound("tile_present");
           else playSound("tile_absent");
-        }, i * 180); // Grid'deki stagger ile uyumlu
+        }, i * STAGGER + REVEAL_OFFSET);
       });
-      // Kelime bulunduysa kısa süre sonra doğru/yanlış sesi.
+      // Kelime bulunduysa son harften sonra doğru sesi.
       setTimeout(() => {
         if (lastEvent.correct) playSound("correct");
-      }, tiles.length * 180 + 120);
+      }, tiles.length * STAGGER + REVEAL_OFFSET + 150);
     }
   }, [lastEvent]);
 
