@@ -28,19 +28,35 @@ class WordPool:
         self._items = items
         # Hızlı üyelik kontrolü için tüm geçerli kelimeler (zorluk fark etmez).
         self._all_words: set[str] = {it["word"] for it in items if it.get("active", True)}
-        # Seçilebilir (rastgele hedef olabilecek) kelimeler.
+        # ÜYE havuzu: oyuncuya hedef olarak çıkabilecek kelimeler.
+        # member alanı yoksa geriye uyumluluk için True sayılır.
+        # Ayrıca seçilebilir zorlukta olmalı (kolay/orta).
         self._selectable: list[str] = [
             it["word"]
             for it in items
-            if it.get("active", True) and it.get("difficulty") in DEFAULT_SELECTABLE
+            if it.get("active", True)
+            and it.get("member", True)
+            and it.get("difficulty") in DEFAULT_SELECTABLE
+        ]
+        # BOT havuzu: botun tahmin olarak kullanabileceği kelimeler.
+        # bot alanı yoksa True sayılır (geriye uyumlu). Zorluk fark etmez —
+        # bot gerçek Türkçe kelime yazsın yeter.
+        self._bot_words: list[str] = [
+            it["word"]
+            for it in items
+            if it.get("active", True) and it.get("bot", True)
         ]
 
     def random_word(self) -> str:
-        """Rastgele bir hedef kelime seçer (kolay/orta havuzdan)."""
+        """Rastgele bir hedef kelime seçer (ÜYE havuzu — kolay/orta)."""
         if not self._selectable:
             # Güvenlik: seçilebilir yoksa tüm aktiflerden seç.
             return random.choice(list(self._all_words))
         return random.choice(self._selectable)
+
+    def bot_words(self) -> list[str]:
+        """Botun tahmin için kullanabileceği kelimeler (gerçek Türkçe kelimeler)."""
+        return self._bot_words
 
     def is_valid(self, word: str) -> bool:
         """Kelime havuzda geçerli bir kelime mi? (tahmin kabul kontrolü)"""

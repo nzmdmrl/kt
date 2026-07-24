@@ -25,6 +25,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.deps import get_admin_user
 from app.models.user import User
+from app.words.word_service import get_pool
 from app.models.bot import Bot
 from app.models.daily_score import DailyScore
 from app.game import settings_service
@@ -107,21 +108,64 @@ async def search_words(
     admin: User = Depends(get_admin_user),
     length: int = Query(5, ge=4, le=6),
     q: str = Query(""),
-    limit: int = Query(50, le=200),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(50, ge=10, le=200),
+    filter: str = Query("all"),  # all | member | bot | member_only | bot_only
 ):
     path = _pool_path(length, cfg.GAME_LANG)
     try:
         items = json.loads(path.read_text(encoding="utf-8"))
     except Exception:
-        return {"words": [], "total": 0}
+        return {"words": [], "total": 0, "page": page, "per_page": per_page, "pages": 0, "counts": {}}
+
     qn = q.upper().strip()
+
+    def is_member(it): return it.get("member", True)
+    def is_bot(it): return it.get("bot", True)
+
+    # Sayaçlar (tüm havuz için).
+    counts = {
+        "total": len(items),
+        "member": sum(1 for it in items if is_member(it)),
+        "bot": sum(1 for it in items if is_bot(it)),
+        "member_only": sum(1 for it in items if is_member(it) and not is_bot(it)),
+        "bot_only": sum(1 for it in items if is_bot(it) and not is_member(it)),
+    }
+
+    # Arama + filtre.
     filtered = [it for it in items if not qn or it["word"].startswith(qn)]
-    return {"total": len(filtered), "words": [it["word"] for it in filtered[:limit]]}
+    if filter == "member":
+        filtered = [it for it in filtered if is_member(it)]
+    elif filter == "bot":
+        filtered = [it for it in filtered if is_bot(it)]
+    elif filter == "member_only":
+        filtered = [it for it in filtered if is_member(it) and not is_bot(it)]
+    elif filter == "bot_only":
+        filtered = [it for it in filtered if is_bot(it) and not is_member(it)]
+
+    total = len(filtered)
+    pages = max(1, (total + per_page - 1) // per_page)
+    page = min(page, pages)
+    start = (page - 1) * per_page
+    page_items = filtered[start:start + per_page]
+
+    words = [
+        {
+            "word": it["word"],
+            "difficulty": it.get("difficulty", "orta"),
+            "member": is_member(it),
+            "bot": is_bot(it),
+        }
+        for it in page_items
+    ]
+    return {"words": words, "total": total, "page": page, "per_page": per_page, "pages": pages, "counts": counts}
 
 
 class WordIn(BaseModel):
     word: str
     length: int = 5
+    member: bool = True
+    bot: bool = True
 
 
 @router.post("/words")
@@ -137,8 +181,42 @@ async def add_word(data: WordIn, admin: User = Depends(get_admin_user)):
         items = []
     if any(it["word"] == w for it in items):
         return {"ok": False, "error": "Kelime zaten var"}
-    items.append({"word": w, "difficulty": "orta", "active": True})
+    items.append({"word": w, "difficulty": "orta", "active": True, "member": data.member, "bot": data.bot})
     path.write_text(json.dumps(items, ensure_ascii=False), encoding="utf-8")
+    get_pool.cache_clear()  # havuz cache'ini yenile
+    return {"ok": True, "word": w}
+
+
+class WordFlagIn(BaseModel):
+    word: str
+    length: int = 5
+    member: bool | None = None
+    bot: bool | None = None
+
+
+@router.post("/words/flags")
+async def set_word_flags(data: WordFlagIn, admin: User = Depends(get_admin_user)):
+    """Bir kelimenin üye/bot havuzu üyeliğini değiştirir."""
+    from app.game.word_engine import normalize
+    w = normalize(data.word)
+    path = _pool_path(data.length, cfg.GAME_LANG)
+    try:
+        items = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {"ok": False, "error": "Havuz okunamadı"}
+    found = False
+    for it in items:
+        if it["word"] == w:
+            if data.member is not None:
+                it["member"] = data.member
+            if data.bot is not None:
+                it["bot"] = data.bot
+            found = True
+            break
+    if not found:
+        return {"ok": False, "error": "Kelime bulunamadı"}
+    path.write_text(json.dumps(items, ensure_ascii=False), encoding="utf-8")
+    get_pool.cache_clear()
     return {"ok": True, "word": w}
 
 
@@ -155,4 +233,5 @@ async def remove_word(data: WordIn, admin: User = Depends(get_admin_user)):
     if len(new_items) == len(items):
         return {"ok": False, "error": "Kelime bulunamadı"}
     path.write_text(json.dumps(new_items, ensure_ascii=False), encoding="utf-8")
+    get_pool.cache_clear()
     return {"ok": True, "removed": w}

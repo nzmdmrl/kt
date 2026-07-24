@@ -769,3 +769,19 @@ Desktop artık mobil ile AYNI düzen. Orta satır 3 blok yan yana:
   satır3 zaman çizgisi. .sb-*-desktop/.sb-info-mobile class'ları ve globals.css media query
   temizlendi (artık gereksiz).
 Sadece frontend.
+
+## Kelime havuzu ayrımı: üye vs bot + admin sayfalama (Nazım)
+İstek: bot saçma değil GERÇEK Türkçe kelime yazsın ama üye (bilindik/temiz) kelimeleri
+bilmek zorunda olmasın. İki havuz: ÜYE (maçta hedef) + BOT (bot tahminleri).
+- word_service WordPool: her kelimede member (üyeye çıkar) + bot (bot kullanır) bayrağı.
+  Alan yoksa True (geriye uyumlu). random_word -> member+selectable. bot_words() -> bot:true.
+- bot_engine.pick_guess: artık pool.bot_words()'tan seçer (JSON direkt okumak yerine).
+- admin.py /words: sayfalama (page/per_page), filtre (all/member/bot/member_only/bot_only),
+  counts (total/member/bot/member_only/bot_only), her kelime {word,difficulty,member,bot}.
+  /words/flags: member/bot bayrağı değiştir. add_word member/bot alır. Yazınca get_pool.cache_clear.
+- yonetim Words: sayaç özeti, filtre butonları, sayfalama (60/sayfa, «‹ x/y ›»), her kelimede
+  👤/🤖 toggle, yeni kelimede üye/bot seçimi.
+Test: sayfalama 196 sayfa, flag değiştir, filtreler ✓.
+NOT: kelime havuzu JSON container'da (git'ten). Admin değişiklikleri DEPLOY'da sıfırlanır!
+(Kalıcı temizlik için JSON'u git'te düzenleyip push etmek gerekir; ya da havuzu DB'ye
+taşımak gerekir — ileride yapılabilir.)

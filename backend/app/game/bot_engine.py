@@ -109,16 +109,9 @@ def pick_guess(target: str, lang: str, prev_rows: list, hint_level: float = 1.0)
     length = len(target)
     pool = get_pool(length, lang)
 
-    import json
-    from pathlib import Path
-    data_path = Path(__file__).resolve().parent.parent / "words" / "data" / f"{lang}_{length}_pool.json"
-    try:
-        items = json.loads(data_path.read_text(encoding="utf-8"))
-    except Exception:
-        return target  # güvenlik: en kötü ihtimalle doğruyu döner
-
-    candidates = [it["word"] for it in items
-                  if it.get("active", True) and it["word"][0] == target[0] and it["word"] != target]
+    # BOT havuzundan ilk harfi tutan adayları topla (bot: true olan gerçek kelimeler).
+    bot_words = pool.bot_words()
+    candidates = [w for w in bot_words if w and w[0] == target[0] and w != target]
     if not candidates:
         return target
 

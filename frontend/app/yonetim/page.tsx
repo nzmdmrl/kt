@@ -148,53 +148,124 @@ function Bots() {
 function Words() {
   const [length, setLength] = useState(5);
   const [q, setQ] = useState("");
-  const [words, setWords] = useState<string[]>([]);
+  const [words, setWords] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
+  const [counts, setCounts] = useState<any>({});
+  const [filter, setFilter] = useState("all");
   const [newWord, setNewWord] = useState("");
+  const [newMember, setNewMember] = useState(true);
+  const [newBot, setNewBot] = useState(true);
   const [msg, setMsg] = useState("");
+  const PER_PAGE = 60;
 
-  function search() {
-    fetch(apiUrl(`/api/admin/words?length=${length}&q=${encodeURIComponent(q)}`), { headers: authHeaders() })
-      .then((r) => r.json()).then((d) => { setWords(d.words || []); setTotal(d.total || 0); });
+  function search(toPage = page) {
+    fetch(apiUrl(`/api/admin/words?length=${length}&q=${encodeURIComponent(q)}&page=${toPage}&per_page=${PER_PAGE}&filter=${filter}`), { headers: authHeaders() })
+      .then((r) => r.json()).then((d) => {
+        setWords(d.words || []); setTotal(d.total || 0);
+        setPages(d.pages || 1); setPage(d.page || 1); setCounts(d.counts || {});
+      });
   }
-  useEffect(() => { search(); }, [length]);
+  useEffect(() => { search(1); }, [length, filter]);
 
   function add() {
-    fetch(apiUrl("/api/admin/words"), { method: "POST", headers: authHeaders(), body: JSON.stringify({ word: newWord, length }) })
+    fetch(apiUrl("/api/admin/words"), { method: "POST", headers: authHeaders(), body: JSON.stringify({ word: newWord, length, member: newMember, bot: newBot }) })
       .then((r) => r.json()).then((d) => { setMsg(d.ok ? "Eklendi ✓" : d.error); if (d.ok) { setNewWord(""); search(); } setTimeout(() => setMsg(""), 2000); });
   }
   function remove(w: string) {
     fetch(apiUrl("/api/admin/words/remove"), { method: "POST", headers: authHeaders(), body: JSON.stringify({ word: w, length }) })
       .then((r) => r.json()).then(() => search());
   }
+  function toggleFlag(w: string, field: "member" | "bot", value: boolean) {
+    // Anlık UI güncelle
+    setWords((ws) => ws.map((it) => it.word === w ? { ...it, [field]: value } : it));
+    fetch(apiUrl("/api/admin/words/flags"), { method: "POST", headers: authHeaders(), body: JSON.stringify({ word: w, length, [field]: value }) })
+      .then((r) => r.json()).then((d) => { if (!d.ok) search(); });
+  }
+
+  const filters = [
+    { key: "all", label: "Tümü" },
+    { key: "member", label: "👤 Üye" },
+    { key: "bot", label: "🤖 Bot" },
+    { key: "member_only", label: "Yalnız üye" },
+    { key: "bot_only", label: "Yalnız bot" },
+  ];
 
   return (
     <div style={{ display: "grid", gap: 12 }}>
+      {/* Uzunluk seçimi */}
       <div style={{ display: "flex", gap: 6 }}>
         {[4, 5, 6].map((n) => (
           <button key={n} onClick={() => setLength(n)} style={{ padding: "8px 14px", borderRadius: 8, border: "none", cursor: "pointer", background: length === n ? "var(--accent)" : "var(--bg-panel)", color: length === n ? "#1a1330" : "var(--text-soft)", fontWeight: 600 }}>{n} harf</button>
         ))}
       </div>
-      <div style={{ display: "flex", gap: 8 }}>
-        <input value={q} onChange={(e) => setQ(e.target.value.toUpperCase())} onKeyDown={(e) => e.key === "Enter" && search()} placeholder="Ara (baş harfler)" style={{ flex: 1, padding: 10, borderRadius: 8, border: "1px solid var(--tile-border)", background: "var(--bg-elevated)", color: "var(--text-strong)" }} />
-        <button onClick={search} style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "var(--bg-elevated)", color: "var(--text-strong)", cursor: "pointer" }}>Ara</button>
+
+      {/* Sayaç özeti */}
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", fontSize: 13, color: "var(--text-soft)" }}>
+        <span>Toplam: <strong style={{ color: "var(--text-strong)" }}>{counts.total ?? 0}</strong></span>
+        <span>👤 Üye: <strong style={{ color: "var(--accent)" }}>{counts.member ?? 0}</strong></span>
+        <span>🤖 Bot: <strong style={{ color: "var(--accent)" }}>{counts.bot ?? 0}</strong></span>
+        <span>Yalnız üye: <strong>{counts.member_only ?? 0}</strong></span>
+        <span>Yalnız bot: <strong>{counts.bot_only ?? 0}</strong></span>
       </div>
+
+      {/* Filtre */}
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+        {filters.map((f) => (
+          <button key={f.key} onClick={() => setFilter(f.key)} style={{ padding: "6px 12px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, background: filter === f.key ? "var(--accent)" : "var(--bg-panel)", color: filter === f.key ? "#1a1330" : "var(--text-soft)", fontWeight: 600 }}>{f.label}</button>
+        ))}
+      </div>
+
+      {/* Arama */}
       <div style={{ display: "flex", gap: 8 }}>
-        <input value={newWord} onChange={(e) => setNewWord(e.target.value.toUpperCase())} placeholder="Yeni kelime ekle" style={{ flex: 1, padding: 10, borderRadius: 8, border: "1px solid var(--tile-border)", background: "var(--bg-elevated)", color: "var(--text-strong)" }} />
+        <input value={q} onChange={(e) => setQ(e.target.value.toUpperCase())} onKeyDown={(e) => e.key === "Enter" && search(1)} placeholder="Ara (baş harfler)" style={{ flex: 1, padding: 10, borderRadius: 8, border: "1px solid var(--tile-border)", background: "var(--bg-elevated)", color: "var(--text-strong)" }} />
+        <button onClick={() => search(1)} style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "var(--bg-elevated)", color: "var(--text-strong)", cursor: "pointer" }}>Ara</button>
+      </div>
+
+      {/* Yeni kelime ekle */}
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+        <input value={newWord} onChange={(e) => setNewWord(e.target.value.toUpperCase())} placeholder="Yeni kelime" style={{ flex: "1 1 140px", padding: 10, borderRadius: 8, border: "1px solid var(--tile-border)", background: "var(--bg-elevated)", color: "var(--text-strong)" }} />
+        <label style={{ fontSize: 13, display: "flex", alignItems: "center", gap: 4, color: "var(--text-soft)" }}>
+          <input type="checkbox" checked={newMember} onChange={(e) => setNewMember(e.target.checked)} /> 👤 Üye
+        </label>
+        <label style={{ fontSize: 13, display: "flex", alignItems: "center", gap: 4, color: "var(--text-soft)" }}>
+          <input type="checkbox" checked={newBot} onChange={(e) => setNewBot(e.target.checked)} /> 🤖 Bot
+        </label>
         <button onClick={add} style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "var(--accent)", color: "#1a1330", fontWeight: 600, cursor: "pointer" }}>Ekle</button>
       </div>
       {msg && <p style={{ fontSize: 13, color: "var(--accent)" }}>{msg}</p>}
-      <p style={{ fontSize: 13, color: "var(--text-dim)" }}>{total} kelime bulundu</p>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, maxHeight: 300, overflowY: "auto" }}>
-        {words.map((w) => (
-          <span key={w} style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 8px", background: "var(--bg-panel)", borderRadius: 6, fontSize: 14 }}>
-            {w}
-            <button onClick={() => remove(w)} style={{ border: "none", background: "transparent", color: "var(--accent-hot)", cursor: "pointer", fontSize: 14, padding: 0 }}>×</button>
-          </span>
+
+      <p style={{ fontSize: 13, color: "var(--text-dim)" }}>{total} kelime · sayfa {page}/{pages}</p>
+
+      {/* Kelime listesi — her satırda member/bot toggle */}
+      <div style={{ display: "grid", gap: 4, maxHeight: 360, overflowY: "auto" }}>
+        {words.map((it) => (
+          <div key={it.word} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 8px", background: "var(--bg-panel)", borderRadius: 6, fontSize: 14 }}>
+            <span style={{ flex: 1, fontFamily: "var(--font-display)", fontWeight: 600 }}>{it.word}</span>
+            <button onClick={() => toggleFlag(it.word, "member", !it.member)} title="Üye havuzu" style={{ padding: "2px 8px", borderRadius: 6, border: "none", cursor: "pointer", fontSize: 12, background: it.member ? "var(--accent)" : "var(--bg-elevated)", color: it.member ? "#1a1330" : "var(--text-dim)", fontWeight: 600 }}>👤</button>
+            <button onClick={() => toggleFlag(it.word, "bot", !it.bot)} title="Bot havuzu" style={{ padding: "2px 8px", borderRadius: 6, border: "none", cursor: "pointer", fontSize: 12, background: it.bot ? "var(--accent)" : "var(--bg-elevated)", color: it.bot ? "#1a1330" : "var(--text-dim)", fontWeight: 600 }}>🤖</button>
+            <button onClick={() => remove(it.word)} style={{ border: "none", background: "transparent", color: "var(--accent-hot)", cursor: "pointer", fontSize: 16, padding: "0 4px" }}>×</button>
+          </div>
         ))}
       </div>
+
+      {/* Sayfalama */}
+      {pages > 1 && (
+        <div style={{ display: "flex", gap: 6, justifyContent: "center", alignItems: "center", flexWrap: "wrap" }}>
+          <button onClick={() => search(1)} disabled={page <= 1} style={pgBtn(page <= 1)}>«</button>
+          <button onClick={() => search(page - 1)} disabled={page <= 1} style={pgBtn(page <= 1)}>‹</button>
+          <span style={{ fontSize: 13, color: "var(--text-soft)", padding: "0 8px" }}>{page} / {pages}</span>
+          <button onClick={() => search(page + 1)} disabled={page >= pages} style={pgBtn(page >= pages)}>›</button>
+          <button onClick={() => search(pages)} disabled={page >= pages} style={pgBtn(page >= pages)}>»</button>
+        </div>
+      )}
     </div>
   );
+}
+
+function pgBtn(disabled: boolean): React.CSSProperties {
+  return { padding: "6px 12px", borderRadius: 8, border: "none", cursor: disabled ? "default" : "pointer", background: "var(--bg-panel)", color: disabled ? "var(--text-dim)" : "var(--text-strong)", opacity: disabled ? 0.5 : 1, fontWeight: 600 };
 }
 
 function Sounds() {
