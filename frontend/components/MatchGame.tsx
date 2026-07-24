@@ -285,7 +285,7 @@ export default function MatchGame({
 
       {round && (
         <div style={{ display: "grid", gap: 10, justifyItems: "center" }}>
-          <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+          <div style={{ display: "flex", gap: 8, justifyContent: "center", alignItems: "stretch" }}>
             <input
               value={draft}
               onChange={(e) => onType(e.target.value)}
@@ -307,63 +307,69 @@ export default function MatchGame({
                 color: "var(--text-strong)",
                 fontSize: 20,
                 fontFamily: "var(--font-display)",
-                width: 220,
+                width: 190,
                 textAlign: "center",
                 letterSpacing: "0.2em",
                 textTransform: "uppercase",
                 opacity: !writeBlocked ? 1 : 0.5,
               }}
             />
-            <button onClick={submit} disabled={writeBlocked || draft.length !== round.length} style={{ ...sendBtn, opacity: !writeBlocked && draft.length === round.length ? 1 : 0.5 }}>
+
+            {/* Mikrofon — BASILI TUT & konuş (küçük simge buton) */}
+            {micSupported && (
+              <button
+                onPointerDown={(e) => {
+                  e.preventDefault();
+                  if (writeBlocked && !turnFree) return;
+                  setVoiceHint("");
+                  micStart();
+                }}
+                onPointerUp={(e) => { e.preventDefault(); micStop(); }}
+                onPointerLeave={() => { if (listening) micStop(); }}
+                onContextMenu={(e) => e.preventDefault()}
+                disabled={writeBlocked && !turnFree}
+                title="Basılı tut ve konuş"
+                style={{
+                  width: 52,
+                  borderRadius: 10,
+                  border: listening ? "2px solid var(--accent-hot)" : "2px solid var(--border-soft)",
+                  background: listening ? "var(--accent-hot)" : "var(--bg-elevated)",
+                  cursor: "pointer",
+                  fontSize: 22,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  transition: "all .15s",
+                  boxShadow: listening ? "0 0 20px rgba(217,90,90,.45)" : "none",
+                  opacity: writeBlocked && !turnFree ? 0.5 : 1,
+                  userSelect: "none",
+                  WebkitUserSelect: "none",
+                  WebkitTouchCallout: "none",
+                  WebkitTapHighlightColor: "transparent",
+                  touchAction: "none",
+                }}
+              >
+                {listening ? "🔴" : "🎤"}
+              </button>
+            )}
+
+            {/* Gönder — daraltılmış */}
+            <button
+              onClick={submit}
+              disabled={writeBlocked || draft.length !== round.length}
+              style={{ ...sendBtn, opacity: !writeBlocked && draft.length === round.length ? 1 : 0.5 }}
+            >
               Gönder
             </button>
           </div>
 
-          {/* Mikrofon butonu — sesli cevap. Tek dokunuş: aç/kapa (toggle). */}
-          {micSupported && (
-            <button
-              onClick={() => {
-                if (writeBlocked && !turnFree) return;
-                if (listening) {
-                  micStop();
-                } else {
-                  setVoiceHint("");
-                  micStart();
-                }
-              }}
-              disabled={writeBlocked && !turnFree}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 8,
-                padding: "14px 28px",
-                borderRadius: 24,
-                border: listening ? "2px solid var(--accent-hot)" : "2px solid var(--border-soft)",
-                background: listening ? "var(--accent-hot)" : "var(--bg-elevated)",
-                color: listening ? "#fff" : "var(--text-soft)",
-                fontWeight: 600,
-                fontSize: 15,
-                cursor: "pointer",
-                fontFamily: "var(--font-body)",
-                transition: "all .2s",
-                boxShadow: listening ? "0 0 24px rgba(217,90,90,.4)" : "none",
-                opacity: writeBlocked && !turnFree ? 0.5 : 1,
-                // Metin seçmeyi ve dokunma vurgusunu engelle (mobilde basma sorununu çözer).
-                userSelect: "none",
-                WebkitUserSelect: "none",
-                WebkitTouchCallout: "none",
-                WebkitTapHighlightColor: "transparent",
-                touchAction: "manipulation",
-              }}
-            >
-              <span style={{ fontSize: 18 }}>{listening ? "🔴" : "🎤"}</span>
-              {listening ? "Dinliyorum… (bitince dokun)" : "🎤 Sesli Cevap Ver"}
-            </button>
+          {/* Dinleme durumu / sesli ipucu / hata */}
+          {listening && (
+            <p style={{ fontSize: 13, color: "var(--accent-hot)", fontWeight: 600, textAlign: "center" }}>
+              🔴 Dinliyorum… kelimeyi söyle
+            </p>
           )}
-
-          {/* Sesli ipucu / hata */}
-          {(voiceHint || micError) && (
+          {!listening && (voiceHint || micError) && (
             <p style={{ fontSize: 12, color: micError ? "var(--accent-hot)" : "var(--text-soft)", textAlign: "center" }}>
               {micError || voiceHint}
             </p>
@@ -371,7 +377,7 @@ export default function MatchGame({
 
           <p style={{ color: "var(--text-dim)", fontSize: 12 }}>
             İpucu: kelime <strong style={{ color: "var(--accent)" }}>{round.first_letter}</strong> harfiyle başlıyor
-            {micSupported && <span> · 🎤 dokun, kelimeyi söyle</span>}
+            {micSupported && <span> · 🎤 basılı tut & söyle</span>}
           </p>
         </div>
       )}
@@ -380,7 +386,7 @@ export default function MatchGame({
 }
 
 const sendBtn: React.CSSProperties = {
-  padding: "13px 24px",
+  padding: "13px 14px",
   borderRadius: 10,
   border: "none",
   background: "var(--accent)",
@@ -389,6 +395,7 @@ const sendBtn: React.CSSProperties = {
   fontSize: 16,
   cursor: "pointer",
   fontFamily: "var(--font-display)",
+  whiteSpace: "nowrap",
 };
 
 const newMatchBtn: React.CSSProperties = {

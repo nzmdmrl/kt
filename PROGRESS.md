@@ -422,3 +422,13 @@ Sorun: basılı-tut (press-hold) butonu mobilde text selection tetikliyordu, bas
 userSelect:none, WebkitTouchCallout:none, WebkitTapHighlightColor:transparent,
 touchAction:manipulation eklendi (metin seçme + dokunma vurgusu engellendi).
 Web Speech continuous=false zaten -> konuşma bitince otomatik durur; manuel de durdurulur.
+
+## Faz 7 v3 (mikrofon: basılı-tut'a geri dönüş + konumlandırma)
+Nazım: basılı-tut daha iyi çalışıyordu (ses net alınıyordu), sadece buton basması zordu.
+Çözüm:
+- Basılı-tut geri geldi ama onPointerDown/Up (mouse+touch birleşik, güvenilir).
+  e.preventDefault + touchAction:none + userSelect/tapHighlight engelleri -> basma sorunu çözüldü.
+  onPointerLeave ile parmak kayınca durur.
+- Mikrofon artık input satırında, Gönder'in solunda KÜÇÜK SİMGE buton (52px, sadece 🎤/🔴).
+- Gönder butonu daraltıldı (padding 24->14px, whiteSpace:nowrap). input 220->190px.
+- Dinlerken "🔴 Dinliyorum… kelimeyi söyle" mesajı input altında.
