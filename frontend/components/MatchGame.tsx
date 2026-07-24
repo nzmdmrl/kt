@@ -105,19 +105,20 @@ export default function MatchGame({
   const turnFree = round?.turn_player_id == null;
   const phase = state?.phase;
 
-  // Sıra birindeyken (cevap penceresi) tık-tık geri sayımı; son 5 sn yükselir.
+  // Sıra BENDEYKEN (cevap penceresi) tık-tık geri sayımı; kademeli yükselir.
+  // Rakibin sırasında SESSİZ (sadece myTurn).
   const answerLeft = round?.answer_time_left ?? 0;
-  const turnActive = round?.turn_player_id != null && !round?.finished && phase === "round_active";
+  const myTurnActive = myTurn && !round?.finished && phase === "round_active";
   const answerLeftRef = useRef(answerLeft);
   answerLeftRef.current = answerLeft;
   useEffect(() => {
-    if (turnActive && answerLeftRef.current > 0) {
+    if (myTurnActive && answerLeftRef.current > 0) {
       startTicking(() => answerLeftRef.current);
     } else {
       stopTicking();
     }
     return () => stopTicking();
-  }, [turnActive]);
+  }, [myTurnActive]);
 
   // Yazma engelli mi? (input disabled) — kilitli, tur pasif, veya kesin rakip sırası.
   // Focus varken (kullanıcı yazıyor) ve tur bitmemişse input açık tutulur ki

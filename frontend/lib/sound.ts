@@ -82,10 +82,24 @@ function playSynth(slot: Slot, opts?: { intensity?: number }) {
     case "opponent_found":
       tone(660, 0.1, "sine", 0); tone(880, 0.18, "sine", 0.1); break;
     case "tick": {
-      // Geri sayım tık'ı. intensity 0..1 -> son saniyelerde daha yüksek/tiz.
+      // Yumuşak tık. intensity 0..1 -> ses seviyesi ve hafif tizlik artar.
       const it = opts?.intensity ?? 0;
-      const freq = 800 + it * 600;
-      tone(freq, 0.05, "square", 0, 0.5 + it * 1.5);
+      // Yumuşak, alçak bir "tak": sine dalga, düşük frekans, yumuşak zarf.
+      const c = ctx();
+      if (!c) break;
+      const now = c.currentTime;
+      const osc = c.createOscillator();
+      const gain = c.createGain();
+      osc.type = "sine";
+      osc.frequency.value = 330 + it * 200;  // 330Hz -> 530Hz (yumuşak aralık)
+      const peak = volume * (0.04 + it * 0.5) * 0.5;  // kısıktan yükselene
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(peak, now + 0.015);  // yumuşak attack
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.12);  // yumuşak decay
+      osc.connect(gain);
+      gain.connect(c.destination);
+      osc.start(now);
+      osc.stop(now + 0.13);
       break;
     }
     default: break;
@@ -108,16 +122,27 @@ export function playSound(slot: Slot, opts?: { intensity?: number }) {
   }
 }
 
-// --- Geri sayım tık-tık motoru (son 5 sn yükselen) ---
+// --- Geri sayım tık-tık motoru (kademeli: 20-10 çok kısık, 10 biraz, 5'ten yükselir) ---
 let tickTimer: ReturnType<typeof setInterval> | null = null;
 export function startTicking(getSecondsLeft: () => number) {
   stopTicking();
   tickTimer = setInterval(() => {
     const left = getSecondsLeft();
     if (left <= 0) { stopTicking(); return; }
-    // Son 5 saniyede yoğunluk (intensity) 0.4'ten 1'e yükselir; öncesinde düşük.
-    let intensity = 0.15;
-    if (left <= 5) intensity = 1 - (left - 1) / 5;  // 5sn:0.2 ... 1sn:1.0
+    // Kademeli yoğunluk (intensity 0..1):
+    //   > 10 sn : çok kısık (0.08)
+    //   10-6 sn : hafif duyulur (0.2 -> 0.35)
+    //   <= 5 sn : belirgin yükselir (0.5 -> 1.0)
+    let intensity: number;
+    if (left > 10) {
+      intensity = 0.08;
+    } else if (left > 5) {
+      // 10sn:0.2 ... 6sn:0.35
+      intensity = 0.2 + (10 - left) * 0.0375;
+    } else {
+      // 5sn:0.5 ... 1sn:1.0
+      intensity = 0.5 + (5 - left) * 0.125;
+    }
     playSound("tick", { intensity });
   }, 1000);
 }

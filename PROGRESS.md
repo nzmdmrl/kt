@@ -619,3 +619,11 @@ Bağlantılar:
   bulunca correct; turnActive -> startTicking(answer_time_left) son 5sn yükselen.
 Test: 19 slot mevcut, build ok, backend ok. Sentetik hepsi çalışır; mp3 slotları hazır.
 NOT: ana sayfa müziği tarayıcı autoplay politikası -> ilk tıklamadan sonra başlar (normal).
+
+## Faz 10 ses v4 — tık-tık ince ayar (Nazım geri bildirimi)
+1. Rakibin geri sayımı DUYULMAZ: tık artık sadece myTurn'de çalar (myTurnActive),
+   rakibin sırasında sessiz.
+2. Kademeli seviye: >10sn çok kısık (0.08), 10-6sn hafif (0.2->0.35),
+   <=5sn belirgin yükselir (0.5->1.0).
+3. Yumuşak ton: square yerine sine, 330->530Hz (az tiz), yumuşak attack(15ms)/decay(120ms).
+Sadece frontend (lib/sound.ts + MatchGame turnActive->myTurnActive). Backend değişmedi.
