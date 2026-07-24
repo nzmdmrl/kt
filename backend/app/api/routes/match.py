@@ -40,37 +40,44 @@ async def _add_bot_to_room(room, bot_elo: int):
 
 
 def _attach_stats_callback(room):
-    """Maç bitince gerçek kullanıcıların istatistik/ELO'sunu günceller."""
+    """Maç bitince gerçek kullanıcıların istatistik/ELO'sunu ve lig puanını günceller."""
     async def on_over(match, result):
+        from app.core.database import AsyncSessionLocal
+        from app.game.match_result import apply_match_result
+        order = match.player_order
+        scores = result["scores"]
+        winner = result["winner"]
+        print(f"[stats] maç bitti order={order} scores={scores} winner={winner}")
         try:
-            from app.core.database import AsyncSessionLocal
-            from app.game.match_result import apply_match_result
-            order = match.player_order
-            scores = result["scores"]
-            winner = result["winner"]
             async with AsyncSessionLocal() as db:
                 for pid in order:
                     if not pid.startswith("u"):  # sadece gerçek kullanıcılar (u{id})
+                        print(f"[stats] {pid} atlandı (misafir/bot)")
                         continue
                     try:
                         uid = int(pid[1:])
                     except ValueError:
+                        print(f"[stats] {pid} id çözülemedi")
                         continue
+                    # Rakip ELO'su: bot ise botun elo'su, insan ise 1000 (basit).
                     opp = match.opponent_of(pid)
                     opp_player = match.players.get(opp)
-                    opp_elo = 1000
-                    # rakip bot ise bot elo'su, insan ise 1000 (basit; ileride gerçek)
-                    words = sum(1 for r_i in [] for _ in [])  # placeholder
-                    won = winner == pid
-                    draw = winner is None
-                    await apply_match_result(
+                    opp_elo = getattr(opp_player, "elo", 1000) or 1000
+                    won = (winner == pid)
+                    draw = (winner is None)
+                    my_score = scores.get(pid, 0)
+                    print(f"[stats] {pid} uid={uid} won={won} draw={draw} score={my_score}")
+                    res = await apply_match_result(
                         db, uid, opp_elo,
                         won=won, draw=draw,
-                        score=scores.get(pid, 0),
+                        score=my_score,
                         words_solved=0,
                     )
-        except Exception:
-            pass
+                    print(f"[stats] {pid} işlendi -> yeni elo={res.elo if res else 'YOK'}")
+        except Exception as e:
+            import traceback
+            print(f"[stats] HATA: {e}")
+            traceback.print_exc()
     room.on_match_over = on_over
 
 

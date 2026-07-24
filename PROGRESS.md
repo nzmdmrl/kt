@@ -351,3 +351,16 @@ Test: günün en iyisi mantığı + SUM + ödül dağıtımı + maç->lig zincir
 - /api/league/me get_current_user gerektirir (giriş şart); misafir lige yazılmaz.
 - Yıllık ödül sadece Ocak'ta önceki yıl için verilir; aylık her ay başı önceki ay.
 - Frontend'de kullanıcının kendi kup/madalya vitrini Faz 6'da (profil) gösterilecek.
+
+## Faz 5 BUG ARAŞTIRMASI v2 (yasemin: bota karşı kazandı ama lige yansımadı)
+Gerçek veri: yasemin matches_played=8, wins=0, elo 1000->890 (hep kaybetmiş sayılmış),
+daily_scores BOŞ. Tablolar mevcut (daily_scores, league_awards var).
+Local test: _end_match->callback->apply_match_result->lig zinciri DOĞRU çalışıyor
+(insan kazanınca won=True, elo artıyor, lig yazılıyor). Yani kod mantığı sağlam.
+Şüphe: maç sen KAZANMADAN bitiyor olabilir (bağlantı kopması / 3 tur dolmadan /
+"Yeni Maç"a basma). Debug logları eklendi:
+  - _attach_stats_callback: order/scores/winner/won/draw/score/yeni_elo loglanıyor.
+  - record_daily_score çağrısı: [lig] logu; except artık traceback basıyor.
+Sonraki adım: bu versiyonu deploy et, 1 maç oyna, backend loglarına bak:
+  docker logs -f <backend> --tail 30   -> [stats] ve [lig] satırlarını incele.
+Bu loglar won'un neden False geldiğini / maçın ne zaman bittiğini gösterecek.

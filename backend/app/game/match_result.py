@@ -80,7 +80,10 @@ async def apply_match_result(
     try:
         from app.game.league_service import record_daily_score
         await record_daily_score(db, user_id, score)
-    except Exception:
-        pass
+        print(f"[lig] user={user_id} score={score} lige işlendi")
+    except Exception as e:
+        import traceback
+        print(f"[lig] HATA user={user_id}: {e}")
+        traceback.print_exc()
 
     return user
