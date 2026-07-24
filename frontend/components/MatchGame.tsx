@@ -385,7 +385,7 @@ export default function MatchGame({
   }
 
   return (
-    <div style={{ display: "grid", gap: 14, position: "relative" }}>
+    <div style={{ display: "grid", gap: 14, position: "relative", width: "100%", maxWidth: "100%", overflowX: "hidden", minWidth: 0 }}>
       {/* Uçan emote animasyonu */}
       {flyingEmote && (
         <div

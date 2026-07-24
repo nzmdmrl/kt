@@ -176,10 +176,10 @@ function DraftLine({
 
 function tileStyle(bg: string, color: string, dim?: boolean): React.CSSProperties {
   return {
-    // Responsive: 50px ya da ekrana sığacak boyut (hangisi küçükse).
-    // 6 harfli en geniş durum: (100vw - kenar boşlukları) / 6 kadar yer kalır.
-    width: "min(50px, calc((100vw - 52px) / 6.4))",
-    height: "min(50px, calc((100vw - 52px) / 6.4))",
+    // Responsive: 50px ya da ekrana sığacak boyut. 6 harf + gap + padding hesaba katılır;
+    // muhafazakar bölen (7.2) ile en dar telefonda bile taşma olmaz.
+    width: "min(50px, calc((100vw - 44px) / 7.2))",
+    height: "min(50px, calc((100vw - 44px) / 7.2))",
     aspectRatio: "1",
     flexShrink: 0,
     display: "grid",
@@ -187,7 +187,7 @@ function tileStyle(bg: string, color: string, dim?: boolean): React.CSSPropertie
     borderRadius: 10,
     fontFamily: "var(--font-display)",
     fontWeight: 700,
-    fontSize: "min(22px, calc((100vw - 52px) / 15))",
+    fontSize: "min(22px, calc((100vw - 44px) / 17))",
     color,
     background: bg,
     border: dim ? "1px solid var(--tile-border)" : "none",

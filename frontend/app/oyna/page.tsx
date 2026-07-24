@@ -290,6 +290,8 @@ export default function OynaPage() {
 
 const pageStyle: React.CSSProperties = {
   flex: 1, maxWidth: 560, width: "100%", margin: "0 auto", padding: "28px 18px 60px",
+  overflowX: "hidden",
+  boxSizing: "border-box",
 };
 const labelStyle: React.CSSProperties = { display: "block", fontSize: 13, color: "var(--text-soft)", marginBottom: 6 };
 const inputStyle: React.CSSProperties = {
