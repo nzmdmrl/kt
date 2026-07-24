@@ -808,3 +808,13 @@ değişince sol blok genişleyip orta/sağı itiyordu; toplam sabit olmadığı 
 Çözüm: sol+sağ blok SABİT 72px (flexShrink:0), orta blok flex:1 minWidth:0 (hep ortada,
 ellipsis). width:100% ile taşma yok. Saniye kaç basamak olursa olsun bloklar sabit.
 Cevap süresi "cevap: 18s" -> "18s" kısaltıldı (72px'e sığsın). Sadece frontend.
+
+## [YAPILACAK — SONRA] Toplu kelime yükleme (Nazım isteği)
+Admin panele TOPLU kelime yükleme eklenecek:
+- Kullanıcı temiz kelime listesini (metin/satır satır) yükler + uzunluk seçer.
+- Sistem her kelimeyi o uzunluğun havuzuna atar (4 harfli liste -> 4 harf havuzu).
+- Kelime ZATEN VARSA es geç (mevcut member/bot durumuna DOKUNMA).
+- YOKSA ekle: member=True, bot=True olarak.
+- DB tabanlı (words tablosu), refresh_pools ile havuz güncellenir.
+- Not: geçersiz uzunluk/şekil olanları atla, kaç eklendi/kaç atlandı raporu döndür.
+Nazım bu işi en son yapmak istiyor (önce temiz listeyi kendi hazırlayacak).

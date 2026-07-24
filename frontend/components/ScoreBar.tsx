@@ -17,7 +17,7 @@ export default function ScoreBar({
   const answerLeft = round?.answer_time_left ?? 0;
 
   return (
-    <div className="scorebar" style={{ display: "grid", gap: 10, background: "var(--bg-panel)", border: "1px solid var(--border-soft)", borderRadius: "var(--radius)", padding: 14 }}>
+    <div className="scorebar" style={{ display: "grid", gap: 10, background: "var(--bg-panel)", border: "1px solid var(--border-soft)", borderRadius: "var(--radius)", padding: 14, width: "100%", maxWidth: "100%", boxSizing: "border-box", overflow: "hidden" }}>
       {/* Satır 1: iki oyuncu kartı */}
       <div className="sb-players" style={{ display: "flex", alignItems: "stretch", gap: 10 }}>
         <PlayerChip player={p1} myId={myId} active={turnId === p1?.id} />
@@ -29,9 +29,9 @@ export default function ScoreBar({
           orta blok kalan alanı doldurur ve hep ortada durur. */}
       <div style={{ display: "flex", alignItems: "center", gap: 6, width: "100%" }}>
         {/* Sol: tur saniyesi — sabit genişlik, sola hizalı */}
-        <div style={{ width: 72, flexShrink: 0, display: "flex", alignItems: "baseline", gap: 4 }}>
-          <span className="brand-mono" style={{ fontSize: 28, lineHeight: 1, fontWeight: 700, color: timeLeft <= 10 ? "var(--accent-hot)" : "var(--accent)" }}>{timeLeft}</span>
-          <span style={{ fontSize: 11, color: "var(--text-dim)" }}>sn</span>
+        <div style={{ width: 60, flexShrink: 0, display: "flex", alignItems: "baseline", gap: 3 }}>
+          <span className="brand-mono" style={{ fontSize: 26, lineHeight: 1, fontWeight: 700, color: timeLeft <= 10 ? "var(--accent-hot)" : "var(--accent)" }}>{timeLeft}</span>
+          <span style={{ fontSize: 10, color: "var(--text-dim)" }}>sn</span>
         </div>
 
         {/* Orta: Tur X/3 · N harf — kalan alan, ortalı */}
@@ -40,7 +40,7 @@ export default function ScoreBar({
         </div>
 
         {/* Sağ: cevap süresi — sabit genişlik, sağa hizalı */}
-        <div style={{ width: 72, flexShrink: 0, textAlign: "right" }}>
+        <div style={{ width: 60, flexShrink: 0, textAlign: "right" }}>
           {turnId && answerLeft > 0 ? (
             <span style={{ fontSize: 13, color: answerLeft <= 5 ? "var(--accent-hot)" : "var(--accent)", fontWeight: 600, whiteSpace: "nowrap" }}>
               {answerLeft}s
