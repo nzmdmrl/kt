@@ -95,3 +95,16 @@ a { color: inherit; text-decoration: none; }
   margin: 24px 0 8px;
 }
 .legal-content p { margin-bottom: 12px; }
+
+/* --- Mobil ScoreBar düzeni (640px altı) --- */
+@media (max-width: 640px) {
+  .sb-timer-desktop { display: none !important; }
+  .sb-round-desktop { display: none !important; }
+  .sb-answer-desktop { display: none !important; }
+  .sb-info-mobile { display: block !important; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}

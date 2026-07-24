@@ -707,3 +707,17 @@ Düzeltme:
 - input: width:190 -> flex "1 1 150px", maxWidth 240, minWidth 0 (esner, daralır).
 - sendBtn: flexShrink:0 + padding 14->16 (küçülmez, kesilmez).
 Artık dar ekranda input üstte, mikrofon+Gönder altında; geniş ekranda üçü yan yana.
+
+## Mobil düzen v5 — ScoreBar yeniden düzen + emoji açılır buton (Nazım tasarımı)
+YEDEK: _yedek_mobil_oncesi/ (MatchGame, ScoreBar, Grid, globals.css, oyna_page) —
+yeni tasarım tutmazsa geri dönülür.
+ScoreBar mobil düzen (desktop AYNI, media query 640px):
+- Desktop: player1 - büyük sayaç - player2 (eski hal, .sb-*-desktop class'ları).
+- Mobil (.sb-info-mobile): satır1 iki oyuncu kartı; satır2 solda sayaç+"Tur X/3·N harf",
+  sağda "cevap: Ns"; satır3 zaman çizgisi. Masaüstü ortadaki sayaç/tur/cevap gizlenir.
+Emoji:
+- Eski 6'lı çubuk (satır harcıyordu) KALDIRILDI.
+- Bildirim satırının SAĞINDA tek 😀 buton; tıkla -> 6 emoji açılır (fadeIn), seç -> gönder+kapan.
+- TUR BAŞINA 2 emoji limiti (emoteCount, round_start'ta sıfırlanır). Limit dolunca 🚫 + disabled.
+globals.css: mobil scorebar media query + fadeIn.
+Sadece frontend. Backend değişmedi.

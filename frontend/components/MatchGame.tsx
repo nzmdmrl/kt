@@ -65,6 +65,7 @@ export default function MatchGame({
       playSound("match_start");
     } else if (lastEvent.type === "round_start") {
       playSound("round_start");
+      setEmoteCount(0); // yeni tur — emoji hakkı yenilenir
     } else if (lastEvent.type === "guess_result") {
       // Harfler tek tek yerleşirken renk sesine göre çal.
       // Grid senkronu: her harf `i * 220ms` gecikmeyle flip başlar (flipIn .4s).
@@ -102,6 +103,8 @@ export default function MatchGame({
   const [draft, setDraft] = useState("");
   const [locked, setLocked] = useState(false); // tahmin gönderildi, yanıt bekleniyor
   const [nextRoundIn, setNextRoundIn] = useState(0); // tur arası geri sayım (sn)
+  const [emoteOpen, setEmoteOpen] = useState(false);   // emoji paneli açık mı
+  const [emoteCount, setEmoteCount] = useState(0);      // bu turda kaç emoji gönderildi (max 2)
   const [hasFocus, setHasFocus] = useState(false); // input'ta focus var mı
 
   const round = state?.round ?? null;
@@ -406,27 +409,6 @@ export default function MatchGame({
 
       <ScoreBar state={state} myId={playerId} />
 
-      {/* Emote çubuğu — hızlı tepkiler */}
-      <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
-        {["👍", "😂", "😮", "🔥", "😢", "👏"].map((em) => (
-          <button
-            key={em}
-            onClick={() => emote(em)}
-            style={{
-              fontSize: 20,
-              padding: "4px 8px",
-              borderRadius: 8,
-              border: "1px solid var(--border-soft)",
-              background: "var(--bg-panel)",
-              cursor: "pointer",
-              lineHeight: 1,
-            }}
-          >
-            {em}
-          </button>
-        ))}
-      </div>
-
       {/* Büyük, net sıra göstergesi */}
       <div
         style={{
@@ -465,10 +447,46 @@ export default function MatchGame({
         </div>
       )}
 
-      {/* İnce bildirim satırı */}
-      <div style={{ minHeight: 18, textAlign: "center" }}>
-        {error && <span style={{ color: "var(--accent-hot)", fontSize: 14 }}>{error}</span>}
-        {!error && flash && <span style={{ color: "var(--accent)", fontSize: 14 }}>{flash}</span>}
+      {/* İnce bildirim satırı — sağında açılır emoji butonu */}
+      <div style={{ minHeight: 24, display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
+        <div style={{ flex: 1, textAlign: "center" }}>
+          {error && <span style={{ color: "var(--accent-hot)", fontSize: 14 }}>{error}</span>}
+          {!error && flash && <span style={{ color: "var(--accent)", fontSize: 14 }}>{flash}</span>}
+        </div>
+        {/* Emoji butonu — sağda, satır harcamaz */}
+        <div style={{ position: "absolute", right: 0, display: "flex", alignItems: "center", gap: 6 }}>
+          {emoteOpen && (
+            <div style={{ display: "flex", gap: 4, background: "var(--bg-panel)", padding: "4px 6px", borderRadius: 20, boxShadow: "var(--shadow-soft)", animation: "fadeIn .15s ease" }}>
+              {["👍", "😂", "😮", "🔥", "😢", "👏"].map((em) => (
+                <button
+                  key={em}
+                  onClick={() => {
+                    if (emoteCount >= 2) return;
+                    emote(em);
+                    setEmoteCount((c) => c + 1);
+                    setEmoteOpen(false);
+                  }}
+                  disabled={emoteCount >= 2}
+                  style={{ fontSize: 20, padding: "2px 4px", border: "none", background: "transparent", cursor: emoteCount >= 2 ? "not-allowed" : "pointer", lineHeight: 1, opacity: emoteCount >= 2 ? 0.4 : 1 }}
+                >
+                  {em}
+                </button>
+              ))}
+            </div>
+          )}
+          <button
+            onClick={() => setEmoteOpen((o) => !o)}
+            title={emoteCount >= 2 ? "Bu turda emoji hakkın bitti" : "Emoji gönder"}
+            style={{
+              fontSize: 20, width: 36, height: 36, borderRadius: "50%",
+              border: "1px solid var(--border-soft)", background: "var(--bg-panel)",
+              cursor: "pointer", lineHeight: 1, display: "grid", placeItems: "center",
+              opacity: emoteCount >= 2 ? 0.5 : 1,
+            }}
+          >
+            {emoteCount >= 2 ? "🚫" : "😀"}
+          </button>
+        </div>
       </div>
 
       {round && (
