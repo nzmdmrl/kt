@@ -1,6 +1,7 @@
 import Logo from "@/components/Logo";
 import TopBar from "@/components/TopBar";
 import Footer from "@/components/Footer";
+import HomeMusic from "@/components/HomeMusic";
 import { getJSON } from "@/lib/api";
 
 type Health = {
@@ -152,6 +153,7 @@ export default async function Home() {
       )}
       </main>
       <Footer />
+      <HomeMusic />
     </>
   );
 }

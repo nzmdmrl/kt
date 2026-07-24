@@ -19,12 +19,24 @@ from app.core.database import Base
 # Geçerli ses slotları ve açıklamaları.
 SOUND_SLOTS = {
     "button": "Buton tıklama",
-    "correct": "Doğru tahmin",
+    "tile_correct": "Harf yerleşme — yeşil (doğru yer)",
+    "tile_present": "Harf yerleşme — sarı (yanlış yer)",
+    "tile_absent": "Harf yerleşme — gri (yok)",
+    "correct": "Doğru tahmin (kelime bulundu)",
     "wrong": "Yanlış tahmin",
     "win": "Kazanma",
     "lose": "Kaybetme",
     "round_start": "Tur başı",
-    "music": "Arka plan müziği",
+    "match_start": "Maç başlangıç",
+    "radar": "Rakip aranıyor (radar)",
+    "opponent_found": "Rakip bulundu",
+    "tick": "Geri sayım tık-tık",
+    "music1": "Ana sayfa müzik 1",
+    "music2": "Ana sayfa müzik 2",
+    "music3": "Ana sayfa müzik 3",
+    "music4": "Ana sayfa müzik 4",
+    "music5": "Ana sayfa müzik 5",
+    "music6": "Ana sayfa müzik 6",
 }
 
 

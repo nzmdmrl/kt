@@ -600,3 +600,22 @@ Dosyalar max 3MB, DB için uygun. Test: yükle/servis(birebir içerik)/sil doğr
 AUDIO_DIR config'te kaldı ama artık kullanılmıyor (zararsız).
 NOT: Coolify managed compose = /data/coolify/applications/mrx9s3.../docker-compose.yaml
 (kaynak .yml GitHub'da; sunucuda build sonrası yok). Volume yaklaşımı TERK EDİLDİ.
+
+## Faz 10 ses v3 — Zengin ses sistemi (Nazım detaylı istek)
+Yeni slotlar (19 toplam): tile_correct/present/absent (harf renk sesleri),
+match_start, radar, opponent_found, tick, music1..music6. Hepsi sentetik + yüklenebilir.
+Frontend lib/sound.ts baştan yazıldı:
+- Sentetik tonlar: harf renklerine göre farklı (yeşil tiz/sarı orta/gri boğuk).
+- startTicking(getSecondsLeft): sıra birindeyken saniyede tık; SON 5 SN intensity 0.2->1.0
+  (frekans+ses yükselir). stopTicking.
+- startRadar/stopRadar: rakip aranırken döngüsel radar biip (yüklüyse mp3 loop).
+- Ambient müzik motoru: 6 sentetik varyasyon (rastgele akorlar+LFO), 30sn'de değişir.
+  Yüklü music1..6 varsa onlardan RASTGELE çalar, biri bitince diğeri (onended).
+Bağlantılar:
+- components/HomeMusic.tsx: ana sayfa müzik düğmesi (🔊/🔈), ilk pointerdown'da başlar
+  (autoplay engeli için). app/page.tsx'e eklendi.
+- app/oyna: mode=searching -> startRadar; searching->vs geçişi -> opponent_found sesi.
+- MatchGame: match_start sesi; guess_result -> harfler tek tek renk sesiyle (180ms stagger),
+  bulunca correct; turnActive -> startTicking(answer_time_left) son 5sn yükselen.
+Test: 19 slot mevcut, build ok, backend ok. Sentetik hepsi çalışır; mp3 slotları hazır.
+NOT: ana sayfa müziği tarayıcı autoplay politikası -> ilk tıklamadan sonra başlar (normal).

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { apiUrl } from "@/lib/api";
+import { startRadar, stopRadar, playSound, initSound } from "@/lib/sound";
 import { useAuth } from "@/lib/auth";
 import Logo from "@/components/Logo";
 import MatchGame from "@/components/MatchGame";
@@ -34,6 +35,25 @@ export default function OynaPage() {
   const [err, setErr] = useState("");
   const [searchSeconds, setSearchSeconds] = useState(0);
   const pollRef = useRef<any>(null);
+
+  // Ses: rakip aranırken radar çal; VS/maç moduna geçince rakip bulundu sesi.
+  useEffect(() => {
+    initSound(true, 70);
+  }, []);
+  const prevMode = useRef<Mode>("menu");
+  useEffect(() => {
+    if (mode === "searching") {
+      startRadar();
+    } else {
+      stopRadar();
+      // Aramadan VS ekranına geçtiyse rakip bulundu sesi.
+      if (prevMode.current === "searching" && mode === "vs") {
+        playSound("opponent_found");
+      }
+    }
+    prevMode.current = mode;
+    return () => { if (mode === "searching") stopRadar(); };
+  }, [mode]);
 
   useEffect(() => {
     if (user) {

@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useMatch } from "@/lib/useMatch";
 import { toUpperTr } from "@/lib/turkish";
 import { useSpeech } from "@/lib/useSpeech";
-import { playSound, initSound } from "@/lib/sound";
+import { playSound, initSound, startTicking, stopTicking } from "@/lib/sound";
 import Grid from "./Grid";
 import ScoreBar from "./ScoreBar";
 
@@ -61,12 +61,29 @@ export default function MatchGame({
   // Oyun olaylarına göre ses çal.
   useEffect(() => {
     if (!lastEvent) return;
-    if (lastEvent.type === "round_start") playSound("round_start");
-    else if (lastEvent.type === "guess_result") {
-      if (lastEvent.correct) playSound("correct");
-      else playSound("wrong");
+    if (lastEvent.type === "match_start") {
+      playSound("match_start");
+    } else if (lastEvent.type === "round_start") {
+      playSound("round_start");
+    } else if (lastEvent.type === "guess_result") {
+      // Harfler tek tek yerleşirken renk sesine göre çal (gecikmeli).
+      const tiles = lastEvent.tiles || [];
+      tiles.forEach((t: any, i: number) => {
+        setTimeout(() => {
+          if (t.state === "correct") playSound("tile_correct");
+          else if (t.state === "present") playSound("tile_present");
+          else playSound("tile_absent");
+        }, i * 180); // Grid'deki stagger ile uyumlu
+      });
+      // Kelime bulunduysa kısa süre sonra doğru/yanlış sesi.
+      setTimeout(() => {
+        if (lastEvent.correct) playSound("correct");
+      }, tiles.length * 180 + 120);
     }
   }, [lastEvent]);
+
+  // Sıra birindeyken (cevap penceresi) tık-tık geri sayımı; son 5 sn yükselir.
+  // (round/phase tanımından sonra, aşağıda tanımlı.)
 
   // Gelen emote animasyonu (kim, hangi emoji).
   const [flyingEmote, setFlyingEmote] = useState<{ id: number; emoji: string; mine: boolean } | null>(null);
@@ -87,6 +104,20 @@ export default function MatchGame({
   const myTurn = round?.turn_player_id === playerId;
   const turnFree = round?.turn_player_id == null;
   const phase = state?.phase;
+
+  // Sıra birindeyken (cevap penceresi) tık-tık geri sayımı; son 5 sn yükselir.
+  const answerLeft = round?.answer_time_left ?? 0;
+  const turnActive = round?.turn_player_id != null && !round?.finished && phase === "round_active";
+  const answerLeftRef = useRef(answerLeft);
+  answerLeftRef.current = answerLeft;
+  useEffect(() => {
+    if (turnActive && answerLeftRef.current > 0) {
+      startTicking(() => answerLeftRef.current);
+    } else {
+      stopTicking();
+    }
+    return () => stopTicking();
+  }, [turnActive]);
 
   // Yazma engelli mi? (input disabled) — kilitli, tur pasif, veya kesin rakip sırası.
   // Focus varken (kullanıcı yazıyor) ve tur bitmemişse input açık tutulur ki
