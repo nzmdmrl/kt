@@ -75,4 +75,12 @@ async def apply_match_result(
     user.elo = max(100, elo_change(user.elo, opp_elo, result_val))
     await db.commit()
     await db.refresh(user)
+
+    # Lig puanı: bu maçın puanını bugünün lig kaydına işle (günün en iyisi tutulur).
+    try:
+        from app.game.league_service import record_daily_score
+        await record_daily_score(db, user_id, score)
+    except Exception:
+        pass
+
     return user

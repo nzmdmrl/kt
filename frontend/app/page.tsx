@@ -49,22 +49,40 @@ export default async function Home() {
             ligde yarış, kupa ve rozet kazan.
           </p>
         </div>
-        <a
-          href="/oyna"
-          style={{
-            display: "inline-block",
-            padding: "14px 32px",
-            background: "var(--accent)",
-            color: "#1a1330",
-            borderRadius: 12,
-            fontWeight: 700,
-            fontSize: 18,
-            fontFamily: "var(--font-display)",
-            boxShadow: "0 8px 28px var(--accent-glow)",
-          }}
-        >
-          Oynamaya Başla →
-        </a>
+        <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+          <a
+            href="/oyna"
+            style={{
+              display: "inline-block",
+              padding: "14px 32px",
+              background: "var(--accent)",
+              color: "#1a1330",
+              borderRadius: 12,
+              fontWeight: 700,
+              fontSize: 18,
+              fontFamily: "var(--font-display)",
+              boxShadow: "0 8px 28px var(--accent-glow)",
+            }}
+          >
+            Oynamaya Başla →
+          </a>
+          <a
+            href="/lig"
+            style={{
+              display: "inline-block",
+              padding: "14px 28px",
+              background: "var(--bg-panel)",
+              color: "var(--text-strong)",
+              borderRadius: 12,
+              fontWeight: 600,
+              fontSize: 18,
+              fontFamily: "var(--font-display)",
+              border: "1px solid var(--border-soft)",
+            }}
+          >
+            🏆 Lig
+          </a>
+        </div>
       </header>
 
       {/* Sistem durumu */}

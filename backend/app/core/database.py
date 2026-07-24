@@ -42,6 +42,6 @@ async def get_db() -> AsyncSession:
 async def init_models() -> None:
     """Tabloları oluştur (yoksa). Uygulama başlangıcında çağrılır."""
     # Modellerin import edilmiş olması gerekir ki Base.metadata dolsun.
-    from app.models import user, bot  # noqa: F401
+    from app.models import user, bot, daily_score, league_award  # noqa: F401
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)

@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
 from app.core.database import init_models
-from app.api.routes import health, words, room, match, auth, matchmaking
+from app.api.routes import health, words, room, match, auth, matchmaking, league
 
 settings = get_settings()
 
@@ -53,6 +53,7 @@ app.include_router(room.router, prefix="/api")
 app.include_router(match.router, prefix="/api")  # WebSocket: /api/ws/match/{code}
 app.include_router(auth.router, prefix="/api")
 app.include_router(matchmaking.router, prefix="/api")
+app.include_router(league.router, prefix="/api")
 
 
 @app.on_event("startup")
@@ -79,6 +80,13 @@ async def on_startup():
                 print(f"[startup] {created} bot seed edildi.")
     except Exception as e:
         print(f"[startup] Bot seed atlandı: {e}")
+    # Lig ödül scheduler'ını başlat (kapanmış dönemleri kontrol eder).
+    try:
+        import asyncio as _asyncio
+        from app.game.league_scheduler import league_scheduler_loop
+        _asyncio.create_task(league_scheduler_loop())
+    except Exception as e:
+        print(f"[startup] Lig scheduler atlandı: {e}")
 
 
 @app.get("/")

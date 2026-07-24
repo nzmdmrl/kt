@@ -51,7 +51,7 @@ Oyun varsayılan kolay+orta havuzdan seçer.
 - [x] **Faz 2** — WebSocket maç: paylaşımlı ızgara + buzzer + sıra + 3 tur + puanlama + hız bonusu + 0-0 önleme
 - [x] **Faz 3** — Auth (Google OAuth + e-posta/şifre) + kullanıcı profili temel
 - [x] **Faz 4** — Matchmaking + 100 bot (ELO'lu, davranış simülasyonu) + solo/bot mod + VS ekranı
-- [ ] **Faz 5** — Lig (günlük/aylık/yıllık/tüm zamanlar) + scheduler + kupa/madalya
+- [x] **Faz 5** — Lig (günlük/aylık/yıllık/tüm zamanlar) + scheduler + kupa/madalya
 - [ ] **Faz 6** — Rozet + detaylı profil + istatistik + ısı haritası
 - [ ] **Faz 7** — Sesli mod (Web Speech + Whisper fallback)
 - [ ] **Faz 8** — Rövanş + emote + günün kelimesi + arkadaş/özel oda + sonuç kartı
@@ -292,3 +292,62 @@ Sorun: autoFocus yüzünden (1) oyun başında input otomatik seçili geliyordu
 Çözüm: autoFocus kaldırıldı. hasFocus state + onFocus/onBlur eklendi. Kullanıcı
 input'a TIKLAYINCA buzzer alınır (söz hakkı geçer). writeBlocked'a hasFocus istisnası:
 focus varken input açık kalır, ilk harf düşmez. Tur/sıra değişince hasFocus sıfırlanır.
+
+## YENİ ÖZELLİK NOTU — Öğretici / Onboarding (Faz 8 veya 9'a eklenecek)
+Nazım'ın isteği (ileriki faz):
+1. İlk kez oynayana ÖĞRETİCİ (tutorial/onboarding):
+   - Nasıl oynanır, nereye tıklanır, buzzer nasıl alınır.
+   - Sesli cevap özelliği nasıl kullanılır (Faz 7 geldiyse).
+   - Muhtemelen ilk maçta adım adım baloncuk/highlight ile rehberlik (interaktif),
+     veya maç öncesi kısa bir tanıtım ekranı.
+2. Rakip DENEYİMLİYSE (eski üye) ve karşısındaki oyuncu İLK MAÇINI oynuyorsa:
+   - Deneyimli rakibe bildirim: "Biraz bekleyin, rakibiniz sistemi ilk kez öğreniyor"
+     gibi bir mesaj. Sabır/empati oluşturur, kötü ilk deneyimi önler.
+   - Gerekli veri: user.matches_played == 0 mı (ilk maç mı) kontrolü. Zaten var.
+   - Matchmaking/oda kurulurken bu bilgi rakibe iletilir (is_first_match flag).
+Teknik not: is_first_match = (matches_played == 0). Maç başında karşı tarafa
+"opponent_is_new" bilgisi WebSocket ile gönderilebilir. Öğretici için ilk kez
+oynayanı tespit: giriş yapmışsa matches_played==0, misafirse localStorage flag.
+
+## ÖZELLİK NOTU — Misafir Modu (mevcut durum + geliştirme)
+Nazım misafir modunu beğendi. MEVCUT DURUM (Faz 3-4'te zaten var):
+- Giriş yapmadan oynanabiliyor. localStorage'da kt_player_id + kt_name tutulur.
+- Misafir "Rakip Bul", "Bota Karşı Oyna", "Özel Oda" kullanabiliyor.
+- Misafir ELO'su varsayılan 1000 (matchmaking için), ama İSTATİSTİK/ELO KAYDEDİLMİYOR
+  (sadece giriş yapmış kullanıcılar için apply_match_result çalışıyor, pid 'u{id}').
+EKSİK / GELİŞTİRİLEBİLİR (ileriki faz):
+- Misafir ilerlemesi kaydedilmiyor (maç sonrası ELO/istatistik yok). İstenirse
+  localStorage'da geçici istatistik tutulabilir.
+- Misafir lige giremez (lig üyelik gerektirir — Faz 5).
+- "Misafir olarak devam et" butonu ana sayfada daha belirgin olabilir.
+- Misafiri üyeliğe teşvik: birkaç maç sonra "kaydol, ilerlemen kaybolmasın" mesajı.
+- Misafir -> üye geçişinde localStorage istatistiğini hesaba aktarma (opsiyonel).
+Karar: temel misafir modu ÇALIŞIYOR; bu notlar onu tam özelliğe çevirmek için.
+
+## Faz 5 TAMAMLANDI — Lig sistemi
+Backend:
+- models/daily_score.py — DailyScore (user_id, score_date, best_score, matches).
+  Günün en iyi maç puanı tutulur (upsert). init_models'a eklendi.
+- models/league_award.py — LeagueAward (kupa/madalya, period_type/key, rank).
+- game/league_service.py — record_daily_score (upsert, günün en iyisi),
+  leaderboard (daily/monthly/yearly/all; daily=best, diğerleri=SUM), user_rank.
+- game/league_scheduler.py — award_period (dönem ilk 3'e kupa/madalya, idempotent),
+  check_and_award_closed_periods, league_scheduler_loop (günde bir, startup task).
+- game/match_result.py — apply_match_result artık record_daily_score de çağırıyor.
+- api/routes/league.py — GET /leaderboard?scope=, /me?scope=, /awards/{user_id}.
+- main.py — league router + scheduler startup task + yeni modeller init.
+
+Frontend:
+- app/lig/page.tsx — 4 sekmeli liderlik tablosu (Günlük/Aylık/Yıllık/Tüm Zamanlar).
+  Kendi satırın vurgulu; ilk 3'te madalya emoji; boş durum mesajı.
+- app/page.tsx — ana sayfaya "🏆 Lig" butonu eklendi.
+
+Lig mantığı (kilitli): günlük = o günün en yüksek TEK maç puanı; aylık/yıllık/tüm =
+günlük puanların toplamı. Ay sonu ilk 3'e otomatik kupa(1)/madalya(2-3).
+Test: günün en iyisi mantığı + SUM + ödül dağıtımı + maç->lig zinciri doğrulandı.
+
+## Faz 5 bilinen sınırlar / sonraki
+- Bot maçları da lige yazılıyor (oyuncu puanı gerçek). Admin'de kapatılabilir yapılabilir (Faz 10).
+- /api/league/me get_current_user gerektirir (giriş şart); misafir lige yazılmaz.
+- Yıllık ödül sadece Ocak'ta önceki yıl için verilir; aylık her ay başı önceki ay.
+- Frontend'de kullanıcının kendi kup/madalya vitrini Faz 6'da (profil) gösterilecek.
