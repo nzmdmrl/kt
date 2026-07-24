@@ -29,6 +29,16 @@ export default function MatchGame({
     bot,
     botElo
   );
+  // Maç bitti durumu — lastEvent'e bağlı DEĞİL (rematch_request gelince kaybolmasın).
+  const [matchOverData, setMatchOverData] = useState<any>(null);
+  useEffect(() => {
+    if (lastEvent?.type === "match_over") {
+      setMatchOverData(lastEvent.result ?? { winner: null });
+    } else if (lastEvent?.type === "match_start" || lastEvent?.type === "rematch_accepted") {
+      setMatchOverData(null);
+    }
+  }, [lastEvent]);
+
   // Rövanş durumu (insan-insan): isteğim beklemede mi, rakipten istek geldi mi, ret edildi mi.
   const [rematchState, setRematchState] = useState<"idle" | "requested" | "incoming" | "declined">("idle");
   useEffect(() => {
@@ -194,8 +204,8 @@ export default function MatchGame({
   }
 
   // Maç bitti
-  if (phase === "finished" || lastEvent?.type === "match_over") {
-    const result = lastEvent?.type === "match_over" ? lastEvent.result : null;
+  if (phase === "finished" || matchOverData) {
+    const result = matchOverData;
     const players = state.players;
     const me = players.find((p) => p.id === playerId);
     const opp = players.find((p) => p.id !== playerId);

@@ -490,3 +490,12 @@ Frontend:
   rakipte "Rakibin rövanş istiyor [Kabul/Reddet]" -> kabulde restart_match iki tarafı
   da yeni maça alır (match_start gelince maç sonu ekranı kapanır). Ret/bekleme durumları da var.
 Test: restart_match skorları sıfırlayıp yeni maç başlatıyor (doğrulandı).
+
+## Faz 8 v4 — rövanş isteği penceresi gitmiyordu (BUG düzeltme)
+Kök neden: maç sonu ekranı koşulu `lastEvent?.type === "match_over"` idi. Rakibe
+rematch_request gelince lastEvent "rematch_request" oluyor -> maç sonu ekranı KAYBOLUYOR,
+rakip "incoming" penceresini göremiyor.
+Çözüm: matchOverData kalıcı state eklendi (match_over'da set, match_start/rematch_accepted'da
+temizlenir). Ekran koşulu artık `phase==finished || matchOverData` — lastEvent değişse de
+maç sonu ekranı açık kalır, rövanş isteği penceresi görünür.
+Backend'e [rematch] debug logları eklendi (soket listesi, kabul/ret) — sorun sürerse görünür.
