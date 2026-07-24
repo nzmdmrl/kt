@@ -552,3 +552,13 @@ o kullanıcı is_admin=True olur -> /yonetim erişilir.
 - Ayar: ses açık/kapalı, ses seviyesi.
 - Frontend: oyun olaylarında ses çalma (Web Audio / <audio>).
 - Yükleme depolama: statik dosya klasörü veya küçük obje deposu (VPS'te path).
+
+## Faz 10 HOTFIX — is_admin sütunu / otomatik migration
+Sorun: deploy sonrası login 500 verdi -> "column users.is_admin does not exist".
+Kök neden: create_all mevcut tabloya YENİ SÜTUN eklemez (migration yok). is_admin
+User'a eklendi ama canlı DB'de yoktu -> her user sorgusu çöküyordu (CORS hatası bunun yan etkisi).
+Acil çözüm (sunucuda elle): ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE;
+KALICI çözüm: database.py init_models'a _add_missing_columns eklendi. create_all sonrası
+her tabloyu inspect eder, modelde olup DB'de olmayan sütunları ALTER TABLE ADD COLUMN ile
+ekler (Postgres IF NOT EXISTS; default değerleriyle). Veri korunur. Test: eski şemaya
+is_admin otomatik eklendi, kullanıcı silinmedi. Gelecekte yeni sütunlar da otomatik eklenecek.
