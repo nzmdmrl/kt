@@ -127,10 +127,10 @@ function Row({ entry, isMe }: { entry: Entry; isMe: boolean }) {
         {medal ?? entry.rank}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: 600, color: "var(--text-strong)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+        <a href={`/profil/${entry.username}`} style={{ fontWeight: 600, color: "var(--text-strong)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", textDecoration: "none", display: "block" }}>
           {entry.username}
           {isMe && <span style={{ color: "var(--accent)", fontSize: 13 }}> (sen)</span>}
-        </div>
+        </a>
         <div style={{ fontSize: 12, color: "var(--text-dim)" }}>ELO {entry.elo}</div>
       </div>
       <div className="brand-mono" style={{ fontSize: 20, color: "var(--accent)", fontWeight: 700 }}>

@@ -20,10 +20,10 @@ export default function TopBar() {
     >
       {loading ? null : user ? (
         <>
-          <span style={{ fontSize: 14, color: "var(--text-soft)" }}>
+          <a href={`/profil/${user.username}`} style={{ fontSize: 14, color: "var(--text-soft)", textDecoration: "none" }}>
             <span style={{ color: "var(--accent)", fontWeight: 600 }}>{user.display_name}</span>
             <span style={{ color: "var(--text-dim)" }}> · ELO {user.elo}</span>
-          </span>
+          </a>
           <button
             onClick={logout}
             style={{

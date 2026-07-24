@@ -52,7 +52,7 @@ Oyun varsayılan kolay+orta havuzdan seçer.
 - [x] **Faz 3** — Auth (Google OAuth + e-posta/şifre) + kullanıcı profili temel
 - [x] **Faz 4** — Matchmaking + 100 bot (ELO'lu, davranış simülasyonu) + solo/bot mod + VS ekranı
 - [x] **Faz 5** — Lig (günlük/aylık/yıllık/tüm zamanlar) + scheduler + kupa/madalya
-- [ ] **Faz 6** — Rozet + detaylı profil + istatistik + ısı haritası
+- [x] **Faz 6** — Rozet + detaylı profil + istatistik + ısı haritası
 - [ ] **Faz 7** — Sesli mod (Web Speech + Whisper fallback)
 - [ ] **Faz 8** — Rövanş + emote + günün kelimesi + arkadaş/özel oda + sonuç kartı
 - [ ] **Faz 9** — Ana sayfa (canlı) + ziyaretçi tanıtım + footer statik sayfalar
@@ -370,3 +370,27 @@ Bu loglar won'un neden False geldiğini / maçın ne zaman bittiğini gösterece
 - REVEAL_SECONDS 10 -> 5 (models.py). Frontend MatchGame REVEAL_SECONDS=5 (uyumlu).
   Tur bitince doğru cevabı görme + geri sayım çizgisi artık 5sn.
 - Debug logları sadeleştirildi (çalıştığı doğrulandı); [stats]/[lig] HATA logları kaldı.
+
+## Faz 6 TAMAMLANDI — Rozet + Profil + İstatistik
+Backend:
+- game/badges.py — 11 rozet, istatistikten TÜRETİLİR (ayrı tablo yok, geriye dönük çalışır).
+  Rozetler: İlk Adım/Zafer, Yükselen(10G), Usta(50G), Düzenli(10maç), Bağımlı(100maç),
+  Kelime Avcısı(100kelime), Rekabetçi(1200elo), Şampiyon(1500elo), Kupa Sahibi, Puan Canavarı.
+  earned_badges(stats) -> kazanılan+kilitli liste. tier: bronze/silver/gold.
+- api/routes/profile.py — GET /profile/{username} (public), /profile/me/stats (kendi).
+  Profil: istatistik + win_rate + rozetler + kupa/madalya + lig sıraları (daily/monthly/all).
+- main.py — profile router eklendi.
+
+Frontend:
+- app/profil/[username]/page.tsx — üst kart (avatar/ELO), kupa/madalya, istatistik ızgarası,
+  lig sıraları, rozet vitrini (kazanılan renkli+tier border, kilitli gri/soluk).
+- components/TopBar.tsx — kullanıcı adı artık kendi profiline link.
+- app/lig/page.tsx — liderlik tablosundaki isimler profile tıklanabilir.
+
+Test: 11G/1250elo/120kelime kullanıcı 6 rozet kazandı, kilitliler doğru; win_rate %73 doğru.
+
+## Faz 6 notlar / sonraki
+- Isı haritası (aktivite takvimi) planda vardı — DailyScore'dan üretilebilir, şimdilik eklenmedi.
+  İstenirse profND'e "son 30 gün aktivite" grid'i eklenir (Faz 6.1 veya cila).
+- Rozet kazanımı anlık bildirim (maç sonu "Yeni rozet!") Faz 8'de eklenebilir.
+- Admin'den yeni rozet ekleme Faz 10.
