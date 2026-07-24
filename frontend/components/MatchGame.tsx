@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useMatch } from "@/lib/useMatch";
 import { toUpperTr } from "@/lib/turkish";
+import { useSpeech } from "@/lib/useSpeech";
 import Grid from "./Grid";
 import ScoreBar from "./ScoreBar";
 
@@ -111,6 +112,30 @@ export default function MatchGame({
     setDraft("");
     setLocked(true); // yanıt gelene kadar kilitle (arka arkaya tahmini önler)
   }, [round, locked, phase, myTurn, turnFree, draft, guess]);
+
+  // Sesli tanıma: tanınan metni temizle, ilk uygun kelimeyi input'a yaz.
+  const onVoiceResult = useCallback(
+    (text: string) => {
+      if (!round) return;
+      // Boşlukları at, Türkçe büyük harfe çevir, sadece harfleri al.
+      const clean = toUpperTr(text).replace(/[^A-ZÇĞİÖŞÜI]/g, "");
+      // Doğru uzunluktaysa direkt yaz; değilse ilk `length` harfi al.
+      const word = clean.slice(0, round.length);
+      if (word.length > 0) {
+        // Sıra boşsa buzzer al (sesle söz hakkı).
+        if (turnFree) buzzer();
+        setDraft(word);
+        setVoiceHint(clean !== word ? `"${text}" algılandı` : "");
+      } else {
+        setVoiceHint("Kelime algılanamadı, tekrar dene");
+      }
+    },
+    [round, turnFree, buzzer]
+  );
+
+  const [voiceHint, setVoiceHint] = useState("");
+  const { supported: micSupported, listening, error: micError, start: micStart, stop: micStop } =
+    useSpeech(onVoiceResult, "tr-TR");
 
   if (!connected && !state) {
     return <Centered>Bağlanılıyor…</Centered>;
@@ -293,8 +318,48 @@ export default function MatchGame({
               Gönder
             </button>
           </div>
+
+          {/* Mikrofon butonu — sesli cevap (tarayıcı destekliyorsa) */}
+          {micSupported && (
+            <button
+              onMouseDown={() => { if (!writeBlocked || turnFree) micStart(); }}
+              onMouseUp={micStop}
+              onTouchStart={(e) => { e.preventDefault(); if (!writeBlocked || turnFree) micStart(); }}
+              onTouchEnd={(e) => { e.preventDefault(); micStop(); }}
+              disabled={writeBlocked && !turnFree}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "12px 24px",
+                borderRadius: 24,
+                border: listening ? "2px solid var(--accent-hot)" : "2px solid var(--border-soft)",
+                background: listening ? "var(--accent-hot)" : "var(--bg-elevated)",
+                color: listening ? "#fff" : "var(--text-soft)",
+                fontWeight: 600,
+                fontSize: 15,
+                cursor: "pointer",
+                fontFamily: "var(--font-body)",
+                transition: "all .2s",
+                boxShadow: listening ? "0 0 24px rgba(217,90,90,.4)" : "none",
+                opacity: writeBlocked && !turnFree ? 0.5 : 1,
+              }}
+            >
+              <span style={{ fontSize: 18 }}>{listening ? "🔴" : "🎤"}</span>
+              {listening ? "Dinliyorum… (konuş)" : "Bas & Konuş"}
+            </button>
+          )}
+
+          {/* Sesli ipucu / hata */}
+          {(voiceHint || micError) && (
+            <p style={{ fontSize: 12, color: micError ? "var(--accent-hot)" : "var(--text-soft)", textAlign: "center" }}>
+              {micError || voiceHint}
+            </p>
+          )}
+
           <p style={{ color: "var(--text-dim)", fontSize: 12 }}>
             İpucu: kelime <strong style={{ color: "var(--accent)" }}>{round.first_letter}</strong> harfiyle başlıyor
+            {micSupported && <span> · 🎤 ile sesli de cevaplayabilirsin</span>}
           </p>
         </div>
       )}

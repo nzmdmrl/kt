@@ -53,7 +53,7 @@ Oyun varsayılan kolay+orta havuzdan seçer.
 - [x] **Faz 4** — Matchmaking + 100 bot (ELO'lu, davranış simülasyonu) + solo/bot mod + VS ekranı
 - [x] **Faz 5** — Lig (günlük/aylık/yıllık/tüm zamanlar) + scheduler + kupa/madalya
 - [x] **Faz 6** — Rozet + detaylı profil + istatistik + ısı haritası
-- [ ] **Faz 7** — Sesli mod (Web Speech + Whisper fallback)
+- [x] **Faz 7** — Sesli mod (Web Speech + Whisper fallback)
 - [ ] **Faz 8** — Rövanş + emote + günün kelimesi + arkadaş/özel oda + sonuç kartı
 - [ ] **Faz 9** — Ana sayfa (canlı) + ziyaretçi tanıtım + footer statik sayfalar
 - [ ] **Faz 10** — Ses/müzik sistemi + admin panel (istatistik + üreticiler + dil yönetimi)
@@ -394,3 +394,24 @@ Test: 11G/1250elo/120kelime kullanıcı 6 rozet kazandı, kilitliler doğru; win
   İstenirse profND'e "son 30 gün aktivite" grid'i eklenir (Faz 6.1 veya cila).
 - Rozet kazanımı anlık bildirim (maç sonu "Yeni rozet!") Faz 8'de eklenebilir.
 - Admin'den yeni rozet ekleme Faz 10.
+
+## Faz 7 TAMAMLANDI — Sesli mod (Web Speech API)
+Yaklaşım: Web Speech API (tarayıcı yerleşik, Türkçe tr-TR). Whisper fallback
+ERTELENDİ (Faz 10 API key alanı gelince eklenecek). Sunucu değişikliği YOK —
+tamamen frontend/tarayıcı.
+Frontend:
+- lib/useSpeech.ts — Web Speech hook (supported/listening/error/start/stop).
+  tr-TR, tek kelime (continuous=false), 3 alternatif. Mikrofon izni/no-speech hataları.
+- components/MatchGame.tsx — "🎤 Bas & Konuş" butonu (mouse+touch, basılı tutunca dinler).
+  onVoiceResult: tanınan metni toUpperTr + harf filtresi + length kırpma -> input'a yazar.
+  Sıra boşsa sesle buzzer alınır. Kullanıcı tanınan kelimeyi GÖRÜP Gönder'e basar
+  (otomatik gönderilmez — yanlış tanımaya karşı güvenli).
+  micSupported false ise buton gizlenir (klavye girişi çalışmaya devam eder).
+Test: metin işleme (kalem->KALEM, şeker->ŞEKER, noktalama/boşluk temizliği) doğrulandı.
+NOT: Web Speech HTTPS gerektirir (site zaten HTTPS). Chrome/Edge iyi, Safari kısıtlı,
+Android WebView cihaza bağlı. supported=false olursa sorunsuz klavyeye düşer.
+
+## Faz 7 sonraki / notlar
+- Whisper fallback: supported=false veya düşük doğrulukta sunucuya ses gönderme.
+  Gerekli: Whisper API (veya self-host) + /api/speech/transcribe ucu. Faz 10 API key ile.
+- Sesli mod WebView (Android app) izni: manifest'te RECORD_AUDIO + WebView mic izni gerekir.
