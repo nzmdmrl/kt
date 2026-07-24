@@ -477,7 +477,7 @@ export default function MatchGame({
 
       {round && (
         <div style={{ display: "grid", gap: 10, justifyItems: "center" }}>
-          <div style={{ display: "flex", gap: 8, justifyContent: "center", alignItems: "stretch" }}>
+          <div style={{ display: "flex", gap: 8, justifyContent: "center", alignItems: "stretch", flexWrap: "wrap", width: "100%" }}>
             <input
               value={draft}
               onChange={(e) => onType(e.target.value)}
@@ -499,11 +499,11 @@ export default function MatchGame({
                 color: "var(--text-strong)",
                 fontSize: 20,
                 fontFamily: "var(--font-display)",
-                width: 190,
-                maxWidth: "calc(100vw - 130px)",
+                flex: "1 1 150px",
                 minWidth: 0,
+                maxWidth: 240,
                 textAlign: "center",
-                letterSpacing: "0.2em",
+                letterSpacing: "0.15em",
                 textTransform: "uppercase",
                 opacity: !writeBlocked ? 1 : 0.5,
               }}
@@ -580,7 +580,7 @@ export default function MatchGame({
 }
 
 const sendBtn: React.CSSProperties = {
-  padding: "13px 14px",
+  padding: "13px 16px",
   borderRadius: 10,
   border: "none",
   background: "var(--accent)",
@@ -590,6 +590,7 @@ const sendBtn: React.CSSProperties = {
   cursor: "pointer",
   fontFamily: "var(--font-display)",
   whiteSpace: "nowrap",
+  flexShrink: 0,
 };
 
 const newMatchBtn: React.CSSProperties = {

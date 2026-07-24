@@ -699,3 +699,11 @@ Fotoğraf: taşan kutular DEĞİL, iki eleman:
 2. ScoreBar PlayerChip flex:1 ama minWidth:0 YOKTU -> uzun isim kartı büyütüp taşırıyordu.
    Düzeltme: PlayerChip'e minWidth:0 (isim ellipsis ile kesilir, kart taşmaz).
 mobil2'deki kutu responsive + container overflow engelleri de korundu.
+
+## Mobil taşma v4 — input satırı (Gönder "Gönd" diye kesiliyordu)
+Sorun: input + mikrofon + Gönder tek satıra sığmıyordu, Gönder kesiliyordu.
+Düzeltme:
+- Satır container: flexWrap:wrap + width:100% (sığmazsa alt satıra iner).
+- input: width:190 -> flex "1 1 150px", maxWidth 240, minWidth 0 (esner, daralır).
+- sendBtn: flexShrink:0 + padding 14->16 (küçülmez, kesilmez).
+Artık dar ekranda input üstte, mikrofon+Gönder altında; geniş ekranda üçü yan yana.
