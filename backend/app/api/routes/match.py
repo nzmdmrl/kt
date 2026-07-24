@@ -136,15 +136,12 @@ async def match_ws(
                     await room.broadcast({"type": "emote", "player_id": player_id, "emoji": emoji})
             elif action == "rematch_request":
                 # Rövanş isteği — SADECE rakibe ilet (isteyene değil).
-                print(f"[rematch] {player_id} rövanş istedi, odadaki soketler: {list(room.sockets.keys())}")
                 await room.send_to_others(player_id, {"type": "rematch_request", "from": player_id})
             elif action == "rematch_accept":
                 # Kabul — iki tarafa da yeni maçın başlayacağını bildir + maçı yeniden başlat.
-                print(f"[rematch] {player_id} kabul etti, maç yeniden başlıyor")
                 await room.broadcast({"type": "rematch_accepted"})
                 await room.restart_match()
             elif action == "rematch_decline":
-                print(f"[rematch] {player_id} reddetti")
                 await room.send_to_others(player_id, {"type": "rematch_declined", "from": player_id})
             elif action == "ping":
                 await websocket.send_json({"type": "pong"})

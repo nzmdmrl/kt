@@ -55,7 +55,7 @@ Oyun varsayılan kolay+orta havuzdan seçer.
 - [x] **Faz 6** — Rozet + detaylı profil + istatistik + ısı haritası
 - [x] **Faz 7** — Sesli mod (Web Speech + Whisper fallback)
 - [x] **Faz 8** — Rövanş + emote + günün kelimesi + arkadaş/özel oda + sonuç kartı
-- [ ] **Faz 9** — Ana sayfa (canlı) + ziyaretçi tanıtım + footer statik sayfalar
+- [x] **Faz 9** — Ana sayfa (canlı) + ziyaretçi tanıtım + footer statik sayfalar
 - [ ] **Faz 10** — Ses/müzik sistemi + admin panel (istatistik + üreticiler + dil yönetimi)
 - [ ] **Faz 11** — i18n (6 dil, genişletilebilir) + çok dilli SEO/ASO
 - [ ] **Faz 12** — Tasarım cilası + VPS/Coolify README + tek zip
@@ -499,3 +499,24 @@ rakip "incoming" penceresini göremiyor.
 temizlenir). Ekran koşulu artık `phase==finished || matchOverData` — lastEvent değişse de
 maç sonu ekranı açık kalır, rövanş isteği penceresi görünür.
 Backend'e [rematch] debug logları eklendi (soket listesi, kabul/ret) — sorun sürerse görünür.
+
+## Faz 9 TAMAMLANDI — Ana sayfa + tanıtım + footer
+Frontend:
+- app/page.tsx yenilendi: geliştirme içerikleri (Kelime Havuzu, Motor Denemesi) KALDIRILDI.
+  Eklendi: "Nasıl Oynanır 3 adım" (Önce Davran/Renkleri Oku/Ligde Yarış),
+  özellik vitrini (sesli/bot/günün kelimesi/rövanş), kelime sayısı özeti, Footer.
+- components/Footer.tsx — yasal + tanıtım linkleri, her sayfada kullanılabilir.
+- components/LegalPage.tsx — statik sayfa sarmalayıcı.
+- app/nasil-oynanir — detaylı oynanış (kurallar, buzzer, sesli, lig, günün kelimesi).
+- app/gizlilik — Gizlilik & KVKK aydınlatma (şablon, hukukçu notu var).
+- app/kosullar — Kullanım koşulları (şablon, hukukçu notu var).
+- globals.css — .legal-content h2/p stilleri.
+Backend: match.py [rematch] debug print'leri temizlendi (rövanş çalıştığı doğrulandı).
+
+ÖNEMLİ NOT: Yasal metinler (gizlilik/koşullar) GENEL ŞABLONDUR. Yayına/ticari kullanıma
+geçmeden önce bir hukuk danışmanına inceletilmeli (sayfalarda da not düşüldü).
+
+## Faz 9 sonraki / notlar
+- Footer şu an sadece ana sayfada. İstenirse lig/profil/oyna sayfalarına da eklenir.
+- Google OAuth butonu hâlâ bağlı değil (GOOGLE_CLIENT_ID girilince aktif olur) — Faz 3 notu.
+- İletişim/destek sayfası veya e-posta eklenebilir (footer'a).

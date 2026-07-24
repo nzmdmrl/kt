@@ -1,6 +1,6 @@
 import Logo from "@/components/Logo";
-import GridDemo from "@/components/GridDemo";
 import TopBar from "@/components/TopBar";
+import Footer from "@/components/Footer";
 import { getJSON } from "@/lib/api";
 
 type Health = {
@@ -101,83 +101,57 @@ export default async function Home() {
         </div>
       </header>
 
-      {/* Sistem durumu */}
-      <section
-        style={{
-          background: "var(--bg-panel)",
-          border: "1px solid var(--border-soft)",
-          borderRadius: "var(--radius)",
-          padding: 22,
-          boxShadow: "var(--shadow-soft)",
-        }}
-      >
-        <h2 className="brand-mono" style={{ fontSize: 18, marginBottom: 16 }}>
-          Kelime Havuzu
+      {/* Nasıl oynanır — 3 adım */}
+      <section>
+        <h2 className="brand-mono" style={{ fontSize: 22, marginBottom: 18, textAlign: "center" }}>
+          Nasıl Oynanır?
         </h2>
-        {health ? (
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-            {["4", "5", "6"].map((n) => (
-              <div
-                key={n}
-                style={{
-                  flex: "1 1 140px",
-                  background: "var(--bg-elevated)",
-                  borderRadius: "var(--radius-sm)",
-                  padding: 16,
-                  border: "1px solid var(--tile-border)",
-                }}
-              >
-                <div className="brand-mono" style={{ fontSize: 28, color: "var(--accent)" }}>
-                  {health.word_pools[n]?.selectable ?? 0}
-                </div>
-                <div style={{ color: "var(--text-soft)", fontSize: 14 }}>
-                  {n} harfli oyun kelimesi
-                </div>
-                <div style={{ color: "var(--text-dim)", fontSize: 12, marginTop: 4 }}>
-                  havuzda {health.word_pools[n]?.total ?? 0} kayıt
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p style={{ color: "var(--accent-hot)" }}>
-            Backend'e bağlanılamadı. API adresini (NEXT_PUBLIC_API_BASE) kontrol et.
-          </p>
-        )}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
+          {[
+            { icon: "⚡", title: "Önce Davran", text: "Tur başında sıra boş. Kim önce yazmaya başlarsa söz hakkı onda." },
+            { icon: "🎨", title: "Renkleri Oku", text: "Yeşil doğru yerde, sarı kelimede var ama yanlış yerde, gri yok." },
+            { icon: "🏆", title: "Ligde Yarış", text: "Puan topla, sıralamada yüksel. Ay sonunda kupa ve madalya kazan." },
+          ].map((s) => (
+            <div key={s.title} style={{ background: "var(--bg-panel)", borderRadius: 14, padding: 20, textAlign: "center" }}>
+              <div style={{ fontSize: 32, marginBottom: 8 }}>{s.icon}</div>
+              <div className="brand-mono" style={{ fontSize: 16, marginBottom: 6 }}>{s.title}</div>
+              <p style={{ color: "var(--text-soft)", fontSize: 14, lineHeight: 1.5 }}>{s.text}</p>
+            </div>
+          ))}
+        </div>
+        <div style={{ textAlign: "center", marginTop: 18 }}>
+          <a href="/nasil-oynanir" style={{ color: "var(--accent)", fontWeight: 600 }}>Detaylı anlatım →</a>
+        </div>
       </section>
 
-      {/* Grid demo */}
-      <section
-        style={{
-          background: "var(--bg-panel)",
-          border: "1px solid var(--border-soft)",
-          borderRadius: "var(--radius)",
-          padding: 22,
-          boxShadow: "var(--shadow-soft)",
-        }}
-      >
-        <h2 className="brand-mono" style={{ fontSize: 18, marginBottom: 6 }}>
-          Kelime Motoru Denemesi
-        </h2>
-        <p style={{ color: "var(--text-dim)", fontSize: 14, marginBottom: 18 }}>
-          Türkçe harf duyarlı motor çalışıyor. Bir kelime yaz, renkleri gör.
-          Gerçek karşılıklı maç hazır — üstten \"Oynamaya Başla\".
+      {/* Özellikler vitrini */}
+      <section>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12 }}>
+          {[
+            { icon: "🎤", label: "Sesli cevap" },
+            { icon: "🤖", label: "Botlara karşı pratik" },
+            { icon: "📅", label: "Günün kelimesi" },
+            { icon: "🔄", label: "Rövanş & emote" },
+          ].map((f) => (
+            <div key={f.label} style={{ display: "flex", alignItems: "center", gap: 10, background: "var(--bg-panel)", borderRadius: 12, padding: "14px 16px" }}>
+              <span style={{ fontSize: 22 }}>{f.icon}</span>
+              <span style={{ fontSize: 14, color: "var(--text-strong)" }}>{f.label}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Sistem durumu (özet) */}
+      {health && (
+        <p style={{ textAlign: "center", color: "var(--text-dim)", fontSize: 13 }}>
+          {(health.word_pools["4"]?.selectable ?? 0) +
+            (health.word_pools["5"]?.selectable ?? 0) +
+            (health.word_pools["6"]?.selectable ?? 0)}{" "}
+          Türkçe kelimeyle oyna
         </p>
-        <GridDemo />
-      </section>
-
-      <footer
-        style={{
-          textAlign: "center",
-          color: "var(--text-dim)",
-          fontSize: 13,
-          borderTop: "1px solid var(--border-soft)",
-          paddingTop: 20,
-        }}
-      >
-        Kelime Tahmin · kelimetahmin.com — kurulum aşamasında
-      </footer>
+      )}
       </main>
+      <Footer />
     </>
   );
 }
