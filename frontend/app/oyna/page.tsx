@@ -5,6 +5,7 @@ import { apiUrl } from "@/lib/api";
 import { startRadar, stopRadar, playSound, initSound } from "@/lib/sound";
 import { useAuth } from "@/lib/auth";
 import Logo from "@/components/Logo";
+import SoundToggle from "@/components/SoundToggle";
 import MatchGame from "@/components/MatchGame";
 import VsScreen from "@/components/VsScreen";
 
@@ -146,8 +147,9 @@ export default function OynaPage() {
   if (mode === "match" && code && playerId) {
     return (
       <main style={pageStyle}>
-        <div style={{ marginBottom: 8 }}>
+        <div style={{ marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <a href="/" style={{ color: "var(--text-dim)", fontSize: 14 }}>← ana sayfa</a>
+          <SoundToggle />
         </div>
         <MatchGame
           key={code}

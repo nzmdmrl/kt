@@ -1,47 +1,34 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { initSound, startMusic, stopMusic } from "@/lib/sound";
+import { useEffect, useRef } from "react";
+import { initSound, startMusic, stopMusic, isSoundEnabled, onSoundChange } from "@/lib/sound";
 
-// Ana sayfa müzik kontrolü. Tarayıcı politikası gereği müzik ancak kullanıcı
-// etkileşiminden sonra başlar; bu yüzden ilk tıklama/dokunmada başlatırız.
-// Kullanıcı sağ alttaki düğmeyle sesi açıp kapatabilir.
+// Ana sayfa müzik başlatıcı (görünmez). Tarayıcı autoplay politikası gereği
+// müzik ancak kullanıcı etkileşiminden sonra başlar; ilk tıklamada başlatırız.
+// Ses aç/kapa kontrolü TopBar'daki SoundToggle'da. Burada ses açılınca (ana
+// sayfadayken) müziği yeniden başlatır, kapanınca durdururuz.
 export default function HomeMusic() {
-  const [on, setOn] = useState(false);
   const started = useRef(false);
+  const interacted = useRef(false);
 
   useEffect(() => {
     initSound(true, 70);
-    // İlk kullanıcı etkileşiminde müziği başlat (autoplay engeline takılmamak için).
     const kick = () => {
+      interacted.current = true;
       if (started.current) return;
       started.current = true;
-      startMusic();
-      setOn(true);
-      window.removeEventListener("pointerdown", kick);
+      if (isSoundEnabled()) startMusic();
     };
     window.addEventListener("pointerdown", kick);
-    return () => { window.removeEventListener("pointerdown", kick); stopMusic(); };
+
+    // Ses toggle değişince: açıldıysa müziği başlat (etkileşim olmuşsa), kapandıysa durdur.
+    const off = onSoundChange((on) => {
+      if (on && interacted.current) startMusic();
+      else if (!on) stopMusic();
+    });
+
+    return () => { window.removeEventListener("pointerdown", kick); off(); stopMusic(); };
   }, []);
 
-  function toggle() {
-    if (on) { stopMusic(); setOn(false); }
-    else { startMusic(); setOn(true); started.current = true; }
-  }
-
-  return (
-    <button
-      onClick={toggle}
-      aria-label={on ? "Müziği kapat" : "Müziği aç"}
-      style={{
-        position: "fixed", bottom: 18, right: 18, zIndex: 50,
-        width: 46, height: 46, borderRadius: "50%",
-        border: "1px solid var(--border-soft)", background: "var(--bg-panel)",
-        cursor: "pointer", fontSize: 20, display: "grid", placeItems: "center",
-        boxShadow: "var(--shadow-soft)",
-      }}
-    >
-      {on ? "🔊" : "🔈"}
-    </button>
-  );
+  return null;
 }

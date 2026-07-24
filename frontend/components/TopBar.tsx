@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/lib/auth";
+import SoundToggle from "./SoundToggle";
 
 export default function TopBar() {
   const { user, logout, loading } = useAuth();
@@ -18,6 +19,7 @@ export default function TopBar() {
         gap: 12,
       }}
     >
+      <SoundToggle />
       {loading ? null : user ? (
         <>
           <a href={`/profil/${user.username}`} style={{ fontSize: 14, color: "var(--text-soft)", textDecoration: "none" }}>

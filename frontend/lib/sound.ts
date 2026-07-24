@@ -18,6 +18,24 @@ let soundEnabled = true;
 let volume = 0.7;
 const audioCache: Record<string, HTMLAudioElement> = {};
 
+// Ses açık/kapalı durumu için dinleyiciler (UI senkronu) + localStorage kalıcılığı.
+const soundListeners = new Set<(on: boolean) => void>();
+export function isSoundEnabled(): boolean {
+  if (typeof window !== "undefined") {
+    const saved = localStorage.getItem("kt_sound");
+    if (saved !== null) soundEnabled = saved === "1";
+  }
+  return soundEnabled;
+}
+export function onSoundChange(fn: (on: boolean) => void): () => void {
+  soundListeners.add(fn);
+  return () => soundListeners.delete(fn);
+}
+export function toggleSound(): boolean {
+  setSoundEnabled(!soundEnabled);
+  return soundEnabled;
+}
+
 function ctx(): AudioContext | null {
   if (typeof window === "undefined") return null;
   if (!audioCtx) {
@@ -31,7 +49,13 @@ function ctx(): AudioContext | null {
 }
 
 export async function initSound(enabled: boolean, vol: number) {
-  soundEnabled = enabled;
+  // Kayıtlı tercih varsa onu kullan (kullanıcı daha önce kapatmışsa kapalı kalsın).
+  if (typeof window !== "undefined") {
+    const saved = localStorage.getItem("kt_sound");
+    soundEnabled = saved !== null ? saved === "1" : enabled;
+  } else {
+    soundEnabled = enabled;
+  }
   volume = Math.max(0, Math.min(1, vol / 100));
   try {
     const res = await fetch(apiUrl("/api/sounds"));
@@ -40,7 +64,12 @@ export async function initSound(enabled: boolean, vol: number) {
   } catch { uploadedSlots = new Set(); }
 }
 
-export function setSoundEnabled(v: boolean) { soundEnabled = v; if (!v) stopMusic(); }
+export function setSoundEnabled(v: boolean) {
+  soundEnabled = v;
+  if (typeof window !== "undefined") localStorage.setItem("kt_sound", v ? "1" : "0");
+  if (!v) { stopMusic(); stopTicking(); stopRadar(); }
+  soundListeners.forEach((fn) => fn(v));
+}
 export function setVolume(v: number) { volume = Math.max(0, Math.min(1, v / 100)); }
 export function isUploaded(slot: string) { return uploadedSlots.has(slot); }
 

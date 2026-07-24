@@ -627,3 +627,16 @@ NOT: ana sayfa müziği tarayıcı autoplay politikası -> ilk tıklamadan sonra
    <=5sn belirgin yükselir (0.5->1.0).
 3. Yumuşak ton: square yerine sine, 330->530Hz (az tiz), yumuşak attack(15ms)/decay(120ms).
 Sadece frontend (lib/sound.ts + MatchGame turnActive->myTurnActive). Backend değişmedi.
+
+## Faz 10 ses v5 — ses aç/kapa toggle switch
+Nazım: ana sayfada username solunda, maç ekranında "ana sayfa" linkinin sağında
+mini kaydırmalı ses düğmesi. Sağda açık, sola kayınca kapalı.
+- components/SoundToggle.tsx: kaydırmalı switch (sağ=açık 🔊, sol=kapalı 🔇).
+  Global durum + localStorage("kt_sound") kalıcı. onSoundChange ile tüm UI senkron.
+- lib/sound.ts: isSoundEnabled/toggleSound/onSoundChange + soundListeners. setSoundEnabled
+  kapatınca müzik+tık+radar durur, localStorage'a yazar, dinleyicilere bildirir.
+  initSound kayıtlı tercihi okur (kapalıysa kapalı açılır).
+- TopBar: SoundToggle en solda (username/giriş solunda). oyna maç ekranı: "← ana sayfa"
+  sağında SoundToggle. HomeMusic sadeleşti (görünmez müzik başlatıcı; toggle açık+etkileşim
+  varsa müzik başlar/kapanınca durur). Eski sağ-alt yuvarlak düğme kaldırıldı.
+Sadece frontend. Backend değişmedi.
