@@ -476,3 +476,17 @@ Nazım haklı: gerçek rövanş "rakip rövanş istiyor, kabul? [Evet/Hayır]" s
 - WS action=rematch_accept/decline -> kabulde iki taraf yeni odaya, rette menüye.
 - Süre aşımı (10-15sn cevap yoksa iptal).
 Bu Faz 9 (sosyal/lobi) veya insan matchmaking testleri sırasında eklenecek.
+
+## Faz 8 v3 — İnsan-insan rövanş ONAYI (Nazım 2 kişi test edebiliyor)
+Backend:
+- match.py WS: rematch_request (rakibe ilet), rematch_accept (broadcast + restart_match),
+  rematch_decline (rakibe ilet).
+- room.py: send_to_others(sender, msg) — göndereni hariç tutar.
+  restart_match() — skorları sıfırlar, timer'ları iptal eder, aynı odada yeni maç.
+Frontend:
+- useMatch: rematchRequest/Accept/Decline fonksiyonları.
+- MatchGame: rematchState (idle/requested/incoming/declined).
+  Bota karşı: eski davranış (onRematch, anında). İnsana karşı: "🔄 Rövanş İste" ->
+  rakipte "Rakibin rövanş istiyor [Kabul/Reddet]" -> kabulde restart_match iki tarafı
+  da yeni maça alır (match_start gelince maç sonu ekranı kapanır). Ret/bekleme durumları da var.
+Test: restart_match skorları sıfırlayıp yeni maç başlatıyor (doğrulandı).

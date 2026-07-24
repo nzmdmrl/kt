@@ -73,6 +73,28 @@ class Room:
             msg.update(extra)
         await self.broadcast(msg)
 
+    async def send_to_others(self, sender_id: str, message: dict) -> None:
+        """Mesajı gönderen HARİÇ diğer oyunculara iletir (rövanş isteği vb.)."""
+        for pid, ws in list(self.sockets.items()):
+            if pid == sender_id:
+                continue
+            try:
+                await ws.send_json(message)
+            except Exception:
+                self.sockets.pop(pid, None)
+
+    async def restart_match(self) -> None:
+        """Aynı odada, aynı oyuncularla yeni bir maç başlatır (rövanş)."""
+        # Eski maç durumunu ve skorları temizle.
+        for p in self.players.values():
+            p.score = 0
+        if self._timer_task and not self._timer_task.done():
+            self._timer_task.cancel()
+        if self._round_gap_task and not self._round_gap_task.done():
+            self._round_gap_task.cancel()
+        self.match = None
+        await self.start_match()
+
     async def start_match(self) -> None:
         players = list(self.players.values())
         self.match = Match(self.code, players)

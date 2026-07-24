@@ -121,6 +121,9 @@ export function useMatch(
   const buzzer = useCallback(() => send({ action: "buzzer" }), [send]);
   const guess = useCallback((word: string) => send({ action: "guess", word }), [send]);
   const emote = useCallback((emoji: string) => send({ action: "emote", emoji }), [send]);
+  const rematchRequest = useCallback(() => send({ action: "rematch_request" }), [send]);
+  const rematchAccept = useCallback(() => send({ action: "rematch_accept" }), [send]);
+  const rematchDecline = useCallback(() => send({ action: "rematch_decline" }), [send]);
 
-  return { connected, state, lastEvent, error, flash, buzzer, guess, emote };
+  return { connected, state, lastEvent, error, flash, buzzer, guess, emote, rematchRequest, rematchAccept, rematchDecline };
 }

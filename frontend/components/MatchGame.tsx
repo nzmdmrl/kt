@@ -22,13 +22,22 @@ export default function MatchGame({
   botElo?: number;
   onRematch?: () => void;
 }) {
-  const { connected, state, lastEvent, error, flash, buzzer, guess, emote } = useMatch(
+  const { connected, state, lastEvent, error, flash, buzzer, guess, emote, rematchRequest, rematchAccept, rematchDecline } = useMatch(
     code,
     playerId,
     name,
     bot,
     botElo
   );
+  // Rövanş durumu (insan-insan): isteğim beklemede mi, rakipten istek geldi mi, ret edildi mi.
+  const [rematchState, setRematchState] = useState<"idle" | "requested" | "incoming" | "declined">("idle");
+  useEffect(() => {
+    if (!lastEvent) return;
+    if (lastEvent.type === "rematch_request") setRematchState("incoming");
+    else if (lastEvent.type === "rematch_declined") setRematchState("declined");
+    else if (lastEvent.type === "rematch_accepted") setRematchState("idle");
+    else if (lastEvent.type === "match_start") setRematchState("idle");
+  }, [lastEvent]);
   // Gelen emote animasyonu (kim, hangi emoji).
   const [flyingEmote, setFlyingEmote] = useState<{ id: number; emoji: string; mine: boolean } | null>(null);
   useEffect(() => {
@@ -237,9 +246,39 @@ export default function MatchGame({
 
         {/* Butonlar: Rövanş + Yeni Rakip */}
         <div style={{ display: "grid", gap: 10 }}>
-          <button onClick={() => onRematch?.()} style={{ ...newMatchBtn, width: "100%", border: "none", cursor: "pointer" }}>
-            🔄 Rövanş
-          </button>
+          {bot ? (
+            // Bota karşı: anında yeni maç.
+            <button onClick={() => onRematch?.()} style={{ ...newMatchBtn, width: "100%", border: "none", cursor: "pointer" }}>
+              🔄 Rövanş
+            </button>
+          ) : rematchState === "incoming" ? (
+            // Rakip rövanş istedi — kabul/ret.
+            <div style={{ background: "var(--bg-elevated)", borderRadius: 12, padding: 14, textAlign: "center" }}>
+              <div style={{ marginBottom: 10, color: "var(--text-strong)", fontWeight: 600 }}>
+                🔄 Rakibin rövanş istiyor!
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button onClick={() => { rematchAccept(); setRematchState("idle"); }} style={{ ...newMatchBtn, flex: 1, border: "none", cursor: "pointer" }}>
+                  Kabul Et
+                </button>
+                <button onClick={() => { rematchDecline(); setRematchState("idle"); }} style={{ ...secondaryLink, flex: 1, border: "1px solid var(--border-soft)", background: "transparent", cursor: "pointer", fontFamily: "var(--font-body)" }}>
+                  Reddet
+                </button>
+              </div>
+            </div>
+          ) : rematchState === "requested" ? (
+            <div style={{ ...newMatchBtn, width: "100%", opacity: 0.7, textAlign: "center" }}>
+              ⏳ Rakip bekleniyor…
+            </div>
+          ) : rematchState === "declined" ? (
+            <div style={{ background: "var(--bg-elevated)", borderRadius: 12, padding: 14, textAlign: "center", color: "var(--text-soft)" }}>
+              Rakip rövanşı reddetti
+            </div>
+          ) : (
+            <button onClick={() => { rematchRequest(); setRematchState("requested"); }} style={{ ...newMatchBtn, width: "100%", border: "none", cursor: "pointer" }}>
+              🔄 Rövanş İste
+            </button>
+          )}
           <div style={{ display: "flex", gap: 10 }}>
             <a href="/oyna" style={{ ...secondaryLink, flex: 1 }}>Yeni Rakip</a>
             <button onClick={() => shareResult(won, draw, myScore, oppScore)} style={{ ...secondaryLink, flex: 1, border: "1px solid var(--border-soft)", background: "transparent", cursor: "pointer", fontFamily: "var(--font-body)" }}>
