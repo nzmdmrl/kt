@@ -734,3 +734,12 @@ Sadece frontend. Backend değişmedi.
    yan yana, sağa yaslı: [emoji açılır] [ses düğmesi]. oyna/page.tsx üst satırından
    SoundToggle kaldırıldı (artık MatchGame içinde). Emoji hâlâ turda 2 limit + açılır panel.
 Sadece frontend.
+
+## Mobil v7 — üst satır tek sıra: ana sayfa ikonu + sabit emojiler + ses
+Nazım: "← ana sayfa" yazısı yerine 🏠 ikon; ana sayfa + emojiler + ses TEK SATIR;
+mobilde sığsın; emojiler AÇILIR değil SABİT açık (6'sı görünür); desktop da aynı.
+- oyna/page.tsx: maç ekranı "← ana sayfa" satırı KALDIRILDI, SoundToggle import kaldırıldı.
+- MatchGame üst satır: [🏠 ana sayfa ikonu] [6 sabit emoji, esner] [SoundToggle], tek flex satır.
+  Emojiler clamp(28-38px) + flexShrink -> dar ekranda küçülüp sığar. Turda 2 limit korundu
+  (dolunca opacity düşer + disabled). emoteOpen state kaldırıldı (artık hep açık).
+Sadece frontend.

@@ -104,7 +104,6 @@ export default function MatchGame({
   const [draft, setDraft] = useState("");
   const [locked, setLocked] = useState(false); // tahmin gönderildi, yanıt bekleniyor
   const [nextRoundIn, setNextRoundIn] = useState(0); // tur arası geri sayım (sn)
-  const [emoteOpen, setEmoteOpen] = useState(false);   // emoji paneli açık mı
   const [emoteCount, setEmoteCount] = useState(0);      // bu turda kaç emoji gönderildi (max 2)
   const [hasFocus, setHasFocus] = useState(false); // input'ta focus var mı
 
@@ -394,40 +393,36 @@ export default function MatchGame({
 
   return (
     <div style={{ display: "grid", gap: 14, position: "relative", width: "100%", maxWidth: "100%", overflowX: "hidden", minWidth: 0 }}>
-      {/* Üst aksiyon satırı: emoji (açılır) + ses düğmesi (sağda) */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, position: "relative" }}>
-          {emoteOpen && (
-            <div style={{ display: "flex", gap: 4, background: "var(--bg-panel)", padding: "4px 6px", borderRadius: 20, boxShadow: "var(--shadow-soft)", animation: "fadeIn .15s ease" }}>
-              {["👍", "😂", "😮", "🔥", "😢", "👏"].map((em) => (
-                <button
-                  key={em}
-                  onClick={() => {
-                    if (emoteCount >= 2) return;
-                    emote(em);
-                    setEmoteCount((c) => c + 1);
-                    setEmoteOpen(false);
-                  }}
-                  disabled={emoteCount >= 2}
-                  style={{ fontSize: 20, padding: "2px 4px", border: "none", background: "transparent", cursor: emoteCount >= 2 ? "not-allowed" : "pointer", lineHeight: 1, opacity: emoteCount >= 2 ? 0.4 : 1 }}
-                >
-                  {em}
-                </button>
-              ))}
-            </div>
-          )}
-          <button
-            onClick={() => setEmoteOpen((o) => !o)}
-            title={emoteCount >= 2 ? "Bu turda emoji hakkın bitti" : "Emoji gönder"}
-            style={{
-              fontSize: 18, width: 34, height: 34, borderRadius: "50%",
-              border: "1px solid var(--border-soft)", background: "var(--bg-panel)",
-              cursor: "pointer", lineHeight: 1, display: "grid", placeItems: "center",
-              opacity: emoteCount >= 2 ? 0.5 : 1, flexShrink: 0,
-            }}
-          >
-            {emoteCount >= 2 ? "🚫" : "😀"}
-          </button>
+      {/* Üst aksiyon satırı: ana sayfa ikonu + sabit emojiler + ses düğmesi (tek satır) */}
+      <div style={{ display: "flex", alignItems: "center", gap: 6, width: "100%" }}>
+        <a href="/" title="Ana sayfa" style={{ fontSize: 20, lineHeight: 1, textDecoration: "none", flexShrink: 0, display: "grid", placeItems: "center", width: 34, height: 34, borderRadius: "50%", border: "1px solid var(--border-soft)", background: "var(--bg-panel)" }}>
+          🏠
+        </a>
+        {/* Sabit açık emojiler — ortada, sığması için esner */}
+        <div style={{ flex: 1, display: "flex", gap: 4, justifyContent: "center", flexWrap: "nowrap", minWidth: 0, overflow: "hidden" }}>
+          {["👍", "😂", "😮", "🔥", "😢", "👏"].map((em) => (
+            <button
+              key={em}
+              onClick={() => {
+                if (emoteCount >= 2) return;
+                emote(em);
+                setEmoteCount((c) => c + 1);
+              }}
+              disabled={emoteCount >= 2}
+              title={emoteCount >= 2 ? "Bu turda emoji hakkın bitti" : "Emoji gönder"}
+              style={{
+                fontSize: "clamp(15px, 4.5vw, 20px)",
+                width: "clamp(28px, 8vw, 38px)", height: 34,
+                padding: 0, borderRadius: 8,
+                border: "1px solid var(--border-soft)", background: "var(--bg-panel)",
+                cursor: emoteCount >= 2 ? "not-allowed" : "pointer", lineHeight: 1,
+                display: "grid", placeItems: "center", flexShrink: 1,
+                opacity: emoteCount >= 2 ? 0.4 : 1,
+              }}
+            >
+              {em}
+            </button>
+          ))}
         </div>
         <SoundToggle />
       </div>
