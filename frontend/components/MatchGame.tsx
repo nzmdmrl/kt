@@ -70,8 +70,8 @@ export default function MatchGame({
       // Grid senkronu: her harf `i * 220ms` gecikmeyle flip başlar (flipIn .4s).
       // Harf/renk flip'in ortasında (~200ms) görünür olur; sesi o ana denk getir.
       const tiles = lastEvent.tiles || [];
-      const STAGGER = 220;   // Grid: i * 0.22s
-      const REVEAL_OFFSET = 200; // flipIn .4s -> harf ~yarıda görünür
+      const STAGGER = 209;   // %5 hızlandırıldı
+      const REVEAL_OFFSET = 190; // %5 hızlandırıldı
       tiles.forEach((t: any, i: number) => {
         setTimeout(() => {
           if (t.state === "correct") playSound("tile_correct");
