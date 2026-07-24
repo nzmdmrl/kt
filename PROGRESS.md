@@ -785,3 +785,19 @@ Test: sayfalama 196 sayfa, flag değiştir, filtreler ✓.
 NOT: kelime havuzu JSON container'da (git'ten). Admin değişiklikleri DEPLOY'da sıfırlanır!
 (Kalıcı temizlik için JSON'u git'te düzenleyip push etmek gerekir; ya da havuzu DB'ye
 taşımak gerekir — ileride yapılabilir.)
+
+## Kelime havuzu DB'ye taşındı — KALICI (Nazım)
+Artık kelime havuzu JSON değil VERİTABANINDA. Admin değişiklikleri (temizlik, üye/bot
+ayrımı, ekle/çıkar) deploy'da SIFIRLANMAZ.
+- models/word.py: Word (id, length, word, difficulty, member, bot, active). unique(length,word).
+  database.py init_models import listesine 'word' eklendi (tablo otomatik oluşur+migration).
+- word_service.py YENİDEN: bellek cache _POOLS (length->WordPool). get_pool senkron cache'ten
+  okur (oyun kodu senkron). refresh_pools(db): DB'den okuyup cache yeniler. seed_words_from_json(db):
+  words tablosu boşsa JSON'ları DB'ye aktarır (ilk açılış; mevcut kelimeler korunur).
+- main.py startup: seed_words_from_json + refresh_pools (bot seed'den sonra).
+- admin.py kelime uçları (list/add/remove/flags) TAMAMEN DB tabanlı; her yazımda refresh_pools.
+  Eski JSON _pool_path + get_pool.cache_clear kaldırıldı.
+- bot_engine pick_guess zaten pool.bot_words() kullanıyor (DB'den gelir).
+Test: seed (1953+5108+5266 kelime), random_word, bot_words, admin list/flag/add(member/bot),
+sayfalama hepsi DB üzerinden ✓. Frontend değişmedi.
+NOT: İlk deploy'da JSON'dan DB'ye seed olur (mevcut kelimeler taşınır). Sonrası kalıcı DB.
