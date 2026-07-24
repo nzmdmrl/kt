@@ -24,26 +24,26 @@ export default function ScoreBar({
         <PlayerChip player={p2} myId={myId} active={turnId === p2?.id} right />
       </div>
 
-      {/* Satır 2: [tur saniyesi] — [Tur X/3 · N harf] — [cevap süresi] üç blok */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-        {/* Sol: tur saniyesi */}
-        <div style={{ display: "flex", alignItems: "baseline", gap: 4, flex: "0 0 auto" }}>
-          <span className="brand-mono" style={{ fontSize: 30, lineHeight: 1, fontWeight: 700, color: timeLeft <= 10 ? "var(--accent-hot)" : "var(--accent)" }}>{timeLeft}</span>
+      {/* Satır 2: [tur saniyesi] — [Tur X/3 · N harf] — [cevap süresi] üç SABİT blok.
+          Yan bloklar eşit sabit genişlikte (saniye basamağı değişince kaymaz),
+          orta blok kalan alanı doldurur ve hep ortada durur. */}
+      <div style={{ display: "flex", alignItems: "center", gap: 6, width: "100%" }}>
+        {/* Sol: tur saniyesi — sabit genişlik, sola hizalı */}
+        <div style={{ width: 72, flexShrink: 0, display: "flex", alignItems: "baseline", gap: 4 }}>
+          <span className="brand-mono" style={{ fontSize: 28, lineHeight: 1, fontWeight: 700, color: timeLeft <= 10 ? "var(--accent-hot)" : "var(--accent)" }}>{timeLeft}</span>
           <span style={{ fontSize: 11, color: "var(--text-dim)" }}>sn</span>
         </div>
 
-        {/* Orta: Tur X/3 · N harf (sabit blok) */}
-        {round && (
-          <div style={{ flex: "1 1 auto", textAlign: "center", fontSize: 13, color: "var(--text-soft)", fontWeight: 600, whiteSpace: "nowrap" }}>
-            Tur {round.index + 1}/3 · {round.length} harf
-          </div>
-        )}
+        {/* Orta: Tur X/3 · N harf — kalan alan, ortalı */}
+        <div style={{ flex: 1, minWidth: 0, textAlign: "center", fontSize: 13, color: "var(--text-soft)", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          {round ? `Tur ${round.index + 1}/3 · ${round.length} harf` : ""}
+        </div>
 
-        {/* Sağ: cevap süresi (sıra birindeyken) */}
-        <div style={{ flex: "0 0 auto", minWidth: 60, textAlign: "right" }}>
+        {/* Sağ: cevap süresi — sabit genişlik, sağa hizalı */}
+        <div style={{ width: 72, flexShrink: 0, textAlign: "right" }}>
           {turnId && answerLeft > 0 ? (
             <span style={{ fontSize: 13, color: answerLeft <= 5 ? "var(--accent-hot)" : "var(--accent)", fontWeight: 600, whiteSpace: "nowrap" }}>
-              cevap: {answerLeft}s
+              {answerLeft}s
             </span>
           ) : null}
         </div>

@@ -801,3 +801,10 @@ ayrımı, ekle/çıkar) deploy'da SIFIRLANMAZ.
 Test: seed (1953+5108+5266 kelime), random_word, bot_words, admin list/flag/add(member/bot),
 sayfalama hepsi DB üzerinden ✓. Frontend değişmedi.
 NOT: İlk deploy'da JSON'dan DB'ye seed olur (mevcut kelimeler taşınır). Sonrası kalıcı DB.
+
+## ScoreBar 3-blok sabit genişlik (Nazım: saniye değişince kayıyor + hafif taşma)
+Sorun: 3 blok space-between + değişken genişlik. Tur saniyesi 9->10->100 basamak
+değişince sol blok genişleyip orta/sağı itiyordu; toplam sabit olmadığı için hafif taşma.
+Çözüm: sol+sağ blok SABİT 72px (flexShrink:0), orta blok flex:1 minWidth:0 (hep ortada,
+ellipsis). width:100% ile taşma yok. Saniye kaç basamak olursa olsun bloklar sabit.
+Cevap süresi "cevap: 18s" -> "18s" kısaltıldı (72px'e sığsın). Sadece frontend.
