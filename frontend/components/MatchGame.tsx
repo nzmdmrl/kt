@@ -272,6 +272,7 @@ export default function MatchGame({
 
     const title = draw ? "Berabere!" : won ? "Kazandın! 🏆" : "Kaybettin";
     const titleColor = draw ? "var(--text-strong)" : won ? "var(--tile-correct)" : "var(--accent-hot)";
+    const opponentLeft = matchOverData?.opponent_left || lastEvent?.opponent_left;
 
     return (
       <div style={{ display: "grid", gap: 16 }}>
@@ -293,6 +294,11 @@ export default function MatchGame({
           <div className="brand-mono" style={{ fontSize: 32, color: titleColor, fontWeight: 700 }}>
             {title}
           </div>
+          {opponentLeft && (
+            <div style={{ fontSize: 14, color: "var(--text-soft)", marginTop: 6 }}>
+              🚪 Rakibin maçtan ayrıldı
+            </div>
+          )}
 
           {/* Skor karşılaştırması */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 20, margin: "20px 0" }}>

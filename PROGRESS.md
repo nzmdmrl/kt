@@ -658,3 +658,24 @@ Nazım geri bildirimi:
 3. Ana sayfa sentetik ambient KALDIRILDI. startMusic sadece yüklü mp3 (music1..6) çalar;
    yoksa sessiz. startSyntheticAmbient + ambientNodes/Timer temizlendi. stopMusic sadeleşti.
 Sadece frontend (lib/sound.ts + oyna/page.tsx). Backend değişmedi.
+
+## Faz 10+ — Rakip ayrılma bildirimi + terk ceza sistemi (Nazım fark etti)
+Sorun: insan-insan maçta biri ayrılınca (ana sayfa/sekme kapatma/kopma) diğeri
+boşuna bekliyordu; haberi olmuyordu. Ayrıca sürekli terk edenlere ceza yoktu.
+Backend:
+- match.py disconnect: maç DEVAM EDİYORSA (phase != FINISHED) ve kalan bağlıysa
+  room.handle_opponent_left(left) çağrılır (eskiden sadece lobby mesajı).
+- room.py handle_opponent_left: timer'ları durdurur, kalan oyuncuyu KAZANAN ilan eder,
+  match_over + opponent_left=True broadcast, istatistik/lig callback (kalan kazanır,
+  ayrılan kaybeder), ayrılan için record_abandon.
+- abandon_service.py: record_abandon (abandons++, eşik üstü kademeli engel),
+  is_matchmaking_banned (banned, kalan_sn). ADİL: ilk N terk cezasız (bağlantı affı),
+  sonra (terk-limit)*base_dk artan engel. Sadece MATCHMAKING'i engeller (bot/oda serbest).
+- user.py: abandons, matchmaking_banned_until alanları (otomatik migration ekler).
+- game_setting.py: abandon_free_limit(2), abandon_ban_minutes(10) — panelden ayarlanır.
+- matchmaking.py join: engelliyse banned=True + mesaj döner (auth header ile kontrol).
+Frontend:
+- MatchGame maç sonu: opponent_left ise "🚪 Rakibin maçtan ayrıldı" gösterir.
+- oyna startSearch: auth header eklendi; banned yanıtında aramaya girmez, mesaj gösterir.
+Test: 2 terke kadar cezasız, 3.'te 10dk, 4.'te 20dk kademeli; rakip ayrılınca kalan
+match_over+opponent_left alıyor (uçtan uca WS testi). ✓

@@ -177,6 +177,61 @@ class Room:
             except Exception:
                 pass
 
+    async def handle_opponent_left(self, left_player_id: str) -> None:
+        """
+        Bir oyuncu maç sırasında ayrıldı. Kalan oyuncu(lar) kazanır, maç biter.
+        Kalan oyuncuya "rakip ayrıldı" bildirilir; ayrılan için terk kaydı işlenir.
+        """
+        if not self.match:
+            return
+        from app.game.models import MatchPhase
+        if self.match.phase == MatchPhase.FINISHED:
+            return
+
+        # Zamanlayıcıları durdur.
+        if self._timer_task and not self._timer_task.done():
+            self._timer_task.cancel()
+        if self._round_gap_task and not self._round_gap_task.done():
+            self._round_gap_task.cancel()
+        for bc in self._bot_controllers:
+            bc.stop()
+
+        # Kalan (hâlâ bağlı) oyuncuyu kazanan ilan et.
+        remaining = [pid for pid in self.sockets.keys() if pid in self.match.players]
+        winner = remaining[0] if remaining else None
+
+        self.match.phase = MatchPhase.FINISHED
+        result = self.match.result()
+        # Kazananı ayrılmaya göre ez (skor eşit olsa bile kalan kazanır).
+        if winner:
+            result["winner"] = winner
+            result["opponent_left"] = True
+
+        await self.broadcast({
+            "type": "match_over",
+            "result": result,
+            "opponent_left": True,
+            "players": [p.to_public() for p in self.match.players.values()],
+        })
+
+        # İstatistik/lig callback'i — kalan kazanan, ayrılan kaybeden olarak işlenir.
+        if self.on_match_over:
+            try:
+                await self.on_match_over(self.match, result)
+            except Exception:
+                pass
+
+        # Ayrılan oyuncu için terk kaydı (ceza sistemi).
+        try:
+            from app.game.abandon_service import record_abandon
+            from app.core.database import AsyncSessionLocal
+            if left_player_id.startswith("u"):
+                uid = int(left_player_id[1:])
+                async with AsyncSessionLocal() as db:
+                    await record_abandon(db, uid)
+        except Exception:
+            pass
+
     # ---- oyuncu olayları ----
     async def handle_buzzer(self, player_id: str) -> None:
         if not self.match:

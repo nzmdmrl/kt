@@ -149,11 +149,25 @@ async def match_ws(
         if player_id in room.players:
             room.players[player_id].connected = False
         room.sockets.pop(player_id, None)
-        await room.broadcast({
-            "type": "lobby",
-            "players": [p.to_public() for p in room.players.values()],
-            "ready": room.is_full,
-        })
-        # Sadece gerçek soket kalmadıysa ve bot yoksa odayı temizle.
+
+        # Maç DEVAM EDİYORSA ve rakip hâlâ bağlıysa: ayrılan kaybeder, kalan kazanır.
+        match_active = room.match is not None and getattr(room.match, "phase", None) is not None
+        from app.game.models import MatchPhase
+        in_progress = (
+            room.match is not None
+            and room.match.phase not in (MatchPhase.FINISHED,)
+        )
+        remaining = [pid for pid in room.sockets.keys()]  # hâlâ bağlı gerçek soketler
+        if in_progress and remaining:
+            # Kalan oyuncuya "rakip ayrıldı" bildir + maçı onun lehine bitir.
+            await room.handle_opponent_left(player_id)
+        else:
+            await room.broadcast({
+                "type": "lobby",
+                "players": [p.to_public() for p in room.players.values()],
+                "ready": room.is_full,
+            })
+
+        # Gerçek soket kalmadıysa ve bot yoksa odayı temizle.
         if not room.sockets:
             room_manager.remove(room.code)

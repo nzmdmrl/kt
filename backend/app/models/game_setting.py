@@ -35,4 +35,6 @@ DEFAULT_SETTINGS = {
     "sound_enabled": {"value": "1", "label": "Ses efektleri açık (1/0)", "type": "bool"},
     "music_enabled": {"value": "0", "label": "Arka plan müziği açık (1/0)", "type": "bool"},
     "sound_volume": {"value": "70", "label": "Ses seviyesi (0-100)", "type": "int"},
+    "abandon_free_limit": {"value": "2", "label": "Cezasız terk hakkı (sonrası engel)", "type": "int"},
+    "abandon_ban_minutes": {"value": "10", "label": "Terk engeli temel süresi (dakika)", "type": "int"},
 }

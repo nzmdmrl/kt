@@ -76,19 +76,28 @@ export default function OynaPage() {
   const startSearch = useCallback(async () => {
     if (!name.trim()) return setErr("Önce bir isim gir");
     setErr("");
-    setMode("searching");
-    setSearchSeconds(0);
     try {
-      await fetch(apiUrl("/api/mm/join"), {
+      const token = typeof window !== "undefined" ? localStorage.getItem("kt_token") : null;
+      const res = await fetch(apiUrl("/api/mm/join"), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ player_id: playerId, name, elo }),
       });
+      const data = await res.json();
+      // Terk cezası: engelliyse aramaya girme, uyar.
+      if (data.banned) {
+        setErr(data.message || "Şu an eşleştirme engellisin. Bota karşı oynayabilirsin.");
+        return;
+      }
     } catch {
       setErr("Sunucuya bağlanılamadı");
-      setMode("menu");
       return;
     }
+    setMode("searching");
+    setSearchSeconds(0);
     // Poll döngüsü
     pollRef.current = setInterval(async () => {
       setSearchSeconds((s) => s + 1);

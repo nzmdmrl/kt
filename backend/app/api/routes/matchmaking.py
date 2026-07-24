@@ -32,7 +32,20 @@ class JoinIn(BaseModel):
 
 
 @router.post("/join")
-async def join_queue(data: JoinIn, user: User | None = Depends(get_optional_user)):
+async def join_queue(data: JoinIn, user: User | None = Depends(get_optional_user), db: AsyncSession = Depends(get_db)):
+    # Terk cezası: engelli kullanıcı eşleştirmeye giremez.
+    if user:
+        from app.game.abandon_service import is_matchmaking_banned
+        banned, remaining = await is_matchmaking_banned(db, user.id)
+        if banned:
+            mins = (remaining + 59) // 60
+            return {
+                "player_id": f"u{user.id}",
+                "in_queue": False,
+                "banned": True,
+                "ban_remaining_seconds": remaining,
+                "message": f"Maçları sık terk ettiğin için {mins} dakika eşleştirme engellisin. Bota karşı oynayabilirsin.",
+            }
     # Giriş yapmışsa gerçek ELO'yu kullan.
     elo = user.elo if user else data.elo
     name = user.display_name if user else data.name
