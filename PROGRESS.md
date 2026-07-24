@@ -588,3 +588,15 @@ Persistent Storage: /app/uploads). AUDIO_DIR=/app/uploads/audio (varsayılan zat
 Sentetik sesler her zaman çalışır (dosya gerekmez); volume sadece YÜKLENEN mp3'ler için.
 
 ## Faz 10 TAMAMEN BİTTİ. Kalan fazlar: Faz 11 (i18n çoklu dil + SEO), Faz 12 (cila+README).
+
+## Faz 10 ses v2 — DB tabanlı ses (volume gerekmez)
+Sorun: yüklenen mp3'ler için Coolify volume gerekiyordu; compose docker-compose.yaml
+Coolify tarafından yönetiliyor (kaynak .yml sunucuda yok), volume eklemek zahmetli.
+Çözüm: ses dosyaları artık DİSK yerine VERİTABANINDA (base64) saklanıyor. PostgreSQL
+zaten kalıcı volume'da (db-data) -> sesler deploy'da kaybolmaz, compose değişikliği YOK.
+- sound_asset.py: mime + data_b64 (Text) alanları. (Otomatik migration bunları ekler.)
+- sounds.py: upload base64 encode->DB, file/{slot} DB'den decode->Response(bytes).
+Dosyalar max 3MB, DB için uygun. Test: yükle/servis(birebir içerik)/sil doğrulandı.
+AUDIO_DIR config'te kaldı ama artık kullanılmıyor (zararsız).
+NOT: Coolify managed compose = /data/coolify/applications/mrx9s3.../docker-compose.yaml
+(kaynak .yml GitHub'da; sunucuda build sonrası yok). Volume yaklaşımı TERK EDİLDİ.
