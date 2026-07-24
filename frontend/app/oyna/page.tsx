@@ -158,7 +158,6 @@ export default function OynaPage() {
       <main style={pageStyle}>
         <div style={{ marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <a href="/" style={{ color: "var(--text-dim)", fontSize: 14 }}>← ana sayfa</a>
-          <SoundToggle />
         </div>
         <MatchGame
           key={code}

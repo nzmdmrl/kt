@@ -721,3 +721,16 @@ Emoji:
 - TUR BAŞINA 2 emoji limiti (emoteCount, round_start'ta sıfırlanır). Limit dolunca 🚫 + disabled.
 globals.css: mobil scorebar media query + fadeIn.
 Sadece frontend. Backend değişmedi.
+
+## Mobil v6 — emoji ses düğmesi soluna + geçersiz tahmin kilit bug'ı
+1. BUG (önemli): T ile başlaması gereken kelimeye Y yazınca uyarı geliyor ama input
+   kilitli kalıyordu, tekrar yazılamıyordu (süre boşa akıyor).
+   Kök neden: submit() geçersiz kelimede guess() gönderip setLocked(true) yapıyor;
+   backend 'error' gönderiyor ama 'guess_result' GÖNDERMİYOR; kilit sadece guess_result'ta
+   çözülüyordu -> locked=true kalıyordu.
+   Çözüm: lastEvent.type === "error" gelince de setLocked(false) (kullanıcı düzeltip
+   tekrar yazar, süre devam eder).
+2. Emoji butonu bildirim satırından ALINDI, MatchGame en üstüne taşındı; SoundToggle ile
+   yan yana, sağa yaslı: [emoji açılır] [ses düğmesi]. oyna/page.tsx üst satırından
+   SoundToggle kaldırıldı (artık MatchGame içinde). Emoji hâlâ turda 2 limit + açılır panel.
+Sadece frontend.
