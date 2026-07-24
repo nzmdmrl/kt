@@ -500,6 +500,8 @@ export default function MatchGame({
                 fontSize: 20,
                 fontFamily: "var(--font-display)",
                 width: 190,
+                maxWidth: "calc(100vw - 130px)",
+                minWidth: 0,
                 textAlign: "center",
                 letterSpacing: "0.2em",
                 textTransform: "uppercase",

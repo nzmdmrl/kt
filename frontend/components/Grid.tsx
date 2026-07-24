@@ -176,14 +176,18 @@ function DraftLine({
 
 function tileStyle(bg: string, color: string, dim?: boolean): React.CSSProperties {
   return {
-    width: 50,
-    height: 50,
+    // Responsive: 50px ya da ekrana sığacak boyut (hangisi küçükse).
+    // 6 harfli en geniş durum: (100vw - kenar boşlukları) / 6 kadar yer kalır.
+    width: "min(50px, calc((100vw - 52px) / 6.4))",
+    height: "min(50px, calc((100vw - 52px) / 6.4))",
+    aspectRatio: "1",
+    flexShrink: 0,
     display: "grid",
     placeItems: "center",
     borderRadius: 10,
     fontFamily: "var(--font-display)",
     fontWeight: 700,
-    fontSize: 22,
+    fontSize: "min(22px, calc((100vw - 52px) / 15))",
     color,
     background: bg,
     border: dim ? "1px solid var(--tile-border)" : "none",

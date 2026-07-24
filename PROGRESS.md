@@ -679,3 +679,13 @@ Frontend:
 - oyna startSearch: auth header eklendi; banned yanıtında aramaya girmez, mesaj gösterir.
 Test: 2 terke kadar cezasız, 3.'te 10dk, 4.'te 20dk kademeli; rakip ayrılınca kalan
 match_over+opponent_left alıyor (uçtan uca WS testi). ✓
+
+## Mobil taşma düzeltmesi — maç ekranı yanlardan taşıyordu
+Sorun: Grid kutuları sabit 50px + gap. 6 harfli kelimede 6*50+5*6=330px + padding ->
+dar telefonlarda (360px) yatay taşma.
+Çözüm:
+- Grid tileStyle: sabit 50px yerine responsive: width/height min(50px, calc((100vw-52px)/6.4)),
+  aspectRatio 1, fontSize de responsive min(22px, calc((100vw-52px)/15)).
+- MatchGame input: width 190 + maxWidth calc(100vw-130px) + minWidth 0 (dar ekranda daralır).
+- globals.css html/body: overflow-x hidden + max-width 100vw (güvenlik ağı).
+Sadece frontend. Kutular geniş ekranda 50px, dar ekranda orantılı küçülür; taşma yok.
