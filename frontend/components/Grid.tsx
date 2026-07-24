@@ -195,19 +195,27 @@ function tileStyle(bg: string, color: string, dim?: boolean): React.CSSPropertie
 }
 
 function Tag({ children }: { children: React.ReactNode }) {
+  // İsmi kısalt; satırın sağ-ÜST köşesine mini etiket (grid genişliğini aşmaz).
+  const text = typeof children === "string" ? children.split(" ")[0].slice(0, 8) : children;
   return (
     <span
       style={{
         position: "absolute",
-        right: -6,
-        top: "50%",
-        transform: "translate(100%, -50%)",
-        fontSize: 11,
+        right: 2,
+        top: -7,
+        fontSize: 9,
         color: "var(--text-dim)",
+        background: "var(--bg-deep)",
+        padding: "0 4px",
+        borderRadius: 4,
         whiteSpace: "nowrap",
+        maxWidth: "90%",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        pointerEvents: "none",
       }}
     >
-      {children}
+      {text}
     </span>
   );
 }

@@ -104,6 +104,7 @@ function PlayerChip({
     <div
       style={{
         flex: 1,
+        minWidth: 0,
         display: "flex",
         flexDirection: right ? "row-reverse" : "row",
         alignItems: "center",

@@ -689,3 +689,13 @@ dar telefonlarda (360px) yatay taşma.
 - MatchGame input: width 190 + maxWidth calc(100vw-130px) + minWidth 0 (dar ekranda daralır).
 - globals.css html/body: overflow-x hidden + max-width 100vw (güvenlik ağı).
 Sadece frontend. Kutular geniş ekranda 50px, dar ekranda orantılı küçülür; taşma yok.
+
+## Mobil taşma v3 — GERÇEK sebep (Nazım fotoğrafı)
+Fotoğraf: taşan kutular DEĞİL, iki eleman:
+1. Grid tahmin satırı yanındaki Tag (nameOf oyuncu adı) position:absolute right:-6
+   translate(100%) ile satırın SAĞ DIŞINA taşıyordu -> uzun isim (Selin Aydın) ekran dışı.
+   Düzeltme: Tag artık satırın sağ-ÜST köşesinde mini rozet (right:2 top:-7, bg-deep,
+   ilk ad max 8 char, ellipsis). Grid genişliğini AŞMAZ.
+2. ScoreBar PlayerChip flex:1 ama minWidth:0 YOKTU -> uzun isim kartı büyütüp taşırıyordu.
+   Düzeltme: PlayerChip'e minWidth:0 (isim ellipsis ile kesilir, kart taşmaz).
+mobil2'deki kutu responsive + container overflow engelleri de korundu.
