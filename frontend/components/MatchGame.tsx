@@ -319,19 +319,25 @@ export default function MatchGame({
             </button>
           </div>
 
-          {/* Mikrofon butonu — sesli cevap (tarayıcı destekliyorsa) */}
+          {/* Mikrofon butonu — sesli cevap. Tek dokunuş: aç/kapa (toggle). */}
           {micSupported && (
             <button
-              onMouseDown={() => { if (!writeBlocked || turnFree) micStart(); }}
-              onMouseUp={micStop}
-              onTouchStart={(e) => { e.preventDefault(); if (!writeBlocked || turnFree) micStart(); }}
-              onTouchEnd={(e) => { e.preventDefault(); micStop(); }}
+              onClick={() => {
+                if (writeBlocked && !turnFree) return;
+                if (listening) {
+                  micStop();
+                } else {
+                  setVoiceHint("");
+                  micStart();
+                }
+              }}
               disabled={writeBlocked && !turnFree}
               style={{
                 display: "flex",
                 alignItems: "center",
+                justifyContent: "center",
                 gap: 8,
-                padding: "12px 24px",
+                padding: "14px 28px",
                 borderRadius: 24,
                 border: listening ? "2px solid var(--accent-hot)" : "2px solid var(--border-soft)",
                 background: listening ? "var(--accent-hot)" : "var(--bg-elevated)",
@@ -343,10 +349,16 @@ export default function MatchGame({
                 transition: "all .2s",
                 boxShadow: listening ? "0 0 24px rgba(217,90,90,.4)" : "none",
                 opacity: writeBlocked && !turnFree ? 0.5 : 1,
+                // Metin seçmeyi ve dokunma vurgusunu engelle (mobilde basma sorununu çözer).
+                userSelect: "none",
+                WebkitUserSelect: "none",
+                WebkitTouchCallout: "none",
+                WebkitTapHighlightColor: "transparent",
+                touchAction: "manipulation",
               }}
             >
               <span style={{ fontSize: 18 }}>{listening ? "🔴" : "🎤"}</span>
-              {listening ? "Dinliyorum… (konuş)" : "Bas & Konuş"}
+              {listening ? "Dinliyorum… (bitince dokun)" : "🎤 Sesli Cevap Ver"}
             </button>
           )}
 
@@ -359,7 +371,7 @@ export default function MatchGame({
 
           <p style={{ color: "var(--text-dim)", fontSize: 12 }}>
             İpucu: kelime <strong style={{ color: "var(--accent)" }}>{round.first_letter}</strong> harfiyle başlıyor
-            {micSupported && <span> · 🎤 ile sesli de cevaplayabilirsin</span>}
+            {micSupported && <span> · 🎤 dokun, kelimeyi söyle</span>}
           </p>
         </div>
       )}

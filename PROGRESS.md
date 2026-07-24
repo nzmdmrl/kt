@@ -415,3 +415,10 @@ Android WebView cihaza bağlı. supported=false olursa sorunsuz klavyeye düşer
 - Whisper fallback: supported=false veya düşük doğrulukta sunucuya ses gönderme.
   Gerekli: Whisper API (veya self-host) + /api/speech/transcribe ucu. Faz 10 API key ile.
 - Sesli mod WebView (Android app) izni: manifest'te RECORD_AUDIO + WebView mic izni gerekir.
+
+## Faz 7 v2 (mikrofon buton düzeltmesi)
+Sorun: basılı-tut (press-hold) butonu mobilde text selection tetikliyordu, basılamıyordu.
+Çözüm: buton TOGGLE oldu (tek dokunuş aç/kapa). onClick ile micStart/micStop.
+userSelect:none, WebkitTouchCallout:none, WebkitTapHighlightColor:transparent,
+touchAction:manipulation eklendi (metin seçme + dokunma vurgusu engellendi).
+Web Speech continuous=false zaten -> konuşma bitince otomatik durur; manuel de durdurulur.
