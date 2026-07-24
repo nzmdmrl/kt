@@ -54,6 +54,10 @@ class WordPool:
     def selectable_size(self) -> int:
         return len(self._selectable)
 
+    def selectable_words(self) -> list[str]:
+        """Seçilebilir (yaygın) kelimelerin listesi — deterministik sıralı."""
+        return sorted(self._selectable)
+
 
 @lru_cache(maxsize=None)
 def get_pool(length: int, lang: str = "tr") -> WordPool:

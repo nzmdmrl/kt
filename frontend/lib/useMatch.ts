@@ -120,6 +120,7 @@ export function useMatch(
 
   const buzzer = useCallback(() => send({ action: "buzzer" }), [send]);
   const guess = useCallback((word: string) => send({ action: "guess", word }), [send]);
+  const emote = useCallback((emoji: string) => send({ action: "emote", emoji }), [send]);
 
-  return { connected, state, lastEvent, error, flash, buzzer, guess };
+  return { connected, state, lastEvent, error, flash, buzzer, guess, emote };
 }

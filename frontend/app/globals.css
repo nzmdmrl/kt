@@ -78,3 +78,10 @@ a { color: inherit; text-decoration: none; }
   from { opacity: 0; transform: rotateX(-90deg); }
   to { opacity: 1; transform: rotateX(0); }
 }
+
+@keyframes emoteFloat {
+  0% { opacity: 0; transform: translateY(20px) scale(0.5); }
+  20% { opacity: 1; transform: translateY(0) scale(1.2); }
+  40% { transform: translateY(-8px) scale(1); }
+  100% { opacity: 0; transform: translateY(-60px) scale(0.9); }
+}

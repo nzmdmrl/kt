@@ -54,7 +54,7 @@ Oyun varsayılan kolay+orta havuzdan seçer.
 - [x] **Faz 5** — Lig (günlük/aylık/yıllık/tüm zamanlar) + scheduler + kupa/madalya
 - [x] **Faz 6** — Rozet + detaylı profil + istatistik + ısı haritası
 - [x] **Faz 7** — Sesli mod (Web Speech + Whisper fallback)
-- [ ] **Faz 8** — Rövanş + emote + günün kelimesi + arkadaş/özel oda + sonuç kartı
+- [x] **Faz 8** — Rövanş + emote + günün kelimesi + arkadaş/özel oda + sonuç kartı
 - [ ] **Faz 9** — Ana sayfa (canlı) + ziyaretçi tanıtım + footer statik sayfalar
 - [ ] **Faz 10** — Ses/müzik sistemi + admin panel (istatistik + üreticiler + dil yönetimi)
 - [ ] **Faz 11** — i18n (6 dil, genişletilebilir) + çok dilli SEO/ASO
@@ -432,3 +432,33 @@ Nazım: basılı-tut daha iyi çalışıyordu (ses net alınıyordu), sadece but
 - Mikrofon artık input satırında, Gönder'in solunda KÜÇÜK SİMGE buton (52px, sadece 🎤/🔴).
 - Gönder butonu daraltıldı (padding 24->14px, whiteSpace:nowrap). input 220->190px.
 - Dinlerken "🔴 Dinliyorum… kelimeyi söyle" mesajı input altında.
+
+## Faz 8 TAMAMLANDI — Rövanş + Emote + Günün Kelimesi + Sonuç Kartı
+Sonuç kartı + Rövanş (frontend):
+- MatchGame maç sonu ekranı yeniden tasarlandı: büyük emoji + başlık + skor
+  karşılaştırması + "kelimetahmin.com" (paylaşılabilir kart görünümü).
+- Butonlar: 🔄 Rövanş (onRematch -> yeni oda+vs), Yeni Rakip, 📤 Paylaş (Web Share/clipboard).
+- oyna/page.tsx onRematch bağladı (yeni kod + vs ekranı).
+
+Emote (backend + frontend):
+- match.py WS: action=emote -> room.broadcast({type:emote, player_id, emoji}).
+- useMatch.ts: emote(emoji) fonksiyonu.
+- MatchGame: 6 emoji çubuğu (👍😂😮🔥😢👏) + gelen emote uçan animasyon (emoteFloat CSS).
+  Kendi emote'un solda, rakip sağda belirir.
+
+Günün Kelimesi (backend + frontend):
+- api/routes/daily.py: word_of_day (tarih->sha256->havuz indeksi, deterministik,
+  herkese aynı). GET /daily/word (uzunluk+ilk harf, ÇÖZÜM GİZLİ), /daily/check (Wordle renk).
+- word_service.py: selectable_words() eklendi.
+- app/gunun-kelimesi/page.tsx: tek kişilik 6 haklı Wordle. Emoji grid paylaşımı
+  (🟩🟨⬛, Wordle tarzı). Yarın yeni kelime.
+- Ana sayfaya 📅 Günün Kelimesi + 🏆 Lig butonları.
+
+Test: günün kelimesi deterministik + çözüm gizli + emote WS + sonuç kartı doğrulandı.
+
+## Faz 8 notlar / sonraki
+- Günün kelimesi ilerlemesi kaydedilmiyor (sayfa yenilenince sıfırlanır). İstenirse
+  localStorage'a günlük durum yazılır (aynı gün tekrar oynanmasın). Cila.
+- Rövanş şu an bot maçında yeni bot atar; insan rövanşı için karşı tarafın da kabul
+  akışı (Faz 9/sosyal) gerekebilir. Şimdilik bota karşı ve yeni rakip çalışıyor.
+- Emote bottan gelmez (bot emote atmaz); insan-insan maçında iki yönlü çalışır.

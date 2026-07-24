@@ -129,7 +129,19 @@ export default function OynaPage() {
         <div style={{ marginBottom: 8 }}>
           <a href="/" style={{ color: "var(--text-dim)", fontSize: 14 }}>← ana sayfa</a>
         </div>
-        <MatchGame code={code} playerId={playerId} name={name || "Oyuncu"} bot={bot} botElo={botElo} />
+        <MatchGame
+          code={code}
+          playerId={playerId}
+          name={name || "Oyuncu"}
+          bot={bot}
+          botElo={botElo}
+          onRematch={() => {
+            // Rövanş: aynı rakip tipiyle (bot/insan) yeni oda + yeni maç.
+            const newCode = "R" + Math.random().toString(36).slice(2, 7).toUpperCase();
+            setCode(newCode);
+            setMode("vs");
+          }}
+        />
       </main>
     );
   }

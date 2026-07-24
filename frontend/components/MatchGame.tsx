@@ -13,20 +13,32 @@ export default function MatchGame({
   name,
   bot,
   botElo,
+  onRematch,
 }: {
   code: string;
   playerId: string;
   name: string;
   bot?: boolean;
   botElo?: number;
+  onRematch?: () => void;
 }) {
-  const { connected, state, lastEvent, error, flash, buzzer, guess } = useMatch(
+  const { connected, state, lastEvent, error, flash, buzzer, guess, emote } = useMatch(
     code,
     playerId,
     name,
     bot,
     botElo
   );
+  // Gelen emote animasyonu (kim, hangi emoji).
+  const [flyingEmote, setFlyingEmote] = useState<{ id: number; emoji: string; mine: boolean } | null>(null);
+  useEffect(() => {
+    if (lastEvent?.type === "emote") {
+      const mine = lastEvent.player_id === playerId;
+      setFlyingEmote({ id: Date.now(), emoji: lastEvent.emoji, mine });
+      const t = setTimeout(() => setFlyingEmote(null), 2000);
+      return () => clearTimeout(t);
+    }
+  }, [lastEvent, playerId]);
   const [draft, setDraft] = useState("");
   const [locked, setLocked] = useState(false); // tahmin gönderildi, yanıt bekleniyor
   const [nextRoundIn, setNextRoundIn] = useState(0); // tur arası geri sayım (sn)
@@ -180,31 +192,61 @@ export default function MatchGame({
     const opp = players.find((p) => p.id !== playerId);
     const won = result ? result.winner === playerId : (me?.score ?? 0) > (opp?.score ?? 0);
     const draw = result ? result.winner === null : (me?.score ?? 0) === (opp?.score ?? 0);
+    const myScore = me?.score ?? 0;
+    const oppScore = opp?.score ?? 0;
+
+    const title = draw ? "Berabere!" : won ? "Kazandın! 🏆" : "Kaybettin";
+    const titleColor = draw ? "var(--text-strong)" : won ? "var(--tile-correct)" : "var(--accent-hot)";
+
     return (
-      <div style={{ display: "grid", gap: 20 }}>
-        <ScoreBar state={state} myId={playerId} />
+      <div style={{ display: "grid", gap: 16 }}>
+        {/* Sonuç kartı — paylaşılabilir görsel özet */}
         <div
           style={{
             textAlign: "center",
-            background: "var(--bg-panel)",
-            border: "1px solid var(--border-soft)",
+            background: "linear-gradient(160deg, var(--bg-panel), var(--bg-elevated))",
+            border: `2px solid ${titleColor}`,
             borderRadius: "var(--radius)",
-            padding: 28,
+            padding: "28px 24px",
+            position: "relative",
+            overflow: "hidden",
           }}
         >
-          <div
-            className="brand-mono"
-            style={{
-              fontSize: 30,
-              color: draw ? "var(--text-strong)" : won ? "var(--tile-correct)" : "var(--accent-hot)",
-            }}
-          >
-            {draw ? "Berabere!" : won ? "Kazandın! 🏆" : "Kaybettin"}
+          <div style={{ fontSize: 44, marginBottom: 4 }}>
+            {draw ? "🤝" : won ? "🎉" : "😔"}
           </div>
-          <p style={{ color: "var(--text-soft)", marginTop: 8 }}>
-            {me?.name}: {me?.score} — {opp?.name}: {opp?.score}
-          </p>
-          <a href="/oyna" style={newMatchBtn}>Yeni Maç</a>
+          <div className="brand-mono" style={{ fontSize: 32, color: titleColor, fontWeight: 700 }}>
+            {title}
+          </div>
+
+          {/* Skor karşılaştırması */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 20, margin: "20px 0" }}>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 13, color: "var(--text-soft)", marginBottom: 4 }}>{me?.name}</div>
+              <div className="brand-mono" style={{ fontSize: 36, color: won ? "var(--tile-correct)" : "var(--text-strong)" }}>{myScore}</div>
+            </div>
+            <div style={{ fontSize: 20, color: "var(--text-dim)" }}>—</div>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 13, color: "var(--text-soft)", marginBottom: 4 }}>{opp?.name}</div>
+              <div className="brand-mono" style={{ fontSize: 36, color: !won && !draw ? "var(--accent-hot)" : "var(--text-strong)" }}>{oppScore}</div>
+            </div>
+          </div>
+
+          <div style={{ fontSize: 12, color: "var(--text-dim)" }}>kelimetahmin.com</div>
+        </div>
+
+        {/* Butonlar: Rövanş + Yeni Rakip */}
+        <div style={{ display: "grid", gap: 10 }}>
+          <button onClick={() => onRematch?.()} style={{ ...newMatchBtn, width: "100%", border: "none", cursor: "pointer" }}>
+            🔄 Rövanş
+          </button>
+          <div style={{ display: "flex", gap: 10 }}>
+            <a href="/oyna" style={{ ...secondaryLink, flex: 1 }}>Yeni Rakip</a>
+            <button onClick={() => shareResult(won, draw, myScore, oppScore)} style={{ ...secondaryLink, flex: 1, border: "1px solid var(--border-soft)", background: "transparent", cursor: "pointer", fontFamily: "var(--font-body)" }}>
+              📤 Paylaş
+            </button>
+          </div>
+          <a href="/lig" style={{ textAlign: "center", color: "var(--text-soft)", fontSize: 14, marginTop: 4 }}>Lig sıralamasını gör →</a>
         </div>
       </div>
     );
@@ -232,8 +274,47 @@ export default function MatchGame({
   }
 
   return (
-    <div style={{ display: "grid", gap: 14 }}>
+    <div style={{ display: "grid", gap: 14, position: "relative" }}>
+      {/* Uçan emote animasyonu */}
+      {flyingEmote && (
+        <div
+          key={flyingEmote.id}
+          style={{
+            position: "absolute",
+            top: 60,
+            [flyingEmote.mine ? "left" : "right"]: "18%",
+            fontSize: 56,
+            zIndex: 20,
+            pointerEvents: "none",
+            animation: "emoteFloat 2s ease-out forwards",
+          } as React.CSSProperties}
+        >
+          {flyingEmote.emoji}
+        </div>
+      )}
+
       <ScoreBar state={state} myId={playerId} />
+
+      {/* Emote çubuğu — hızlı tepkiler */}
+      <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
+        {["👍", "😂", "😮", "🔥", "😢", "👏"].map((em) => (
+          <button
+            key={em}
+            onClick={() => emote(em)}
+            style={{
+              fontSize: 20,
+              padding: "4px 8px",
+              borderRadius: 8,
+              border: "1px solid var(--border-soft)",
+              background: "var(--bg-panel)",
+              cursor: "pointer",
+              lineHeight: 1,
+            }}
+          >
+            {em}
+          </button>
+        ))}
+      </div>
 
       {/* Büyük, net sıra göstergesi */}
       <div
@@ -400,14 +481,38 @@ const sendBtn: React.CSSProperties = {
 
 const newMatchBtn: React.CSSProperties = {
   display: "inline-block",
-  marginTop: 18,
-  padding: "12px 24px",
+  textAlign: "center",
+  padding: "14px 24px",
   background: "var(--accent)",
   color: "#1a1330",
-  borderRadius: 10,
+  borderRadius: 12,
   fontWeight: 700,
+  fontSize: 17,
   fontFamily: "var(--font-display)",
 };
+
+const secondaryLink: React.CSSProperties = {
+  display: "inline-block",
+  textAlign: "center",
+  padding: "12px 18px",
+  background: "var(--bg-panel)",
+  color: "var(--text-strong)",
+  borderRadius: 10,
+  fontWeight: 600,
+  fontSize: 15,
+  fontFamily: "var(--font-display)",
+};
+
+// Sonuç paylaşımı — Web Share API (mobilde native paylaşım), yoksa panoya kopyala.
+function shareResult(won: boolean, draw: boolean, myScore: number, oppScore: number) {
+  const outcome = draw ? "berabere kaldım" : won ? "kazandım" : "kaybettim";
+  const text = `Kelime Tahmin'de ${myScore}-${oppScore} ${outcome}! 🎯 Sen de dene: kelimetahmin.com`;
+  if (navigator.share) {
+    navigator.share({ title: "Kelime Tahmin", text, url: "https://kelimetahmin.com" }).catch(() => {});
+  } else if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(() => alert("Sonuç panoya kopyalandı!")).catch(() => {});
+  }
+}
 
 function Centered({ children }: { children: React.ReactNode }) {
   return (

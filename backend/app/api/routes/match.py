@@ -129,6 +129,11 @@ async def match_ws(
                 await room.handle_buzzer(player_id)
             elif action == "guess":
                 await room.handle_guess(player_id, str(data.get("word", "")))
+            elif action == "emote":
+                # Hızlı emoji tepkisi — karşıya yayınla.
+                emoji = str(data.get("emoji", ""))[:8]
+                if emoji:
+                    await room.broadcast({"type": "emote", "player_id": player_id, "emoji": emoji})
             elif action == "ping":
                 await websocket.send_json({"type": "pong"})
     except WebSocketDisconnect:

@@ -82,6 +82,22 @@ export default async function Home() {
           >
             🏆 Lig
           </a>
+          <a
+            href="/gunun-kelimesi"
+            style={{
+              display: "inline-block",
+              padding: "14px 28px",
+              background: "var(--bg-panel)",
+              color: "var(--text-strong)",
+              borderRadius: 12,
+              fontWeight: 600,
+              fontSize: 18,
+              fontFamily: "var(--font-display)",
+              border: "1px solid var(--border-soft)",
+            }}
+          >
+            📅 Günün Kelimesi
+          </a>
         </div>
       </header>
 
