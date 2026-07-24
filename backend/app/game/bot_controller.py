@@ -101,7 +101,8 @@ class BotController:
         self._busy = True
         try:
             # Yazma gecikmesi — insan botun "yazdığını" görsün, ani olmasın.
-            await asyncio.sleep(random.uniform(2.0, 3.5))
+            # Daha insani: kelimeyi "düşünüp yazıyormuş" gibi belirgin bekleme.
+            await asyncio.sleep(random.uniform(3.5, 6.0))
             if r.turn_player_id != self.bot_id or r.finished:
                 return
             await self._guess_now(match, r)
@@ -112,18 +113,25 @@ class BotController:
         if r.turn_player_id != self.bot_id or r.finished:
             return
         difficulty = self._difficulty_of(r)
-        prob = bot_engine.solve_probability(self.elo, difficulty)
+        # Bu bot şimdiye kadar kaç tahmin yaptı? (kademeli öğrenme için)
+        bot_attempts = sum(1 for row in r.rows if getattr(row, "player_id", None) == self.bot_id)
+
         prev_rows = [[{"letter": t.letter, "state": t.state.value} for t in row.tiles]
                      for row in r.rows]
+
+        # Bilme olasılığı tahmin sayısına bağlı: erken tahminlerde düşük.
+        prob = bot_engine.solve_probability_at(self.elo, difficulty, bot_attempts)
+        hint_level = bot_engine.use_hints_level(bot_attempts)
+
         if random.random() < prob:
             guess = r.target
         else:
-            guess = bot_engine.pick_guess(r.target, self.lang, prev_rows)
+            guess = bot_engine.pick_guess(r.target, self.lang, prev_rows, hint_level)
             # Zaten denenmiş bir kelimeyse başka bir tane seçmeye çalış.
             tried = {"".join(t.letter for t in row.tiles) for row in r.rows}
             attempts = 0
             while guess in tried and attempts < 8:
-                guess = bot_engine.pick_guess(r.target, self.lang, prev_rows)
+                guess = bot_engine.pick_guess(r.target, self.lang, prev_rows, hint_level)
                 attempts += 1
         await self.room.handle_guess(self.bot_id, guess)
 

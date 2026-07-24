@@ -743,3 +743,20 @@ mobilde sığsın; emojiler AÇILIR değil SABİT açık (6'sı görünür); des
   Emojiler clamp(28-38px) + flexShrink -> dar ekranda küçülüp sığar. Turda 2 limit korundu
   (dolunca opacity düşer + disabled). emoteOpen state kaldırıldı (artık hep açık).
 Sadece frontend.
+
+## Bot davranışı iyileştirme — kademeli öğrenme (Nazım: bot fazla iyi/hızlı)
+Sorun: bot ilk tahminden itibaren biliyor ve insandan hemen sonra hızlı yazıyordu.
+Yeni oyuncuyu eziyordu. İstenen: bot oyunu SEVDİRSİN — erken bilmesin, 3. tahminden
+sonra ipuçlarını kullanmaya başlasın (hatalı da yapabilir), 5-6. tahminden sonra bilsin.
+bot_engine.py:
+- solve_probability_at(elo, diff, attempt_index): bilme olasılığı tahmin SAYISINA bağlı.
+  ramp: attempt 0=0.0, 1=0.05, 2=0.20, 3=0.45, 4=0.70, 5+=1.0 (beceriyle çarpılır).
+- use_hints_level(attempt): ipucu kullanımı 0=0.0,1=0.1,2=0.5,3=0.75,4=0.9,5+=1.0.
+- pick_guess(..., hint_level): hint_level olasılığıyla ipuçlarını KULLANIR; yoksa görmezden
+  gelip ilk harfi tutan rastgele kelime (inandırıcı erken yanlış).
+bot_controller.py:
+- _guess_now: bot_attempts = botun o turdaki tahmin sayısı (r.rows player_id sayımı).
+  solve_probability_at + use_hints_level(bot_attempts) kullanılır.
+- _take_my_turn gecikmesi 2-3.5s -> 3.5-6.0s (daha insani, aceleci değil).
+Test (1000 tur, ELO1000 orta): 1.tahmin %0 bilme, 3.'te ipuçları girer, 6-7'de bilir,
+%30 hiç bilemiyor (oyuncu kazanabilir). İstenen sevdirme eğrisi ✓.

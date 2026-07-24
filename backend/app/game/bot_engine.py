@@ -28,9 +28,49 @@ _DIFF_FACTOR = {"kolay": 1.0, "orta": 0.8, "zor": 0.55}
 
 
 def solve_probability(elo: int, difficulty: str) -> float:
-    """Bu botun bu turu (bir denemede) bilme olasılığı."""
+    """Bu botun bu turu (bir denemede) bilme olasılığı — TABAN (attempt=0)."""
     base = _skill(elo)
     return base * _DIFF_FACTOR.get(difficulty, 0.8)
+
+
+def solve_probability_at(elo: int, difficulty: str, attempt_index: int) -> float:
+    """
+    Botun KAÇINCI tahminde olduğuna göre bilme olasılığı.
+
+    Amaç: bot yeni oyuncuya oyunu sevdirsin — erken tahminlerde bilmesin,
+    ipuçları biriktikçe (geç tahminlerde) bilmeye başlasın.
+
+    attempt_index: bu bot için kaçıncı tahmin (0 tabanlı; 0 = ilk tahmini).
+      0-1 (ilk 2 tahmin): neredeyse hiç bilmez (çok düşük).
+      2   (3. tahmin)    : ipuçlarını kullanmaya başlar, düşük şans.
+      3-4 (4-5. tahmin)  : orta şans, artan.
+      5+  (6+ tahmin)    : yüksek şans — artık bilmeye başlar.
+    """
+    base = _skill(elo) * _DIFF_FACTOR.get(difficulty, 0.8)
+    # Tahmin sayısına göre çarpan (0..1'e yaklaşır).
+    ramp = {
+        0: 0.0,    # ilk tahmin: asla direkt bilmez
+        1: 0.05,   # 2. tahmin: çok nadir
+        2: 0.20,   # 3. tahmin: ipuçları devreye girer
+        3: 0.45,   # 4. tahmin
+        4: 0.70,   # 5. tahmin
+    }.get(attempt_index, 1.0)  # 6. tahmin ve sonrası: tam beceri
+    return base * ramp
+
+
+def use_hints_level(attempt_index: int) -> float:
+    """
+    Bot ipuçlarını (yeşil/sarı/gri) ne kadar KULLANSIN? 0..1.
+    Erken tahminlerde ipuçlarını görmezden gelip inandırıcı yanlışlar yapar;
+    3. tahminden sonra ipuçlarına uymaya başlar.
+    """
+    return {
+        0: 0.0,   # ilk tahmin: ipuçsuz, rastgele (zaten ipucu da yok)
+        1: 0.1,   # 2. tahmin: çoğunlukla ipuçları kullanmaz
+        2: 0.5,   # 3. tahmin: yarı yarıya ipuçlarını kullanır
+        3: 0.75,  # 4. tahmin
+        4: 0.9,   # 5. tahmin
+    }.get(attempt_index, 1.0)  # 6+: ipuçlarını tam kullanır
 
 
 def think_delay(elo: int) -> float:
@@ -57,20 +97,18 @@ def decide_action(elo: int, difficulty: str, attempts_made: int, max_rows: int) 
     return random.random() < aggression
 
 
-def pick_guess(target: str, lang: str, prev_rows: list) -> str:
+def pick_guess(target: str, lang: str, prev_rows: list, hint_level: float = 1.0) -> str:
     """
     Botun yapacağı tahmini seçer.
 
     prev_rows: o ana kadar ızgaradaki tahminler (renk ipuçları).
-    Bot ipuçlarına UYAN geçerli bir kelime bulmaya çalışır; bulamazsa
-    ilk harfi tutan rastgele geçerli bir kelime döner (inandırıcı yanlış).
+    hint_level: 0..1 — bot ipuçlarını ne kadar kullansın. Düşükse ipuçları
+      görmezden gelinir (inandırıcı erken yanlışlar); yüksekse ipuçlarına uyulur.
     """
     target = normalize(target)
     length = len(target)
     pool = get_pool(length, lang)
 
-    # Havuzdan ilk harfi tutan adayları topla (tam listeyi tekrar tarama maliyeti
-    # düşük — havuzlar birkaç bin kelime).
     import json
     from pathlib import Path
     data_path = Path(__file__).resolve().parent.parent / "words" / "data" / f"{lang}_{length}_pool.json"
@@ -84,8 +122,12 @@ def pick_guess(target: str, lang: str, prev_rows: list) -> str:
     if not candidates:
         return target
 
-    # Önceki ipuçlarına göre eleme: yeşil konumları tutan, gri harfleri
-    # içermeyen adayları tercih et (botun ipuçlarını "kullanması").
+    # Bot ipuçlarını kullanmaya karar verdi mi? (hint_level olasılığıyla)
+    if random.random() >= hint_level:
+        # İpuçlarını GÖRMEZDEN gel — ilk harfi tutan rastgele kelime (inandırıcı yanlış).
+        return random.choice(candidates)
+
+    # İpuçlarına göre eleme: yeşil konumları tutan, gri harfleri içermeyen adaylar.
     greens: dict[int, str] = {}
     absents: set[str] = set()
     for row in prev_rows:
