@@ -39,3 +39,12 @@ async def get_optional_user(
     if user_id is None:
         return None
     return await get_user_by_id(db, user_id)
+
+
+async def get_admin_user(
+    user: User = Depends(get_current_user),
+) -> User:
+    """Sadece admin kullanıcılar. Admin değilse 403."""
+    if not getattr(user, "is_admin", False):
+        raise HTTPException(status_code=403, detail="Bu işlem için yönetici yetkisi gerekli.")
+    return user

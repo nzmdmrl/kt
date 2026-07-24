@@ -56,7 +56,7 @@ Oyun varsayılan kolay+orta havuzdan seçer.
 - [x] **Faz 7** — Sesli mod (Web Speech + Whisper fallback)
 - [x] **Faz 8** — Rövanş + emote + günün kelimesi + arkadaş/özel oda + sonuç kartı
 - [x] **Faz 9** — Ana sayfa (canlı) + ziyaretçi tanıtım + footer statik sayfalar
-- [ ] **Faz 10** — Ses/müzik sistemi + admin panel (istatistik + üreticiler + dil yönetimi)
+- [~] **Faz 10** — Ses/müzik sistemi + admin panel (istatistik + üreticiler + dil yönetimi)
 - [ ] **Faz 11** — i18n (6 dil, genişletilebilir) + çok dilli SEO/ASO
 - [ ] **Faz 12** — Tasarım cilası + VPS/Coolify README + tek zip
 
@@ -520,3 +520,35 @@ geçmeden önce bir hukuk danışmanına inceletilmeli (sayfalarda da not düş�
 - Footer şu an sadece ana sayfada. İstenirse lig/profil/oyna sayfalarına da eklenir.
 - Google OAuth butonu hâlâ bağlı değil (GOOGLE_CLIENT_ID girilince aktif olur) — Faz 3 notu.
 - İletişim/destek sayfası veya e-posta eklenebilir (footer'a).
+
+## Faz 10 (KISIM 1) TAMAMLANDI — Admin panel çekirdeği
+Backend:
+- models/user.py: is_admin bool alanı (Boolean import).
+- models/game_setting.py: GameSetting (key-value) + DEFAULT_SETTINGS (9 ayar: süreler,
+  satır sayıları, hız bonusu, bot bekleme, bot-lige-sayılsın).
+- game/settings_service.py: DB okuma + in-memory cache. load_settings, get_str/int/bool,
+  set_setting (cache'i hemen günceller), all_settings. cached_int/cached_bool (SENKRON —
+  oyun kodu için, fallback DEFAULT_SETTINGS).
+- core/deps.py: get_admin_user (is_admin değilse 403).
+- api/routes/admin.py: dashboard, settings GET/POST, bots GET/generate/toggle,
+  words GET(ara)/POST(ekle)/remove. Kelime yönetimi havuz JSON dosyalarına yazar.
+- match.py: start_next_round süreleri+satır cached_int'ten okur (rows_{length},
+  round_total_seconds, buzzer_answer_seconds). Ayar panelden değişince maçlara yansır.
+- main.py: admin router + startup'ta settings yükleme + ADMIN_EMAIL env'i ile ilk admin ataması.
+- database.py: game_setting init_models'a eklendi.
+Frontend:
+- app/yonetim/page.tsx: 4 sekmeli panel (Özet/Ayarlar/Botlar/Kelimeler).
+  authHeaders kt_token (auth.tsx ile uyumlu — doğrulandı). 403'te "yetkin yok".
+  Dashboard: kullanıcı/maç/bot sayıları + top 5. Ayarlar: inline düzenle+kaydet.
+  Botlar: üret + aktif/pasif toggle. Kelimeler: uzunluk+ara+ekle+sil.
+Test: 403 koruması, dashboard, ayar yaz->cache(120), bot listesi, kelime arama(164),
+maç ayarlı süreyle başlıyor, regresyon tam. ✓
+
+İLK ADMIN ATAMA: Coolify env'e ADMIN_EMAIL=<hesabının emaili> eklenir -> deploy'da
+o kullanıcı is_admin=True olur -> /yonetim erişilir.
+
+## Faz 10 KISIM 2 (sonraki) — Ses/müzik sistemi [YAPILMADI]
+- Admin'den mp3 slot yükleme (buton sesi, kazanma, kaybetme, tur başı, arka plan müziği).
+- Ayar: ses açık/kapalı, ses seviyesi.
+- Frontend: oyun olaylarında ses çalma (Web Audio / <audio>).
+- Yükleme depolama: statik dosya klasörü veya küçük obje deposu (VPS'te path).

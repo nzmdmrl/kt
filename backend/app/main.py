@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
 from app.core.database import init_models
-from app.api.routes import health, words, room, match, auth, matchmaking, league, profile, daily
+from app.api.routes import health, words, room, match, auth, matchmaking, league, profile, daily, admin
 
 settings = get_settings()
 
@@ -56,6 +56,7 @@ app.include_router(matchmaking.router, prefix="/api")
 app.include_router(league.router, prefix="/api")
 app.include_router(profile.router, prefix="/api")
 app.include_router(daily.router, prefix="/api")
+app.include_router(admin.router, prefix="/api")
 
 
 @app.on_event("startup")
@@ -89,6 +90,31 @@ async def on_startup():
         _asyncio.create_task(league_scheduler_loop())
     except Exception as e:
         print(f"[startup] Lig scheduler atlandı: {e}")
+    # Oyun ayarlarını cache'e yükle (admin panelden değişebilir).
+    try:
+        from app.core.database import AsyncSessionLocal
+        from app.game import settings_service
+        async with AsyncSessionLocal() as db:
+            await settings_service.load_settings(db)
+    except Exception as e:
+        print(f"[startup] Ayarlar yüklenemedi (varsayılanlar kullanılacak): {e}")
+    # ADMIN_EMAIL env'i tanımlıysa o kullanıcıyı admin yap (ilk admin ataması).
+    import os as _os
+    admin_email = _os.getenv("ADMIN_EMAIL", "").strip().lower()
+    if admin_email:
+        try:
+            from app.core.database import AsyncSessionLocal
+            from sqlalchemy import select as _select
+            from app.models.user import User as _User
+            async with AsyncSessionLocal() as db:
+                res = await db.execute(_select(_User).where(_User.email == admin_email))
+                u = res.scalar_one_or_none()
+                if u and not u.is_admin:
+                    u.is_admin = True
+                    await db.commit()
+                    print(f"[startup] {admin_email} admin yapıldı.")
+        except Exception as e:
+            print(f"[startup] Admin ataması atlandı: {e}")
 
 
 @app.get("/")

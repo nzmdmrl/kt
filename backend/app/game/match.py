@@ -62,12 +62,17 @@ class Match:
 
         cfg = ROUND_CONFIG[self.round_index]
         target = self._pick_word(cfg["length"])
+        # Ayarları cache'ten oku (admin panelden değiştirilebilir); yoksa varsayılan.
+        from app.game.settings_service import cached_int
+        length = cfg["length"]
+        rows = cached_int(f"rows_{length}", cfg["rows"])
+        total_secs = cached_int("round_total_seconds", ROUND_TOTAL_SECONDS)
         self.round = RoundState(
             index=self.round_index,
-            length=cfg["length"],
-            max_rows=cfg["rows"],
+            length=length,
+            max_rows=rows,
             target=normalize(target),
-            time_left=ROUND_TOTAL_SECONDS,
+            time_left=total_secs,
         )
         self.phase = MatchPhase.ROUND_ACTIVE
         return self.round
@@ -82,7 +87,7 @@ class Match:
         if player_id not in self.players:
             raise MatchError("Oyuncu bu maçta değil.")
         r.turn_player_id = player_id
-        r.answer_time_left = BUZZER_ANSWER_SECONDS
+        from app.game.settings_service import cached_int as _ci; r.answer_time_left = _ci("buzzer_answer_seconds", BUZZER_ANSWER_SECONDS)
         if r.first_buzzer_id is None:
             r.first_buzzer_id = player_id
 
@@ -143,7 +148,7 @@ class Match:
             # Rakip cevap penceresi içinde denemezse sıra geri döner (timer yönetir).
             opponent = self.opponent_of(player_id)
             r.turn_player_id = opponent
-            r.answer_time_left = BUZZER_ANSWER_SECONDS
+            from app.game.settings_service import cached_int as _ci; r.answer_time_left = _ci("buzzer_answer_seconds", BUZZER_ANSWER_SECONDS)
             # NOT: Satır sınırı artık turu BİTİRMEZ. Tur yalnızca süre bitince
             # veya kelime bilinince biter. Izgara gerektikçe aşağı genişler.
 
@@ -166,7 +171,7 @@ class Match:
         assert r is not None
         if r.turn_player_id is not None:
             r.turn_player_id = self.opponent_of(r.turn_player_id)
-            r.answer_time_left = BUZZER_ANSWER_SECONDS
+            from app.game.settings_service import cached_int as _ci; r.answer_time_left = _ci("buzzer_answer_seconds", BUZZER_ANSWER_SECONDS)
         else:
             r.answer_time_left = 0
 

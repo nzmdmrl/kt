@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import String, Integer, DateTime, func
+from sqlalchemy import String, Integer, DateTime, Boolean, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -47,6 +47,9 @@ class User(Base):
     # Solo istatistikleri (lige yazılmaz — ayrı tutulur)
     solo_matches: Mapped[int] = mapped_column(Integer, default=0)
     solo_best_score: Mapped[int] = mapped_column(Integer, default=0)
+
+    # Yetki
+    is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
