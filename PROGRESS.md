@@ -462,3 +462,17 @@ Test: günün kelimesi deterministik + çözüm gizli + emote WS + sonuç kartı
 - Rövanş şu an bot maçında yeni bot atar; insan rövanşı için karşı tarafın da kabul
   akışı (Faz 9/sosyal) gerekebilir. Şimdilik bota karşı ve yeni rakip çalışıyor.
 - Emote bottan gelmez (bot emote atmaz); insan-insan maçında iki yönlü çalışır.
+
+## Faz 8 v2 — rövanş bug + onay notu
+Bug: rövanş deyince son turun son sahnesine dönüyordu. Kök neden: MatchGame yeni
+oda koduyla yeniden başlarken React aynı bileşeni (eski WS + eski state/lastEvent ile)
+kullanıyordu. Çözüm: <MatchGame key={code} ...> -> oda kodu değişince bileşen
+SIFIRDAN kurulur, eski WebSocket ve state temizlenir. Rövanş VS ekranından geçer.
+
+NOT — İnsan-insan rövanş ONAYI (ileride, insan matchmaking yaygınlaşınca):
+Nazım haklı: gerçek rövanş "rakip rövanş istiyor, kabul? [Evet/Hayır]" sormalı.
+Şu an bota karşı anında yeni maç (bot her zaman kabul). İnsan-insan için gerekli:
+- WS action=rematch_request -> karşıya "rakip rövanş istiyor" bildirimi.
+- WS action=rematch_accept/decline -> kabulde iki taraf yeni odaya, rette menüye.
+- Süre aşımı (10-15sn cevap yoksa iptal).
+Bu Faz 9 (sosyal/lobi) veya insan matchmaking testleri sırasında eklenecek.

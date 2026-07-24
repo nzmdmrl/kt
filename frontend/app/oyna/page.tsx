@@ -130,6 +130,7 @@ export default function OynaPage() {
           <a href="/" style={{ color: "var(--text-dim)", fontSize: 14 }}>← ana sayfa</a>
         </div>
         <MatchGame
+          key={code}
           code={code}
           playerId={playerId}
           name={name || "Oyuncu"}
@@ -137,6 +138,7 @@ export default function OynaPage() {
           botElo={botElo}
           onRematch={() => {
             // Rövanş: aynı rakip tipiyle (bot/insan) yeni oda + yeni maç.
+            // Yeni oda kodu + VS ekranı; key={code} sayesinde MatchGame sıfırdan kurulur.
             const newCode = "R" + Math.random().toString(36).slice(2, 7).toUpperCase();
             setCode(newCode);
             setMode("vs");
