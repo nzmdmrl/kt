@@ -44,8 +44,8 @@ export default function MatchGame({
     phase !== "round_active" ||
     (!myTurn && !turnFree && !hasFocus);
 
-  // Tur bitince (round_over) 10 saniyelik "sonraki tur" geri sayımını başlat.
-  const REVEAL_SECONDS = 10;
+  // Tur bitince (round_over) geri sayımı başlat (backend REVEAL_SECONDS ile uyumlu).
+  const REVEAL_SECONDS = 5;
   useEffect(() => {
     if (lastEvent?.type === "round_over") {
       setNextRoundIn(REVEAL_SECONDS);

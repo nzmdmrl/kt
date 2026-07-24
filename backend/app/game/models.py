@@ -30,7 +30,7 @@ ROUND_TOTAL_SECONDS = 90      # tur başına toplam geri sayım
 BUZZER_ANSWER_SECONDS = 20    # buzzer alındıktan sonra cevap penceresi
 
 # Kelime kimse bilemeden tur bitince doğru cevabın gösterileceği süre (saniye).
-REVEAL_SECONDS = 10
+REVEAL_SECONDS = 5
 
 # Puanlama katsayıları (admin ayarlanabilir).
 SPEED_BONUS = 10              # ilk buzzer'a basıp doğru bilene ek bonus

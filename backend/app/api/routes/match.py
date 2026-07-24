@@ -47,33 +47,26 @@ def _attach_stats_callback(room):
         order = match.player_order
         scores = result["scores"]
         winner = result["winner"]
-        print(f"[stats] maç bitti order={order} scores={scores} winner={winner}")
         try:
             async with AsyncSessionLocal() as db:
                 for pid in order:
                     if not pid.startswith("u"):  # sadece gerçek kullanıcılar (u{id})
-                        print(f"[stats] {pid} atlandı (misafir/bot)")
                         continue
                     try:
                         uid = int(pid[1:])
                     except ValueError:
-                        print(f"[stats] {pid} id çözülemedi")
                         continue
-                    # Rakip ELO'su: bot ise botun elo'su, insan ise 1000 (basit).
                     opp = match.opponent_of(pid)
                     opp_player = match.players.get(opp)
                     opp_elo = getattr(opp_player, "elo", 1000) or 1000
                     won = (winner == pid)
                     draw = (winner is None)
-                    my_score = scores.get(pid, 0)
-                    print(f"[stats] {pid} uid={uid} won={won} draw={draw} score={my_score}")
-                    res = await apply_match_result(
+                    await apply_match_result(
                         db, uid, opp_elo,
                         won=won, draw=draw,
-                        score=my_score,
+                        score=scores.get(pid, 0),
                         words_solved=0,
                     )
-                    print(f"[stats] {pid} işlendi -> yeni elo={res.elo if res else 'YOK'}")
         except Exception as e:
             import traceback
             print(f"[stats] HATA: {e}")
