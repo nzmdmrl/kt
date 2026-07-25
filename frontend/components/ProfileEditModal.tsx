@@ -146,37 +146,60 @@ function Overlay({ children, onClose }: { children: React.ReactNode; onClose: ()
   );
 }
 
-// DiceBear avatar galerisi — farklı stiller + tohumlar. Seç -> kaydet.
-const AVATAR_STYLES = ["thumbs", "bottts", "fun-emoji", "adventurer", "big-smile", "avataaars", "micah", "notionists"];
-const AVATAR_SEEDS = ["Ada", "Boru", "Ceyda", "Deniz", "Ege", "Fikret", "Gonca", "Hakan", "Iraz", "Jale", "Kerem", "Lale"];
+// DiceBear avatar galerisi — rastgele üretilir, "yenile" ile yeni seçenekler gelir.
+const AVATAR_STYLES = ["thumbs", "bottts", "fun-emoji", "adventurer", "big-smile", "avataaars", "micah", "notionists", "lorelei", "personas"];
+
+function randomAvatars(count: number): string[] {
+  const out: string[] = [];
+  for (let i = 0; i < count; i++) {
+    const style = AVATAR_STYLES[Math.floor(Math.random() * AVATAR_STYLES.length)];
+    // Rastgele tohum (harf+rakam).
+    const seed = Math.random().toString(36).slice(2, 10);
+    out.push(`https://api.dicebear.com/7.x/${style}/svg?seed=${seed}`);
+  }
+  return out;
+}
 
 function AvatarPicker({ current, onPick }: { current?: string | null; onPick: (url: string) => void }) {
-  // Stil x tohum kombinasyonlarından bir galeri üret (deterministik).
-  const options: string[] = [];
-  for (let i = 0; i < 18; i++) {
-    const style = AVATAR_STYLES[i % AVATAR_STYLES.length];
-    const seed = AVATAR_SEEDS[(i * 5 + 3) % AVATAR_SEEDS.length];
-    options.push(`https://api.dicebear.com/7.x/${style}/svg?seed=${encodeURIComponent(seed + i)}`);
-  }
+  const [options, setOptions] = useState<string[]>([]);
+
+  useEffect(() => {
+    // İlk açılışta üret; mevcut avatar varsa onu da başa ekle.
+    const gen = randomAvatars(17);
+    setOptions(current ? [current, ...gen] : randomAvatars(18));
+  }, []);
+
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 8 }}>
-      {options.map((url) => {
-        const selected = current === url;
-        return (
-          <button
-            key={url}
-            onClick={() => onPick(url)}
-            style={{
-              padding: 0, borderRadius: 10, cursor: "pointer", overflow: "hidden",
-              border: selected ? "2px solid var(--accent)" : "2px solid var(--border-soft)",
-              background: "var(--bg-elevated)", aspectRatio: "1", lineHeight: 0,
-            }}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-          </button>
-        );
-      })}
+    <div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 8, marginBottom: 10 }}>
+        {options.map((url, i) => {
+          const selected = current === url;
+          return (
+            <button
+              key={url + i}
+              onClick={() => onPick(url)}
+              style={{
+                padding: 0, borderRadius: 10, cursor: "pointer", overflow: "hidden",
+                border: selected ? "2px solid var(--accent)" : "2px solid var(--border-soft)",
+                background: "var(--bg-elevated)", aspectRatio: "1", lineHeight: 0,
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            </button>
+          );
+        })}
+      </div>
+      <button
+        onClick={() => setOptions(randomAvatars(18))}
+        style={{
+          width: "100%", padding: "10px", borderRadius: 9, cursor: "pointer",
+          border: "1px solid var(--border-soft)", background: "var(--bg-elevated)",
+          color: "var(--text-strong)", fontSize: 14, fontWeight: 600,
+        }}
+      >
+        🎲 Yeni Seçenekler Üret
+      </button>
     </div>
   );
 }

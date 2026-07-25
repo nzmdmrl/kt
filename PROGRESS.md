@@ -1077,3 +1077,8 @@ Frontend:
   ızgarası (6 sütun). Seç -> /account/avatar kaydet, seçili olana accent border.
 Test: geçerli dicebear kabul, kötü URL 400 ✓. Build ok.
 NOT: gerçek foto yükleme yapılmadı (sadece galeri, Nazım tercihi).
+
+## Avatar galerisi: rastgele + yenile (Nazım)
+AvatarPicker artık rastgele üretir: 10 stil x rastgele tohum. İlk açılışta mevcut avatar başa
+eklenir + 17 rastgele. "🎲 Yeni Seçenekler Üret" butonu 18 yeni rastgele avatar üretir (state).
+Frontend only. Build ok.
