@@ -42,13 +42,32 @@ async def _already_awarded(db: AsyncSession, period_type: str, period_key: str) 
     return res.scalar_one_or_none() is not None
 
 
+# Ödül isimleri (period_type + rank -> başlık, ikon).
+AWARD_NAMES = {
+    "daily": "Günün",
+    "monthly": "Ayın",
+    "yearly": "Yılın",
+}
+RANK_LABEL = {1: "Şampiyonu", 2: "2.si", 3: "3.sü"}
+RANK_ICON = {1: "🏆", 2: "🥈", 3: "🥉"}
+
+
+def award_title(period_type: str, rank: int) -> str:
+    """Örn: 'Günün Şampiyonu', 'Ayın 2.si'."""
+    return f"{AWARD_NAMES.get(period_type, '')} {RANK_LABEL.get(rank, '')}".strip()
+
+
 async def award_period(db: AsyncSession, period_type: str, period_key: str) -> int:
-    """Dönem için ilk 3'e ödül verir. Verilen ödül sayısını döner."""
+    """Dönem için ilk 3'e ödül verir + bildirim oluşturur. Verilen ödül sayısını döner."""
     if await _already_awarded(db, period_type, period_key):
         return 0
 
-    # Dönemin referans tarihini belirle (aralık hesaplamak için).
-    if period_type == "monthly":
+    # Dönemin referans tarihini ve leaderboard kapsamını belirle.
+    if period_type == "daily":
+        y, m, d = map(int, period_key.split("-"))
+        ref = date(y, m, d)
+        scope = "daily"
+    elif period_type == "monthly":
         y, m = map(int, period_key.split("-"))
         ref = date(y, m, 15)
         scope = "monthly"
@@ -61,6 +80,7 @@ async def award_period(db: AsyncSession, period_type: str, period_key: str) -> i
     if not board:
         return 0
 
+    from app.models.notification import Notification
     awarded = 0
     for entry in board:
         rank = entry["rank"]
@@ -73,18 +93,32 @@ async def award_period(db: AsyncSession, period_type: str, period_key: str) -> i
             award=award,
             total_score=entry["score"],
         ))
+        # Bildirim oluştur.
+        title = award_title(period_type, rank)
+        icon = RANK_ICON.get(rank, "🏅")
+        db.add(Notification(
+            user_id=entry["user_id"],
+            kind="award",
+            title=f"{title}!",
+            body=f"Ligde {award_title(period_type, rank)} oldun. Tebrikler!",
+            icon=icon,
+        ))
         awarded += 1
     await db.commit()
     return awarded
 
 
 async def check_and_award_closed_periods(db: AsyncSession) -> None:
-    """Kapanmış ay/yıl için ödül dağıtılmadıysa dağıtır."""
+    """Kapanmış gün/ay/yıl için ödül dağıtılmadıysa dağıtır + bildirim yollar."""
     today = date.today()
-    # Geçen ay (her zaman kapanmıştır).
-    await award_period(db, "monthly", _prev_month_key(today))
+    # Dün (her zaman kapanmıştır) — günlük ödül.
+    yesterday = today - timedelta(days=1)
+    await award_period(db, "daily", yesterday.isoformat())
+    # Ayın 1'iyse geçen ayı kapat.
+    if today.day == 1:
+        await award_period(db, "monthly", _prev_month_key(today))
     # Yıl başındaysak geçen yılı da kapat.
-    if today.month == 1:
+    if today.month == 1 and today.day == 1:
         await award_period(db, "yearly", _prev_year_key(today))
 
 
@@ -97,4 +131,4 @@ async def league_scheduler_loop():
                 await check_and_award_closed_periods(db)
         except Exception:
             pass
-        await asyncio.sleep(24 * 3600)  # günde bir
+        await asyncio.sleep(3600)  # saatte bir kontrol (gün dönümünü yakalamak için)

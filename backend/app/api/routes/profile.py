@@ -24,6 +24,28 @@ from app.game.league_service import user_rank
 router = APIRouter(prefix="/profile", tags=["profile"])
 
 
+def _group_achievements(awards) -> list[dict]:
+    """
+    Ödülleri (period_type + rank) türüne göre gruplar ve sayar (×N için).
+    Örn: 2 kez Günün Şampiyonu -> {title:'Günün Şampiyonu', count:2, icon:'🏆'}.
+    """
+    from app.game.league_scheduler import award_title, RANK_ICON
+    groups: dict = {}
+    for a in awards:
+        key = (a.period_type, a.rank)
+        if key not in groups:
+            groups[key] = {
+                "title": award_title(a.period_type, a.rank),
+                "icon": RANK_ICON.get(a.rank, "🏅"),
+                "period_type": a.period_type,
+                "rank": a.rank,
+                "count": 0,
+            }
+        groups[key]["count"] += 1
+    order = {"daily": 0, "monthly": 1, "yearly": 2}
+    return sorted(groups.values(), key=lambda g: (order.get(g["period_type"], 9), g["rank"]))
+
+
 async def _build_profile(db: AsyncSession, user: User) -> dict:
     # Kupa/madalya say
     res = await db.execute(select(LeagueAward).where(LeagueAward.user_id == user.id))
@@ -67,6 +89,7 @@ async def _build_profile(db: AsyncSession, user: User) -> dict:
         },
         "badges": earned_badges(stats),
         "awards": [a.to_public() for a in awards],
+        "achievements": _group_achievements(awards),
         "trophies": trophies,
         "medals": medals,
         "ranks": {

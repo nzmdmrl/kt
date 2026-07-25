@@ -902,3 +902,26 @@ Frontend only + backend joker_used_by (models to_public). Build ok.
   yazı #4a3b00, altın gölge. Pasifken gri.
 - Popup süreleri +2sn: flash 1200->3200, turn_timeout 1400->3400, error 2500->4500.
 Frontend only.
+
+## Lig ödülleri + Bildirim sistemi + Başarılar (Nazım detaylı istek)
+İstek: dün ligte 1. olduğumu haber alamadım. Günün/Ayın/Yılın Şampiyonu + 2./3. madalyalar,
+zamanlı otomatik verilsin, bildirim düşsün. Rozetler->Başarılar, aynı ödül ×N gösterilsin.
+Backend:
+- models/notification.py: Notification (user_id, kind, title, body, icon, read, created_at).
+  init_models + main.py router.
+- api/routes/notifications.py: GET /notifications (liste+unread), POST /read (tümü),
+  POST /{id}/read.
+- league_scheduler.py: award_title (Günün/Ayın/Yılın + Şampiyonu/2.si/3.sü), RANK_ICON
+  (🏆🥈🥉). award_period artık "daily" de destekler + her ödülde Notification oluşturur.
+  check_and_award_closed_periods: dün(daily her gün) + ayın 1'i(monthly) + yılbaşı(yearly).
+  Loop günde bir -> SAATTE BİR (gün dönümü yakalansın).
+- profile.py: _group_achievements (period_type+rank grupla, count=×N). profil'e achievements.
+Frontend:
+- components/NotificationBell.tsx: username solunda 🔔 zil + okunmamış rozet + açılır liste,
+  açınca okundu işaretler, 60sn'de yenilenir. TopBar'a eklendi.
+- profil sayfası: "Kupalar & Madalyalar" (achievements ×N, 1.'ye altın border) + eski
+  "Rozetler" başlığı -> "Başarılar".
+Test: günlük ödül 1/2/3 + bildirimler, achievements ×2 sayımı, unread sayısı ✓.
+NOT: ödüller o günün/ayın/yılın DailyScore/lig verisinden hesaplanır; ilk deploy'da geçmiş
+günler için otomatik dağıtılmaz (sadece kapanan yeni dönemler). Geçmişe dönük istenirse
+ayrı script gerekir.

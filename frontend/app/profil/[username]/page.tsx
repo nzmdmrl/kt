@@ -21,6 +21,7 @@ type Profile = {
     total_score: number;
   };
   badges: Badge[];
+  achievements: { title: string; icon: string; count: number; period_type: string; rank: number }[];
   trophies: number;
   medals: number;
   ranks: { daily: number | null; monthly: number | null; all: number | null };
@@ -76,22 +77,28 @@ export default function ProfilePage({ params }: { params: { username: string } }
         </div>
       </div>
 
-      {/* Kupa & madalya */}
-      {(profile.trophies > 0 || profile.medals > 0) && (
-        <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
-          {profile.trophies > 0 && (
-            <div style={awardBox}>
-              <span style={{ fontSize: 26 }}>🏆</span>
-              <div><strong>{profile.trophies}</strong> kupa</div>
-            </div>
-          )}
-          {profile.medals > 0 && (
-            <div style={awardBox}>
-              <span style={{ fontSize: 26 }}>🏅</span>
-              <div><strong>{profile.medals}</strong> madalya</div>
-            </div>
-          )}
-        </div>
+      {/* Başarılar — lig ödülleri (Günün/Ayın/Yılın Şampiyonu vb.), ×N ile */}
+      {profile.achievements && profile.achievements.length > 0 && (
+        <>
+          <SectionTitle>Kupalar & Madalyalar</SectionTitle>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 10, marginBottom: 24 }}>
+            {profile.achievements.map((a) => (
+              <div key={`${a.period_type}-${a.rank}`} style={{
+                display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
+                background: "var(--bg-panel)", borderRadius: 12,
+                border: a.rank === 1 ? "1px solid #D4AF37" : "1px solid var(--border-soft)",
+              }}>
+                <span style={{ fontSize: 28, lineHeight: 1 }}>{a.icon}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-strong)" }}>{a.title}</div>
+                  {a.count > 1 && (
+                    <div style={{ fontSize: 12, color: "var(--accent)", fontWeight: 700 }}>×{a.count}</div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
       {/* İstatistik ızgarası */}
@@ -112,8 +119,8 @@ export default function ProfilePage({ params }: { params: { username: string } }
         <RankChip label="Tüm Zamanlar" rank={profile.ranks.all} />
       </div>
 
-      {/* Rozetler */}
-      <SectionTitle>Rozetler ({earnedBadges.length}/{profile.badges.length})</SectionTitle>
+      {/* Başarılar (eski rozetler) */}
+      <SectionTitle>Başarılar ({earnedBadges.length}/{profile.badges.length})</SectionTitle>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: 10 }}>
         {[...earnedBadges, ...lockedBadges].map((b) => (
           <BadgeCard key={b.code} badge={b} />

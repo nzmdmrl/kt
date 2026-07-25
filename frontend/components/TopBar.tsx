@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/lib/auth";
 import SoundToggle from "./SoundToggle";
+import NotificationBell from "./NotificationBell";
 
 export default function TopBar() {
   const { user, logout, loading } = useAuth();
@@ -22,6 +23,7 @@ export default function TopBar() {
       <SoundToggle />
       {loading ? null : user ? (
         <>
+          <NotificationBell />
           <a href={`/profil/${user.username}`} style={{ fontSize: 14, color: "var(--text-soft)", textDecoration: "none" }}>
             <span style={{ color: "var(--accent)", fontWeight: 600 }}>{user.display_name}</span>
             <span style={{ color: "var(--text-dim)" }}> · ELO {user.elo}</span>
