@@ -38,16 +38,17 @@ export default function ChallengeWatcher() {
           }
         } catch {}
       }
-      // Giden teklif durumu (kabul edildiyse yönlen).
-      try {
-        const r = await fetch(apiUrl("/api/challenge/outgoing"), { headers: headers() });
-        const j = await r.json();
-        if (alive && j.challenge && j.challenge.status === "accepted" && j.challenge.room_code && !handledOutgoing.current) {
-          handledOutgoing.current = true;
-          // Teklifi ben gönderdim, kabul edildi -> maça yönlen.
-          window.location.href = `/oyna?duel=${encodeURIComponent(j.challenge.room_code)}`;
-        }
-      } catch {}
+      // Giden teklif durumu (kabul edildiyse yönlen) — maç sayfasında değilsem.
+      if (!onMatchPage()) {
+        try {
+          const r = await fetch(apiUrl("/api/challenge/outgoing"), { headers: headers() });
+          const j = await r.json();
+          if (alive && j.challenge && j.challenge.status === "accepted" && j.challenge.room_code && !handledOutgoing.current) {
+            handledOutgoing.current = true;
+            window.location.href = `/oyna?duel=${encodeURIComponent(j.challenge.room_code)}`;
+          }
+        } catch {}
+      }
     }
 
     poll();

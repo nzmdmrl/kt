@@ -1051,3 +1051,16 @@ Frontend:
 Test: gönder->incoming->accept->iki taraf aynı oda ✓, offline'a 409 ✓, build ok.
 Karar (uygulandı): kabul edince teklif EDEN de yönlenir (outgoing polling ile). 30sn TTL.
 Popup maç hariç her yerde. PROFİL DÜZENLE+GİZLİLİK+ONLINE+TEKLİF üçlemesi tamam.
+
+## Maç teklifi HOTFIX (Nazım: Yasemin kabul etti ama Nazım yönlenmedi, "kod paylaş" çıktı)
+KÖK NEDEN: ChallengeWatcher + HeartbeatPinger sadece TopBar'daydı; PROFİL SAYFASI TopBar
+kullanmıyor (kendi Wrap'i). Nazım teklif gönderip profil sayfasında beklerken outgoing
+polling HİÇ çalışmadı -> kabul edilince yönlenmedi. Yasemin odaya tek girince "kod paylaş" gördü.
+ÇÖZÜM:
+- HeartbeatPinger + ChallengeWatcher TopBar'dan ALINDI, Providers.tsx'e (AuthProvider içinde,
+  her sayfada) taşındı. Artık profil dahil TÜM sayfalarda çalışır.
+- MatchGame bekleme: code "duel-" ile başlıyorsa "kod paylaş" yerine "Rakibin bağlanıyor…"
+  gösterir (duel maçında kod paylaşmaya gerek yok).
+- ChallengeWatcher: outgoing yönlendirmesi de onMatchPage() ise durur (zaten /oyna'dayken tekrar
+  yönlenmesin).
+Frontend only. Build ok.

@@ -255,30 +255,39 @@ export default function MatchGame({
 
   // Bekleme
   if (!state || phase === "waiting" || state.players.length < 2) {
+    const isDuel = code?.startsWith("duel-");
     return (
       <div style={{ display: "grid", gap: 18, justifyItems: "center" }}>
         <Centered>
           <div className="brand-mono" style={{ fontSize: 22, marginBottom: 8 }}>
             Rakip bekleniyor…
           </div>
-          <p style={{ color: "var(--text-soft)", textAlign: "center" }}>
-            Bu oda kodunu rakibinle paylaş:
-          </p>
-          <div
-            className="brand-mono"
-            style={{
-              fontSize: 40,
-              letterSpacing: "0.2em",
-              color: "var(--accent)",
-              margin: "12px 0",
-              padding: "10px 24px",
-              background: "var(--bg-panel)",
-              border: "1px solid var(--border-soft)",
-              borderRadius: 12,
-            }}
-          >
-            {code}
-          </div>
+          {isDuel ? (
+            <p style={{ color: "var(--text-soft)", textAlign: "center" }}>
+              Rakibin maça bağlanıyor…
+            </p>
+          ) : (
+            <>
+              <p style={{ color: "var(--text-soft)", textAlign: "center" }}>
+                Bu oda kodunu rakibinle paylaş:
+              </p>
+              <div
+                className="brand-mono"
+                style={{
+                  fontSize: 40,
+                  letterSpacing: "0.2em",
+                  color: "var(--accent)",
+                  margin: "12px 0",
+                  padding: "10px 24px",
+                  background: "var(--bg-panel)",
+                  border: "1px solid var(--border-soft)",
+                  borderRadius: 12,
+                }}
+              >
+                {code}
+              </div>
+            </>
+          )}
         </Centered>
       </div>
     );
