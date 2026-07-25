@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth";
 import Logo from "@/components/Logo";
 import MatchGame from "@/components/MatchGame";
 import VsScreen from "@/components/VsScreen";
+import TutorialDemo from "@/components/TutorialDemo";
 
 function getAnonId(): string {
   if (typeof window === "undefined") return "";
@@ -32,6 +33,7 @@ export default function OynaPage() {
   const [bot, setBot] = useState(false);
   const [botElo, setBotElo] = useState(1000);
   const [oppInfo, setOppInfo] = useState<{ name: string; elo: number } | null>(null);
+  const [showTutorial, setShowTutorial] = useState(false);
   const [err, setErr] = useState("");
   const [searchSeconds, setSearchSeconds] = useState(0);
   const pollRef = useRef<any>(null);
@@ -75,6 +77,11 @@ export default function OynaPage() {
   useEffect(() => {
     if (!playerId) return;
     const params = new URLSearchParams(window.location.search);
+    // Ana sayfadan ?ogretici=1 ile gelince öğreticiyi aç.
+    if (params.get("ogretici") === "1") {
+      setShowTutorial(true);
+      return;
+    }
     const duel = params.get("duel");
     if (duel && mode === "menu") {
       setCode(duel);
@@ -165,6 +172,11 @@ export default function OynaPage() {
   }
 
   // --- render ---
+  // Öğretici demo: her şeyin üstünde, maçtan bağımsız.
+  if (showTutorial) {
+    return <TutorialDemo onClose={() => setShowTutorial(false)} />;
+  }
+
   if (mode === "match" && code && playerId) {
     return (
       <main style={pageStyle}>
@@ -221,8 +233,17 @@ export default function OynaPage() {
     <main style={pageStyle}>
       <div style={{ display: "grid", gap: 26, justifyItems: "center" }}>
         <a href="/"><Logo size={46} /></a>
-        <div style={{ textAlign: "center" }}>
+        <div style={{ textAlign: "center", position: "relative" }}>
           <h1 className="brand-mono" style={{ fontSize: 26 }}>Oyna</h1>
+          <button
+            onClick={() => setShowTutorial(true)}
+            title="Nasıl oynanır — öğreticiyi izle"
+            style={{
+              position: "absolute", right: -6, top: -6, width: 32, height: 32, borderRadius: "50%",
+              border: "1px solid var(--border-soft)", background: "var(--bg-panel)",
+              color: "var(--accent)", fontSize: 16, fontWeight: 700, cursor: "pointer",
+            }}
+          >?</button>
           {user ? (
             <p style={{ color: "var(--text-soft)", marginTop: 6 }}>
               <span style={{ color: "var(--accent)" }}>{user.display_name}</span> · ELO {user.elo}

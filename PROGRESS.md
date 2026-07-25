@@ -1127,3 +1127,33 @@ NOT: online/anlık maç sunucu belleğinden (tek instance). matches_today/month 
    -> bırakınca micStop 1 SANİYE gecikmeli çağrılır (micStopTimer ref), son heceler alınır.
    onPointerUp + onPointerLeave artık stopMicDelayed kullanır.
 Frontend only. Build ok.
+
+## İlk maç öğreticisi / onboarding (Nazım)
+Karar: yeni üye "Rakip Bul" dese bile İLK maçı BOTA KARŞI + öğretici (rakibi bekletmemek için).
+Menüde "?" butonu -> öğreticiyi tekrar izle (yine bota karşı).
+Frontend:
+- oyna sayfası: showTutorial state. startSearch başında firstEver kontrolü
+  (user && matches_played==0 && !localStorage kt_tutorial_done) -> bota karşı oda + öğretici.
+  "?" butonu (Oyna başlığı sağ üst) -> öğreticili bota karşı maç. MatchGame'e
+  tutorial + onTutorialDone (localStorage kt_tutorial_done=1) prop.
+- components/TutorialOverlay.tsx: 6 adımlı overlay (hoşgeldin -> yaz -> sesli söyle -> süre ->
+  joker -> kurallar). Dekoratif ⬆️/⬇️ oklar (bounce animasyon), ilerleme noktaları, Geç/Devam/Başla.
+  Kurallar adımı: 3 tur (4/5/6 harf), toplam süreden geri sayım, kalan süre puana yansır.
+- MatchGame: tutorial prop + state (maç 2 oyunculu olunca göster), ana render'da <TutorialOverlay>.
+Build ok. NOT: öğretici açıkken maç süresi akıyor (ilk maç bota karşı, kritik değil); istenirse
+ileride "öğretici açıkken duraklat" eklenebilir (backend sinyali gerekir).
+
+## Öğretici YENİDEN: maçtan bağımsız interaktif demo (Nazım revizyon)
+Önceki maç-içi öğretici (TutorialOverlay + firstEver bota yönlendirme) İPTAL/kaldırıldı.
+- oyna sayfası startSearch'teki firstEver bota yönlendirme kaldırıldı (Rakip Bul normale döndü).
+- MatchGame'den tutorial/onTutorialDone prop + showTut + TutorialOverlay tamamen temizlendi,
+  TutorialOverlay.tsx silindi.
+YENİ: components/TutorialDemo.tsx — TAM BAĞIMSIZ (WS/oda yok). Sahte skorbar (Sen + 🤖Bot Rakip),
+dekoratif süre+joker göstergesi, demo grid. Hedef sabit KALEM. Örnek dolu satır MAKAS ile
+yeşil/sarı/gri renk mantığı gösterilir. 7 adım: hoşgeldin -> renkler -> "KALEM yaz" (kullanıcı
+input'a yazar, scoreGuess ile gerçek renklenir, doğruysa hepsi yeşil + otomatik ilerler) ->
+sesli -> süre/puan -> joker -> kurallar (3 tur 4/5/6). scoreGuess Wordle mantığı (önce yeşil,
+sonra sarı/gri, tekrar harf sayımı doğru).
+Tetikleme: oyna sayfası ?ogretici=1 (ana sayfa "▶ İnteraktif öğreticiyi dene" linki) VE menüdeki
+"?" butonu -> setShowTutorial(true) -> render başında <TutorialDemo/>. Misafir de görebilir.
+Build ok.

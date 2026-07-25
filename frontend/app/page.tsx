@@ -124,8 +124,9 @@ export default async function Home() {
             </div>
           ))}
         </div>
-        <div style={{ textAlign: "center", marginTop: 18 }}>
-          <a href="/nasil-oynanir" style={{ color: "var(--accent)", fontWeight: 600 }}>Detaylı anlatım →</a>
+        <div style={{ textAlign: "center", marginTop: 18, display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" }}>
+          <a href="/oyna?ogretici=1" style={{ color: "var(--accent)", fontWeight: 700 }}>▶ İnteraktif öğreticiyi dene</a>
+          <a href="/nasil-oynanir" style={{ color: "var(--text-soft)", fontWeight: 600 }}>Detaylı anlatım →</a>
         </div>
       </section>
 
