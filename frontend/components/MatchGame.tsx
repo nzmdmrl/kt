@@ -730,11 +730,11 @@ function FloatingJoker({ jokers, open, setOpen, canUseLetter, canUse, usedThisRo
   const totalLeft = (jokers.yellow || 0) + (jokers.green || 0) + (jokers.time || 0);
 
   return (
-    <div style={{ position: "absolute", right: 4, top: 0, zIndex: 25 }}>
+    <div style={{ position: "absolute", left: 4, top: 0, zIndex: 25 }}>
       {/* Açılan joker seçenekleri (butonun altında) */}
       {open && (
         <div style={{
-          position: "absolute", top: 44, right: 0, display: "flex", gap: 6,
+          position: "absolute", top: 44, left: 0, display: "flex", gap: 6,
           background: "var(--bg-panel)", padding: 8, borderRadius: 14,
           boxShadow: "var(--shadow-soft)", border: "1px solid var(--border-soft)",
           animation: "fadeIn .15s ease",
@@ -765,19 +765,23 @@ function FloatingJoker({ jokers, open, setOpen, canUseLetter, canUse, usedThisRo
         </div>
       )}
 
-      {/* Ana yüzen J butonu */}
+      {/* Ana yüzen J butonu — altın temalı */}
       <button
         onClick={() => setOpen(!open)}
         disabled={usedThisRound || totalLeft === 0}
         title={usedThisRound ? "Bu turda joker kullandın" : "Joker"}
         style={{
           width: 40, height: 40, borderRadius: "50%",
-          border: "none", cursor: (usedThisRound || totalLeft === 0) ? "not-allowed" : "pointer",
-          background: (usedThisRound || totalLeft === 0) ? "var(--bg-elevated)" : "var(--accent)",
-          color: (usedThisRound || totalLeft === 0) ? "var(--text-dim)" : "#1a1330",
+          border: "2px solid #D4AF37",
+          cursor: (usedThisRound || totalLeft === 0) ? "not-allowed" : "pointer",
+          background: (usedThisRound || totalLeft === 0)
+            ? "var(--bg-elevated)"
+            : "linear-gradient(145deg, #FFD86B 0%, #D4AF37 100%)",
+          color: (usedThisRound || totalLeft === 0) ? "var(--text-dim)" : "#4a3b00",
           fontWeight: 800, fontSize: 20, fontFamily: "var(--font-display)",
-          boxShadow: "var(--shadow-soft)", display: "grid", placeItems: "center",
-          position: "relative",
+          boxShadow: (usedThisRound || totalLeft === 0) ? "none" : "0 2px 10px rgba(212,175,55,.5)",
+          display: "grid", placeItems: "center", position: "relative",
+          opacity: (usedThisRound || totalLeft === 0) ? 0.5 : 1,
         }}
       >
         J

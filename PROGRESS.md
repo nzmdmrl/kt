@@ -895,3 +895,10 @@ AST doğrulaması: Match metodları sırayla tam. Test: submit_guess çalışıy
    absolute popup. error/flash/jokerPopup hepsi tek popup (üstte, fadeIn). "Süre doldu"
    vb. artık popup, boşluk harf bloklarına kaldı.
 Frontend only + backend joker_used_by (models to_public). Build ok.
+
+## Joker v3 — J butonu sola + altın tema + popup süre (Nazım)
+- FloatingJoker sola alındı (right:4 -> left:4, açılır panel de left:0).
+- J butonu altın temalı: border 2px #D4AF37, bg linear-gradient(#FFD86B->#D4AF37),
+  yazı #4a3b00, altın gölge. Pasifken gri.
+- Popup süreleri +2sn: flash 1200->3200, turn_timeout 1400->3400, error 2500->4500.
+Frontend only.

@@ -94,15 +94,15 @@ export function useMatch(
           break;
         case "error":
           setError(msg.message);
-          setTimeout(() => setError(""), 2500);
+          setTimeout(() => setError(""), 4500);
           break;
         case "buzzer_taken":
           setFlash(`Sıra kapıldı`);
-          setTimeout(() => setFlash(""), 1200);
+          setTimeout(() => setFlash(""), 3200);
           break;
         case "turn_timeout":
           setFlash("Süre doldu, sıra değişti");
-          setTimeout(() => setFlash(""), 1400);
+          setTimeout(() => setFlash(""), 3400);
           break;
         default:
           break;
