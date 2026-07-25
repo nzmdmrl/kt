@@ -46,3 +46,16 @@ def get_status(user_id: int) -> str:
 
 def is_online(user_id: int) -> bool:
     return get_status(user_id) in ("online", "in_match")
+
+
+def counts() -> dict:
+    """Şu an online ve maçtaki kullanıcı sayıları (heartbeat penceresi içinde)."""
+    now = time.time()
+    online = 0
+    in_match = 0
+    for p in _presence.values():
+        if now - p["last_seen"] <= ONLINE_WINDOW:
+            online += 1
+            if p.get("in_match"):
+                in_match += 1
+    return {"online": online, "in_match": in_match}

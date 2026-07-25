@@ -53,18 +53,43 @@ export default function AdminPage() {
 function Dashboard({ onDenied }: { onDenied: () => void }) {
   const [data, setData] = useState<any>(null);
   useEffect(() => {
-    fetch(apiUrl("/api/admin/dashboard"), { headers: authHeaders() })
-      .then((r) => { if (r.status === 403) { onDenied(); return null; } return r.json(); })
-      .then(setData).catch(() => {});
+    function load() {
+      fetch(apiUrl("/api/admin/dashboard"), { headers: authHeaders() })
+        .then((r) => { if (r.status === 403) { onDenied(); return null; } return r.json(); })
+        .then((d) => { if (d) setData(d); }).catch(() => {});
+    }
+    load();
+    const iv = setInterval(load, 10000); // canlı veriler için 10sn'de bir yenile
+    return () => clearInterval(iv);
   }, []);
   if (!data) return <Centered>Yükleniyor…</Centered>;
+  const live = data.live || {};
   return (
     <div style={{ display: "grid", gap: 16 }}>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 10 }}>
-        <Stat label="Kullanıcı" value={data.total_users} />
-        <Stat label="Toplam Maç" value={data.total_matches} />
-        <Stat label="Bot" value={`${data.active_bots}/${data.total_bots}`} />
+      {/* Canlı istatistikler */}
+      <div>
+        <h3 style={{ fontSize: 15, color: "var(--text-soft)", marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#3aa76d", display: "inline-block" }} />
+          Canlı Durum
+        </h3>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 10 }}>
+          <Stat label="Online kişi" value={live.online ?? 0} accent />
+          <Stat label="Anlık maç" value={live.live_matches ?? 0} accent />
+          <Stat label="Bugünkü maç" value={live.matches_today ?? 0} />
+          <Stat label="Bu ay maç" value={live.matches_month ?? 0} />
+        </div>
       </div>
+
+      {/* Genel toplamlar */}
+      <div>
+        <h3 style={{ fontSize: 15, color: "var(--text-soft)", marginBottom: 10 }}>Genel</h3>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 10 }}>
+          <Stat label="Kullanıcı" value={data.total_users} />
+          <Stat label="Toplam Maç" value={data.total_matches} />
+          <Stat label="Bot" value={`${data.active_bots}/${data.total_bots}`} />
+        </div>
+      </div>
+
       <div>
         <h3 style={{ fontSize: 15, color: "var(--text-soft)", marginBottom: 10 }}>En İyi Oyuncular</h3>
         {data.top_players.map((p: any, i: number) => (
@@ -342,9 +367,9 @@ function Sounds() {
   );
 }
 
-function Stat({ label, value }: { label: string; value: any }) {
+function Stat({ label, value, accent }: { label: string; value: any; accent?: boolean }) {
   return (
-    <div style={{ background: "var(--bg-panel)", borderRadius: 12, padding: 16, textAlign: "center" }}>
+    <div style={{ background: "var(--bg-panel)", borderRadius: 12, padding: 16, textAlign: "center", border: accent ? "1px solid var(--accent)" : "none" }}>
       <div className="brand-mono" style={{ fontSize: 26, color: "var(--accent)" }}>{value}</div>
       <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{label}</div>
     </div>

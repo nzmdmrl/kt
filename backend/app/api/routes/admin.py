@@ -43,12 +43,46 @@ async def dashboard(admin: User = Depends(get_admin_user), db: AsyncSession = De
     active_bots = (await db.execute(select(func.count(Bot.id)).where(Bot.active == True))).scalar_one()  # noqa: E712
     # En yüksek ELO'lu 5 oyuncu
     top = (await db.execute(select(User).order_by(User.elo.desc()).limit(5))).scalars().all()
+
+    # Canlı istatistikler
+    from datetime import datetime, timezone
+    from app.game.presence_service import counts as presence_counts
+    from app.game.room import room_manager
+    from app.models.match_history import MatchHistory
+
+    pc = presence_counts()
+    # Anlık maç: içinde 2 oyuncu olan ve devam eden odalar.
+    live_matches = 0
+    for r in room_manager.rooms.values():
+        try:
+            if r.match is not None and len(r.players) >= 2:
+                live_matches += 1
+        except Exception:
+            pass
+
+    now = datetime.now(timezone.utc)
+    day_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    matches_today = (await db.execute(
+        select(func.count(MatchHistory.id)).where(MatchHistory.created_at >= day_start)
+    )).scalar_one() or 0
+    matches_month = (await db.execute(
+        select(func.count(MatchHistory.id)).where(MatchHistory.created_at >= month_start)
+    )).scalar_one() or 0
+
     return {
         "total_users": total_users,
         "total_matches": int(total_matches),
         "total_bots": total_bots,
         "active_bots": active_bots,
         "top_players": [{"username": u.username, "elo": u.elo, "wins": u.wins} for u in top],
+        "live": {
+            "online": pc["online"],
+            "in_match_users": pc["in_match"],
+            "live_matches": live_matches,
+            "matches_today": int(matches_today),
+            "matches_month": int(matches_month),
+        },
     }
 
 

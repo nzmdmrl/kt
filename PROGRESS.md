@@ -1105,3 +1105,16 @@ Sebep: WS bağlanınca Player avatar_url boştu (URL'de avatar yok). Çözüm:
 - oyna sayfası VS ekranı: me'ye avatar_url: user?.avatar_url eklendi (kendi avatarım VS'te görünür).
 Test: maçta player avatar_url dicebear geliyor ✓. Build ok.
 NOT: VS ekranında RAKİP avatarı yok (maç öncesi WS verisi yok); skor çubuğunda iki avatar da var.
+
+## Admin panel canlı istatistikler (Nazım)
+Backend:
+- presence_service.counts(): online + in_match kullanıcı sayısı (heartbeat penceresi).
+- admin.py /dashboard "live" bloğu: online, in_match_users, live_matches (room_manager.rooms'ta
+  match!=None + 2 oyuncu), matches_today + matches_month (MatchHistory created_at UTC gün/ay başı).
+Frontend:
+- yonetim Dashboard: "Canlı Durum" bölümü (Online kişi, Anlık maç, Bugünkü maç, Bu ay maç) +
+  "Genel" (kullanıcı/toplam maç/bot) + En İyi Oyuncular. 10sn'de bir otomatik yenilenir.
+  Stat'a accent prop (border) eklendi.
+Test: online=2, matches_today=2 ✓. Build ok.
+NOT: online/anlık maç sunucu belleğinden (tek instance). matches_today/month MatchHistory'den
+(bu deploy'dan sonra dolan maçlar).
