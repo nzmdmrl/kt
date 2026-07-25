@@ -178,7 +178,7 @@ function DraftLine({
           <span
             key={i}
             style={{
-              ...tileStyle(bg, jokerBorder ? "#fff" : (isHint ? "var(--text-dim)" : "#fff")),
+              ...tileStyle(bg, jokerBorder ? "#fff" : (isHint ? "var(--text-dim)" : "var(--text-strong)")),
               border: jokerBorder
                 ? "none"
                 : active

@@ -976,3 +976,10 @@ Frontend:
 Test: recent-matches + daily-top ✓, build ok.
 NOT: leaderboard display_name döndürmüyor (username fallback). Maç geçmişi bu deploy'dan
 sonra dolmaya başlar (eski maçlar kayıtlı değil).
+
+## Gündüz modu okunabilirlik fix (Nazım: yazılan harf beyaz, açık zeminde okunmuyor)
+- Grid DraftLine: kullanıcının yazdığı taslak harf rengi "#fff" -> "var(--text-strong)"
+  (gece açık, gündüz koyu). Joker harfleri renkli zeminde #fff kalır.
+- globals.css light tema: --tile-absent #c9c2df -> #8b83a6 (koyulaştı, dolu gri kutuda
+  beyaz harf gündüzde de okunur).
+Frontend only. Build ok.

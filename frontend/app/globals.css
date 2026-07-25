@@ -45,7 +45,7 @@
 
   --tile-correct: #3aa76d;     /* yeşil (aynı) */
   --tile-present: #d8a72e;     /* sarı (aynı) */
-  --tile-absent: #c9c2df;      /* gri — yok (açık) */
+  --tile-absent: #8b83a6;      /* gri — yok (gündüzde de beyaz harf okunur ton) */
   --tile-empty: #f0edf9;       /* boş kutu (açık) */
   --tile-border: #d2cbe8;
 
