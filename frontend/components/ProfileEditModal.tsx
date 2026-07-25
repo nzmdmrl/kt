@@ -62,6 +62,17 @@ export default function ProfileEditModal({ onClose, onSaved }: { onClose: () => 
       {msg && <div style={notice("var(--tile-correct)")}>{msg}</div>}
       {err && <div style={notice("var(--accent-hot)")}>{err}</div>}
 
+      {/* Avatar galerisi */}
+      <Section title="Profil Fotoğrafı">
+        <AvatarPicker
+          current={data.avatar_url}
+          onPick={async (url) => {
+            const ok = await post("/api/account/avatar", { avatar_url: url }, "Avatar güncellendi");
+            if (ok) setData((d: any) => ({ ...d, avatar_url: url }));
+          }}
+        />
+      </Section>
+
       {/* Gizlilik */}
       <Section title="Gizlilik">
         <Toggle
@@ -131,6 +142,41 @@ function Overlay({ children, onClose }: { children: React.ReactNode; onClose: ()
       >
         {children}
       </div>
+    </div>
+  );
+}
+
+// DiceBear avatar galerisi — farklı stiller + tohumlar. Seç -> kaydet.
+const AVATAR_STYLES = ["thumbs", "bottts", "fun-emoji", "adventurer", "big-smile", "avataaars", "micah", "notionists"];
+const AVATAR_SEEDS = ["Ada", "Boru", "Ceyda", "Deniz", "Ege", "Fikret", "Gonca", "Hakan", "Iraz", "Jale", "Kerem", "Lale"];
+
+function AvatarPicker({ current, onPick }: { current?: string | null; onPick: (url: string) => void }) {
+  // Stil x tohum kombinasyonlarından bir galeri üret (deterministik).
+  const options: string[] = [];
+  for (let i = 0; i < 18; i++) {
+    const style = AVATAR_STYLES[i % AVATAR_STYLES.length];
+    const seed = AVATAR_SEEDS[(i * 5 + 3) % AVATAR_SEEDS.length];
+    options.push(`https://api.dicebear.com/7.x/${style}/svg?seed=${encodeURIComponent(seed + i)}`);
+  }
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 8 }}>
+      {options.map((url) => {
+        const selected = current === url;
+        return (
+          <button
+            key={url}
+            onClick={() => onPick(url)}
+            style={{
+              padding: 0, borderRadius: 10, cursor: "pointer", overflow: "hidden",
+              border: selected ? "2px solid var(--accent)" : "2px solid var(--border-soft)",
+              background: "var(--bg-elevated)", aspectRatio: "1", lineHeight: 0,
+            }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          </button>
+        );
+      })}
     </div>
   );
 }

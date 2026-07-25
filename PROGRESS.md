@@ -1064,3 +1064,16 @@ polling HİÇ çalışmadı -> kabul edilince yönlenmedi. Yasemin odaya tek gir
 - ChallengeWatcher: outgoing yönlendirmesi de onMatchPage() ise durur (zaten /oyna'dayken tekrar
   yönlenmesin).
 Frontend only. Build ok.
+
+## Profil avatar galerisi (Nazım — botların DiceBear avatarlarından seçme)
+Açıklama: botların "fotoğrafı" = DiceBear (api.dicebear.com, ücretsiz, key yok). bot_names.py
+avatar_url_for(seed) -> thumbs stili. Kullanıcılara da açıldı.
+Backend:
+- account.py POST /account/avatar: sadece https://api.dicebear.com/ URL kabul (güvenlik),
+  max 512 char. account/me'ye avatar_url eklendi.
+Frontend:
+- ProfileEditModal: "Profil Fotoğrafı" bölümü + AvatarPicker. 8 stil (thumbs, bottts,
+  fun-emoji, adventurer, big-smile, avataaars, micah, notionists) x tohumlardan 18 seçenek
+  ızgarası (6 sütun). Seç -> /account/avatar kaydet, seçili olana accent border.
+Test: geçerli dicebear kabul, kötü URL 400 ✓. Build ok.
+NOT: gerçek foto yükleme yapılmadı (sadece galeri, Nazım tercihi).

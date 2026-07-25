@@ -34,6 +34,7 @@ async def account_me(user: User = Depends(get_current_user)):
         "username": user.username,
         "email": user.email,
         "display_name": user.display_name,
+        "avatar_url": user.avatar_url,
         "show_online": user.show_online,
         "allow_challenges": user.allow_challenges,
         "has_password": bool(user.password_hash),
@@ -91,6 +92,23 @@ async def change_password(data: PasswordIn, user: User = Depends(get_current_use
     user.password_hash = hash_password(data.new_password)
     await db.commit()
     return {"ok": True}
+
+
+class AvatarIn(BaseModel):
+    avatar_url: str
+
+
+@router.post("/avatar")
+async def change_avatar(data: AvatarIn, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    url = data.avatar_url.strip()
+    # Güvenlik: yalnızca DiceBear avatar URL'leri kabul edilir (rastgele URL engellenir).
+    if not url.startswith("https://api.dicebear.com/"):
+        raise HTTPException(400, "Geçersiz avatar.")
+    if len(url) > 512:
+        raise HTTPException(400, "Avatar adresi çok uzun.")
+    user.avatar_url = url
+    await db.commit()
+    return {"ok": True, "avatar_url": url}
 
 
 class PrivacyIn(BaseModel):
