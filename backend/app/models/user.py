@@ -55,6 +55,10 @@ class User(Base):
     abandons: Mapped[int] = mapped_column(Integer, default=0)          # toplam terk sayısı
     matchmaking_banned_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
+    # Gizlilik ayarları (varsayılan açık)
+    show_online: Mapped[bool] = mapped_column(Boolean, default=True)   # online durumunu göster
+    allow_challenges: Mapped[bool] = mapped_column(Boolean, default=True)  # maç tekliflerine açık
+
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     def to_public(self) -> dict:

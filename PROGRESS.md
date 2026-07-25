@@ -997,3 +997,17 @@ Frontend only. Build ok.
 - HomeBoards son maçlar: username varsa <a href=/profil/{username}>, yoksa <span> (bot/eski kayıt).
 Test: kayıtlı user linkli, bot linksiz ✓. NOT: eski maç kayıtlarında username="" (link yok);
 bu deploy'dan sonraki maçlar linkli olur. Frontend+backend. Build ok.
+
+## Profil düzenle + gizlilik (Nazım — PARÇA 1/3; sonra online, sonra maç teklifi)
+Plan: 3 parça. Bu parça: profil düzenleme + gizlilik ayarları.
+Backend:
+- user.py: show_online(bool, default True), allow_challenges(bool, default True).
+- api/routes/account.py: GET /account/me, POST /account/username (3-20 harf/rakam/_, benzersiz),
+  /account/email (format+benzersiz), /account/password (mevcut şifre doğrulaması, min 6),
+  /account/privacy (show_online, allow_challenges). main.py router.
+Frontend:
+- components/ProfileEditModal.tsx: modal — gizlilik toggle (2), username/email/şifre değiştir.
+- profil sayfası: isMe ise "⚙️ Profili Düzenle" butonu -> modal. Kaydedince load() ile yenile.
+Test: account/me varsayılan açık, username/privacy/password (yanlış 403, doğru 200) ✓. Build ok.
+SONRAKİ: online durumu (presence) + profilde göster; sonra maç teklifi (popup, 30sn, kabul->maç).
+Karar: kabul edince teklif EDEN yönlendirilir (diğeri zaten hazır). Teklif popup'ı maç hariç her yerde.

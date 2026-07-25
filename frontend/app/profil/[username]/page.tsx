@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { getJSON } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import ProfileEditModal from "@/components/ProfileEditModal";
 import Logo from "@/components/Logo";
 
 type Badge = { code: string; name: string; desc: string; icon: string; tier: string; earned: boolean };
@@ -32,13 +33,18 @@ export default function ProfilePage({ params }: { params: { username: string } }
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
+  const [editOpen, setEditOpen] = useState(false);
 
-  useEffect(() => {
-    setLoading(true);
+  function load() {
     getJSON<Profile>(`/api/profile/${encodeURIComponent(params.username)}`)
       .then(setProfile)
       .catch(() => setErr("Profil bulunamadı"))
       .finally(() => setLoading(false));
+  }
+
+  useEffect(() => {
+    setLoading(true);
+    load();
   }, [params.username]);
 
   if (loading) return <Wrap><Centered>Yükleniyor…</Centered></Wrap>;
@@ -74,8 +80,24 @@ export default function ProfilePage({ params }: { params: { username: string } }
           <div className="brand-mono" style={{ fontSize: 20, color: "var(--accent)" }}>
             {profile.elo} <span style={{ fontSize: 13, color: "var(--text-dim)" }}>ELO</span>
           </div>
+          {isMe && (
+            <button
+              onClick={() => setEditOpen(true)}
+              style={{
+                marginTop: 8, padding: "7px 16px", fontSize: 13, fontWeight: 600,
+                background: "var(--bg-elevated)", color: "var(--text-strong)",
+                border: "1px solid var(--border-soft)", borderRadius: 9, cursor: "pointer",
+              }}
+            >
+              ⚙️ Profili Düzenle
+            </button>
+          )}
         </div>
       </div>
+
+      {isMe && editOpen && (
+        <ProfileEditModal onClose={() => setEditOpen(false)} onSaved={() => { setEditOpen(false); load(); }} />
+      )}
 
       {/* Başarılar — lig ödülleri (Günün/Ayın/Yılın Şampiyonu vb.), ×N ile */}
       {profile.achievements && profile.achievements.length > 0 && (
