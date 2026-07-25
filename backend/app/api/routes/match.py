@@ -101,6 +101,28 @@ def _attach_stats_callback(room):
             import traceback
             print(f"[stats] HATA: {e}")
             traceback.print_exc()
+        # Maç geçmişine kaydet (ana sayfa "son maçlar" için).
+        try:
+            from app.core.database import AsyncSessionLocal
+            from app.models.match_history import MatchHistory
+            p1, p2 = order[0], order[1]
+            pl1, pl2 = match.players.get(p1), match.players.get(p2)
+            winner_name = ""
+            if winner is not None:
+                wp = match.players.get(winner)
+                winner_name = wp.name if wp else ""
+            async with AsyncSessionLocal() as db:
+                db.add(MatchHistory(
+                    p1_name=(pl1.name if pl1 else "?")[:48],
+                    p2_name=(pl2.name if pl2 else "?")[:48],
+                    p1_score=scores.get(p1, 0),
+                    p2_score=scores.get(p2, 0),
+                    winner_name=winner_name[:48],
+                    has_bot=bool((pl1 and pl1.is_bot) or (pl2 and pl2.is_bot)),
+                ))
+                await db.commit()
+        except Exception as e:
+            print(f"[match_history] HATA: {e}")
     room.on_match_over = on_over
 
 

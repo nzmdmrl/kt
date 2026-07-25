@@ -962,3 +962,17 @@ nowrap. Avatar responsive: clamp(34-44px) + fontSize clamp. img objectFit cover.
 - layout.tsx head: flash önleyici inline script (sayfa boyanmadan doğru tema uygulanır).
 Varsayılan: dark (mevcut gece modu). Frontend only. Build ok.
 NOT: themeColor meta hâlâ gece rengi (statik); istenirse dinamik yapılabilir.
+
+## Ana sayfa: son 10 maç + günlük lig ilk 10 (Nazım)
+Backend:
+- models/match_history.py: MatchHistory (p1/p2 name+score, winner_name, has_bot, created_at).
+  init_models'a eklendi. match.py on_over: maç bitince MatchHistory kaydı (botlar dahil).
+- api/routes/home.py (public, giriş gerektirmez): GET /home/recent-matches (son 10),
+  GET /home/daily-top (bugün lig ilk 10, leaderboard daily). main.py'ye router eklendi.
+Frontend:
+- components/HomeBoards.tsx (client): iki bölüm — "🏆 Bugünün Ligi İlk 10" (madalya ikonları,
+  profile link, puan) + "⚔️ Son Maçlar" (p1 skor:skor p2, kazanan accent+bold). Boşsa gizli.
+- app/page.tsx: header'dan sonra <HomeBoards/> eklendi.
+Test: recent-matches + daily-top ✓, build ok.
+NOT: leaderboard display_name döndürmüyor (username fallback). Maç geçmişi bu deploy'dan
+sonra dolmaya başlar (eski maçlar kayıtlı değil).
