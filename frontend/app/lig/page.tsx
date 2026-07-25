@@ -13,12 +13,20 @@ type Entry = {
   score: number;
 };
 
-const SCOPES = [
-  { key: "daily", label: "Günlük" },
-  { key: "monthly", label: "Aylık" },
-  { key: "yearly", label: "Yıllık" },
-  { key: "all", label: "Tüm Zamanlar" },
-];
+const TR_AYLAR = ["Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara"];
+const TR_AYLAR_UZUN = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
+
+function scopeLabels() {
+  const now = new Date();
+  return [
+    { key: "daily", label: `${now.getDate()} ${TR_AYLAR[now.getMonth()]}` },   // 26 Tem
+    { key: "monthly", label: TR_AYLAR_UZUN[now.getMonth()] },                    // Temmuz
+    { key: "yearly", label: `${now.getFullYear()}` },                           // 2026
+    { key: "all", label: "Tüm Zamanlar" },
+  ];
+}
+
+const SCOPES = scopeLabels();
 
 export default function LigPage() {
   const { user } = useAuth();
@@ -105,8 +113,68 @@ export default function LigPage() {
           Bu dönemde henüz puanın yok. <a href="/oyna" style={{ color: "var(--accent)" }}>Bir maç oyna!</a>
         </div>
       )}
+
+      {/* Önceki dönem kazananları + arşiv */}
+      <PreviousWinners />
     </main>
   );
+}
+
+function PreviousWinners() {
+  const [prev, setPrev] = useState<any>(null);
+
+  useEffect(() => {
+    getJSON<any>("/api/league/previous").then(setPrev).catch(() => {});
+  }, []);
+
+  if (!prev) return null;
+  const hasAny = prev.daily.top3.length || prev.monthly.top3.length || prev.yearly.top3.length;
+  if (!hasAny) return null;
+
+  const blocks = [
+    { title: "Dün", data: prev.daily, fmt: fmtDaily },
+    { title: "Geçen Ay", data: prev.monthly, fmt: fmtMonthly },
+    { title: "Geçen Yıl", data: prev.yearly, fmt: (k: string) => k },
+  ].filter((b) => b.data.top3.length > 0);
+
+  return (
+    <div style={{ marginTop: 36 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+        <h2 className="brand-mono" style={{ fontSize: 18, margin: 0 }}>Önceki Dönem Kazananları</h2>
+        <a href="/lig/arsiv" style={{ color: "var(--accent)", fontWeight: 600, fontSize: 14 }}>Lig Arşivi →</a>
+      </div>
+      <div style={{ display: "grid", gap: 14 }}>
+        {blocks.map((b) => (
+          <div key={b.title} style={{ background: "var(--bg-panel)", borderRadius: 14, padding: 16, border: "1px solid var(--border-soft)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
+              <span style={{ fontWeight: 700, color: "var(--text-strong)", fontSize: 14 }}>{b.title}</span>
+              <span style={{ color: "var(--text-dim)", fontSize: 13 }}>{b.fmt(b.data.period_key)}</span>
+            </div>
+            {b.data.top3.map((e: any) => (
+              <div key={e.rank} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0" }}>
+                <span style={{ fontSize: 16 }}>{e.rank === 1 ? "🥇" : e.rank === 2 ? "🥈" : "🥉"}</span>
+                <a href={`/profil/${e.username}`} style={{ flex: 1, minWidth: 0, color: "var(--text-strong)", fontWeight: 600, fontSize: 14, textDecoration: "none", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {e.display_name}
+                </a>
+                <span className="brand-mono" style={{ color: "var(--accent)", fontSize: 14 }}>{e.score}</span>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Tarih formatları (arşiv/önceki için de kullanılır)
+const _TR_AY = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
+function fmtDaily(key: string) {
+  const [y, m, d] = key.split("-").map(Number);
+  return `${d} ${_TR_AY[m - 1]} ${y}`;
+}
+function fmtMonthly(key: string) {
+  const [y, m] = key.split("-").map(Number);
+  return `${_TR_AY[m - 1]} ${y}`;
 }
 
 function Row({ entry, isMe }: { entry: Entry; isMe: boolean }) {

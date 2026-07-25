@@ -1082,3 +1082,18 @@ NOT: gerçek foto yükleme yapılmadı (sadece galeri, Nazım tercihi).
 AvatarPicker artık rastgele üretir: 10 stil x rastgele tohum. İlk açılışta mevcut avatar başa
 eklenir + 17 rastgele. "🎲 Yeni Seçenekler Üret" butonu 18 yeni rastgele avatar üretir (state).
 Frontend only. Build ok.
+
+## Lig sayfası: önceki dönem + arşiv + dinamik sekme (Nazım)
+Backend league.py:
+- _period_top3(db, type, key): dönemin ilk 3'ü (LeagueAward join User, username/display/avatar/score).
+- GET /league/previous: dün(daily)+geçen ay(monthly)+geçen yıl(yearly) ilk 3.
+- GET /league/archive?period_type&page&per_page(10): o tipin geçmiş dönemleri (distinct period_key,
+  yeni->eski, sayfalı), her dönemin top3'ü.
+Frontend:
+- lig sayfası SCOPES etiketleri dinamik: "26 Tem"(daily) / "Temmuz"(monthly) / "2026"(yearly) /
+  "Tüm Zamanlar". scopeLabels() bugünün tarihinden üretir.
+- PreviousWinners bileşeni: sıralama altında "Önceki Dönem Kazananları" (Dün/Geçen Ay/Geçen Yıl
+  ilk 3, profile linkli) + "Lig Arşivi →" linki. Boşsa gizli.
+- app/lig/arsiv/page.tsx: Günlük/Aylık/Yıllık sekmeli, sayfalı (Önceki/Sonraki), her dönemin
+  ilk 3'ü, tarih formatlı (26 Temmuz 2026 / Temmuz 2026 / 2026).
+Test: previous + archive ✓. Build ok. NOT: sadece kapanmış dönemler ödül kaydına düştükçe dolar.
