@@ -173,6 +173,13 @@ async def match_ws(
         room.players[player_id].connected = True
     room.sockets[player_id] = websocket
 
+    # Presence: kayıtlı kullanıcı maça girdi -> in_match.
+    if player_id.startswith("u"):
+        try:
+            from app.game import presence_service
+            presence_service.set_in_match(int(player_id[1:]), True)
+        except Exception:
+            pass
     # Bot maçı: oda henüz bot içermiyorsa ekle.
     bot_present = any(p.is_bot for p in room.players.values())
     if bot == 1 and not bot_present and not room.is_full:
@@ -226,6 +233,14 @@ async def match_ws(
         if player_id in room.players:
             room.players[player_id].connected = False
         room.sockets.pop(player_id, None)
+
+        # Presence: kayıtlı kullanıcı maçtan çıktı -> artık maçta değil.
+        if player_id.startswith("u"):
+            try:
+                from app.game import presence_service
+                presence_service.set_in_match(int(player_id[1:]), False)
+            except Exception:
+                pass
 
         # Maç DEVAM EDİYORSA ve rakip hâlâ bağlıysa: ayrılan kaybeder, kalan kazanır.
         match_active = room.match is not None and getattr(room.match, "phase", None) is not None

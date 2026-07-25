@@ -1011,3 +1011,21 @@ Frontend:
 Test: account/me varsayılan açık, username/privacy/password (yanlış 403, doğru 200) ✓. Build ok.
 SONRAKİ: online durumu (presence) + profilde göster; sonra maç teklifi (popup, 30sn, kabul->maç).
 Karar: kabul edince teklif EDEN yönlendirilir (diğeri zaten hazır). Teklif popup'ı maç hariç her yerde.
+
+## Online durumu / presence (Nazım — PARÇA 2/3)
+Backend:
+- game/presence_service.py: bellekte _presence {uid: {last_seen, in_match}}. heartbeat,
+  set_in_match, get_status (online/in_match/offline, ONLINE_WINDOW=60sn), is_online.
+- api/routes/presence.py: POST /presence/heartbeat (auth), GET /presence/{uid} (gizlilik:
+  show_online=False -> offline; allow_challenges de döner). main.py router.
+- match.py WS: bağlanınca set_in_match(True), disconnect'te set_in_match(False).
+- profile.py: profil yanıtına "id" eklendi (presence sorgusu için).
+Frontend:
+- components/HeartbeatPinger.tsx: 30sn'de bir + sekme görünürlüğünde heartbeat. TopBar'da
+  giriş yapmışsa çalışır.
+- components/PresenceBadge.tsx: online(yeşil "Maça hazır")/maçta(mavi)/çevrimdışı(gri) nokta+etiket.
+  20sn'de bir tazeler, onStatus callback (parça 3 için allow_challenges verir).
+- profil sayfası: başka birinin profilinde <PresenceBadge/> (kendinde değil). Profile.id eklendi.
+Test: heartbeat->online ✓, build ok.
+SONRAKİ (PARÇA 3): maç teklifi — online+maçta değil+allow_challenges ise "Maç Teklifi Gönder"
+butonu; karşıya 30sn popup (kabul/reddet); kabul edince teklif EDEN maça yönlenir.

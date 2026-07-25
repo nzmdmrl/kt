@@ -74,6 +74,7 @@ async def _build_profile(db: AsyncSession, user: User) -> dict:
     all_time = await user_rank(db, user.id, scope="all")
 
     return {
+        "id": user.id,
         "username": user.username,
         "display_name": user.display_name,
         "avatar_url": user.avatar_url,

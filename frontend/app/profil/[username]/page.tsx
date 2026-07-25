@@ -4,10 +4,12 @@ import { useState, useEffect } from "react";
 import { getJSON } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import ProfileEditModal from "@/components/ProfileEditModal";
+import PresenceBadge from "@/components/PresenceBadge";
 import Logo from "@/components/Logo";
 
 type Badge = { code: string; name: string; desc: string; icon: string; tier: string; earned: boolean };
 type Profile = {
+  id: number;
   username: string;
   display_name: string;
   avatar_url: string | null;
@@ -77,6 +79,7 @@ export default function ProfilePage({ params }: { params: { username: string } }
         <div style={{ flex: 1, minWidth: 0 }}>
           <h1 className="brand-mono" style={{ fontSize: 24, margin: 0 }}>{profile.display_name}</h1>
           <p style={{ color: "var(--text-dim)", margin: "2px 0" }}>@{profile.username}</p>
+          {!isMe && <PresenceBadge userId={profile.id} />}
           <div className="brand-mono" style={{ fontSize: 20, color: "var(--accent)" }}>
             {profile.elo} <span style={{ fontSize: 13, color: "var(--text-dim)" }}>ELO</span>
           </div>
