@@ -70,7 +70,8 @@ export default function NotificationBell() {
 
       {open && (
         <div style={{
-          position: "absolute", right: 0, top: 42, width: 300, maxHeight: 400, overflowY: "auto",
+          position: "fixed", right: 12, top: 60,
+          width: "min(320px, calc(100vw - 24px))", maxHeight: "70vh", overflowY: "auto",
           background: "var(--bg-panel)", border: "1px solid var(--border-soft)",
           borderRadius: 14, boxShadow: "var(--shadow-soft)", zIndex: 100, padding: 8,
           animation: "fadeIn .15s ease",

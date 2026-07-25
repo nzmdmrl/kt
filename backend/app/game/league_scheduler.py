@@ -93,19 +93,40 @@ async def award_period(db: AsyncSession, period_type: str, period_key: str) -> i
             award=award,
             total_score=entry["score"],
         ))
-        # Bildirim oluştur.
+        # Bildirim oluştur (hangi dönemin ödülü olduğunu tarihle belirt).
         title = award_title(period_type, rank)
         icon = RANK_ICON.get(rank, "🏅")
+        period_label = _period_label(period_type, period_key)
         db.add(Notification(
             user_id=entry["user_id"],
             kind="award",
             title=f"{title}!",
-            body=f"Ligde {award_title(period_type, rank)} oldun. Tebrikler!",
+            body=f"{period_label} liginde {award_title(period_type, rank)} oldun. Tebrikler!",
             icon=icon,
         ))
         awarded += 1
     await db.commit()
     return awarded
+
+
+_TR_MONTHS = ["", "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
+              "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"]
+
+
+def _period_label(period_type: str, period_key: str) -> str:
+    """period_key'i okunabilir Türkçe tarihe çevirir.
+    daily 2026-07-24 -> '24 Temmuz 2026', monthly 2026-07 -> 'Temmuz 2026', yearly 2026 -> '2026'.
+    """
+    try:
+        if period_type == "daily":
+            y, m, d = map(int, period_key.split("-"))
+            return f"{d} {_TR_MONTHS[m]} {y}"
+        if period_type == "monthly":
+            y, m = map(int, period_key.split("-"))
+            return f"{_TR_MONTHS[m]} {y}"
+        return period_key  # yearly
+    except Exception:
+        return period_key
 
 
 async def check_and_award_closed_periods(db: AsyncSession) -> None:

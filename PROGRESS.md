@@ -942,3 +942,11 @@ Test: Player.to_public başarı alanları ✓, build ok.
 Sebep: dar kartta avatar(44px sabit)+metin sığmayınca başarı satırı sıkışıp kesiliyordu.
 Çözüm: PlayerChip başarı satırı whiteSpace:nowrap + flexWrap:nowrap + gap 6->4, her span
 nowrap. Avatar responsive: clamp(34-44px) + fontSize clamp. img objectFit cover. Sadece frontend.
+
+## Bildirim popup mobil + tarih (Nazım)
+1. Mobilde bildirim popup solda kalıp kesiliyordu (position:absolute right:0). Çözüldü:
+   position:fixed, right:12, top:60, width:min(320px, calc(100vw-24px)), maxHeight:70vh.
+   Artık ekran içinde, sağ üstte, taşmadan.
+2. Bildirime TARİH eklendi: _period_label (league_scheduler) period_key -> Türkçe tarih.
+   daily "2026-07-24"->"24 Temmuz 2026", monthly->"Temmuz 2026", yearly->"2026".
+   Body: "24 Temmuz 2026 liginde Günün Şampiyonu oldun. Tebrikler!". _TR_MONTHS dizisi.
