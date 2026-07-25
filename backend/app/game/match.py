@@ -208,6 +208,12 @@ class Match:
         enabled = cached_bool("jokers_enabled", True)
         out = {pid: {**dict(j), "enabled": enabled} for pid, j in self.jokers.items()}
         return out
+
+    def submit_guess(self, player_id: str, guess: str) -> dict:
+        """
+        Sıradaki oyuncunun tahminini işler. Sonuç sözlüğü döner:
+          {correct, tiles, points_awarded, round_over, ...}
+        """
         self._require_active()
         r = self.round
         assert r is not None

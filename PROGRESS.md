@@ -873,3 +873,12 @@ Admin: game_setting jokers_enabled(bool) + joker_yellow/green/time_count. yoneti
 sekmesi bool ayarları SWITCH olarak gösterir (anında kaydeder).
 Test: WS joker akışı, yeşil doğru/sarı yanlış yer, koşul (5harf 0-1 aktif/2 pasif),
 kapalıyken hak 0 + gizli. Build ok. Bot joker kullanmaz (sadece insan).
+
+## Joker HOTFIX — kilitlenme (Nazım: ilk tahminde maç kilitlendi + joker görünmedi)
+KÖK NEDEN: use_joker eklenirken str_replace, submit_guess'in BAŞLIK satırını (def + docstring)
+sildi; gövdesi jokers_public'in return'ünden sonra ölü kod olarak kaldı. Yani Match.submit_guess
+metodu YOKTU -> tahmin gönderilince AttributeError -> maç kilitlendi. Joker görünmemesi de
+bu genel bozukluğun yan etkisiydi.
+ÇÖZÜM: submit_guess başlığı (def submit_guess + docstring + self._require_active...) geri eklendi.
+AST doğrulaması: Match metodları sırayla tam. Test: submit_guess çalışıyor, joker sonrası tahmin
+çalışıyor, joker_greens tahmin sonrası temizleniyor. Build ok.
