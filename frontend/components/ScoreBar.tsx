@@ -94,15 +94,15 @@ function PlayerChip({
     >
       <div
         style={{
-          width: 44,
-          height: 44,
+          width: "clamp(34px, 10vw, 44px)",
+          height: "clamp(34px, 10vw, 44px)",
           borderRadius: 10,
           display: "grid",
           placeItems: "center",
           overflow: "hidden",
           fontFamily: "var(--font-display)",
           fontWeight: 700,
-          fontSize: 18,
+          fontSize: "clamp(15px, 4vw, 18px)",
           color: active ? "#1a1330" : "var(--text-strong)",
           background: active ? "var(--accent)" : "var(--bg-elevated)",
           border: active ? "none" : "1px solid var(--tile-border)",
@@ -111,7 +111,7 @@ function PlayerChip({
       >
         {player.avatar_url ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={player.avatar_url} alt="" width={44} height={44} />
+          <img src={player.avatar_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
         ) : (
           toUpperTr(player.name.charAt(0))
         )}
@@ -121,12 +121,12 @@ function PlayerChip({
           {player.name}
           {isMe && <span style={{ color: "var(--text-dim)" }}> (sen)</span>}
         </div>
-        {/* Başarı özeti: kupa / madalya / rozet (0 olanlar gizli) */}
+        {/* Başarı özeti: kupa / madalya / rozet (0 olanlar gizli) — mobilde de sığar */}
         {((player.trophies || 0) + (player.medals || 0) + (player.badges || 0)) > 0 && (
-          <div style={{ display: "flex", gap: 6, fontSize: 10, color: "var(--text-soft)", justifyContent: right ? "flex-end" : "flex-start", marginTop: 1 }}>
-            {(player.trophies || 0) > 0 && <span>🏆{player.trophies}</span>}
-            {(player.medals || 0) > 0 && <span>🥈{player.medals}</span>}
-            {(player.badges || 0) > 0 && <span>🎖️{player.badges}</span>}
+          <div style={{ display: "flex", gap: 4, fontSize: 10, color: "var(--text-soft)", justifyContent: right ? "flex-end" : "flex-start", marginTop: 1, flexWrap: "nowrap", whiteSpace: "nowrap", lineHeight: 1.2 }}>
+            {(player.trophies || 0) > 0 && <span style={{ whiteSpace: "nowrap" }}>🏆{player.trophies}</span>}
+            {(player.medals || 0) > 0 && <span style={{ whiteSpace: "nowrap" }}>🥈{player.medals}</span>}
+            {(player.badges || 0) > 0 && <span style={{ whiteSpace: "nowrap" }}>🎖️{player.badges}</span>}
           </div>
         )}
         <div className="brand-mono" style={{ fontSize: 22, color: "var(--accent)" }}>

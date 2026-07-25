@@ -937,3 +937,8 @@ gösterilecekti; hiç eklenmemişti. Eklendi:
 Skor çubuğunda maç boyunca sürekli görünür. VS ekranına (VsScreen) EKLENMEDİ — orada maç
 WS verisi yok, ayrı API gerekir; skor çubuğu yeterli (sonra istenirse VS'e de eklenebilir).
 Test: Player.to_public başarı alanları ✓, build ok.
+
+## Başarı özeti mobilde görünmüyordu (Nazım: desktop'ta gördüm, mobilde göremedim)
+Sebep: dar kartta avatar(44px sabit)+metin sığmayınca başarı satırı sıkışıp kesiliyordu.
+Çözüm: PlayerChip başarı satırı whiteSpace:nowrap + flexWrap:nowrap + gap 6->4, her span
+nowrap. Avatar responsive: clamp(34-44px) + fontSize clamp. img objectFit cover. Sadece frontend.
