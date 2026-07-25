@@ -39,6 +39,36 @@ async def _add_bot_to_room(room, bot_elo: int):
     room.add_bot(f"botX{random.randint(1000,9999)}", "Rakip", bot_elo, None, settings.GAME_LANG)
 
 
+async def _fill_achievements(player, player_id: str) -> None:
+    """Kayıtlı kullanıcının kupa/madalya/rozet sayılarını DB'den doldurur."""
+    if not player_id.startswith("u"):
+        return
+    try:
+        uid = int(player_id[1:])
+    except ValueError:
+        return
+    try:
+        from app.core.database import AsyncSessionLocal
+        from app.models.league_award import LeagueAward
+        from app.models.user import User
+        from app.game.badges import earned_badges
+        from sqlalchemy import select
+        async with AsyncSessionLocal() as db:
+            awards = (await db.execute(select(LeagueAward).where(LeagueAward.user_id == uid))).scalars().all()
+            player.trophies = sum(1 for a in awards if a.award == "trophy")
+            player.medals = sum(1 for a in awards if a.award == "medal")
+            u = (await db.execute(select(User).where(User.id == uid))).scalar_one_or_none()
+            if u:
+                stats = {
+                    "wins": u.wins, "matches_played": u.matches_played,
+                    "words_solved": u.words_solved, "total_score": u.total_score,
+                    "elo": u.elo, "trophies": player.trophies, "medals": player.medals,
+                }
+                player.badges = len([b for b in earned_badges(stats) if b.get("earned")])
+    except Exception:
+        pass
+
+
 def _attach_stats_callback(room):
     """Maç bitince gerçek kullanıcıların istatistik/ELO'sunu ve lig puanını günceller."""
     async def on_over(match, result):
@@ -94,7 +124,10 @@ async def match_ws(
 
     # Oyuncuyu kaydet / yeniden bağla.
     if player_id not in room.players:
-        room.players[player_id] = Player(id=player_id, name=name[:24] or "Oyuncu")
+        p = Player(id=player_id, name=name[:24] or "Oyuncu")
+        # Kayıtlı kullanıcıysa başarı özetini (kupa/madalya/rozet) doldur.
+        await _fill_achievements(p, player_id)
+        room.players[player_id] = p
     else:
         room.players[player_id].connected = True
     room.sockets[player_id] = websocket

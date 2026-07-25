@@ -24,6 +24,9 @@ export type PublicPlayer = {
   score: number;
   connected: boolean;
   is_bot: boolean;
+  trophies?: number;
+  medals?: number;
+  badges?: number;
 };
 export type RoundPublic = {
   index: number;

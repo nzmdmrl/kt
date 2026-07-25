@@ -925,3 +925,15 @@ Test: günlük ödül 1/2/3 + bildirimler, achievements ×2 sayımı, unread say
 NOT: ödüller o günün/ayın/yılın DailyScore/lig verisinden hesaplanır; ilk deploy'da geçmiş
 günler için otomatik dağıtılmaz (sadece kapanan yeni dönemler). Geçmişe dönük istenirse
 ayrı script gerekir.
+
+## Başarı özeti oyuncu kartında (Nazım: en baştaki plan — username altında kupa/madalya/rozet)
+İlk konuşmada: rakip bulununca username altında 🏆(1) 🥈(6) 🎖️(6) gibi basit başarı özeti
+gösterilecekti; hiç eklenmemişti. Eklendi:
+- models.py Player: trophies/medals/badges alanları + to_public.
+- match.py _fill_achievements: Player oluşturulurken DB'den kupa (trophy award), madalya
+  (medal award), rozet (earned_badges sayısı) doldurulur (u{id} kullanıcıları için).
+- ScoreBar PlayerChip: username altında 🏆N 🥈N 🎖️N (0 olanlar gizli).
+- PublicPlayer + PlayerChip inline tip: trophies/medals/badges eklendi.
+Skor çubuğunda maç boyunca sürekli görünür. VS ekranına (VsScreen) EKLENMEDİ — orada maç
+WS verisi yok, ayrı API gerekir; skor çubuğu yeterli (sonra istenirse VS'e de eklenebilir).
+Test: Player.to_public başarı alanları ✓, build ok.

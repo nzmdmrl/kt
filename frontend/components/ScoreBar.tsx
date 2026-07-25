@@ -65,7 +65,7 @@ function PlayerChip({
   active,
   right,
 }: {
-  player?: { id: string; name: string; score: number; is_bot: boolean; avatar_url?: string | null };
+  player?: { id: string; name: string; score: number; is_bot: boolean; avatar_url?: string | null; trophies?: number; medals?: number; badges?: number };
   myId: string;
   active: boolean;
   right?: boolean;
@@ -121,6 +121,14 @@ function PlayerChip({
           {player.name}
           {isMe && <span style={{ color: "var(--text-dim)" }}> (sen)</span>}
         </div>
+        {/* Başarı özeti: kupa / madalya / rozet (0 olanlar gizli) */}
+        {((player.trophies || 0) + (player.medals || 0) + (player.badges || 0)) > 0 && (
+          <div style={{ display: "flex", gap: 6, fontSize: 10, color: "var(--text-soft)", justifyContent: right ? "flex-end" : "flex-start", marginTop: 1 }}>
+            {(player.trophies || 0) > 0 && <span>🏆{player.trophies}</span>}
+            {(player.medals || 0) > 0 && <span>🥈{player.medals}</span>}
+            {(player.badges || 0) > 0 && <span>🎖️{player.badges}</span>}
+          </div>
+        )}
         <div className="brand-mono" style={{ fontSize: 22, color: "var(--accent)" }}>
           {player.score}
         </div>

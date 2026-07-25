@@ -76,6 +76,10 @@ class Player:
     connected: bool = True
     is_bot: bool = False
     avatar_url: Optional[str] = None
+    # Başarı özeti (username altında gösterilir): kupa, madalya, rozet sayısı.
+    trophies: int = 0
+    medals: int = 0
+    badges: int = 0
 
     def to_public(self) -> dict:
         return {
@@ -85,6 +89,9 @@ class Player:
             "connected": self.connected,
             "is_bot": self.is_bot,
             "avatar_url": self.avatar_url,
+            "trophies": self.trophies,
+            "medals": self.medals,
+            "badges": self.badges,
         }
 
 
