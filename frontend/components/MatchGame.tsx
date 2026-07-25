@@ -249,6 +249,14 @@ export default function MatchGame({
   const { supported: micSupported, listening, error: micError, start: micStart, stop: micStop } =
     useSpeech(onVoiceResult, "tr-TR");
 
+  // Mikrofonu bırakınca hemen değil, 1 sn sonra durdur — böylece kelimenin son
+  // heceleri de alınır (basılı tutup bırakınca kesinti olmaz).
+  const micStopTimer = useRef<any>(null);
+  const stopMicDelayed = useCallback(() => {
+    if (micStopTimer.current) clearTimeout(micStopTimer.current);
+    micStopTimer.current = setTimeout(() => { micStop(); }, 1000);
+  }, [micStop]);
+
   if (!connected && !state) {
     return <Centered>Bağlanılıyor…</Centered>;
   }
@@ -591,10 +599,13 @@ export default function MatchGame({
                   e.preventDefault();
                   if (writeBlocked && !turnFree) return;
                   setVoiceHint("");
+                  // Sıra boşsa MİKROFONDAN ÖNCE buzzer al — böylece ilk kelime de yazılır
+                  // (buzzer state'i otururken konuşma tamamlanır).
+                  if (turnFree) buzzer();
                   micStart();
                 }}
-                onPointerUp={(e) => { e.preventDefault(); micStop(); }}
-                onPointerLeave={() => { if (listening) micStop(); }}
+                onPointerUp={(e) => { e.preventDefault(); stopMicDelayed(); }}
+                onPointerLeave={() => { if (listening) stopMicDelayed(); }}
                 onContextMenu={(e) => e.preventDefault()}
                 disabled={writeBlocked && !turnFree}
                 title="Basılı tut ve konuş"

@@ -1118,3 +1118,12 @@ Frontend:
 Test: online=2, matches_today=2 ✓. Build ok.
 NOT: online/anlık maç sunucu belleğinden (tek instance). matches_today/month MatchHistory'den
 (bu deploy'dan sonra dolan maçlar).
+
+## Sesli cevap iki fix (Nazım)
+1. İlk tahminde mikrofona basınca kelime yazılmıyordu (önce buzzer aktif oluyor, ilk konuşma
+   kayboluyordu; 2. seste yazıyordu). Çözüm: mikrofon onPointerDown'da MİKROFONDAN ÖNCE
+   buzzer al (turnFree ise) -> buzzer state'i konuşma sürerken oturur, ilk kelime de yazılır.
+2. Basılı tutup bırakınca kelimenin yarısı alınıyordu (6 harfin 3'ü). Çözüm: stopMicDelayed()
+   -> bırakınca micStop 1 SANİYE gecikmeli çağrılır (micStopTimer ref), son heceler alınır.
+   onPointerUp + onPointerLeave artık stopMicDelayed kullanır.
+Frontend only. Build ok.
