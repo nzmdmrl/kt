@@ -983,3 +983,10 @@ sonra dolmaya başlar (eski maçlar kayıtlı değil).
 - globals.css light tema: --tile-absent #c9c2df -> #8b83a6 (koyulaştı, dolu gri kutuda
   beyaz harf gündüzde de okunur).
 Frontend only. Build ok.
+
+## Ana sayfa 2 sütun + maç sonu butonları (Nazım)
+- HomeBoards: lig + son maçlar artık yan yana 2 blok (.home-boards grid 1fr 1fr,
+  mobilde <=640px tek sütun). section flex column + kart flex:1 + align-items:stretch ->
+  10'ar satırda eşit yükseklik. Başlık "Bugünün Ligi" (— İlk 10 kaldırıldı, sığsın).
+- MatchGame maç sonu: tek "Lig sıralaması" linki -> buton görünümlü 🏠 Ana Sayfa + 🏆 Lig
+  (endLinkBtn stili: panel bg, border, radius). Frontend only. Build ok.

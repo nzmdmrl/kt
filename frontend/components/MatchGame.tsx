@@ -382,7 +382,10 @@ export default function MatchGame({
               📤 Paylaş
             </button>
           </div>
-          <a href="/lig" style={{ textAlign: "center", color: "var(--text-soft)", fontSize: 14, marginTop: 4 }}>Lig sıralamasını gör →</a>
+          <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap", marginTop: 4 }}>
+            <a href="/" style={endLinkBtn}>🏠 Ana Sayfa</a>
+            <a href="/lig" style={endLinkBtn}>🏆 Lig</a>
+          </div>
         </div>
       </div>
     );
@@ -798,3 +801,16 @@ function FloatingJoker({ jokers, open, setOpen, canUseLetter, canUse, usedThisRo
     </div>
   );
 }
+
+const endLinkBtn: React.CSSProperties = {
+  display: "inline-block",
+  padding: "10px 22px",
+  background: "var(--bg-panel)",
+  color: "var(--text-strong)",
+  borderRadius: 10,
+  fontWeight: 600,
+  fontSize: 15,
+  fontFamily: "var(--font-display)",
+  border: "1px solid var(--border-soft)",
+  textDecoration: "none",
+};

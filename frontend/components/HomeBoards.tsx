@@ -21,14 +21,15 @@ export default function HomeBoards() {
   }, []);
 
   if (!loaded) return null;
+  if (top.length === 0 && matches.length === 0) return null;
 
   return (
-    <div style={{ display: "grid", gap: 32, gridTemplateColumns: "1fr", width: "100%" }}>
+    <div className="home-boards" style={{ display: "grid", gap: 20, width: "100%" }}>
       {/* Günlük lig ilk 10 */}
       {top.length > 0 && (
-        <section>
-          <h2 style={sectionTitle}>🏆 Bugünün Ligi — İlk 10</h2>
-          <div style={card}>
+        <section style={{ display: "flex", flexDirection: "column" }}>
+          <h2 style={sectionTitle}>🏆 Bugünün Ligi</h2>
+          <div style={{ ...card, flex: 1 }}>
             {top.map((row: any, i: number) => (
               <div key={row.user_id} style={{
                 display: "flex", alignItems: "center", gap: 10, padding: "9px 12px",
@@ -56,9 +57,9 @@ export default function HomeBoards() {
 
       {/* Son 10 maç */}
       {matches.length > 0 && (
-        <section>
+        <section style={{ display: "flex", flexDirection: "column" }}>
           <h2 style={sectionTitle}>⚔️ Son Maçlar</h2>
-          <div style={card}>
+          <div style={{ ...card, flex: 1 }}>
             {matches.map((m: any, i: number) => {
               const p1win = m.winner_name === m.p1_name;
               const p2win = m.winner_name === m.p2_name;
