@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getJSON } from "@/lib/api";
+import { getJSON, apiUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import ProfileEditModal from "@/components/ProfileEditModal";
 import PresenceBadge from "@/components/PresenceBadge";
@@ -36,6 +36,28 @@ export default function ProfilePage({ params }: { params: { username: string } }
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
   const [editOpen, setEditOpen] = useState(false);
+  const [oppStatus, setOppStatus] = useState("");
+  const [oppAllow, setOppAllow] = useState(true);
+  const [challengeSent, setChallengeSent] = useState(false);
+  const [challengeErr, setChallengeErr] = useState("");
+
+  async function sendChallenge() {
+    if (!profile) return;
+    setChallengeErr("");
+    try {
+      const token = localStorage.getItem("kt_token");
+      const r = await fetch(apiUrl(`/api/challenge/send/${profile.id}`), {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const j = await r.json();
+      if (!r.ok) { setChallengeErr(j.detail || "Teklif gönderilemedi"); return; }
+      setChallengeSent(true);
+      // Kabul edilince ChallengeWatcher (outgoing) beni maça yönlendirecek.
+    } catch {
+      setChallengeErr("Bağlantı hatası");
+    }
+  }
 
   function load() {
     getJSON<Profile>(`/api/profile/${encodeURIComponent(params.username)}`)
@@ -79,7 +101,22 @@ export default function ProfilePage({ params }: { params: { username: string } }
         <div style={{ flex: 1, minWidth: 0 }}>
           <h1 className="brand-mono" style={{ fontSize: 24, margin: 0 }}>{profile.display_name}</h1>
           <p style={{ color: "var(--text-dim)", margin: "2px 0" }}>@{profile.username}</p>
-          {!isMe && <PresenceBadge userId={profile.id} />}
+          {!isMe && <PresenceBadge userId={profile.id} onStatus={(s, allow) => { setOppStatus(s); setOppAllow(allow); }} />}
+          {!isMe && oppStatus === "online" && oppAllow && (
+            <button
+              onClick={sendChallenge}
+              disabled={challengeSent}
+              style={{
+                marginTop: 10, padding: "10px 20px", fontSize: 14, fontWeight: 700,
+                background: challengeSent ? "var(--bg-elevated)" : "var(--accent)",
+                color: challengeSent ? "var(--text-dim)" : "#1a1330",
+                border: "none", borderRadius: 10, cursor: challengeSent ? "default" : "pointer",
+              }}
+            >
+              {challengeSent ? "⏳ Teklif gönderildi, bekleniyor…" : "⚔️ Maç Teklifi Gönder"}
+            </button>
+          )}
+          {challengeErr && <div style={{ marginTop: 8, fontSize: 13, color: "var(--accent-hot)" }}>{challengeErr}</div>}
           <div className="brand-mono" style={{ fontSize: 20, color: "var(--accent)" }}>
             {profile.elo} <span style={{ fontSize: 13, color: "var(--text-dim)" }}>ELO</span>
           </div>

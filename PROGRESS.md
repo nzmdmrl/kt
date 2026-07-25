@@ -1029,3 +1029,25 @@ Frontend:
 Test: heartbeat->online ✓, build ok.
 SONRAKİ (PARÇA 3): maç teklifi — online+maçta değil+allow_challenges ise "Maç Teklifi Gönder"
 butonu; karşıya 30sn popup (kabul/reddet); kabul edince teklif EDEN maça yönlenir.
+
+## Maç teklifi sistemi (Nazım — PARÇA 3/3, TAMAMLANDI)
+Backend:
+- game/challenge_service.py: bellekte _challenges. create_challenge (aynı çifte pending varsa
+  tekrar kullan), pending_for(to_id), accept (room_code=duel-xxx üretir), decline,
+  outgoing_status(from_id). CHALLENGE_TTL=30sn, cleanup (expired/eski sil).
+- api/routes/challenge.py: POST /challenge/send/{to_id} (hedef allow_challenges + online +
+  maçta değil kontrolü, değilse 403/409), GET /challenge/incoming (alıcı popup),
+  POST /{cid}/accept (oda kodu döner), /{cid}/decline, GET /challenge/outgoing (gönderen
+  kabul durumu+oda). main.py router.
+Frontend:
+- components/ChallengeWatcher.tsx: GLOBAL (TopBar, giriş yapmışsa). 3sn'de bir yoklar:
+  (1) /incoming -> gelen teklif POPUP (⚔️ Maç Teklifi, from_name, 30sn geri sayım, Kabul/Reddet).
+  Kabul -> /oyna?duel=CODE. (2) /outgoing accepted -> gönffdereni /oyna?duel=CODE'a yönlendirir.
+  Maç ekranında (/oyna) gelen popup gösterilmez.
+- profil sayfası: başka birinin profilinde online+allow_challenges ise "⚔️ Maç Teklifi Gönder"
+  butonu (PresenceBadge onStatus callback ile status+allow alınır). Gönderince "bekleniyor…".
+- oyna sayfası: ?duel=CODE ile gelince menu yerine direkt VS moduna geçer, o odaya bağlanır.
+  İki taraf aynı duel-xxx koduna bağlandığı için aynı odada buluşur.
+Test: gönder->incoming->accept->iki taraf aynı oda ✓, offline'a 409 ✓, build ok.
+Karar (uygulandı): kabul edince teklif EDEN de yönlenir (outgoing polling ile). 30sn TTL.
+Popup maç hariç her yerde. PROFİL DÜZENLE+GİZLİLİK+ONLINE+TEKLİF üçlemesi tamam.

@@ -71,6 +71,19 @@ export default function OynaPage() {
     if (!user) localStorage.setItem("kt_name", n);
   }
 
+  // Maç teklifi kabul edildiyse URL'de ?duel=CODE ile gelinir -> direkt o odaya bağlan.
+  useEffect(() => {
+    if (!playerId) return;
+    const params = new URLSearchParams(window.location.search);
+    const duel = params.get("duel");
+    if (duel && mode === "menu") {
+      setCode(duel);
+      setOppInfo({ name: "Rakip", elo: 1000 });
+      setBot(false);
+      setMode("vs");
+    }
+  }, [playerId]);
+
   // --- Rakip Bul (matchmaking) ---
   const startSearch = useCallback(async () => {
     if (!name.trim()) return setErr("Önce bir isim gir");
