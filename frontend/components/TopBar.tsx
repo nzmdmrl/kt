@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/lib/auth";
 import SoundToggle from "./SoundToggle";
+import ThemeToggle from "./ThemeToggle";
 import NotificationBell from "./NotificationBell";
 
 export default function TopBar() {
@@ -20,6 +21,7 @@ export default function TopBar() {
         gap: 12,
       }}
     >
+      <ThemeToggle />
       <SoundToggle />
       {loading ? null : user ? (
         <>

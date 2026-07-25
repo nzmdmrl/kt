@@ -28,6 +28,37 @@
   --font-body: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
 }
 
+/* Gündüz (açık) tema — data-theme="light" ile devreye girer */
+[data-theme="light"] {
+  --bg-deep: #f4f2fb;          /* en açık zemin */
+  --bg-panel: #ffffff;         /* panel/kart */
+  --bg-elevated: #ece8f7;      /* yükseltilmiş yüzey */
+  --border-soft: #ddd6ee;      /* ince ayraç */
+
+  --text-strong: #1c1638;      /* ana metin (koyu) */
+  --text-soft: #4f4770;        /* ikincil metin */
+  --text-dim: #8a83a8;         /* soluk/etiket */
+
+  --accent: #e0940a;           /* amber vurgu (gündüzde biraz koyu, okunur) */
+  --accent-hot: #ec5c28;       /* sıcak turuncu */
+  --accent-glow: rgba(224, 148, 10, 0.20);
+
+  --tile-correct: #3aa76d;     /* yeşil (aynı) */
+  --tile-present: #d8a72e;     /* sarı (aynı) */
+  --tile-absent: #c9c2df;      /* gri — yok (açık) */
+  --tile-empty: #f0edf9;       /* boş kutu (açık) */
+  --tile-border: #d2cbe8;
+
+  --shadow-soft: 0 10px 40px rgba(80, 60, 130, 0.15);
+}
+
+/* Gündüz temasında zemin gradyanını da açık yap */
+[data-theme="light"] body {
+  background:
+    radial-gradient(1200px 600px at 50% -10%, #e7e0fb 0%, transparent 60%),
+    var(--bg-deep) !important;
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body {

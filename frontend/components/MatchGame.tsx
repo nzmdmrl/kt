@@ -8,6 +8,7 @@ import { playSound, initSound, startTicking, stopTicking } from "@/lib/sound";
 import Grid from "./Grid";
 import ScoreBar from "./ScoreBar";
 import SoundToggle from "./SoundToggle";
+import ThemeToggle from "./ThemeToggle";
 
 export default function MatchGame({
   code,
@@ -441,6 +442,7 @@ export default function MatchGame({
             </button>
           ))}
         </div>
+        <ThemeToggle />
         <SoundToggle />
       </div>
 

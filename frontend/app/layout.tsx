@@ -41,6 +41,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap"
           rel="stylesheet"
         />
+        {/* Tema flash önleyici — sayfa boyanmadan doğru temayı uygula */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var m=localStorage.getItem('kt_theme')||'dark';var h=new Date().getHours();var eff=m==='auto'?((h>=7&&h<19)?'light':'dark'):m;if(eff==='light'){document.documentElement.setAttribute('data-theme','light');}}catch(e){}})();`,
+          }}
+        />
       </head>
       <body>
         <Providers>{children}</Providers>

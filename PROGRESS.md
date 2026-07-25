@@ -950,3 +950,15 @@ nowrap. Avatar responsive: clamp(34-44px) + fontSize clamp. img objectFit cover.
 2. Bildirime TARİH eklendi: _period_label (league_scheduler) period_key -> Türkçe tarih.
    daily "2026-07-24"->"24 Temmuz 2026", monthly->"Temmuz 2026", yearly->"2026".
    Body: "24 Temmuz 2026 liginde Günün Şampiyonu oldun. Tebrikler!". _TR_MONTHS dizisi.
+
+## Gündüz/Gece modu (Nazım)
+- globals.css: [data-theme="light"] açık tema değişkenleri (zemin/metin açık, accent amber
+  gündüzde biraz koyu #e0940a okunur, grid yeşil/sarı aynı). light body gradyanı da açık.
+- lib/theme.ts: mod "auto"(cihaz saati 07-19 gündüz)/"dark"/"light". localStorage kt_theme.
+  applyTheme documentElement[data-theme] set/remove. auto'da dakikada bir kontrol.
+  cycleThemeMode, onThemeChange dinleyici.
+- components/ThemeToggle.tsx: tıkla-açılır mini menü (🌙 Gece / ☀️ Gündüz / 🌗 Otomatik),
+  aktif seçili vurgulu. TopBar + MatchGame'de ses butonunun SOLUNA eklendi.
+- layout.tsx head: flash önleyici inline script (sayfa boyanmadan doğru tema uygulanır).
+Varsayılan: dark (mevcut gece modu). Frontend only. Build ok.
+NOT: themeColor meta hâlâ gece rengi (statik); istenirse dinamik yapılabilir.
