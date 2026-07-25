@@ -37,6 +37,9 @@ export type RoundPublic = {
   solved_by: string | null;
   finished: boolean;
   reveal_word: string | null;
+  joker_greens?: Record<string, string>;
+  joker_yellows?: { index: number; letter: string }[];
+  joker_used_by?: string[];
 };
 export type MatchState = {
   match_id: string;

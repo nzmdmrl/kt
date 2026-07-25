@@ -119,6 +119,7 @@ export default function MatchGame({
   const [nextRoundIn, setNextRoundIn] = useState(0); // tur arası geri sayım (sn)
   const [emoteCount, setEmoteCount] = useState(0);      // bu turda kaç emoji gönderildi (max 2)
   const [jokerPopup, setJokerPopup] = useState<string>("");  // joker bildirim popup metni
+  const [jokerOpen, setJokerOpen] = useState(false);          // yüzen J butonu açık mı
   const [hasFocus, setHasFocus] = useState(false); // input'ta focus var mı
 
   const round = state?.round ?? null;
@@ -501,37 +502,38 @@ export default function MatchGame({
         </div>
       )}
 
-      {/* İnce bildirim satırı */}
-      <div style={{ minHeight: 18, textAlign: "center", position: "relative" }}>
-        {error && <span style={{ color: "var(--accent-hot)", fontSize: 14 }}>{error}</span>}
-        {!error && flash && <span style={{ color: "var(--accent)", fontSize: 14 }}>{flash}</span>}
-        {/* Joker popup — rakip joker kullanınca 2.5sn görünüp kaybolur */}
-        {jokerPopup && (
+      {/* Bildirimler POPUP olarak (yer kaplamaz) + yüzen J joker butonu */}
+      <div style={{ position: "relative", height: 0 }}>
+        {/* Süre doldu / sıra / hata / joker — hepsi popup, harf bloklarına yer kalsın */}
+        {(error || flash || jokerPopup) && (
           <div style={{
-            position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)",
-            background: "var(--bg-elevated)", border: "1px solid var(--accent)",
+            position: "absolute", left: "50%", top: 4, transform: "translateX(-50%)",
+            background: "var(--bg-elevated)",
+            border: `1px solid ${error ? "var(--accent-hot)" : "var(--accent)"}`,
             borderRadius: 20, padding: "8px 18px", fontSize: 14, fontWeight: 600,
-            color: "var(--accent)", whiteSpace: "nowrap", boxShadow: "var(--shadow-soft)",
-            animation: "fadeIn .2s ease", zIndex: 30,
+            color: error ? "var(--accent-hot)" : "var(--accent)", whiteSpace: "nowrap",
+            boxShadow: "var(--shadow-soft)", animation: "fadeIn .2s ease", zIndex: 30,
           }}>
-            🃏 {jokerPopup}
+            {jokerPopup ? `🃏 ${jokerPopup}` : (error || flash)}
           </div>
+        )}
+
+        {/* Yüzen J joker butonu — tıklayınca etrafında jokerler açılır */}
+        {jokers?.[playerId]?.enabled !== false && (
+          <FloatingJoker
+            jokers={jokers?.[playerId]}
+            open={jokerOpen}
+            setOpen={setJokerOpen}
+            canUseLetter={canUseLetterJoker(round)}
+            canUse={canUseJokerNow && !(round?.joker_used_by || []).includes(playerId)}
+            usedThisRound={(round?.joker_used_by || []).includes(playerId)}
+            onUse={(kind) => { useJoker(kind); setJokerOpen(false); }}
+          />
         )}
       </div>
 
       {round && (
-        <div style={{ display: "flex", gap: 6, alignItems: "flex-start", justifyContent: "center" }}>
-          {/* Joker sütunu — grid'in solunda */}
-          <JokerColumn
-            jokers={jokers?.[playerId]}
-            canUseLetter={canUseLetterJoker(round)}
-            canUse={canUseJokerNow}
-            onUse={(kind) => useJoker(kind)}
-          />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <Grid round={round} players={state.players} myId={playerId} draft={draft} />
-          </div>
-        </div>
+        <Grid round={round} players={state.players} myId={playerId} draft={draft} />
       )}
 
       {round && (
@@ -712,45 +714,81 @@ function canUseLetterJoker(round: any): boolean {
 }
 
 // Joker sütunu — grid solunda dikey butonlar.
-function JokerColumn({ jokers, canUseLetter, canUse, onUse }: {
-  jokers: any; canUseLetter: boolean; canUse: boolean;
+// Yüzen J joker butonu — bildirim civarında sabit durur, tıklayınca etrafında
+// mevcut jokerler açılır. Turda tek joker hakkı (usedThisRound ile pasif).
+function FloatingJoker({ jokers, open, setOpen, canUseLetter, canUse, usedThisRound, onUse }: {
+  jokers: any; open: boolean; setOpen: (v: boolean) => void;
+  canUseLetter: boolean; canUse: boolean; usedThisRound: boolean;
   onUse: (kind: string) => void;
 }) {
-  if (!jokers) return <div style={{ width: 0 }} />;
-  // Joker sistemi kapalıysa (enabled=false) sütunu hiç gösterme.
-  if (jokers.enabled === false) return <div style={{ width: 0 }} />;
+  if (!jokers || jokers.enabled === false) return null;
   const items = [
-    { kind: "yellow", icon: "🟡", left: jokers.yellow, enabled: canUse && canUseLetter && jokers.yellow > 0, title: "Sarı harf jokeri" },
-    { kind: "green", icon: "🟢", left: jokers.green, enabled: canUse && canUseLetter && jokers.green > 0, title: "Yeşil harf jokeri" },
-    { kind: "time", icon: "⏱️", left: jokers.time, enabled: canUse && jokers.time > 0, title: "Süre uzatma (+10sn)" },
+    { kind: "yellow", icon: "🟡", left: jokers.yellow, enabled: canUse && canUseLetter && jokers.yellow > 0, title: "Sarı harf" },
+    { kind: "green", icon: "🟢", left: jokers.green, enabled: canUse && canUseLetter && jokers.green > 0, title: "Yeşil harf" },
+    { kind: "time", icon: "⏱️", left: jokers.time, enabled: canUse && jokers.time > 0, title: "+10 sn" },
   ];
+  const totalLeft = (jokers.yellow || 0) + (jokers.green || 0) + (jokers.time || 0);
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0, paddingTop: 2 }}>
-      {items.map((it) => (
-        <button
-          key={it.kind}
-          onClick={() => it.enabled && onUse(it.kind)}
-          disabled={!it.enabled}
-          title={it.title + (it.left ? ` (${it.left} hak)` : " (hak yok)")}
-          style={{
-            position: "relative", width: 34, height: 34, borderRadius: 9,
-            border: "1px solid var(--border-soft)",
-            background: it.enabled ? "var(--bg-panel)" : "var(--bg-elevated)",
-            cursor: it.enabled ? "pointer" : "not-allowed",
-            opacity: it.left > 0 ? (it.enabled ? 1 : 0.45) : 0.25,
-            fontSize: 16, lineHeight: 1, display: "grid", placeItems: "center",
-          }}
-        >
-          {it.icon}
-          {/* Kalan hak rozeti */}
+    <div style={{ position: "absolute", right: 4, top: 0, zIndex: 25 }}>
+      {/* Açılan joker seçenekleri (butonun altında) */}
+      {open && (
+        <div style={{
+          position: "absolute", top: 44, right: 0, display: "flex", gap: 6,
+          background: "var(--bg-panel)", padding: 8, borderRadius: 14,
+          boxShadow: "var(--shadow-soft)", border: "1px solid var(--border-soft)",
+          animation: "fadeIn .15s ease",
+        }}>
+          {items.map((it) => (
+            <button
+              key={it.kind}
+              onClick={() => it.enabled && onUse(it.kind)}
+              disabled={!it.enabled}
+              title={it.title + ` (${it.left} hak)`}
+              style={{
+                position: "relative", width: 42, height: 42, borderRadius: 10,
+                border: "1px solid var(--border-soft)",
+                background: it.enabled ? "var(--bg-elevated)" : "var(--bg-deep)",
+                cursor: it.enabled ? "pointer" : "not-allowed",
+                opacity: it.left > 0 ? (it.enabled ? 1 : 0.4) : 0.2,
+                fontSize: 19, lineHeight: 1, display: "grid", placeItems: "center",
+              }}
+            >
+              {it.icon}
+              <span style={{
+                position: "absolute", right: -4, top: -4, minWidth: 16, height: 16,
+                borderRadius: "50%", background: it.left > 0 ? "var(--accent)" : "var(--text-dim)",
+                color: "#1a1330", fontSize: 10, fontWeight: 700, display: "grid", placeItems: "center", padding: "0 3px",
+              }}>{it.left}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Ana yüzen J butonu */}
+      <button
+        onClick={() => setOpen(!open)}
+        disabled={usedThisRound || totalLeft === 0}
+        title={usedThisRound ? "Bu turda joker kullandın" : "Joker"}
+        style={{
+          width: 40, height: 40, borderRadius: "50%",
+          border: "none", cursor: (usedThisRound || totalLeft === 0) ? "not-allowed" : "pointer",
+          background: (usedThisRound || totalLeft === 0) ? "var(--bg-elevated)" : "var(--accent)",
+          color: (usedThisRound || totalLeft === 0) ? "var(--text-dim)" : "#1a1330",
+          fontWeight: 800, fontSize: 20, fontFamily: "var(--font-display)",
+          boxShadow: "var(--shadow-soft)", display: "grid", placeItems: "center",
+          position: "relative",
+        }}
+      >
+        J
+        {totalLeft > 0 && !usedThisRound && (
           <span style={{
-            position: "absolute", right: -4, top: -4, minWidth: 15, height: 15,
-            borderRadius: "50%", background: it.left > 0 ? "var(--accent)" : "var(--text-dim)",
-            color: "#1a1330", fontSize: 9, fontWeight: 700, display: "grid", placeItems: "center",
-            padding: "0 3px",
-          }}>{it.left}</span>
-        </button>
-      ))}
+            position: "absolute", right: -3, top: -3, minWidth: 16, height: 16,
+            borderRadius: "50%", background: "var(--accent-hot)", color: "#fff",
+            fontSize: 10, fontWeight: 700, display: "grid", placeItems: "center", padding: "0 3px",
+          }}>{totalLeft}</span>
+        )}
+      </button>
     </div>
   );
 }

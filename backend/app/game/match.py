@@ -139,6 +139,8 @@ class Match:
             raise MatchError("Sıra başka oyuncuda, joker kullanılamaz.")
         if kind not in ("yellow", "green", "time"):
             raise MatchError("Geçersiz joker.")
+        if player_id in r.joker_used_by:
+            raise MatchError("Bu turda zaten joker kullandın.")
         if self.jokers[player_id].get(kind, 0) <= 0:
             raise MatchError("Bu joker hakkın kalmadı.")
 
@@ -190,8 +192,9 @@ class Match:
                 r.joker_yellows.append({"index": slot, "letter": letter})
                 result["revealed"] = {"index": slot, "letter": letter, "state": "present"}
 
-        # Hakkı düş ve buzzer'ı bu oyuncuya ver (sıra ona geçer).
+        # Hakkı düş, turda kullanıldı işaretle ve buzzer'ı bu oyuncuya ver.
         self.jokers[player_id][kind] -= 1
+        r.joker_used_by.append(player_id)
         if r.turn_player_id is None:
             r.turn_player_id = player_id
             from app.game.settings_service import cached_int as _ci

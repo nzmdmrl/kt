@@ -882,3 +882,16 @@ bu genel bozukluğun yan etkisiydi.
 ÇÖZÜM: submit_guess başlığı (def submit_guess + docstring + self._require_active...) geri eklendi.
 AST doğrulaması: Match metodları sırayla tam. Test: submit_guess çalışıyor, joker sonrası tahmin
 çalışıyor, joker_greens tahmin sonrası temizleniyor. Build ok.
+
+## Joker v2 — yüzen J butonu + turda tek joker + bildirim popup (Nazım)
+1. 6 harfte joker sütunu tasarımı kaydırıyordu -> grid solundaki JokerColumn KALDIRILDI.
+   Yerine FloatingJoker: bildirim alanında sağda yüzen "J" butonu (accent renkli, toplam
+   hak rozeti). Tıkla -> altında 3 joker açılır (🟡🟢⏱️ + hak rozetleri), seç+kapan.
+   Grid artık tam genişlik (kayma yok).
+2. TURDA TEK JOKER: RoundState.joker_used_by listesi. use_joker'da "bu turda zaten
+   kullandın" kontrolü. round_start'ta liste sıfırlanır (yeni RoundState). J butonu
+   usedThisRound ise pasif. Test: 1. joker OK, 2. engellendi, rakip etkilenmez.
+3. Bildirim POPUP: eski minHeight:18 bildirim satırı (yer kaplıyordu) -> height:0 +
+   absolute popup. error/flash/jokerPopup hepsi tek popup (üstte, fadeIn). "Süre doldu"
+   vb. artık popup, boşluk harf bloklarına kaldı.
+Frontend only + backend joker_used_by (models to_public). Build ok.

@@ -106,6 +106,7 @@ class RoundState:
     # {konum: harf} yeşil için; sarı için ayrı liste (konum, harf) — yanlış yerde.
     joker_greens: dict = field(default_factory=dict)   # {index: letter}
     joker_yellows: list = field(default_factory=list)  # [{"index": i, "letter": c}]
+    joker_used_by: list = field(default_factory=list)  # turda joker kullananlar (oyuncu başına 1 hak)
 
     @property
     def first_letter(self) -> str:
@@ -148,4 +149,5 @@ class RoundState:
             "reveal_word": self.reveal_word,
             "joker_greens": self.joker_greens,
             "joker_yellows": self.joker_yellows,
+            "joker_used_by": self.joker_used_by,
         }
