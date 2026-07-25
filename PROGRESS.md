@@ -1097,3 +1097,11 @@ Frontend:
 - app/lig/arsiv/page.tsx: Günlük/Aylık/Yıllık sekmeli, sayfalı (Önceki/Sonraki), her dönemin
   ilk 3'ü, tarih formatlı (26 Temmuz 2026 / Temmuz 2026 / 2026).
 Test: previous + archive ✓. Build ok. NOT: sadece kapanmış dönemler ödül kaydına düştükçe dolar.
+
+## Avatar maç/VS ekranında görünmüyordu (Nazım)
+Sebep: WS bağlanınca Player avatar_url boştu (URL'de avatar yok). Çözüm:
+- match.py _fill_achievements: Player oluşturulurken DB'den u.avatar_url de doldurulur
+  (en güncel seçili avatar). Player.to_public zaten avatar_url içeriyor -> ScoreBar gösterir.
+- oyna sayfası VS ekranı: me'ye avatar_url: user?.avatar_url eklendi (kendi avatarım VS'te görünür).
+Test: maçta player avatar_url dicebear geliyor ✓. Build ok.
+NOT: VS ekranında RAKİP avatarı yok (maç öncesi WS verisi yok); skor çubuğunda iki avatar da var.

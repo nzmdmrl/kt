@@ -191,7 +191,7 @@ export default function OynaPage() {
     return (
       <main style={pageStyle}>
         <VsScreen
-          me={{ name: name || "Sen", elo }}
+          me={{ name: name || "Sen", elo, avatar_url: user?.avatar_url }}
           opponent={{ name: oppInfo.name, elo: oppInfo.elo, is_bot: bot }}
           onDone={() => setMode("match")}
         />
