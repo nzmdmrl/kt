@@ -35,8 +35,10 @@ const COLORS = {
   absent: "var(--tile-absent)",
 };
 
-// Örnek dolu satır (renk mantığını göstermek için): MAKAS
-const EXAMPLE = "MAKAS";
+// Örnek dolu satır (renk mantığını göstermek için): KİTAP
+// Hedef KALEM ile aynı ilk harf (K) — çünkü oyunda ilk harf ipucu olarak verilir.
+// KİTAP -> K yeşil (doğru yer), A sarı (kelimede var, yanlış yer), İ/T/P gri (yok).
+const EXAMPLE = "KİTAP";
 
 const STEPS = [
   {
@@ -44,8 +46,12 @@ const STEPS = [
     body: "Rakibinle karşılıklı kelime bilme yarışı. Küçük bir örnekle nasıl oynandığını görelim. Bu bir denemedir, puanın etkilenmez.",
   },
   {
-    title: "Renkler ne anlama gelir? 🟩🟨",
-    body: "Üstteki örnek tahmin MAKAS. Yeşil = harf doğru ve tam yerinde. Sarı = harf kelimede var ama başka yerde. Gri = harf kelimede yok.",
+    title: "İlk harf ipucu olarak verilir 🔑",
+    body: "Aradığımız 5 harfli kelime K ile başlıyor. Oyunda kelimenin ilk harfi her zaman ipucu olarak açık gelir; kalanını sen bulacaksın.",
+  },
+  {
+    title: "Renkler ne anlama gelir? 🟩🟨⬜",
+    body: "Üstteki örnek tahmin KİTAP. K yeşil çünkü doğru harf, doğru yerde. A sarı çünkü kelimede var ama başka yerde. İ, T, P gri çünkü kelimede hiç yok.",
   },
   {
     title: "Şimdi sıra sende ✍️",
@@ -77,7 +83,7 @@ export default function TutorialDemo({ onClose }: { onClose: () => void }) {
 
   const step = STEPS[i];
   const last = i === STEPS.length - 1;
-  const isGuessStep = i === 2; // "KALEM yaz" adımı
+  const isGuessStep = i === 3; // "KALEM yaz" adımı
 
   const exampleScore = scoreGuess(EXAMPLE);
   const guessScore = guessRow ? scoreGuess(guessRow) : null;
@@ -121,7 +127,7 @@ export default function TutorialDemo({ onClose }: { onClose: () => void }) {
             <span style={{
               width: 26, height: 26, borderRadius: "50%", display: "grid", placeItems: "center",
               background: "linear-gradient(145deg,#FFD86B,#D4AF37)", color: "#4a3b00", fontWeight: 800, fontSize: 13,
-              border: i === 5 ? "2px solid var(--accent)" : "none",
+              border: i === 6 ? "2px solid var(--accent)" : "none",
             }}>J</span>
             Joker
           </span>
@@ -130,7 +136,7 @@ export default function TutorialDemo({ onClose }: { onClose: () => void }) {
         {/* Demo grid */}
         <div style={{ display: "grid", gap: 6, justifyContent: "center" }}>
           {/* Örnek satır: MAKAS */}
-          <Row letters={EXAMPLE} score={exampleScore} highlight={i === 1} />
+          <Row letters={EXAMPLE} score={exampleScore} highlight={i === 2} />
           {/* Kullanıcı satırı */}
           {guessRow ? (
             <Row letters={guessRow} score={guessScore!} />
@@ -161,7 +167,7 @@ export default function TutorialDemo({ onClose }: { onClose: () => void }) {
           </div>
         )}
 
-        {solved && i === 2 && (
+        {solved && i === 3 && (
           <div style={{ textAlign: "center", color: "var(--tile-correct)", fontWeight: 700, fontSize: 16 }}>
             🎉 Harika! Tüm harfler yeşil — kelimeyi buldun!
           </div>
@@ -203,7 +209,7 @@ function Row({ letters, score, active, highlight }: {
   letters: string; score: ("correct" | "present" | "absent")[] | null; active?: boolean; highlight?: boolean;
 }) {
   return (
-    <div style={{ display: "flex", gap: 6, opacity: highlight === false ? 0.5 : 1, transition: "opacity .3s", ...(highlight ? { transform: "scale(1.04)" } : {}) }}>
+    <div style={{ display: "flex", gap: 6, transition: "transform .3s", ...(highlight ? { transform: "scale(1.04)" } : {}) }}>
       {Array.from({ length: LEN }).map((_, i) => {
         const ch = letters[i]?.trim() || "";
         const bg = score ? COLORS[score[i]] : "var(--tile-empty)";

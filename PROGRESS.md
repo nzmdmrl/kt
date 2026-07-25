@@ -1157,3 +1157,16 @@ sonra sarı/gri, tekrar harf sayımı doğru).
 Tetikleme: oyna sayfası ?ogretici=1 (ana sayfa "▶ İnteraktif öğreticiyi dene" linki) VE menüdeki
 "?" butonu -> setShowTutorial(true) -> render başında <TutorialDemo/>. Misafir de görebilir.
 Build ok.
+
+## Öğretici düzeltme: ilk harf kuralı (Nazım — kritik pedagojik hata)
+Sorun: örnek MAKAS (M ile başlıyor) ama hedef KALEM (K). Oyunda İLK HARF ipucu olarak
+açık gelir -> örnek farklı harfle başlayınca yanlış öğretiyordu.
+Düzeltme:
+- EXAMPLE MAKAS -> KİTAP (hedefle aynı ilk harf K). KİTAP vs KALEM: K yeşil, A sarı,
+  İ/T/P gri -> tek örnekte üç renk de var, doğru.
+- Yeni adım eklendi: "İlk harf ipucu olarak verilir 🔑" (kelime K ile başlıyor).
+- Renk adımı KİTAP'ı anlatır. Adım sayısı 7->8; indeksler kaydı (isGuessStep i===3,
+  highlight i===2, joker vurgu i===6, solved mesajı i===3). Örnek satır soluklaşması kaldırıldı.
+Not: Nazım'ın önerdiği KİLİM/KELAM denendi ama L/M pozisyonları hedefle çakışıp yeşil çıkıyordu
+(sarı değil); KİTAP tek satırda üç rengi net gösterdiği için tercih edildi.
+Build ok.
