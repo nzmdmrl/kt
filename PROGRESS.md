@@ -990,3 +990,10 @@ Frontend only. Build ok.
   10'ar satırda eşit yükseklik. Başlık "Bugünün Ligi" (— İlk 10 kaldırıldı, sığsın).
 - MatchGame maç sonu: tek "Lig sıralaması" linki -> buton görünümlü 🏠 Ana Sayfa + 🏆 Lig
   (endLinkBtn stili: panel bg, border, radius). Frontend only. Build ok.
+
+## Son maçlarda user link (Nazım)
+- MatchHistory'ye p1_username/p2_username eklendi (link için; ""=bot/link yok).
+  match.py on_over: _uname helper ile kayıtlı kullanıcı (u{id}, bot değil) username DB'den çekilir.
+- HomeBoards son maçlar: username varsa <a href=/profil/{username}>, yoksa <span> (bot/eski kayıt).
+Test: kayıtlı user linkli, bot linksiz ✓. NOT: eski maç kayıtlarında username="" (link yok);
+bu deploy'dan sonraki maçlar linkli olur. Frontend+backend. Build ok.

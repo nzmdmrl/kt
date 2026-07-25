@@ -21,6 +21,8 @@ class MatchHistory(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     p1_name: Mapped[str] = mapped_column(String(48))
     p2_name: Mapped[str] = mapped_column(String(48))
+    p1_username: Mapped[str] = mapped_column(String(48), default="")  # link için ("" = bot/link yok)
+    p2_username: Mapped[str] = mapped_column(String(48), default="")
     p1_score: Mapped[int] = mapped_column(Integer, default=0)
     p2_score: Mapped[int] = mapped_column(Integer, default=0)
     winner_name: Mapped[str] = mapped_column(String(48), default="")  # "" = beraberlik
@@ -31,6 +33,8 @@ class MatchHistory(Base):
         return {
             "p1_name": self.p1_name,
             "p2_name": self.p2_name,
+            "p1_username": self.p1_username,
+            "p2_username": self.p2_username,
             "p1_score": self.p1_score,
             "p2_score": self.p2_score,
             "winner_name": self.winner_name,

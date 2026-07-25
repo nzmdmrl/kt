@@ -105,16 +105,35 @@ def _attach_stats_callback(room):
         try:
             from app.core.database import AsyncSessionLocal
             from app.models.match_history import MatchHistory
+            from app.models.user import User
+            from sqlalchemy import select as _select
             p1, p2 = order[0], order[1]
             pl1, pl2 = match.players.get(p1), match.players.get(p2)
             winner_name = ""
             if winner is not None:
                 wp = match.players.get(winner)
                 winner_name = wp.name if wp else ""
+
+            async def _uname(db, pid, pl):
+                # Kayıtlı kullanıcıysa (u{id}, bot değil) username'i çek.
+                if pl and pl.is_bot:
+                    return ""
+                if not pid.startswith("u"):
+                    return ""
+                try:
+                    uid = int(pid[1:])
+                except ValueError:
+                    return ""
+                u = (await db.execute(_select(User).where(User.id == uid))).scalar_one_or_none()
+                return u.username if u else ""
+
             async with AsyncSessionLocal() as db:
+                u1 = await _uname(db, p1, pl1)
+                u2 = await _uname(db, p2, pl2)
                 db.add(MatchHistory(
                     p1_name=(pl1.name if pl1 else "?")[:48],
                     p2_name=(pl2.name if pl2 else "?")[:48],
+                    p1_username=u1, p2_username=u2,
                     p1_score=scores.get(p1, 0),
                     p2_score=scores.get(p2, 0),
                     winner_name=winner_name[:48],

@@ -63,21 +63,35 @@ export default function HomeBoards() {
             {matches.map((m: any, i: number) => {
               const p1win = m.winner_name === m.p1_name;
               const p2win = m.winner_name === m.p2_name;
+              const nameStyle = (win: boolean): React.CSSProperties => ({
+                fontWeight: win ? 700 : 500,
+                color: win ? "var(--accent)" : "var(--text-soft)",
+                whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                textDecoration: "none",
+              });
               return (
                 <div key={i} style={{
                   display: "flex", alignItems: "center", gap: 8, padding: "10px 12px",
                   borderBottom: i < matches.length - 1 ? "1px solid var(--border-soft)" : "none",
                   fontSize: 14,
                 }}>
-                  <span style={{ flex: 1, minWidth: 0, textAlign: "right", fontWeight: p1win ? 700 : 500, color: p1win ? "var(--accent)" : "var(--text-soft)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    {m.p1_name}
-                  </span>
+                  <div style={{ flex: 1, minWidth: 0, textAlign: "right" }}>
+                    {m.p1_username ? (
+                      <a href={`/profil/${m.p1_username}`} style={nameStyle(p1win)}>{m.p1_name}</a>
+                    ) : (
+                      <span style={nameStyle(p1win)}>{m.p1_name}</span>
+                    )}
+                  </div>
                   <span className="brand-mono" style={{ color: "var(--text-strong)", flexShrink: 0, fontSize: 13 }}>
                     {m.p1_score} : {m.p2_score}
                   </span>
-                  <span style={{ flex: 1, minWidth: 0, textAlign: "left", fontWeight: p2win ? 700 : 500, color: p2win ? "var(--accent)" : "var(--text-soft)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    {m.p2_name}
-                  </span>
+                  <div style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
+                    {m.p2_username ? (
+                      <a href={`/profil/${m.p2_username}`} style={nameStyle(p2win)}>{m.p2_name}</a>
+                    ) : (
+                      <span style={nameStyle(p2win)}>{m.p2_name}</span>
+                    )}
+                  </div>
                 </div>
               );
             })}
