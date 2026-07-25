@@ -87,6 +87,8 @@ function Settings() {
       .then((r) => r.json()).then((d) => setSettings(d.settings || [])).catch(() => {});
   }
   function save(key: string, value: string) {
+    // UI'ı anında güncelle (switch hemen değişsin).
+    setSettings((prev) => prev.map((s) => s.key === key ? { ...s, value } : s));
     fetch(apiUrl("/api/admin/settings"), { method: "POST", headers: authHeaders(), body: JSON.stringify({ key, value }) })
       .then((r) => r.json()).then(() => { setSaved(key); setTimeout(() => setSaved(""), 1500); });
   }
@@ -99,11 +101,28 @@ function Settings() {
             <div style={{ fontSize: 14, color: "var(--text-strong)" }}>{s.label}</div>
             <div style={{ fontSize: 11, color: "var(--text-dim)" }}>{s.key} · varsayılan: {s.default}</div>
           </div>
-          <input
-            defaultValue={s.value}
-            onBlur={(e) => e.target.value !== s.value && save(s.key, e.target.value)}
-            style={{ width: 70, padding: "8px", borderRadius: 8, border: "1px solid var(--tile-border)", background: "var(--bg-elevated)", color: "var(--text-strong)", textAlign: "center" }}
-          />
+          {s.type === "bool" ? (
+            <button
+              onClick={() => save(s.key, s.value === "true" ? "false" : "true")}
+              style={{
+                width: 52, height: 28, borderRadius: 14, border: "none", cursor: "pointer",
+                position: "relative", background: s.value === "true" ? "var(--accent)" : "var(--bg-elevated)",
+                transition: "background .2s",
+              }}
+            >
+              <span style={{
+                position: "absolute", top: 3, left: s.value === "true" ? 27 : 3,
+                width: 22, height: 22, borderRadius: "50%", background: "#fff",
+                transition: "left .2s",
+              }} />
+            </button>
+          ) : (
+            <input
+              defaultValue={s.value}
+              onBlur={(e) => e.target.value !== s.value && save(s.key, e.target.value)}
+              style={{ width: 70, padding: "8px", borderRadius: 8, border: "1px solid var(--tile-border)", background: "var(--bg-elevated)", color: "var(--text-strong)", textAlign: "center" }}
+            />
+          )}
           {saved === s.key && <span style={{ color: "var(--tile-correct)", fontSize: 12 }}>✓</span>}
         </div>
       ))}

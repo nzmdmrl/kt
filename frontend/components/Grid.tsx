@@ -22,6 +22,8 @@ export default function Grid({
   draft: string;
 }) {
   const { length, max_rows, first_letter, rows, turn_player_id, finished, reveal_word } = round;
+  const jokerGreens: Record<string, string> = (round as any).joker_greens || {};
+  const jokerYellows: { index: number; letter: string }[] = (round as any).joker_yellows || [];
   const myTurn = turn_player_id === myId;
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -73,7 +75,7 @@ export default function Grid({
 
       {/* Aktif taslak satır (tur sürüyorsa) */}
       {activeRowVisible && (
-        <DraftLine length={length} firstLetter={first_letter} draft={draft} active={myTurn} />
+        <DraftLine length={length} firstLetter={first_letter} draft={draft} active={myTurn} jokerGreens={jokerGreens} jokerYellows={jokerYellows} />
       )}
 
       {/* Kalan boş satırlar (başlangıçta 5'e tamamla) */}
@@ -137,12 +139,20 @@ function DraftLine({
   firstLetter,
   draft,
   active,
+  jokerGreens = {},
+  jokerYellows = [],
 }: {
   length: number;
   firstLetter: string;
   draft: string;
   active: boolean;
+  jokerGreens?: Record<string, string>;
+  jokerYellows?: { index: number; letter: string }[];
 }) {
+  // Sarı joker konumları -> harf eşlemesi.
+  const yellowMap: Record<number, string> = {};
+  for (const y of jokerYellows) yellowMap[y.index] = y.letter;
+
   const letters: string[] = [];
   for (let i = 0; i < length; i++) {
     if (i < draft.length) letters.push(draft[i]);
@@ -154,19 +164,31 @@ function DraftLine({
       {letters.map((ch, i) => {
         const isHint = i === 0 && draft.length === 0;
         const filled = i < draft.length;
+        // Joker ile açılan harf (kullanıcı henüz oraya yazmadıysa göster).
+        const jokerGreen = jokerGreens[String(i)];
+        const jokerYellow = yellowMap[i];
+        let bg = "var(--tile-empty)";
+        let showCh = ch;
+        let jokerBorder = false;
+        if (!filled && !isHint) {
+          if (jokerGreen) { bg = "var(--tile-correct)"; showCh = jokerGreen; jokerBorder = true; }
+          else if (jokerYellow) { bg = "var(--tile-present)"; showCh = jokerYellow; jokerBorder = true; }
+        }
         return (
           <span
             key={i}
             style={{
-              ...tileStyle("var(--tile-empty)", isHint ? "var(--text-dim)" : "#fff"),
-              border: active
+              ...tileStyle(bg, jokerBorder ? "#fff" : (isHint ? "var(--text-dim)" : "#fff")),
+              border: jokerBorder
+                ? "none"
+                : active
                 ? filled
                   ? "2px solid var(--tile-correct)"
                   : "2px solid var(--accent)"
                 : "1px solid var(--tile-border)",
             }}
           >
-            {ch}
+            {showCh}
           </span>
         );
       })}

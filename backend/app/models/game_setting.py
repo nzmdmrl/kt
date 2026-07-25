@@ -37,4 +37,8 @@ DEFAULT_SETTINGS = {
     "sound_volume": {"value": "70", "label": "Ses seviyesi (0-100)", "type": "int"},
     "abandon_free_limit": {"value": "2", "label": "Cezasız terk hakkı (sonrası engel)", "type": "int"},
     "abandon_ban_minutes": {"value": "10", "label": "Terk engeli temel süresi (dakika)", "type": "int"},
+    "jokers_enabled": {"value": "true", "label": "Joker sistemi aktif", "type": "bool"},
+    "joker_yellow_count": {"value": "2", "label": "Sarı harf joker hakkı", "type": "int"},
+    "joker_green_count": {"value": "1", "label": "Yeşil harf joker hakkı", "type": "int"},
+    "joker_time_count": {"value": "1", "label": "Süre uzatma joker hakkı", "type": "int"},
 }

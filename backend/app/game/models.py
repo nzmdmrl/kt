@@ -102,11 +102,32 @@ class RoundState:
     answer_time_left: int = 0              # buzzer cevap penceresi
     finished: bool = False
     reveal_word: Optional[str] = None      # tur bitince gösterilecek doğru kelime (bilinemezse)
+    # Joker ile bu tur açılan harfler (geçici ipucu — sadece o tahminde gösterilir).
+    # {konum: harf} yeşil için; sarı için ayrı liste (konum, harf) — yanlış yerde.
+    joker_greens: dict = field(default_factory=dict)   # {index: letter}
+    joker_yellows: list = field(default_factory=list)  # [{"index": i, "letter": c}]
 
     @property
     def first_letter(self) -> str:
         """Açık başlayan ilk harf (ipucu)."""
         return self.target[0] if self.target else ""
+
+    def known_extra_letters(self) -> int:
+        """
+        İlk harf HARİÇ, kesin bilinen (doğru yerde) harf sayısı.
+        Hem tahminlerden gelen yeşiller hem joker yeşilleri sayılır.
+        Joker kullanım koşulu bunu kullanır.
+        """
+        known_positions = set()
+        for row in self.rows:
+            for i, t in enumerate(row.tiles):
+                if i != 0 and t.state == TileState.CORRECT:
+                    known_positions.add(i)
+        # Joker ile açılan yeşiller de "bilinen" sayılır.
+        for i in self.joker_greens:
+            if i != 0:
+                known_positions.add(i)
+        return len(known_positions)
 
     def to_public(self) -> dict:
         """
@@ -125,4 +146,6 @@ class RoundState:
             "solved_by": self.solved_by,
             "finished": self.finished,
             "reveal_word": self.reveal_word,
+            "joker_greens": self.joker_greens,
+            "joker_yellows": self.joker_yellows,
         }

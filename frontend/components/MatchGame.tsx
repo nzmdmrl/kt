@@ -24,7 +24,7 @@ export default function MatchGame({
   botElo?: number;
   onRematch?: () => void;
 }) {
-  const { connected, state, lastEvent, error, flash, buzzer, guess, emote, rematchRequest, rematchAccept, rematchDecline } = useMatch(
+  const { connected, state, lastEvent, error, flash, buzzer, guess, emote, useJoker, jokers, rematchRequest, rematchAccept, rematchDecline } = useMatch(
     code,
     playerId,
     name,
@@ -58,6 +58,19 @@ export default function MatchGame({
   useEffect(() => {
     initSound(true, 70);
   }, []);
+
+  // Joker kullanıldığında: ses çal + (rakip kullandıysa) popup bildirim göster.
+  useEffect(() => {
+    if (lastEvent?.type !== "joker_used") return;
+    const ev: any = lastEvent;
+    const soundMap: any = { yellow: "joker_yellow", green: "joker_green", time: "joker_time" };
+    playSound(soundMap[ev.kind] || "button");
+    if (ev.player_id !== playerId) {
+      const labelMap: any = { yellow: "sarı harf", green: "yeşil harf", time: "ekstra zaman" };
+      setJokerPopup(`Rakip joker kullandı (${labelMap[ev.kind] || "joker"})`);
+      setTimeout(() => setJokerPopup(""), 2500);
+    }
+  }, [lastEvent, playerId]);
 
   // Oyun olaylarına göre ses çal.
   useEffect(() => {
@@ -105,12 +118,15 @@ export default function MatchGame({
   const [locked, setLocked] = useState(false); // tahmin gönderildi, yanıt bekleniyor
   const [nextRoundIn, setNextRoundIn] = useState(0); // tur arası geri sayım (sn)
   const [emoteCount, setEmoteCount] = useState(0);      // bu turda kaç emoji gönderildi (max 2)
+  const [jokerPopup, setJokerPopup] = useState<string>("");  // joker bildirim popup metni
   const [hasFocus, setHasFocus] = useState(false); // input'ta focus var mı
 
   const round = state?.round ?? null;
   const myTurn = round?.turn_player_id === playerId;
   const turnFree = round?.turn_player_id == null;
   const phase = state?.phase;
+  // Joker şimdi kullanılabilir mi: sıra boş (turun başı) ya da zaten bende, tur aktif.
+  const canUseJokerNow = phase === "round_active" && !round?.finished && (turnFree || myTurn);
 
   // Sıra BENDEYKEN (cevap penceresi) tık-tık geri sayımı; kademeli yükselir.
   // Rakibin sırasında SESSİZ (sadece myTurn).
@@ -486,13 +502,36 @@ export default function MatchGame({
       )}
 
       {/* İnce bildirim satırı */}
-      <div style={{ minHeight: 18, textAlign: "center" }}>
+      <div style={{ minHeight: 18, textAlign: "center", position: "relative" }}>
         {error && <span style={{ color: "var(--accent-hot)", fontSize: 14 }}>{error}</span>}
         {!error && flash && <span style={{ color: "var(--accent)", fontSize: 14 }}>{flash}</span>}
+        {/* Joker popup — rakip joker kullanınca 2.5sn görünüp kaybolur */}
+        {jokerPopup && (
+          <div style={{
+            position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)",
+            background: "var(--bg-elevated)", border: "1px solid var(--accent)",
+            borderRadius: 20, padding: "8px 18px", fontSize: 14, fontWeight: 600,
+            color: "var(--accent)", whiteSpace: "nowrap", boxShadow: "var(--shadow-soft)",
+            animation: "fadeIn .2s ease", zIndex: 30,
+          }}>
+            🃏 {jokerPopup}
+          </div>
+        )}
       </div>
 
       {round && (
-        <Grid round={round} players={state.players} myId={playerId} draft={draft} />
+        <div style={{ display: "flex", gap: 6, alignItems: "flex-start", justifyContent: "center" }}>
+          {/* Joker sütunu — grid'in solunda */}
+          <JokerColumn
+            jokers={jokers?.[playerId]}
+            canUseLetter={canUseLetterJoker(round)}
+            canUse={canUseJokerNow}
+            onUse={(kind) => useJoker(kind)}
+          />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <Grid round={round} players={state.players} myId={playerId} draft={draft} />
+          </div>
+        </div>
       )}
 
       {round && (
@@ -652,6 +691,66 @@ function Centered({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ display: "grid", placeItems: "center", minHeight: 240, color: "var(--text-soft)" }}>
       <div>{children}</div>
+    </div>
+  );
+}
+
+// Harf jokeri bu turda kullanılabilir mi? (backend can_use_letter_joker ile aynı kural)
+// İlk harf hariç bilinen ek harf < (length - 3): 4->0, 5->0-1, 6->0-2
+function canUseLetterJoker(round: any): boolean {
+  if (!round) return false;
+  const known = new Set<number>();
+  for (const row of round.rows || []) {
+    (row.tiles || []).forEach((t: any, i: number) => {
+      if (i !== 0 && t.state === "correct") known.add(i);
+    });
+  }
+  for (const k of Object.keys(round.joker_greens || {})) {
+    if (Number(k) !== 0) known.add(Number(k));
+  }
+  return known.size < (round.length - 3);
+}
+
+// Joker sütunu — grid solunda dikey butonlar.
+function JokerColumn({ jokers, canUseLetter, canUse, onUse }: {
+  jokers: any; canUseLetter: boolean; canUse: boolean;
+  onUse: (kind: string) => void;
+}) {
+  if (!jokers) return <div style={{ width: 0 }} />;
+  // Joker sistemi kapalıysa (enabled=false) sütunu hiç gösterme.
+  if (jokers.enabled === false) return <div style={{ width: 0 }} />;
+  const items = [
+    { kind: "yellow", icon: "🟡", left: jokers.yellow, enabled: canUse && canUseLetter && jokers.yellow > 0, title: "Sarı harf jokeri" },
+    { kind: "green", icon: "🟢", left: jokers.green, enabled: canUse && canUseLetter && jokers.green > 0, title: "Yeşil harf jokeri" },
+    { kind: "time", icon: "⏱️", left: jokers.time, enabled: canUse && jokers.time > 0, title: "Süre uzatma (+10sn)" },
+  ];
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0, paddingTop: 2 }}>
+      {items.map((it) => (
+        <button
+          key={it.kind}
+          onClick={() => it.enabled && onUse(it.kind)}
+          disabled={!it.enabled}
+          title={it.title + (it.left ? ` (${it.left} hak)` : " (hak yok)")}
+          style={{
+            position: "relative", width: 34, height: 34, borderRadius: 9,
+            border: "1px solid var(--border-soft)",
+            background: it.enabled ? "var(--bg-panel)" : "var(--bg-elevated)",
+            cursor: it.enabled ? "pointer" : "not-allowed",
+            opacity: it.left > 0 ? (it.enabled ? 1 : 0.45) : 0.25,
+            fontSize: 16, lineHeight: 1, display: "grid", placeItems: "center",
+          }}
+        >
+          {it.icon}
+          {/* Kalan hak rozeti */}
+          <span style={{
+            position: "absolute", right: -4, top: -4, minWidth: 15, height: 15,
+            borderRadius: "50%", background: it.left > 0 ? "var(--accent)" : "var(--text-dim)",
+            color: "#1a1330", fontSize: 9, fontWeight: 700, display: "grid", placeItems: "center",
+            padding: "0 3px",
+          }}>{it.left}</span>
+        </button>
+      ))}
     </div>
   );
 }

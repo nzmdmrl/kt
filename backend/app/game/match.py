@@ -43,6 +43,18 @@ class Match:
         self.phase: MatchPhase = MatchPhase.WAITING
         self.round: Optional[RoundState] = None
         self.round_index: int = -1
+        # Joker hakları (maç boyunca, oyuncu başına). Admin panelden ayarlanır.
+        # jokers_enabled kapalıysa tüm haklar 0 (joker sistemi devre dışı).
+        from app.game.settings_service import cached_bool, cached_int
+        if cached_bool("jokers_enabled", True):
+            jy = cached_int("joker_yellow_count", 2)
+            jg = cached_int("joker_green_count", 1)
+            jt = cached_int("joker_time_count", 1)
+        else:
+            jy = jg = jt = 0
+        self.jokers: dict[str, dict[str, int]] = {
+            pid: {"yellow": jy, "green": jg, "time": jt} for pid in self.players
+        }
 
     # ---- yardımcılar ----
     def opponent_of(self, player_id: str) -> str:
@@ -91,11 +103,111 @@ class Match:
         if r.first_buzzer_id is None:
             r.first_buzzer_id = player_id
 
-    def submit_guess(self, player_id: str, guess: str) -> dict:
+    def can_use_letter_joker(self) -> bool:
         """
-        Sıradaki oyuncunun tahminini işler. Sonuç sözlüğü döner:
-          {correct, tiles, points_awarded, round_over, ...}
+        Harf jokerleri (sarı/yeşil) bu turda kullanılabilir mi?
+        Kural (ilk harf hariç bilinen ek harf sayısına göre):
+          4 harf: 0 ek harf biliniyorsa aktif (1 olunca pasif)
+          5 harf: <=1 ek harf biliniyorsa aktif (2 olunca pasif)
+          6 harf: <=2 ek harf biliniyorsa aktif (3 olunca pasif)
+        Yani eşik = length - 4. Bilinen ek harf < eşik+1 ... aslında:
+          aktif eşiği: known < (length - 3)
+          4: known < 1  (yani 0)
+          5: known < 2  (0 veya 1)
+          6: known < 3  (0,1,2)
         """
+        r = self.round
+        if not r:
+            return False
+        known = r.known_extra_letters()
+        return known < (r.length - 3)
+
+    def use_joker(self, player_id: str, kind: str) -> dict:
+        """
+        Joker kullanır. kind: 'yellow' | 'green' | 'time'.
+        - Turun başında, buzzer boşken ve oyuncu maçtaysa kullanılabilir.
+        - Kullanınca sıra (buzzer) o oyuncuya geçer.
+        - yellow/green: harf jokeri koşulu (can_use_letter_joker) gerekir.
+        Sonuç: {kind, revealed?, buzzer_taken}
+        """
+        self._require_active()
+        r = self.round
+        assert r is not None
+        if player_id not in self.players:
+            raise MatchError("Oyuncu bu maçta değil.")
+        if r.turn_player_id is not None and r.turn_player_id != player_id:
+            raise MatchError("Sıra başka oyuncuda, joker kullanılamaz.")
+        if kind not in ("yellow", "green", "time"):
+            raise MatchError("Geçersiz joker.")
+        if self.jokers[player_id].get(kind, 0) <= 0:
+            raise MatchError("Bu joker hakkın kalmadı.")
+
+        result: dict = {"kind": kind}
+
+        if kind == "time":
+            # Süre uzatma: cevap penceresi açıksa ona, değilse tur süresine +10sn.
+            if r.turn_player_id == player_id and r.answer_time_left > 0:
+                r.answer_time_left += 10
+            else:
+                r.time_left += 10
+            result["extended"] = 10
+        else:
+            # Harf jokeri — koşul kontrolü.
+            if not self.can_use_letter_joker():
+                raise MatchError("Harf jokeri bu turda kullanılamaz (yeterli harf biliniyor).")
+            # Henüz bilinmeyen (yeşil olmayan) konumları bul.
+            known_positions = {0}  # ilk harf zaten açık
+            for row in r.rows:
+                for i, t in enumerate(row.tiles):
+                    if t.state == TileState.CORRECT:
+                        known_positions.add(i)
+            for i in r.joker_greens:
+                known_positions.add(i)
+            unknown_positions = [i for i in range(r.length) if i not in known_positions]
+            if not unknown_positions:
+                raise MatchError("Açılacak harf kalmadı.")
+
+            if kind == "green":
+                # Bilinmeyen bir konumu doğru harfiyle aç (yeşil).
+                pos = random.choice(unknown_positions)
+                r.joker_greens[pos] = r.target[pos]
+                result["revealed"] = {"index": pos, "letter": r.target[pos], "state": "correct"}
+            else:  # yellow
+                # Kelimede olan, henüz bilinmeyen bir harfi, YANLIŞ bir konuma sarı koy.
+                # Açılmamış harflerden birini seç.
+                unknown_letters = list({r.target[i] for i in unknown_positions})
+                if not unknown_letters:
+                    raise MatchError("Açılacak harf kalmadı.")
+                letter = random.choice(unknown_letters)
+                # Bu harfin GERÇEK konumları (oraya koymayacağız).
+                real_positions = {i for i in range(r.length) if r.target[i] == letter}
+                # Sarı koyulabilecek konumlar: bilinmeyen ve harfin gerçek yeri olmayan.
+                slot_candidates = [i for i in unknown_positions if i not in real_positions]
+                if not slot_candidates:
+                    # Harfin tek yeri var ve o da bilinmiyor — başka harf dene.
+                    slot_candidates = [i for i in unknown_positions]
+                slot = random.choice(slot_candidates)
+                r.joker_yellows.append({"index": slot, "letter": letter})
+                result["revealed"] = {"index": slot, "letter": letter, "state": "present"}
+
+        # Hakkı düş ve buzzer'ı bu oyuncuya ver (sıra ona geçer).
+        self.jokers[player_id][kind] -= 1
+        if r.turn_player_id is None:
+            r.turn_player_id = player_id
+            from app.game.settings_service import cached_int as _ci
+            r.answer_time_left = _ci("buzzer_answer_seconds", BUZZER_ANSWER_SECONDS)
+            if r.first_buzzer_id is None:
+                r.first_buzzer_id = player_id
+        result["buzzer_taken"] = True
+        result["jokers_left"] = self.jokers[player_id]
+        return result
+
+    def jokers_public(self) -> dict:
+        """Oyuncuların kalan joker haklarını istemciye gönderir."""
+        from app.game.settings_service import cached_bool
+        enabled = cached_bool("jokers_enabled", True)
+        out = {pid: {**dict(j), "enabled": enabled} for pid, j in self.jokers.items()}
+        return out
         self._require_active()
         r = self.round
         assert r is not None
@@ -127,6 +239,9 @@ class Match:
         letter_results = evaluate_guess(g, r.target)
         tiles = [GuessTile(lr.letter, TileState(lr.state.value)) for lr in letter_results]
         r.rows.append(GuessRow(player_id=player_id, tiles=tiles))
+        # Joker ile açılan geçici harfler bu tahminle tükendi — temizle.
+        r.joker_greens = {}
+        r.joker_yellows = []
 
         correct = is_correct(g, r.target)
         points = 0

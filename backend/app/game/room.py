@@ -68,7 +68,7 @@ class Room:
     async def broadcast_state(self, extra: Optional[dict] = None) -> None:
         if not self.match:
             return
-        msg = {"type": "state", "state": self.match.to_public()}
+        msg = {"type": "state", "state": self.match.to_public(), "jokers": self.match.jokers_public()}
         if extra:
             msg.update(extra)
         await self.broadcast(msg)
@@ -233,6 +233,28 @@ class Room:
             pass
 
     # ---- oyuncu olayları ----
+    async def handle_joker(self, player_id: str, kind: str) -> None:
+        if not self.match:
+            return
+        async with self.buzzer_lock:
+            try:
+                result = self.match.use_joker(player_id, kind)
+            except MatchError as e:
+                await self._send_error(player_id, str(e))
+                return
+        # Kullanana joker sonucunu bildir (açılan harf vb.).
+        await self.broadcast({
+            "type": "joker_used",
+            "player_id": player_id,
+            "kind": kind,
+            "revealed": result.get("revealed"),
+            "extended": result.get("extended"),
+        })
+        # Buzzer devri olduysa bildir.
+        if result.get("buzzer_taken"):
+            await self.broadcast({"type": "buzzer_taken", "player_id": player_id})
+        await self.broadcast_state()
+
     async def handle_buzzer(self, player_id: str) -> None:
         if not self.match:
             return

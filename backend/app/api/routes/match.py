@@ -143,6 +143,9 @@ async def match_ws(
                 await room.restart_match()
             elif action == "rematch_decline":
                 await room.send_to_others(player_id, {"type": "rematch_declined", "from": player_id})
+            elif action == "joker":
+                kind = str(data.get("kind", ""))
+                await room.handle_joker(player_id, kind)
             elif action == "ping":
                 await websocket.send_json({"type": "pong"})
     except WebSocketDisconnect:

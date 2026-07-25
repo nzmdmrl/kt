@@ -10,6 +10,7 @@ type Slot =
   | "button" | "tile_correct" | "tile_present" | "tile_absent"
   | "correct" | "wrong" | "win" | "lose" | "round_start" | "match_start"
   | "radar" | "opponent_found" | "tick"
+  | "joker_yellow" | "joker_green" | "joker_time"
   | "music1" | "music2" | "music3" | "music4" | "music5" | "music6";
 
 let audioCtx: AudioContext | null = null;
@@ -126,6 +127,15 @@ function playSynth(slot: Slot, opts?: { intensity?: number }) {
       tone(784, 0.14, "sine", 0.2, 0.9);    // sol
       tone(1047, 0.2, "sine", 0.32, 0.75);  // yüksek do
       break;
+    case "joker_green":
+      // Parlak, olumlu "açılış" (yeşil harf).
+      tone(659, 0.1, "sine", 0, 0.9); tone(988, 0.18, "sine", 0.1, 0.8); break;
+    case "joker_yellow":
+      // Orta tonlu, meraklı (sarı harf).
+      tone(587, 0.1, "triangle", 0, 0.9); tone(740, 0.16, "triangle", 0.1, 0.8); break;
+    case "joker_time":
+      // "Zaman kazandın" — hafif yükselen çift nota.
+      tone(523, 0.1, "sine", 0, 0.9); tone(659, 0.1, "sine", 0.1, 0.9); tone(880, 0.16, "sine", 0.2, 0.8); break;
     case "tick": {
       // Yumuşak tık. intensity 0..1 -> ses seviyesi ve hafif tizlik artar.
       const it = opts?.intensity ?? 0;

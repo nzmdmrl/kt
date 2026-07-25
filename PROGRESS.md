@@ -818,3 +818,58 @@ Admin panele TOPLU kelime yükleme eklenecek:
 - DB tabanlı (words tablosu), refresh_pools ile havuz güncellenir.
 - Not: geçersiz uzunluk/şekil olanları atla, kaç eklendi/kaç atlandı raporu döndür.
 Nazım bu işi en son yapmak istiyor (önce temiz listeyi kendi hazırlayacak).
+
+## Faz 11 — DİL LİSTESİ GÜNCELLENDİ (Nazım, 15 dil)
+Önceki plan 6 dildi; Nazım 15 dile çıkardı. Sıralamasıyla:
+1. 🇬🇧 English (en)
+2. 🇪🇸 Español (es)
+3. 🇵🇹 Português (pt)
+4. 🇫🇷 Français (fr)
+5. 🇩🇪 Deutsch (de)
+6. 🇮🇹 Italiano (it)
+7. 🇹🇷 Türkçe (tr)
+8. 🇳🇱 Nederlands (nl)
+9. 🇵🇱 Polski (pl)
+10. 🇷🇴 Română (ro)
+11. 🇸🇪 Svenska (sv)
+12. 🇩🇰 Dansk (da)
+13. 🇳🇴 Norsk (no)
+14. 🇫🇮 Suomi (fi)
+15. 🇨🇿 Čeština (cs)
+Her dil için gerekecek: arayüz çevirisi (i18n), o dile ait KELİME HAVUZU (4/5/6 harf,
+üye+bot), dile bağlı bot tahmin üretici, çok dilli SEO (hreflang, meta, URL yapısı).
+NOT: Kelime havuzları en büyük iş — her dil için binlerce kelime + geçerlilik/aksан
+(ç,ğ,ü / ñ / ą,ę / å,ø / ě,ř vb.) kuralları. Aşamalı yapılmalı.
+
+## Faz 11 STRATEJİSİ netleşti (Nazım) — SONRAYA ERTELENDİ
+- Faz 11 (çoklu dil) ŞİMDİ YAPILMAYACAK. Önce YENİ ÖZELLİKLER var.
+- Nazım kelime havuzlarını her dil için AYRI bir alandan import edecek (kendisi).
+- MİMARİ KARAR: Nazım "her dil için ayrı uygulama yapacağım" diyor -> muhtemelen her dil
+  ayrı deployment/instance (tek kod tabanı, dil başına ayrı DB/domain) modeli.
+- i18n yapıldığında: tüm sistem ilgili dilde çalışacak; VARSAYILAN DİL kullanıcının
+  ülkesine/tarayıcı diline göre otomatik seçilecek (geo veya Accept-Language).
+- Sıraya alındı; önce Nazım'ın isteyeceği yeni özellikler yapılacak.
+
+## Faz YENİ — JOKER SİSTEMİ (Nazım detaylı istek)
+Maç başına oyuncu başına: 🟡 sarı harf×2, 🟢 yeşil harf×1, ⏱️ süre uzatma(+10sn)×1.
+Backend (match.py):
+- Match.jokers: oyuncu başına haklar; admin ayarından okunur (jokers_enabled kapalıysa hepsi 0).
+- use_joker(pid, kind): yeşil=doğru yere harf, sarı=kelimede olan harfi YANLIŞ yere,
+  time=+10sn. Kullanınca buzzer o oyuncuya geçer (turn devri). Hak/koşul kontrolü.
+- can_use_letter_joker: bilinen ek harf < length-3 (4:0, 5:0-1, 6:0-2 aktif; eşikte pasif).
+  RoundState.known_extra_letters (yeşiller + joker yeşilleri). joker_greens/yellows round'da,
+  tahmin yapılınca temizlenir (sadece o tahminde geçerli).
+- RoundState.to_public: joker_greens/yellows gider. jokers_public: haklar + enabled.
+- room.handle_joker: use_joker + joker_used broadcast + buzzer_taken + state.
+- match.py WS action=joker. broadcast_state'e jokers eklendi.
+Frontend:
+- useMatch: useJoker + jokers state.
+- MatchGame: JokerColumn (grid solunda dikey, kalan hak rozeti, koşula göre aktif/pasif,
+  enabled=false ise gizli). canUseJokerNow (turun başı/sıra bende + aktif). joker_used ->
+  ses + rakip kullanınca POPUP (bildirim alanında 2.5sn, fadeIn). Grid DraftLine joker
+  yeşil/sarı harfleri renkli gösterir.
+- lib/sound.ts: joker_yellow/green/time sentetik sesler + admin mp3 slotları (sound_asset).
+Admin: game_setting jokers_enabled(bool) + joker_yellow/green/time_count. yonetim Ayarlar
+sekmesi bool ayarları SWITCH olarak gösterir (anında kaydeder).
+Test: WS joker akışı, yeşil doğru/sarı yanlış yer, koşul (5harf 0-1 aktif/2 pasif),
+kapalıyken hak 0 + gizli. Build ok. Bot joker kullanmaz (sadece insan).

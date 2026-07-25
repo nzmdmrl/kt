@@ -63,6 +63,7 @@ export function useMatch(
   const [lastEvent, setLastEvent] = useState<ServerMessage | null>(null);
   const [error, setError] = useState<string>("");
   const [flash, setFlash] = useState<string>(""); // geçici bildirim (buzzer, timeout)
+  const [jokers, setJokers] = useState<any>(null); // oyuncu başına kalan joker hakları
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
@@ -86,6 +87,7 @@ export function useMatch(
       switch (msg.type) {
         case "state":
           setState(msg.state);
+          if ((msg as any).jokers) setJokers((msg as any).jokers);
           break;
         case "error":
           setError(msg.message);
@@ -121,9 +123,10 @@ export function useMatch(
   const buzzer = useCallback(() => send({ action: "buzzer" }), [send]);
   const guess = useCallback((word: string) => send({ action: "guess", word }), [send]);
   const emote = useCallback((emoji: string) => send({ action: "emote", emoji }), [send]);
+  const useJoker = useCallback((kind: string) => send({ action: "joker", kind }), [send]);
   const rematchRequest = useCallback(() => send({ action: "rematch_request" }), [send]);
   const rematchAccept = useCallback(() => send({ action: "rematch_accept" }), [send]);
   const rematchDecline = useCallback(() => send({ action: "rematch_decline" }), [send]);
 
-  return { connected, state, lastEvent, error, flash, buzzer, guess, emote, rematchRequest, rematchAccept, rematchDecline };
+  return { connected, state, lastEvent, error, flash, buzzer, guess, emote, useJoker, jokers, rematchRequest, rematchAccept, rematchDecline };
 }
