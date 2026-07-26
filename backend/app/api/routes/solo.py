@@ -139,22 +139,50 @@ class FinishIn(BaseModel):
     seconds_left: int
 
 
+class HintIn(BaseModel):
+    known_positions: list[int] = []   # oyuncunun bildiği (yeşil) konumlar (ilk harf 0 dahil)
+
+
 @router.post("/level/{level}/hint")
-async def level_hint(level: int, pos: int, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    """Joker: bir konumdaki doğru harfi açar. Sunucu hedefi bildiği için o konumun harfini döner."""
+async def level_hint(level: int, data: HintIn, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    """Joker (SARI mantığı): kelimede olan ama farklı konumdaki bir harfi, gerçek yeri
+    olmayan bir konuma sarı olarak gösterir. Maçtaki sarı joker ile aynı.
+
+    Kullanılabilirlik kuralı (maçtaki gibi): ilk harf hariç bilinen harf sayısı < (uzunluk-3)
+    olmalı (4h:0, 5h:0-1, 6h:0-2 bilinen harfte aktif)."""
+    import random
+
     prog = await _get_progress(db, user.id)
     if level > prog.current_level:
         raise HTTPException(403, "Bu level henüz açık değil.")
     lang = get_settings().GAME_LANG
     length = solo_service.level_length(level)
-    if pos < 0 or pos >= length:
-        raise HTTPException(400, "Geçersiz konum.")
     existing = (await db.execute(
         select(SoloLevelResult).where(SoloLevelResult.user_id == user.id, SoloLevelResult.level == level)
     )).scalar_one_or_none()
     use_attempt = (existing.attempts + 1) if existing else 0
     target = solo_service.solo_word(user.id, level, use_attempt, lang)
-    return {"pos": pos, "letter": target[pos] if pos < len(target) else ""}
+
+    # Bilinen konumlar (ilk harf her zaman açık).
+    known = {0} | {p for p in data.known_positions if 0 <= p < length}
+    # Kullanılabilirlik kuralı: ilk harf hariç bilinen harf < (length - 3).
+    known_extra = len(known - {0})
+    if known_extra >= (length - 3):
+        raise HTTPException(409, "Bu kelimede joker kullanılamaz (çok fazla harf biliniyor).")
+
+    unknown_positions = [i for i in range(length) if i not in known]
+    if not unknown_positions:
+        raise HTTPException(409, "Açılacak harf kalmadı.")
+
+    # Kelimede olan, bilinmeyen bir harfi seç; gerçek yeri OLMAYAN bir konuma sarı koy.
+    unknown_letters = list({target[i] for i in unknown_positions})
+    letter = random.choice(unknown_letters)
+    real_positions = {i for i in range(length) if target[i] == letter}
+    slot_candidates = [i for i in unknown_positions if i not in real_positions]
+    if not slot_candidates:
+        slot_candidates = list(unknown_positions)
+    slot = random.choice(slot_candidates)
+    return {"pos": slot, "letter": letter, "state": "present"}
 
 
 @router.post("/level/{level}/finish")

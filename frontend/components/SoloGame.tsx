@@ -95,26 +95,36 @@ export default function SoloGame({ level, onExit, onComplete }: {
     }
   }, [info, status, draft, rows, level, secondsLeft]);
 
-  // Joker: bilinmeyen bir konumdaki doğru harfi aç (ipucu satırında gösterilir).
-  function useJoker() {
-    if (jokerLeft <= 0 || !info || status !== "playing") return;
-    // Zaten yeşil bilinen konumları çıkar.
-    const known = new Set<number>();
+  // Bu turda bilinen (yeşil) konumlar — joker kuralı ve hint için.
+  function knownPositions(): number[] {
+    const known = new Set<number>([0]); // ilk harf hep açık
     rows.forEach((row) => row.forEach((t, i) => { if (t.state === "correct") known.add(i); }));
-    const candidates: number[] = [];
-    for (let i = 0; i < info.length; i++) if (!known.has(i)) candidates.push(i);
-    if (candidates.length === 0) return;
-    const pos = candidates[Math.floor(Math.random() * candidates.length)];
-    // Harfi öğrenmek için sunucudan doğru kelimeyi bilmiyoruz; ilk harf hariç
-    // joker'i "bir tahmin daha yaparak" değil, sunucu ipucu ile vermeliyiz.
-    // Basit yol: ilk harf zaten belli; joker bir sonraki bilinmeyen harfi açsın.
-    fetch(apiUrl(`/api/solo/level/${level}/hint?pos=${pos}`), { method: "POST", headers: headers() })
+    if (jokerHint) known.add(jokerHint.pos); // sarı gösterilen konum da "kullanıldı" sayılmaz ama tekrar açmasın
+    return Array.from(known);
+  }
+
+  // Joker kullanılabilir mi? (maçtaki kural: ilk harf hariç bilinen harf < uzunluk-3)
+  function canUseJoker(): boolean {
+    if (!info || jokerLeft <= 0) return false;
+    const known = new Set<number>([0]);
+    rows.forEach((row) => row.forEach((t, i) => { if (t.state === "correct") known.add(i); }));
+    const extra = known.size - 1; // ilk harf hariç
+    return extra < (info.length - 3);
+  }
+
+  // Joker (SARI): kelimede olan bir harfi, gerçek yeri olmayan bir konuma sarı gösterir.
+  function useJoker() {
+    if (!canUseJoker() || status !== "playing") return;
+    fetch(apiUrl(`/api/solo/level/${level}/hint`), {
+      method: "POST", headers: headers(),
+      body: JSON.stringify({ known_positions: knownPositions() }),
+    })
       .then((r) => r.json())
       .then((d) => {
         if (d.letter) {
-          setJokerHint({ pos, letter: d.letter });
+          setJokerHint({ pos: d.pos, letter: d.letter });
           setJokerLeft((j) => j - 1);
-          playSound("joker_green");
+          playSound("joker_yellow");
         }
       })
       .catch(() => {});
@@ -167,17 +177,17 @@ export default function SoloGame({ level, onExit, onComplete }: {
         {status === "playing" && (
           <button
             onClick={useJoker}
-            disabled={jokerLeft <= 0}
-            title="Joker: bir harf aç"
+            disabled={!canUseJoker()}
+            title={jokerLeft <= 0 ? "Joker hakkın bitti" : !canUseJoker() ? "Bu kelimede joker kullanılamaz" : "Joker: kelimede olan bir harfi göster"}
             style={{
               position: "absolute", left: 4, top: 0, zIndex: 20,
               width: 44, height: 44, borderRadius: "50%",
               border: "2px solid #D4AF37",
-              background: jokerLeft > 0 ? "linear-gradient(145deg,#FFD86B,#D4AF37)" : "var(--bg-elevated)",
-              color: jokerLeft > 0 ? "#4a3b00" : "var(--text-dim)",
-              cursor: jokerLeft > 0 ? "pointer" : "not-allowed", fontWeight: 800, fontSize: 18,
-              fontFamily: "var(--font-display)", opacity: jokerLeft > 0 ? 1 : 0.5,
-              boxShadow: jokerLeft > 0 ? "0 2px 10px rgba(212,175,55,.5)" : "none",
+              background: canUseJoker() ? "linear-gradient(145deg,#FFD86B,#D4AF37)" : "var(--bg-elevated)",
+              color: canUseJoker() ? "#4a3b00" : "var(--text-dim)",
+              cursor: canUseJoker() ? "pointer" : "not-allowed", fontWeight: 800, fontSize: 18,
+              fontFamily: "var(--font-display)", opacity: canUseJoker() ? 1 : 0.5,
+              boxShadow: canUseJoker() ? "0 2px 10px rgba(212,175,55,.5)" : "none",
               display: "grid", placeItems: "center",
             }}
           >
@@ -200,10 +210,18 @@ export default function SoloGame({ level, onExit, onComplete }: {
                   letter = row[j].letter;
                   bg = TILE_COLOR[row[j].state];
                   border = "none";
+                } else if (isCurrent && j < draft.length) {
+                  // Kullanıcı bu kutuya yazdı — draft öncelikli.
+                  letter = draft[j];
+                  color = "var(--text-strong)";
+                } else if (jokerHint && jokerHint.pos === j) {
+                  // Joker ile açılan sarı harf — arka plan sarı (maçtaki sarı joker gibi).
+                  letter = jokerHint.letter;
+                  bg = "var(--tile-present)";
+                  color = "#fff";
+                  border = "none";
                 } else if (isCurrent) {
-                  if (j < draft.length) { letter = draft[j]; color = "var(--text-strong)"; }
-                  else if (j === 0 && draft.length === 0) { letter = info.first_letter; color = "var(--text-dim)"; }
-                  else if (jokerHint && jokerHint.pos === j && draft.length <= j) { letter = jokerHint.letter; color = "var(--accent)"; }
+                  if (j === 0 && draft.length === 0) { letter = info.first_letter; color = "var(--text-dim)"; }
                 }
                 return (
                   <span key={j} style={{

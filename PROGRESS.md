@@ -1271,3 +1271,12 @@ sadece toplanır (profil). SONRA: solo sıralama tablosu, yıldız->joker ödül
 2) Joker konumu: SoloGame'de input satırındaydı -> maçtaki gibi grid'i saran relative div içinde
    sol üstte YÜZEN J butonu (position absolute left:4 top:0, altın gradient, hak rozeti).
 Frontend+backend. Build ok.
+
+## Solo joker: sarı mantığı + kullanılabilirlik kuralı (Nazım)
+- Backend hint: artık SARI (maçtaki gibi) — kelimede olan bilinmeyen bir harfi, gerçek yeri
+  OLMAYAN bir konuma "present" (sarı) koyar. POST body {known_positions}. Kural: ilk harf hariç
+  bilinen harf < (length-3) -> 4h:0, 5h:0-1, 6h:0-2 aktif; aşılırsa 409.
+- Frontend SoloGame: canUseJoker() (aynı kural, buton pasif/pasif görünüm), knownPositions()
+  body'ye gönderilir, jokerHint sarı ARKA PLANLA (var(--tile-present)) grid'de gösterilir
+  (draft öncelikli - üzerine yazılınca kaybolmaz çakışması giderildi), joker_yellow sesi.
+Test: sarı harf kelimede+yanlış konumda ✓, 5h 2 bilinen -> 409 ✓. Build ok.
