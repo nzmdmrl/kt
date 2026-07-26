@@ -1205,3 +1205,9 @@ mobilde kırpılıyor/taşıyordu. Çözüm: menü position:FIXED, buton getBoun
 ölçülüp menuPos {top: bottom+6, right: max(8, innerWidth-buton.right)} hesaplanır +
 maxWidth calc(100vw-16px). Artık parent overflow'dan bağımsız, hep ekran içinde. zIndex 1000.
 Frontend only. Build ok.
+
+## Tema menüsü mobil taşma fix-2 (Nazım: düzelmedi)
+İlk fix (right tabanlı) yetmedi. Yeni: menü sabit width 150, toggle'da buton rect'ten
+left = r.right - 150 hesaplanır, sonra clamp: left<8 -> 8; left+150 > innerWidth-8 ->
+innerWidth-8-150. position:fixed left/top. Sol VE sağ kenar taşması matematiksel engellendi.
+Frontend only. Build ok.

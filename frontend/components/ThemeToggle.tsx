@@ -15,7 +15,7 @@ export default function ThemeToggle() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
-  const [menuPos, setMenuPos] = useState<{ top: number; right: number }>({ top: 0, right: 0 });
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
 
   useEffect(() => {
     setMode(getThemeMode());
@@ -35,7 +35,13 @@ export default function ThemeToggle() {
   function toggle() {
     if (!open && btnRef.current) {
       const r = btnRef.current.getBoundingClientRect();
-      setMenuPos({ top: r.bottom + 6, right: Math.max(8, window.innerWidth - r.right) });
+      const MENU_W = 150;
+      // Menünün sol kenarı: butonun sağ hizasından menü genişliği kadar sola.
+      let left = r.right - MENU_W;
+      // Ekranın sol/sağ kenarına taşmayı engelle (8px pay).
+      if (left < 8) left = 8;
+      if (left + MENU_W > window.innerWidth - 8) left = window.innerWidth - 8 - MENU_W;
+      setMenuPos({ top: r.bottom + 6, left });
     }
     setOpen((v) => !v);
   }
@@ -60,11 +66,11 @@ export default function ThemeToggle() {
 
       {open && (
         <div style={{
-          position: "fixed", right: menuPos.right, top: menuPos.top,
+          position: "fixed", left: menuPos.left, top: menuPos.top,
           display: "flex", flexDirection: "column", gap: 2,
           background: "var(--bg-panel)", border: "1px solid var(--border-soft)",
           borderRadius: 12, boxShadow: "var(--shadow-soft)", zIndex: 1000, padding: 4,
-          animation: "fadeIn .15s ease", minWidth: 130, maxWidth: "calc(100vw - 16px)",
+          animation: "fadeIn .15s ease", width: 150,
         }}>
           {OPTIONS.map((o) => (
             <button
