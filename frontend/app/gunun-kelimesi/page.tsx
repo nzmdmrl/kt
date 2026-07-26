@@ -3,7 +3,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { apiUrl, getJSON } from "@/lib/api";
 import { toUpperTr } from "@/lib/turkish";
+import { playSound, initSound } from "@/lib/sound";
 import Logo from "@/components/Logo";
+import SoundToggle from "@/components/SoundToggle";
 
 type Tile = { letter: string; state: "correct" | "present" | "absent" };
 type DailyInfo = { date: string; length: number; first_letter: string };
@@ -23,6 +25,7 @@ export default function DailyPage() {
   const [err, setErr] = useState("");
 
   useEffect(() => {
+    initSound(true, 70);
     getJSON<DailyInfo>("/api/daily/word?length=5")
       .then((d) => { setInfo(d); setDraft(""); })
       .catch(() => setErr("Günün kelimesi yüklenemedi"));
@@ -35,12 +38,24 @@ export default function DailyPage() {
     try {
       const res = await fetch(apiUrl(`/api/daily/check?guess=${encodeURIComponent(draft)}&length=${info.length}`));
       const data = await res.json();
-      if (!data.valid) { setErr(data.error || "Geçersiz"); return; }
+      if (!data.valid) { setErr(data.error || "Geçersiz"); playSound("wrong"); return; }
       const newRows = [...rows, data.tiles];
       setRows(newRows);
       setDraft("");
-      if (data.correct) setStatus("won");
-      else if (newRows.length >= MAX_ROWS) setStatus("lost");
+      // Her harfin rengine göre sırayla ses çal (soldan sağa, ~140ms arayla).
+      data.tiles.forEach((t: Tile, idx: number) => {
+        setTimeout(() => {
+          playSound(t.state === "correct" ? "tile_correct" : t.state === "present" ? "tile_present" : "tile_absent");
+        }, idx * 140);
+      });
+      const afterTiles = data.tiles.length * 140 + 200;
+      if (data.correct) {
+        setStatus("won");
+        setTimeout(() => playSound("win"), afterTiles);
+      } else if (newRows.length >= MAX_ROWS) {
+        setStatus("lost");
+        setTimeout(() => playSound("lose"), afterTiles);
+      }
     } catch {
       setErr("Bağlantı hatası");
     }
@@ -153,7 +168,10 @@ export default function DailyPage() {
 function Wrap({ children }: { children: React.ReactNode }) {
   return (
     <main style={{ flex: 1, maxWidth: 520, width: "100%", margin: "0 auto", padding: "24px 18px 60px" }}>
-      <div style={{ marginBottom: 20 }}><a href="/"><Logo size={36} /></a></div>
+      <div style={{ marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <a href="/"><Logo size={36} /></a>
+        <SoundToggle />
+      </div>
       {children}
     </main>
   );

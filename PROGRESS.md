@@ -1211,3 +1211,12 @@ Frontend only. Build ok.
 left = r.right - 150 hesaplanır, sonra clamp: left<8 -> 8; left+150 > innerWidth-8 ->
 innerWidth-8-150. position:fixed left/top. Sol VE sağ kenar taşması matematiksel engellendi.
 Frontend only. Build ok.
+
+## Günün Kelimesi ses düzeltmesi (Nazım — bu modda ses yoktu)
+app/gunun-kelimesi/page.tsx: initSound(true,70) eklendi. Tahmin gönderilince her harf rengine
+göre sırayla ses (tile_correct/present/absent, 140ms arayla), geçersizde "wrong", kazanınca
+"win", kaybedince "lose" (harfler bittikten sonra). Üst bara SoundToggle eklendi (aç/kapa).
+Frontend only. Build ok.
+SONRAKİ PLAN (Nazım sıralaması): 1)✓ günün kelimesi ses, 2) profilde o profilin son maçları,
+3) arkadaşlık sistemi (arkadaş ekle/kabul), 4) 2v2 TAKIM MAÇI (arkadaşlık üstüne, BÜYÜK İŞ —
+maç motoru 2->4 oyuncu, takım skoru/buzzer). Sırayla parça parça.
