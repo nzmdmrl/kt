@@ -155,10 +155,32 @@ export default function SoloGame({ level, onExit, onComplete }: {
 
   return (
     <div style={{ maxWidth: 480, margin: "0 auto", padding: "16px 16px 40px" }}>
-      {/* Üst bar: çıkış + level + süre */}
+      {/* Üst bar: çıkış + level + joker + süre */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
         <button onClick={() => { stopTicking(); onExit(); }} style={{ background: "var(--bg-panel)", border: "1px solid var(--border-soft)", borderRadius: "50%", width: 36, height: 36, cursor: "pointer", fontSize: 18, color: "var(--text-strong)" }}>←</button>
-        <span className="brand-mono" style={{ fontSize: 18 }}>Level {level}</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span className="brand-mono" style={{ fontSize: 18 }}>Level {level}</span>
+          {status === "playing" && (
+            <button
+              onClick={useJoker}
+              disabled={!canUseJoker()}
+              title={jokerLeft <= 0 ? "Joker hakkın bitti" : !canUseJoker() ? "Bu kelimede joker kullanılamaz" : "Joker: kelimede olan bir harfi göster"}
+              style={{
+                width: 38, height: 38, borderRadius: "50%", flexShrink: 0,
+                border: "2px solid #D4AF37",
+                background: canUseJoker() ? "linear-gradient(145deg,#FFD86B,#D4AF37)" : "var(--bg-elevated)",
+                color: canUseJoker() ? "#4a3b00" : "var(--text-dim)",
+                cursor: canUseJoker() ? "pointer" : "not-allowed", fontWeight: 800, fontSize: 16,
+                fontFamily: "var(--font-display)", opacity: canUseJoker() ? 1 : 0.5,
+                boxShadow: canUseJoker() ? "0 2px 8px rgba(212,175,55,.5)" : "none",
+                display: "grid", placeItems: "center", position: "relative",
+              }}
+            >
+              J
+              {jokerLeft > 0 && <span style={{ position: "absolute", right: -3, top: -3, minWidth: 15, height: 15, borderRadius: "50%", background: "var(--accent)", color: "#1a1330", fontSize: 9, fontWeight: 700, display: "grid", placeItems: "center" }}>{jokerLeft}</span>}
+            </button>
+          )}
+        </div>
         <span className="brand-mono" style={{ fontSize: 22, color: timeColor, minWidth: 54, textAlign: "right" }}>{secondsLeft}s</span>
       </div>
       {/* Süre çubuğu */}
@@ -172,29 +194,8 @@ export default function SoloGame({ level, onExit, onComplete }: {
         </p>
       )}
 
-      {/* Izgara + yüzen joker (maçtaki gibi sol üstte) */}
-      <div style={{ position: "relative" }}>
-        {status === "playing" && (
-          <button
-            onClick={useJoker}
-            disabled={!canUseJoker()}
-            title={jokerLeft <= 0 ? "Joker hakkın bitti" : !canUseJoker() ? "Bu kelimede joker kullanılamaz" : "Joker: kelimede olan bir harfi göster"}
-            style={{
-              position: "absolute", left: 4, top: 0, zIndex: 20,
-              width: 44, height: 44, borderRadius: "50%",
-              border: "2px solid #D4AF37",
-              background: canUseJoker() ? "linear-gradient(145deg,#FFD86B,#D4AF37)" : "var(--bg-elevated)",
-              color: canUseJoker() ? "#4a3b00" : "var(--text-dim)",
-              cursor: canUseJoker() ? "pointer" : "not-allowed", fontWeight: 800, fontSize: 18,
-              fontFamily: "var(--font-display)", opacity: canUseJoker() ? 1 : 0.5,
-              boxShadow: canUseJoker() ? "0 2px 10px rgba(212,175,55,.5)" : "none",
-              display: "grid", placeItems: "center",
-            }}
-          >
-            J
-            {jokerLeft > 0 && <span style={{ position: "absolute", right: -3, top: -3, minWidth: 16, height: 16, borderRadius: "50%", background: "var(--accent)", color: "#1a1330", fontSize: 10, fontWeight: 700, display: "grid", placeItems: "center" }}>{jokerLeft}</span>}
-          </button>
-        )}
+      {/* Izgara */}
+      <div>
         <div style={{ display: "grid", gap: 6, justifyContent: "center", marginBottom: 18 }}>
         {Array.from({ length: totalRows }).map((_, i) => {
           const row = rows[i];

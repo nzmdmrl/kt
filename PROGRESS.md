@@ -1280,3 +1280,9 @@ Frontend+backend. Build ok.
   body'ye gönderilir, jokerHint sarı ARKA PLANLA (var(--tile-present)) grid'de gösterilir
   (draft öncelikli - üzerine yazılınca kaybolmaz çakışması giderildi), joker_yellow sesi.
 Test: sarı harf kelimede+yanlış konumda ✓, 5h 2 bilinen -> 409 ✓. Build ok.
+
+## Solo joker konumu üst bara taşındı (Nazım)
+Yüzen joker (grid üstü sol) kaldırıldı; üst bara "Level X" yazısının SAĞINA taşındı (38px daire,
+altın gradient, hak rozeti, canUseJoker kuralı). Frontend only. Build ok.
+NOT: "asdf kabul etmiyor" -> DOĞRU davranış. asdf gerçek kelime değil (ne havuzda ne frekans
+listesinde), reddedilmeli. KALE/ANLA gibi gerçek kelimeler kabul. Nazım'a soruldu.
