@@ -1170,3 +1170,24 @@ Düzeltme:
 Not: Nazım'ın önerdiği KİLİM/KELAM denendi ama L/M pozisyonları hedefle çakışıp yeşil çıkıyordu
 (sarı değil); KİTAP tek satırda üç rengi net gösterdiği için tercih edildi.
 Build ok.
+
+## KELİME BANKASI KALİTE (Nazım — "duymadığım kelime çok") — FREKANS FİLTRESİ
+Sorun: hedef havuzunda çok fazla nadir/arkaik kelime (ABACI, ABADİ...). Havuzun %51-74'ü
+frekans listesinde HİÇ yok.
+ÇÖZÜM (iki liste mimarisi + frekans):
+- Frekans kaynağı: hermitdave/FrequencyWords TR 50k (OpenSubtitles) -> data/tr_freq_50k.txt (696K).
+- app/words/rebuild_pools_by_freq.py: her kelimeye freq rank'e göre member/bot/difficulty atar.
+  HEDEF (member=True) = rank < TARGET_THRESHOLD(12000). difficulty: <4k kolay, <12k orta, gerisi zor.
+  active=True HEPSİ (geniş kabul). Çalıştırıldı -> tr_N_pool.json güncellendi.
+  Hedef sayıları: 4h=466, 5h=915, 6h=558 (toplam 1939). Kabul: 1953+5108+5266=12327.
+- İKİ LİSTE: member=True yaygın kelimeler MAÇTA SORULUR; member=False sadece KABUL edilir
+  (oyuncu yazarsa geçerli, ama hedef seçilmez). WordPool zaten member/all_words ayrımı yapıyordu +
+  DEFAULT_SELECTABLE={kolay,orta} ile çakışıyor (rank<12k zaten kolay/orta).
+- word_service.resync_flags_from_json(db): JSON bayraklarını mevcut DB'ye uygular (kelime
+  silmeden). main.py startup: GameSetting "freq_resync_v1" damgası yoksa BİR KEZ çalışır +
+  damgalar (admin değişikliklerini sonradan ezmez).
+Test: hedef örnekleri artık tanıdık (KİTAP,ÇÖZÜM,DAKİKA,BEDAVA). ABACI hedef değil ama is_valid
+True. Canlı DB sim: 11335 bayrak güncellendi, hedef 1939'a indi, kabul 12327 kaldı. Build ok.
+İNCE AYAR: admin panel /words?filter=member ile hedef havuzu görülüp kalan kenar kelimeler
+(BATMAN, AMANIN vb.) elle çıkarılabilir. Eşik 12000 değiştirilebilir (rebuild_pools_by_freq
+TARGET_THRESHOLD).

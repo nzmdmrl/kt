@@ -127,6 +127,45 @@ async def seed_words_from_json(db: AsyncSession) -> int:
     return added
 
 
+async def resync_flags_from_json(db: AsyncSession) -> int:
+    """
+    JSON havuzlarındaki member/bot/difficulty bayraklarını mevcut DB kelimelerine
+    uygular (kelime silmeden/eklemeden, sadece bayrak günceller). Frekans filtresini
+    canlı DB'ye yaymak için kullanılır. Güncellenen satır sayısını döner.
+
+    Admin panelden elle değiştirilenleri EZER — bu kasıtlı: frekans temizliği
+    otoritedir. Sadece bir kez (versiyon damgasıyla) çalıştırılır.
+    """
+    from app.models.word import Word
+    from sqlalchemy import select as _select
+
+    updated = 0
+    for length in (4, 5, 6):
+        path = DATA / f"tr_{length}_pool.json"
+        if not path.exists():
+            continue
+        try:
+            items = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        by_word = {it["word"]: it for it in items}
+        rows = (await db.execute(_select(Word).where(Word.length == length))).scalars().all()
+        for row in rows:
+            it = by_word.get(row.word)
+            if not it:
+                continue
+            new_member = it.get("member", True)
+            new_bot = it.get("bot", True)
+            new_diff = it.get("difficulty", "orta")
+            if row.member != new_member or row.bot != new_bot or row.difficulty != new_diff:
+                row.member = new_member
+                row.bot = new_bot
+                row.difficulty = new_diff
+                updated += 1
+    await db.commit()
+    return updated
+
+
 def pool_stats() -> dict:
     stats = {}
     for n in (4, 5, 6):

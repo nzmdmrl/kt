@@ -92,11 +92,24 @@ async def on_startup():
     # Kelime havuzunu DB'ye seed et (ilk kez) ve bellek havuzlarını yükle.
     try:
         from app.core.database import AsyncSessionLocal
-        from app.words.word_service import seed_words_from_json, refresh_pools
+        from app.words.word_service import seed_words_from_json, refresh_pools, resync_flags_from_json
         async with AsyncSessionLocal() as db:
             added = await seed_words_from_json(db)
             if added:
                 print(f"[startup] {added} kelime DB'ye seed edildi.")
+            # Frekans temizliği: member/bot/difficulty bayraklarını bir kez uygula.
+            # GameSetting damgası ile sadece bir defa çalışır (sonra admin değişikliklerini ezmez).
+            try:
+                from app.models.game_setting import GameSetting
+                from sqlalchemy import select as _sel
+                stamp = (await db.execute(_sel(GameSetting).where(GameSetting.key == "freq_resync_v1"))).scalar_one_or_none()
+                if stamp is None:
+                    updated = await resync_flags_from_json(db)
+                    db.add(GameSetting(key="freq_resync_v1", value="done"))
+                    await db.commit()
+                    print(f"[startup] Frekans resync: {updated} kelime bayrağı güncellendi.")
+            except Exception as e:
+                print(f"[startup] Frekans resync atlandı: {e}")
             await refresh_pools(db)
     except Exception as e:
         print(f"[startup] Kelime havuzu yüklenemedi: {e}")
