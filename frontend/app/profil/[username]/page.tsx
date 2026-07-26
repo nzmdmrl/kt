@@ -28,6 +28,7 @@ type Profile = {
   trophies: number;
   medals: number;
   ranks: { daily: number | null; monthly: number | null; all: number | null };
+  solo?: { level: number; stars: number };
 };
 
 export default function ProfilePage({ params }: { params: { username: string } }) {
@@ -177,6 +178,14 @@ export default function ProfilePage({ params }: { params: { username: string } }
         <Stat label="Kelime" value={profile.stats.words_solved} />
         <Stat label="Puan" value={profile.stats.total_score} />
       </div>
+
+      {/* Solo mod */}
+      {profile.solo && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 24 }}>
+          <Stat label="🗺️ Solo Level" value={profile.solo.level} accent />
+          <Stat label="⭐ Solo Yıldız" value={profile.solo.stars} />
+        </div>
+      )}
 
       {/* Lig sıraları */}
       <SectionTitle>Lig Sıraları</SectionTitle>

@@ -1235,3 +1235,30 @@ Test: matches endpoint perspektif doğru ✓. Build ok.
 ## Günün Kelimesi buton sırası (Nazım)
 Mikrofon ve Dene butonu yer değişti: input -> 🎤 -> Dene (1v1 maçtaki sırayla tutarlı).
 Frontend only. Build ok.
+
+## SOLO / HİKAYE MODU (Nazım — büyük özellik, tek pakette backend+frontend)
+Yapı: yol haritası (Candy Crush tarzı), her kullanıcıya özel kelimeler, level bazlı.
+Backend:
+- models/solo.py: SoloProgress(user_id PK, current_level=1, total_stars), SoloLevelResult
+  (user+level unique, best_stars, attempts). database.py init import + main.py router.
+- game/solo_service.py: level_length (10'lu blok deseni [4,5,4,5,6,4,5,6,5,6] = 3x4h,4x5h,3x6h),
+  solo_word(user,level,attempt) deterministik (hash, attempt++ -> tekrar oynayınca kelime değişir),
+  stars_for(sec_left,s3,s2).
+- api/routes/solo.py: GET /solo/progress, POST /level/{n}/start (uzunluk+ilk harf+süre+joker+replay),
+  /guess (tiles+correct, sunucu hedefi üretir istemci görmez), /finish (seconds_left -> yıldız,
+  en iyi yıldız saklanır total'a delta eklenir, sonraki level açılır), /hint?pos (joker: o konumun
+  doğru harfi). SINIRSIZ tahmin. Level açık değilse 403.
+- game_setting.py: solo_seconds(120), solo_star3_min(80), solo_star2_min(30),
+  solo_joker_per_level(1). Admin panelde otomatik görünür.
+- profile.py: profil yanıtına "solo" {level, stars}.
+Frontend:
+- components/SoloGame.tsx: süre çubuğu+geri sayım, sınırsız grid (min 6 satır, büyür), joker J
+  butonu (hint ile bir harf açar, level başına hak), sesli cevap (🎤), input->🎤->Dene sırası,
+  ses (harf renkleri/win/lose/tick), kazanınca yıldız animasyonu+sonraki level, süre bitince
+  tekrar dene. replay ise "farklı kelime" uyarısı.
+- app/solo/page.tsx: yol haritası (zikzak daireler, aşağıdan yukarı, current vurgulu, kilitli 🔒,
+  tamamlanan yıldızlı). Tıkla -> SoloGame. Giriş yoksa uyarı. Üstte toplam ⭐.
+- app/page.tsx: "🗺️ Solo Mod" linki. profil: Solo Level + Solo Yıldız statları.
+Test: start/guess/finish/hint/progress, yıldız hesabı (90->3,20->1), admin ayarları, profil solo ✓.
+Build ok. KARARLAR: sınırsız hak; tekrar oynayınca kelime değişir (replay uyarısı); yıldız şimdilik
+sadece toplanır (profil). SONRA: solo sıralama tablosu, yıldız->joker ödülü, bölge/tema temaları.

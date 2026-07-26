@@ -73,6 +73,14 @@ async def _build_profile(db: AsyncSession, user: User) -> dict:
     monthly = await user_rank(db, user.id, scope="monthly")
     all_time = await user_rank(db, user.id, scope="all")
 
+    # Solo ilerlemesi (varsa)
+    from app.models.solo import SoloProgress
+    solo = (await db.execute(select(SoloProgress).where(SoloProgress.user_id == user.id))).scalar_one_or_none()
+    solo_info = {
+        "level": solo.current_level if solo else 1,
+        "stars": solo.total_stars if solo else 0,
+    }
+
     return {
         "id": user.id,
         "username": user.username,
@@ -98,6 +106,7 @@ async def _build_profile(db: AsyncSession, user: User) -> dict:
             "monthly": monthly["rank"] if monthly else None,
             "all": all_time["rank"] if all_time else None,
         },
+        "solo": solo_info,
     }
 
 

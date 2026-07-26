@@ -41,4 +41,8 @@ DEFAULT_SETTINGS = {
     "joker_yellow_count": {"value": "2", "label": "Sarı harf joker hakkı", "type": "int"},
     "joker_green_count": {"value": "1", "label": "Yeşil harf joker hakkı", "type": "int"},
     "joker_time_count": {"value": "1", "label": "Süre uzatma joker hakkı", "type": "int"},
+    "solo_seconds": {"value": "120", "label": "Solo level süresi (saniye)", "type": "int"},
+    "solo_star3_min": {"value": "80", "label": "Solo 3 yıldız için min kalan süre (sn)", "type": "int"},
+    "solo_star2_min": {"value": "30", "label": "Solo 2 yıldız için min kalan süre (sn)", "type": "int"},
+    "solo_joker_per_level": {"value": "1", "label": "Solo level başına joker hakkı", "type": "int"},
 }
