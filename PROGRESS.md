@@ -1198,3 +1198,10 @@ TARGET_THRESHOLD).
   😊 butonu, tıklayınca 6 emoji açılır (butonun altında, fadeIn). Tur başına 2 hak (disabled).
 - emoteOpen state. Üst aksiyon satırı sadeleşti (ana sayfa + tema + ses; ortada flex boşluk).
 Frontend only. Build ok.
+
+## Tema menüsü mobilde ekran dışına taşıyordu (Nazım)
+Sorun: ThemeToggle açılır menüsü position:absolute right:0 + parent overflowX:hidden ->
+mobilde kırpılıyor/taşıyordu. Çözüm: menü position:FIXED, buton getBoundingClientRect ile
+ölçülüp menuPos {top: bottom+6, right: max(8, innerWidth-buton.right)} hesaplanır +
+maxWidth calc(100vw-16px). Artık parent overflow'dan bağımsız, hep ekran içinde. zIndex 1000.
+Frontend only. Build ok.

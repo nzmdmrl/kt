@@ -14,6 +14,8 @@ export default function ThemeToggle() {
   const [mode, setMode] = useState<"dark" | "light" | "auto">("dark");
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const [menuPos, setMenuPos] = useState<{ top: number; right: number }>({ top: 0, right: 0 });
 
   useEffect(() => {
     setMode(getThemeMode());
@@ -29,12 +31,22 @@ export default function ThemeToggle() {
     return () => document.removeEventListener("mousedown", onClick);
   }, [open]);
 
+  // Menü açılırken buton konumunu ölç; menüyü ekran içinde kalacak şekilde (fixed) yerleştir.
+  function toggle() {
+    if (!open && btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect();
+      setMenuPos({ top: r.bottom + 6, right: Math.max(8, window.innerWidth - r.right) });
+    }
+    setOpen((v) => !v);
+  }
+
   const current = OPTIONS.find((o) => o.mode === mode) || OPTIONS[0];
 
   return (
     <div ref={ref} style={{ position: "relative", flexShrink: 0 }}>
       <button
-        onClick={() => setOpen(!open)}
+        ref={btnRef}
+        onClick={toggle}
         aria-label="Tema"
         title={`Tema: ${current.label}`}
         style={{
@@ -48,10 +60,11 @@ export default function ThemeToggle() {
 
       {open && (
         <div style={{
-          position: "absolute", right: 0, top: 40, display: "flex", flexDirection: "column", gap: 2,
+          position: "fixed", right: menuPos.right, top: menuPos.top,
+          display: "flex", flexDirection: "column", gap: 2,
           background: "var(--bg-panel)", border: "1px solid var(--border-soft)",
-          borderRadius: 12, boxShadow: "var(--shadow-soft)", zIndex: 100, padding: 4,
-          animation: "fadeIn .15s ease", minWidth: 130,
+          borderRadius: 12, boxShadow: "var(--shadow-soft)", zIndex: 1000, padding: 4,
+          animation: "fadeIn .15s ease", minWidth: 130, maxWidth: "calc(100vw - 16px)",
         }}>
           {OPTIONS.map((o) => (
             <button
