@@ -36,6 +36,7 @@ export default function ProfilePage({ params }: { params: { username: string } }
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
   const [editOpen, setEditOpen] = useState(false);
+  const [recentMatches, setRecentMatches] = useState<any[]>([]);
   const [oppStatus, setOppStatus] = useState("");
   const [oppAllow, setOppAllow] = useState(true);
   const [challengeSent, setChallengeSent] = useState(false);
@@ -69,6 +70,10 @@ export default function ProfilePage({ params }: { params: { username: string } }
   useEffect(() => {
     setLoading(true);
     load();
+    // Kullanıcının son maçlarını çek.
+    getJSON<{ matches: any[] }>(`/api/profile/${encodeURIComponent(params.username)}/matches?limit=10`)
+      .then((d) => setRecentMatches(d.matches || []))
+      .catch(() => setRecentMatches([]));
   }, [params.username]);
 
   if (loading) return <Wrap><Centered>Yükleniyor…</Centered></Wrap>;
@@ -188,6 +193,40 @@ export default function ProfilePage({ params }: { params: { username: string } }
           <BadgeCard key={b.code} badge={b} />
         ))}
       </div>
+
+      {/* Son maçlar */}
+      {recentMatches.length > 0 && (
+        <>
+          <SectionTitle>Son Maçlar</SectionTitle>
+          <div style={{ display: "grid", gap: 8 }}>
+            {recentMatches.map((m, i) => {
+              const color = m.result === "win" ? "var(--tile-correct)" : m.result === "loss" ? "var(--accent-hot)" : "var(--text-dim)";
+              const label = m.result === "win" ? "Galibiyet" : m.result === "loss" ? "Mağlubiyet" : "Beraberlik";
+              return (
+                <div key={i} style={{
+                  display: "flex", alignItems: "center", gap: 12, padding: "10px 14px",
+                  background: "var(--bg-panel)", borderRadius: 10,
+                  borderLeft: `3px solid ${color}`,
+                }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color, width: 78, flexShrink: 0 }}>{label}</span>
+                  <div style={{ flex: 1, minWidth: 0, fontSize: 14 }}>
+                    <span style={{ color: "var(--text-dim)" }}>vs </span>
+                    {m.opp_username ? (
+                      <a href={`/profil/${m.opp_username}`} style={{ color: "var(--text-strong)", fontWeight: 600, textDecoration: "none" }}>{m.opp_name}</a>
+                    ) : (
+                      <span style={{ color: "var(--text-strong)", fontWeight: 600 }}>{m.opp_name}</span>
+                    )}
+                    {m.has_bot && <span style={{ color: "var(--text-dim)", fontSize: 12 }}> 🤖</span>}
+                  </div>
+                  <span className="brand-mono" style={{ fontSize: 15, color: "var(--text-strong)", flexShrink: 0 }}>
+                    {m.my_score} : {m.opp_score}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
 
       <div style={{ marginTop: 30, textAlign: "center" }}>
         <a href="/oyna" style={{ color: "var(--accent)", fontWeight: 600 }}>Oyna →</a>

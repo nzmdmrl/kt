@@ -1220,3 +1220,14 @@ Frontend only. Build ok.
 SONRAKİ PLAN (Nazım sıralaması): 1)✓ günün kelimesi ses, 2) profilde o profilin son maçları,
 3) arkadaşlık sistemi (arkadaş ekle/kabul), 4) 2v2 TAKIM MAÇI (arkadaşlık üstüne, BÜYÜK İŞ —
 maç motoru 2->4 oyuncu, takım skoru/buzzer). Sırayla parça parça.
+
+## Günün Kelimesi sesli cevap + Profilde son maçlar (Nazım)
+1) Günün Kelimesi sesli cevap: useSpeech eklendi. Input yanında 🎤 basılı-tut butonu
+   (onPointerDown micStart, Up/Leave stopMicDelayed=1sn gecikme, maçtaki fix ile aynı).
+   onVoiceResult -> draft'a yazar (length'e kırpar). listening'de buton kırmızı. Frontend only.
+2) Profilde son maçlar: backend GET /profile/{username}/matches?limit -> MatchHistory'den
+   or_(p1_username, p2_username) filtreli, kullanıcı perspektifinde (opp_name/opp_username/
+   my_score/opp_score/result win|loss|draw/has_bot). Frontend profil sayfası: "Son Maçlar"
+   bölümü (galibiyet/mağlubiyet/beraberlik renkli borderLeft, rakip linkli, bot 🤖, skor).
+   recentMatches state, params.username değişince çekilir.
+Test: matches endpoint perspektif doğru ✓. Build ok.

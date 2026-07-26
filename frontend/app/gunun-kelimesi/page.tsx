@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { apiUrl, getJSON } from "@/lib/api";
 import { toUpperTr } from "@/lib/turkish";
 import { playSound, initSound } from "@/lib/sound";
+import { useSpeech } from "@/lib/useSpeech";
 import Logo from "@/components/Logo";
 import SoundToggle from "@/components/SoundToggle";
 
@@ -60,6 +61,23 @@ export default function DailyPage() {
       setErr("Bağlantı hatası");
     }
   }, [info, status, draft, rows]);
+
+  // Sesli cevap: mikrofonla söylenen kelimeyi input'a yaz.
+  const onVoiceResult = useCallback((text: string) => {
+    if (!info || status !== "playing") return;
+    const clean = toUpperTr(text).replace(/[^A-ZÇĞİÖŞÜI]/g, "").slice(0, info.length);
+    if (clean.length > 0) setDraft(clean);
+  }, [info, status]);
+
+  const { supported: micSupported, listening, start: micStart, stop: micStop } =
+    useSpeech(onVoiceResult, "tr-TR");
+
+  // Bırakınca 1 sn sonra durdur — son heceler de alınsın (maçtaki fix ile aynı).
+  const micStopTimer = useRef<any>(null);
+  const stopMicDelayed = useCallback(() => {
+    if (micStopTimer.current) clearTimeout(micStopTimer.current);
+    micStopTimer.current = setTimeout(() => micStop(), 1000);
+  }, [micStop]);
 
   function share() {
     const emojiGrid = rows.map((row) =>
@@ -137,7 +155,25 @@ export default function DailyPage() {
               color: "#1a1330", fontWeight: 700, fontSize: 16, cursor: "pointer",
               fontFamily: "var(--font-display)", opacity: draft.length === info.length ? 1 : 0.5,
             }}>Dene</button>
+            {micSupported && (
+              <button
+                onPointerDown={(e) => { e.preventDefault(); micStart(); }}
+                onPointerUp={(e) => { e.preventDefault(); stopMicDelayed(); }}
+                onPointerLeave={() => { if (listening) stopMicDelayed(); }}
+                onContextMenu={(e) => e.preventDefault()}
+                title="Basılı tut ve konuş"
+                style={{
+                  padding: "12px 16px", borderRadius: 10,
+                  border: listening ? "2px solid var(--accent-hot)" : "2px solid var(--tile-border)",
+                  background: listening ? "var(--accent-glow)" : "var(--bg-elevated)",
+                  cursor: "pointer", fontSize: 18, lineHeight: 1,
+                }}
+              >🎤</button>
+            )}
           </div>
+          {micSupported && (
+            <p style={{ color: "var(--text-dim)", fontSize: 12 }}>🎤 basılı tut & kelimeyi söyle</p>
+          )}
           {err && <p style={{ color: "var(--accent-hot)", fontSize: 14 }}>{err}</p>}
           <p style={{ color: "var(--text-dim)", fontSize: 13 }}>{rows.length}/{MAX_ROWS} hak kullanıldı</p>
         </div>

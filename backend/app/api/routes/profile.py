@@ -113,3 +113,48 @@ async def public_profile(username: str, db: AsyncSession = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
     return await _build_profile(db, user)
+
+
+@router.get("/{username}/matches")
+async def user_matches(username: str, db: AsyncSession = Depends(get_db), limit: int = 10):
+    """Bir kullanıcının son maçları (maç geçmişinden). Kullanıcı perspektifinden
+    (kendisi / rakip / skor / sonuç) döner."""
+    from app.models.match_history import MatchHistory
+    from sqlalchemy import or_
+
+    user = (await db.execute(select(User).where(User.username == username))).scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
+
+    rows = (await db.execute(
+        select(MatchHistory)
+        .where(or_(MatchHistory.p1_username == username, MatchHistory.p2_username == username))
+        .order_by(MatchHistory.created_at.desc())
+        .limit(limit)
+    )).scalars().all()
+
+    out = []
+    for m in rows:
+        # Kullanıcı p1 mi p2 mi? Perspektifi ona göre kur.
+        am_p1 = (m.p1_username == username)
+        my_name = m.p1_name if am_p1 else m.p2_name
+        my_score = m.p1_score if am_p1 else m.p2_score
+        opp_name = m.p2_name if am_p1 else m.p1_name
+        opp_username = m.p2_username if am_p1 else m.p1_username
+        opp_score = m.p2_score if am_p1 else m.p1_score
+        if not m.winner_name:
+            result = "draw"
+        elif m.winner_name == my_name:
+            result = "win"
+        else:
+            result = "loss"
+        out.append({
+            "opp_name": opp_name,
+            "opp_username": opp_username,   # "" ise bot / link yok
+            "my_score": my_score,
+            "opp_score": opp_score,
+            "result": result,
+            "has_bot": m.has_bot,
+            "created_at": m.created_at.isoformat() if m.created_at else None,
+        })
+    return {"matches": out}
