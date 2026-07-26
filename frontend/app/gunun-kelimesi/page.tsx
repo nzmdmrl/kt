@@ -150,11 +150,6 @@ export default function DailyPage() {
                 letterSpacing: "0.2em", textTransform: "uppercase",
               }}
             />
-            <button onClick={submit} disabled={draft.length !== info.length} style={{
-              padding: "12px 20px", borderRadius: 10, border: "none", background: "var(--accent)",
-              color: "#1a1330", fontWeight: 700, fontSize: 16, cursor: "pointer",
-              fontFamily: "var(--font-display)", opacity: draft.length === info.length ? 1 : 0.5,
-            }}>Dene</button>
             {micSupported && (
               <button
                 onPointerDown={(e) => { e.preventDefault(); micStart(); }}
@@ -170,6 +165,11 @@ export default function DailyPage() {
                 }}
               >🎤</button>
             )}
+            <button onClick={submit} disabled={draft.length !== info.length} style={{
+              padding: "12px 20px", borderRadius: 10, border: "none", background: "var(--accent)",
+              color: "#1a1330", fontWeight: 700, fontSize: 16, cursor: "pointer",
+              fontFamily: "var(--font-display)", opacity: draft.length === info.length ? 1 : 0.5,
+            }}>Dene</button>
           </div>
           {micSupported && (
             <p style={{ color: "var(--text-dim)", fontSize: 12 }}>🎤 basılı tut & kelimeyi söyle</p>

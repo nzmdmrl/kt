@@ -1231,3 +1231,7 @@ maç motoru 2->4 oyuncu, takım skoru/buzzer). Sırayla parça parça.
    bölümü (galibiyet/mağlubiyet/beraberlik renkli borderLeft, rakip linkli, bot 🤖, skor).
    recentMatches state, params.username değişince çekilir.
 Test: matches endpoint perspektif doğru ✓. Build ok.
+
+## Günün Kelimesi buton sırası (Nazım)
+Mikrofon ve Dene butonu yer değişti: input -> 🎤 -> Dene (1v1 maçtaki sırayla tutarlı).
+Frontend only. Build ok.
