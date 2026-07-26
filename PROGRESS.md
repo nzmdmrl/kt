@@ -1191,3 +1191,10 @@ True. Canlı DB sim: 11335 bayrak güncellendi, hedef 1939'a indi, kabul 12327 k
 İNCE AYAR: admin panel /words?filter=member ile hedef havuzu görülüp kalan kenar kelimeler
 (BATMAN, AMANIN vb.) elle çıkarılabilir. Eşik 12000 değiştirilebilir (rebuild_pools_by_freq
 TARGET_THRESHOLD).
+
+## Emojiler yüzen butona toplandı (Nazım)
+Üstteki sabit emoji satırı (👍😂😮🔥😢👏) kaldırıldı. Yerine jokerle aynı tarz yüzen buton:
+- components/MatchGame.tsx FloatingEmote: sol tarafta, jokerin ALTINDA (top:48; joker yoksa top:0).
+  😊 butonu, tıklayınca 6 emoji açılır (butonun altında, fadeIn). Tur başına 2 hak (disabled).
+- emoteOpen state. Üst aksiyon satırı sadeleşti (ana sayfa + tema + ses; ortada flex boşluk).
+Frontend only. Build ok.

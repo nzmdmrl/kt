@@ -121,6 +121,7 @@ export default function MatchGame({
   const [emoteCount, setEmoteCount] = useState(0);      // bu turda kaç emoji gönderildi (max 2)
   const [jokerPopup, setJokerPopup] = useState<string>("");  // joker bildirim popup metni
   const [jokerOpen, setJokerOpen] = useState(false);          // yüzen J butonu açık mı
+  const [emoteOpen, setEmoteOpen] = useState(false);          // yüzen emoji butonu açık mı
   const [hasFocus, setHasFocus] = useState(false); // input'ta focus var mı
 
   const round = state?.round ?? null;
@@ -431,37 +432,12 @@ export default function MatchGame({
 
   return (
     <div style={{ display: "grid", gap: 14, position: "relative", width: "100%", maxWidth: "100%", overflowX: "hidden", minWidth: 0 }}>
-      {/* Üst aksiyon satırı: ana sayfa ikonu + sabit emojiler + ses düğmesi (tek satır) */}
+      {/* Üst aksiyon satırı: ana sayfa ikonu + ses/tema düğmeleri */}
       <div style={{ display: "flex", alignItems: "center", gap: 6, width: "100%" }}>
         <a href="/" title="Ana sayfa" style={{ fontSize: 20, lineHeight: 1, textDecoration: "none", flexShrink: 0, display: "grid", placeItems: "center", width: 34, height: 34, borderRadius: "50%", border: "1px solid var(--border-soft)", background: "var(--bg-panel)" }}>
           🏠
         </a>
-        {/* Sabit açık emojiler — ortada, sığması için esner */}
-        <div style={{ flex: 1, display: "flex", gap: 4, justifyContent: "center", flexWrap: "nowrap", minWidth: 0, overflow: "hidden" }}>
-          {["👍", "😂", "😮", "🔥", "😢", "👏"].map((em) => (
-            <button
-              key={em}
-              onClick={() => {
-                if (emoteCount >= 2) return;
-                emote(em);
-                setEmoteCount((c) => c + 1);
-              }}
-              disabled={emoteCount >= 2}
-              title={emoteCount >= 2 ? "Bu turda emoji hakkın bitti" : "Emoji gönder"}
-              style={{
-                fontSize: "clamp(15px, 4.5vw, 20px)",
-                width: "clamp(28px, 8vw, 38px)", height: 34,
-                padding: 0, borderRadius: 8,
-                border: "1px solid var(--border-soft)", background: "var(--bg-panel)",
-                cursor: emoteCount >= 2 ? "not-allowed" : "pointer", lineHeight: 1,
-                display: "grid", placeItems: "center", flexShrink: 1,
-                opacity: emoteCount >= 2 ? 0.4 : 1,
-              }}
-            >
-              {em}
-            </button>
-          ))}
-        </div>
+        <div style={{ flex: 1 }} />
         <ThemeToggle />
         <SoundToggle />
       </div>
@@ -552,6 +528,20 @@ export default function MatchGame({
             onUse={(kind) => { useJoker(kind); setJokerOpen(false); }}
           />
         )}
+
+        {/* Yüzen emoji butonu — jokerin altında, aynı tarz. Tıklayınca emojiler açılır. */}
+        <FloatingEmote
+          open={emoteOpen}
+          setOpen={setEmoteOpen}
+          disabled={emoteCount >= 2}
+          hasJoker={jokers?.[playerId]?.enabled !== false}
+          onEmote={(em) => {
+            if (emoteCount >= 2) return;
+            emote(em);
+            setEmoteCount((c) => c + 1);
+            setEmoteOpen(false);
+          }}
+        />
       </div>
 
       {round && (
@@ -834,3 +824,57 @@ const endLinkBtn: React.CSSProperties = {
   border: "1px solid var(--border-soft)",
   textDecoration: "none",
 };
+
+// Yüzen emoji butonu — jokerle aynı tarz, jokerin altında konumlanır.
+// Tıklayınca emoji seçenekleri açılır. Tur başına 2 emoji hakkı (disabled).
+const EMOTES = ["👍", "😂", "😮", "🔥", "😢", "👏"];
+
+function FloatingEmote({ open, setOpen, disabled, hasJoker, onEmote }: {
+  open: boolean; setOpen: (v: boolean) => void;
+  disabled: boolean; hasJoker: boolean; onEmote: (em: string) => void;
+}) {
+  // Joker varsa onun altına (top 48), yoksa en üste (top 0).
+  const topOffset = hasJoker ? 48 : 0;
+  return (
+    <div style={{ position: "absolute", left: 4, top: topOffset, zIndex: 24 }}>
+      {/* Açılan emoji seçenekleri (butonun altında) */}
+      {open && !disabled && (
+        <div style={{
+          position: "absolute", top: 44, left: 0, display: "flex", gap: 6,
+          background: "var(--bg-panel)", padding: 8, borderRadius: 14,
+          boxShadow: "var(--shadow-soft)", border: "1px solid var(--border-soft)",
+          animation: "fadeIn .15s ease", flexWrap: "wrap", width: 168,
+        }}>
+          {EMOTES.map((em) => (
+            <button
+              key={em}
+              onClick={() => onEmote(em)}
+              title="Emoji gönder"
+              style={{
+                width: 42, height: 42, borderRadius: 10,
+                border: "1px solid var(--border-soft)", background: "var(--bg-elevated)",
+                cursor: "pointer", fontSize: 21, lineHeight: 1, display: "grid", placeItems: "center",
+              }}
+            >{em}</button>
+          ))}
+        </div>
+      )}
+
+      {/* Ana yüzen emoji butonu */}
+      <button
+        onClick={() => setOpen(!open)}
+        disabled={disabled}
+        title={disabled ? "Bu turda emoji hakkın bitti" : "Emoji gönder"}
+        style={{
+          width: 40, height: 40, borderRadius: "50%",
+          border: "2px solid var(--border-soft)",
+          cursor: disabled ? "not-allowed" : "pointer",
+          background: disabled ? "var(--bg-elevated)" : "var(--bg-panel)",
+          fontSize: 20, lineHeight: 1, display: "grid", placeItems: "center",
+          opacity: disabled ? 0.4 : 1,
+          boxShadow: disabled ? "none" : "var(--shadow-soft)",
+        }}
+      >😊</button>
+    </div>
+  );
+}
