@@ -23,6 +23,43 @@ DATA = Path(__file__).resolve().parent / "data"
 
 DEFAULT_SELECTABLE = {"kolay", "orta"}
 
+# Geniş kabul sözlüğü: frekans listesindeki (yaygın kullanılan) kelimeler.
+# Havuzda olmayan ama gerçek olan kelimeleri (ör. ANLA) tahmin olarak kabul etmek için.
+# {uzunluk: set(BÜYÜK harfli kelimeler)}. İlk erişimde bir kez yüklenir.
+_FREQ_WORDS: dict[int, set[str]] = {}
+_FREQ_LOADED = False
+
+
+def _tr_upper_simple(s: str) -> str:
+    return s.replace("i", "İ").replace("ı", "I").upper()
+
+
+def _load_freq_words() -> None:
+    global _FREQ_LOADED
+    if _FREQ_LOADED:
+        return
+    _FREQ_LOADED = True
+    path = DATA / "tr_freq_50k.txt"
+    if not path.exists():
+        return
+    try:
+        with path.open(encoding="utf-8") as f:
+            for line in f:
+                parts = line.split()
+                if not parts:
+                    continue
+                w = _tr_upper_simple(parts[0].strip())
+                if 3 <= len(w) <= 8 and w.isalpha():
+                    _FREQ_WORDS.setdefault(len(w), set()).add(w)
+    except Exception:
+        pass
+
+
+def is_freq_word(word: str, length: int) -> bool:
+    """Kelime geniş kabul sözlüğünde (frekans listesi) mi?"""
+    _load_freq_words()
+    return word in _FREQ_WORDS.get(length, set())
+
 
 class WordPool:
     """Belirli bir uzunluk için kelime havuzu (bellekte)."""
@@ -52,7 +89,9 @@ class WordPool:
         return self._bot_words
 
     def is_valid(self, word: str) -> bool:
-        return normalize(word) in self._all_words
+        w = normalize(word)
+        # Havuzda varsa geçerli; yoksa geniş kabul sözlüğüne (frekans listesi) bak.
+        return w in self._all_words or is_freq_word(w, self.length)
 
     @property
     def size(self) -> int:

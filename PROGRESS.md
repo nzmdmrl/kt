@@ -1262,3 +1262,12 @@ Frontend:
 Test: start/guess/finish/hint/progress, yıldız hesabı (90->3,20->1), admin ayarları, profil solo ✓.
 Build ok. KARARLAR: sınırsız hak; tekrar oynayınca kelime değişir (replay uyarısı); yıldız şimdilik
 sadece toplanır (profil). SONRA: solo sıralama tablosu, yıldız->joker ödülü, bölge/tema temaları.
+
+## Solo fix: kelime kabul + joker konumu (Nazım)
+1) "Kelime listede yok" — ANLA gibi gerçek kelimeler havuzda (1953) olmadığı için reddediliyordu.
+   ÇÖZÜM: word_service'e GENİŞ KABUL SÖZLÜĞÜ eklendi (tr_freq_50k.txt -> _FREQ_WORDS[uzunluk],
+   3-8 harf). is_valid: havuzda VEYA frekans listesinde varsa kabul. ANLA kabul, ASDF ret.
+   Bu solo+maç+günün kelimesi HEPSİNE yarar (hepsi is_valid kullanıyor). is_freq_word helper.
+2) Joker konumu: SoloGame'de input satırındaydı -> maçtaki gibi grid'i saran relative div içinde
+   sol üstte YÜZEN J butonu (position absolute left:4 top:0, altın gradient, hak rozeti).
+Frontend+backend. Build ok.

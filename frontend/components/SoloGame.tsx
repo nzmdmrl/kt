@@ -162,8 +162,30 @@ export default function SoloGame({ level, onExit, onComplete }: {
         </p>
       )}
 
-      {/* Izgara */}
-      <div style={{ display: "grid", gap: 6, justifyContent: "center", marginBottom: 18 }}>
+      {/* Izgara + yüzen joker (maçtaki gibi sol üstte) */}
+      <div style={{ position: "relative" }}>
+        {status === "playing" && (
+          <button
+            onClick={useJoker}
+            disabled={jokerLeft <= 0}
+            title="Joker: bir harf aç"
+            style={{
+              position: "absolute", left: 4, top: 0, zIndex: 20,
+              width: 44, height: 44, borderRadius: "50%",
+              border: "2px solid #D4AF37",
+              background: jokerLeft > 0 ? "linear-gradient(145deg,#FFD86B,#D4AF37)" : "var(--bg-elevated)",
+              color: jokerLeft > 0 ? "#4a3b00" : "var(--text-dim)",
+              cursor: jokerLeft > 0 ? "pointer" : "not-allowed", fontWeight: 800, fontSize: 18,
+              fontFamily: "var(--font-display)", opacity: jokerLeft > 0 ? 1 : 0.5,
+              boxShadow: jokerLeft > 0 ? "0 2px 10px rgba(212,175,55,.5)" : "none",
+              display: "grid", placeItems: "center",
+            }}
+          >
+            J
+            {jokerLeft > 0 && <span style={{ position: "absolute", right: -3, top: -3, minWidth: 16, height: 16, borderRadius: "50%", background: "var(--accent)", color: "#1a1330", fontSize: 10, fontWeight: 700, display: "grid", placeItems: "center" }}>{jokerLeft}</span>}
+          </button>
+        )}
+        <div style={{ display: "grid", gap: 6, justifyContent: "center", marginBottom: 18 }}>
         {Array.from({ length: totalRows }).map((_, i) => {
           const row = rows[i];
           const isCurrent = i === rows.length && (status === "playing");
@@ -194,28 +216,12 @@ export default function SoloGame({ level, onExit, onComplete }: {
             </div>
           );
         })}
+        </div>
       </div>
 
       {status === "playing" && (
         <div style={{ display: "grid", gap: 10, justifyItems: "center" }}>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            {/* Joker butonu */}
-            <button
-              onClick={useJoker}
-              disabled={jokerLeft <= 0}
-              title="Joker: bir harf aç"
-              style={{
-                width: 44, height: 44, borderRadius: "50%",
-                border: "2px solid #D4AF37", flexShrink: 0,
-                background: jokerLeft > 0 ? "linear-gradient(145deg,#FFD86B,#D4AF37)" : "var(--bg-elevated)",
-                color: jokerLeft > 0 ? "#4a3b00" : "var(--text-dim)",
-                cursor: jokerLeft > 0 ? "pointer" : "not-allowed", fontWeight: 800, fontSize: 15,
-                opacity: jokerLeft > 0 ? 1 : 0.5, position: "relative",
-              }}
-            >
-              J
-              {jokerLeft > 0 && <span style={{ position: "absolute", right: -3, top: -3, minWidth: 16, height: 16, borderRadius: "50%", background: "var(--accent)", color: "#1a1330", fontSize: 10, fontWeight: 700, display: "grid", placeItems: "center" }}>{jokerLeft}</span>}
-            </button>
             <input
               value={draft}
               onChange={(e) => setDraft(toUpperTr(e.target.value).replace(/[^A-ZÇĞİÖŞÜI]/g, "").slice(0, info.length))}
