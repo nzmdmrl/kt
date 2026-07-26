@@ -1286,3 +1286,11 @@ Yüzen joker (grid üstü sol) kaldırıldı; üst bara "Level X" yazısının S
 altın gradient, hak rozeti, canUseJoker kuralı). Frontend only. Build ok.
 NOT: "asdf kabul etmiyor" -> DOĞRU davranış. asdf gerçek kelime değil (ne havuzda ne frekans
 listesinde), reddedilmeli. KALE/ANLA gibi gerçek kelimeler kabul. Nazım'a soruldu.
+
+## Solo: kelime kontrolü kalktı + joker kaldırıldı (Nazım)
+- Solo guess: kelime listesi kontrolü YOK (sadece şekil/uzunluk). asdf gibi her 4-6 harf kabul.
+  (Nazım isteği - solo tek kişilik, serbest deneme).
+- JOKER TAMAMEN KALDIRILDI: backend /hint endpoint silindi. SoloGame'den jokerLeft/jokerHint
+  state, canUseJoker/useJoker/knownPositions fonksiyonları, üst bar joker butonu, grid sarı
+  ipucu gösterimi hepsi kaldırıldı. Üst bar sade (çıkış + Level X + süre).
+Test: ASDF kabul ✓, hint 404 ✓. Build ok.
