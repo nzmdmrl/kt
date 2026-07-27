@@ -108,14 +108,15 @@ export default function SoloGame({ level, onExit, onComplete }: {
   const micRef = useRef<any>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  // Tahmin eklenince / durum değişince otomatik en alta kaydır (yeni satır + sonuç görünsün).
+  // Otomatik alta kaydırma: SADECE grid uzayıp taşmaya başlayınca (5+ tahmin).
+  // İlk girişte / yeni levelde grid kısa olduğu için kaydırma yapılmaz (üst kutular görünür).
   useEffect(() => {
+    if (rows.length <= 5) return;
     function scrollBottom() {
       const h = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
       try { window.scrollTo({ top: h, behavior: "smooth" }); }
       catch { window.scrollTo(0, h); }
     }
-    // DOM güncellendikten sonra (birkaç kez dene — mobil tarayıcı gecikmeleri için).
     const t1 = setTimeout(scrollBottom, 100);
     const t2 = setTimeout(scrollBottom, 350);
     const raf = requestAnimationFrame(scrollBottom);

@@ -1322,3 +1322,8 @@ undefined -> "Application error" çökme + eski harfler (SAMSİ) kalması.
 - Finish çağrısı try/catch + fin.ok kontrolü; sunucu hata verse bile localStars ile sonuç
   ekranı gösterilir (won ama result null kalıp boş ekran olmaz).
 Frontend only. Build ok.
+
+## Solo otomatik kaydırma koşulu (Nazım: ilk giriş/yeni levelde en alta atıp harfleri göstermiyordu)
+Kaydırma effect'i artık SADECE rows.length > 5 iken çalışır (grid taşmaya başlayınca).
+İlk giriş / yeni level / ilk birkaç tahminde grid kısa -> kaydırma yok, üst kutular görünür.
+Frontend only. Build ok.
