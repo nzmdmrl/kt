@@ -1311,3 +1311,14 @@ Frontend only. Build ok.
   kontrolü hala YOK, sadece ilk harf + şekil.)
 - Frontend submit: aynı ön-kontrol (backend'e gitmeden anında uyarı + wrong sesi).
 Test: yanlış ilk harf ret ✓. Build ok.
+
+## Solo level geçiş bug fix (Nazım: application error + önceki harfler kalıyor)
+KÖK NEDEN: SoloGame'e key yoktu -> level değişince (setPlaying(next)) React aynı bileşeni
+kullanıp state'i (rows/draft/info) sıfırlamıyordu. Eski 4h tahmin + yeni 5h grid -> row[j]
+undefined -> "Application error" çökme + eski harfler (SAMSİ) kalması.
+ÇÖZÜM:
+- app/solo/page.tsx: <SoloGame key={playing} ...> -> her level temiz kurulur.
+- SoloGame grid: row && row[j] güvenli erişim (undefined çökmesi önlendi).
+- Finish çağrısı try/catch + fin.ok kontrolü; sunucu hata verse bile localStars ile sonuç
+  ekranı gösterilir (won ama result null kalıp boş ekran olmaz).
+Frontend only. Build ok.

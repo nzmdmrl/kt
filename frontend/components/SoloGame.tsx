@@ -85,11 +85,20 @@ export default function SoloGame({ level, onExit, onComplete }: {
         const afterTiles = data.tiles.length * 120 + 200;
         setTimeout(() => playSound("win"), afterTiles);
         // Level bitir: kalan süreyi gönder, yıldız al.
-        const fin = await fetch(apiUrl(`/api/solo/level/${level}/finish`), {
-          method: "POST", headers: headers(), body: JSON.stringify({ seconds_left: secondsLeft }),
-        });
-        const fd = await fin.json();
-        setResult({ stars: fd.stars, total: fd.total_stars, next: fd.next_level });
+        try {
+          const fin = await fetch(apiUrl(`/api/solo/level/${level}/finish`), {
+            method: "POST", headers: headers(), body: JSON.stringify({ seconds_left: secondsLeft }),
+          });
+          const fd = await fin.json();
+          if (fin.ok && typeof fd.stars === "number") {
+            setResult({ stars: fd.stars, total: fd.total_stars ?? 0, next: fd.next_level ?? level + 1 });
+          } else {
+            // Sunucu hatası — yine de sonuç göster (yıldız hesabını yerel yap).
+            setResult({ stars: localStars(secondsLeft), total: 0, next: level + 1 });
+          }
+        } catch {
+          setResult({ stars: localStars(secondsLeft), total: 0, next: level + 1 });
+        }
       }
     } catch {
       setErr("Bağlantı hatası");
@@ -166,7 +175,7 @@ export default function SoloGame({ level, onExit, onComplete }: {
                 let bg = "var(--tile-empty)";
                 let color = "#fff";
                 let border = "2px solid var(--tile-border)";
-                if (row) {
+                if (row && row[j]) {
                   letter = row[j].letter;
                   bg = TILE_COLOR[row[j].state];
                   border = "none";
@@ -269,6 +278,13 @@ export default function SoloGame({ level, onExit, onComplete }: {
 
 function Center({ children }: { children: React.ReactNode }) {
   return <div style={{ display: "grid", placeItems: "center", minHeight: 300, color: "var(--text-soft)" }}>{children}</div>;
+}
+
+// Sunucu yanıt vermezse yerel yıldız (varsayılan eşikler: 80+/30-79/0-29).
+function localStars(secondsLeft: number): number {
+  if (secondsLeft >= 80) return 3;
+  if (secondsLeft >= 30) return 2;
+  return 1;
 }
 
 const btnPrimary: React.CSSProperties = {

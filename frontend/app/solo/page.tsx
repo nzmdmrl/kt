@@ -49,6 +49,7 @@ export default function SoloPage() {
   if (playing !== null) {
     return (
       <SoloGame
+        key={playing}
         level={playing}
         onExit={() => { setPlaying(null); loadProgress(); }}
         onComplete={(_stars, next) => { loadProgress(); setPlaying(next); }}
