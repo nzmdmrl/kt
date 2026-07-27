@@ -1294,3 +1294,8 @@ listesinde), reddedilmeli. KALE/ANLA gibi gerçek kelimeler kabul. Nazım'a soru
   state, canUseJoker/useJoker/knownPositions fonksiyonları, üst bar joker butonu, grid sarı
   ipucu gösterimi hepsi kaldırıldı. Üst bar sade (çıkış + Level X + süre).
 Test: ASDF kabul ✓, hint 404 ✓. Build ok.
+
+## Solo otomatik alta kaydırma (Nazım: grid uzayınca ekran ortada kalıyordu)
+SoloGame'e bottomRef + effect: rows.length veya status değişince scrollIntoView
+(smooth, block:end) ile en alta kayar (120ms sonra). Yeni tahmin satırı + input + sonuç/
+bildirim ekranı otomatik görünür. Ana div sonuna <div ref={bottomRef}>. Frontend only. Build ok.

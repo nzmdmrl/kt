@@ -91,6 +91,15 @@ export default function SoloGame({ level, onExit, onComplete }: {
   }, [info, status, draft, rows, level, secondsLeft]);
 
   const micRef = useRef<any>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  // Tahmin eklenince / durum değişince otomatik en alta kaydır (yeni satır + sonuç görünsün).
+  useEffect(() => {
+    const t = setTimeout(() => {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    }, 120);
+    return () => clearTimeout(t);
+  }, [rows.length, status]);
   const onVoiceResult = useCallback((text: string) => {
     if (!info || status !== "playing") return;
     const clean = toUpperTr(text).replace(/[^A-ZÇĞİÖŞÜI]/g, "").slice(0, info.length);
@@ -240,6 +249,8 @@ export default function SoloGame({ level, onExit, onComplete }: {
           </div>
         </div>
       )}
+      {/* Otomatik kaydırma hedefi — her tahmin/sonuçta buraya kayar */}
+      <div ref={bottomRef} style={{ height: 1 }} />
     </div>
   );
 }
