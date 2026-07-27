@@ -18,6 +18,7 @@ export default function SoloPage() {
   const [prog, setProg] = useState<Progress | null>(null);
   const [playing, setPlaying] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const currentRef = useRef<HTMLDivElement>(null);
 
   function token() { return typeof window !== "undefined" ? localStorage.getItem("kt_token") : null; }
 
@@ -31,6 +32,15 @@ export default function SoloPage() {
   useEffect(() => {
     if (user) loadProgress();
   }, [user]);
+
+  // Harita görünürken (oyunda değilken) bulunduğun levele hizala.
+  useEffect(() => {
+    if (playing !== null || !prog) return;
+    const t = setTimeout(() => {
+      currentRef.current?.scrollIntoView({ behavior: "auto", block: "center" });
+    }, 150);
+    return () => clearTimeout(t);
+  }, [playing, prog]);
 
   if (loading) return <Center>Yükleniyor…</Center>;
   if (!user) {
@@ -85,7 +95,7 @@ export default function SoloPage() {
           const isCurrent = lvl === prog.current_level;
           const left = xOffset(idx);
           return (
-            <div key={lvl} style={{ position: "relative", height: 120 }}>
+            <div key={lvl} ref={isCurrent ? currentRef : undefined} style={{ position: "relative", height: 120 }}>
               {/* Daire */}
               <button
                 onClick={() => { if (!locked) setPlaying(lvl); }}

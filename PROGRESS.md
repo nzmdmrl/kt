@@ -1327,3 +1327,8 @@ Frontend only. Build ok.
 Kaydırma effect'i artık SADECE rows.length > 5 iken çalışır (grid taşmaya başlayınca).
 İlk giriş / yeni level / ilk birkaç tahminde grid kısa -> kaydırma yok, üst kutular görünür.
 Frontend only. Build ok.
+
+## Solo harita: bulunduğun levele hizala (Nazım: en üstte 11 gösterip 5'i aşağıda bırakıyordu)
+Yol haritası açılınca/oyundan dönünce current level'e otomatik kayar (ekran ortasına).
+currentRef isCurrent olan daireye bağlı; effect [playing, prog] -> playing null iken
+scrollIntoView(block:center). Frontend only. Build ok.
