@@ -1299,3 +1299,15 @@ Test: ASDF kabul ✓, hint 404 ✓. Build ok.
 SoloGame'e bottomRef + effect: rows.length veya status değişince scrollIntoView
 (smooth, block:end) ile en alta kayar (120ms sonra). Yeni tahmin satırı + input + sonuç/
 bildirim ekranı otomatik görünür. Ana div sonuna <div ref={bottomRef}>. Frontend only. Build ok.
+
+## Solo otomatik kaydırma fix-2 (Nazım: inmedi)
+İlk deneme (scrollIntoView tek başına) mobilde çalışmadı. Yeni: window.scrollTo(scrollHeight)
++ 3 tetik (100ms, 350ms, requestAnimationFrame) — body/documentElement max scrollHeight'a.
+Frontend only. Build ok.
+
+## Solo: ilk harf doğru olmalı (Nazım — S ile başlayan yazılabiliyordu)
+İlk harf ipucu veriliyor ama farklı harfle başlanabiliyordu. Eklendi:
+- Backend guess: g[0] != target[0] -> valid:False "Kelime X harfiyle başlamalı". (Kelime listesi
+  kontrolü hala YOK, sadece ilk harf + şekil.)
+- Frontend submit: aynı ön-kontrol (backend'e gitmeden anında uyarı + wrong sesi).
+Test: yanlış ilk harf ret ✓. Build ok.

@@ -61,6 +61,12 @@ export default function SoloGame({ level, onExit, onComplete }: {
   const submit = useCallback(async () => {
     if (!info || status !== "playing") return;
     if (draft.length !== info.length) return;
+    // İlk harf ipucu olarak veriliyor — farklı harfle başlanamaz.
+    if (draft[0] !== info.first_letter) {
+      setErr(`Kelime ${info.first_letter} harfiyle başlamalı.`);
+      playSound("wrong");
+      return;
+    }
     setErr("");
     try {
       const r = await fetch(apiUrl(`/api/solo/level/${level}/guess`), {
@@ -95,10 +101,16 @@ export default function SoloGame({ level, onExit, onComplete }: {
 
   // Tahmin eklenince / durum değişince otomatik en alta kaydır (yeni satır + sonuç görünsün).
   useEffect(() => {
-    const t = setTimeout(() => {
-      bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-    }, 120);
-    return () => clearTimeout(t);
+    function scrollBottom() {
+      const h = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
+      try { window.scrollTo({ top: h, behavior: "smooth" }); }
+      catch { window.scrollTo(0, h); }
+    }
+    // DOM güncellendikten sonra (birkaç kez dene — mobil tarayıcı gecikmeleri için).
+    const t1 = setTimeout(scrollBottom, 100);
+    const t2 = setTimeout(scrollBottom, 350);
+    const raf = requestAnimationFrame(scrollBottom);
+    return () => { clearTimeout(t1); clearTimeout(t2); cancelAnimationFrame(raf); };
   }, [rows.length, status]);
   const onVoiceResult = useCallback((text: string) => {
     if (!info || status !== "playing") return;

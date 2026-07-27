@@ -121,8 +121,9 @@ async def guess_level(level: int, data: GuessIn, user: User = Depends(get_curren
     g = normalize(data.guess)
     if len(g) != length or not is_valid_word_shape(g, length):
         return {"valid": False, "error": f"{length} harfli geçerli bir kelime girin."}
-    # Solo modda kelime listesi kontrolü YOK — oyuncu istediği harf dizisini deneyebilir
-    # (tek kişilik, spam riski yok; deneme-yanılma serbest).
+    # Kelime listesi kontrolü YOK (serbest deneme) ama İLK HARF doğru olmalı (ipucu veriliyor).
+    if g[0] != target[0]:
+        return {"valid": False, "error": f"Kelime {target[0]} harfiyle başlamalı."}
 
     results = evaluate_guess(g, target)
     correct = is_correct(g, target)
