@@ -211,7 +211,7 @@
 "word": "ADAMA",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1020
 },
@@ -227,7 +227,7 @@
 "word": "ADINA",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 848
 },
@@ -1355,7 +1355,7 @@
 "word": "ARAMA",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1297
 },
@@ -2547,7 +2547,7 @@
 "word": "BAKMA",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 732
 },
@@ -4611,7 +4611,7 @@
 "word": "BÖYLE",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 57
 },
@@ -12611,7 +12611,7 @@
 "word": "GİTME",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1222
 },
@@ -13891,7 +13891,7 @@
 "word": "HEPSİ",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 237
 },
@@ -16467,7 +16467,7 @@
 "word": "KENDİ",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 141
 },
@@ -22899,7 +22899,7 @@
 "word": "NASIL",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 41
 },
@@ -23099,7 +23099,7 @@
 "word": "NEDEN",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 35
 },
@@ -23627,7 +23627,7 @@
 "word": "NİÇİN",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1131
 },
@@ -23899,7 +23899,7 @@
 "word": "ONLAR",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 201
 },
@@ -23979,7 +23979,7 @@
 "word": "ORASI",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1010
 },
@@ -27683,7 +27683,7 @@
 "word": "SEKSİ",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1223
 },
@@ -33587,7 +33587,7 @@
 "word": "VERME",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1226
 },
@@ -34275,7 +34275,7 @@
 "word": "YAPMA",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 291
 },
@@ -37907,7 +37907,7 @@
 "word": "ÖDEME",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1897
 },
@@ -38579,7 +38579,7 @@
 "word": "ÜZERE",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 649
 },
@@ -40731,7 +40731,7 @@
 "word": "ŞÖYLE",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 638
 },

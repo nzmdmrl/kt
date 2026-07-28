@@ -1343,3 +1343,13 @@ Sorun: ADLİ, AKLI gibi seyrek/net olmayan kelimeler üyeye (member) soruluyordu
 Doğrulama: ADLİ/AKLI member=False ama kabul/bot=True; ANNE/EVET member=True. Solo da member
 kelimeleri kullandığı için solo hedefleri de artık yaygın. NOT: 6h 142 az olabilir; gerekirse
 eşik 2500/3000'e çekilir.
+
+## Çekimli/birleşik kelimeler member'dan çıkarıldı (Nazım: "birisi" gibi çıkıyordu)
+- Yeni script: app/words/strip_inflected.py. Kural tabanlı: BLACKLIST (birisi,birçok,herkes,
+  hiçbir,bana,onlar,adına,nasıl,neden vb.) + çekim son ekleri (-ma/-me,-lar/-ler,-dan/-den,
+  -nın,-sı,-acak,-mak vb.). KORU listesi kök kelimeleri korur (kelime,kaptan,memnun,şeytan,
+  vatan,insan,zaman vb. yanlış pozitifler engellendi).
+- Sıra: rebuild_pools_by_freq (member ata) -> strip_inflected (çekimli çıkar). 50 kelime çıktı.
+  member: 4h:159, 5h:266, 6h:118 = 543 net/yaygın kelime. Çıkanlar bot=True + kabul korundu.
+- main.py resync damgası v2 -> v3 (deploy'da DB tekrar güncellenir).
+Doğrulama: BİRİSİ/BİRÇOK/HERKES üyeye sorulmaz ama kabul; KELİME/ŞEYTAN sorulur. 

@@ -2075,7 +2075,7 @@
 "word": "BANA",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 21
 },
@@ -2531,7 +2531,7 @@
 "word": "BUNA",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 152
 },
@@ -2763,7 +2763,7 @@
 "word": "BİZE",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 145
 },
@@ -10411,7 +10411,7 @@
 "word": "SANA",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 32
 },
@@ -11355,7 +11355,7 @@
 "word": "SİZE",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 132
 },
@@ -13899,7 +13899,7 @@
 "word": "ÖYLE",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 46
 },
@@ -15507,7 +15507,7 @@
 "word": "ŞUNA",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 576
 },

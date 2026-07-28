@@ -1587,7 +1587,7 @@
 "word": "ANLAMA",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1580
 },
@@ -4179,7 +4179,7 @@
 "word": "BAŞTAN",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1298
 },
@@ -4379,7 +4379,7 @@
 "word": "BENDEN",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 253
 },
@@ -4763,7 +4763,7 @@
 "word": "BOKTAN",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1978
 },
@@ -5347,7 +5347,7 @@
 "word": "BUNDAN",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 279
 },
@@ -5363,7 +5363,7 @@
 "word": "BUNLAR",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 264
 },
@@ -5403,7 +5403,7 @@
 "word": "BURASI",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 245
 },
@@ -5899,7 +5899,7 @@
 "word": "BİRDEN",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 842
 },
@@ -5907,7 +5907,7 @@
 "word": "BİRKAÇ",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 203
 },
@@ -5947,7 +5947,7 @@
 "word": "BİRÇOK",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 767
 },
@@ -5955,7 +5955,7 @@
 "word": "BİRİSİ",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 402
 },
@@ -6027,7 +6027,7 @@
 "word": "BİZDEN",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 935
 },
@@ -6667,7 +6667,7 @@
 "word": "CİDDEN",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 722
 },
@@ -13691,7 +13691,7 @@
 "word": "HERKES",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 206
 },
@@ -14211,7 +14211,7 @@
 "word": "HİÇBİR",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 88
 },
@@ -24019,7 +24019,7 @@
 "word": "NEREDE",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 103
 },
@@ -24043,7 +24043,7 @@
 "word": "NEREYE",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 236
 },
@@ -24875,7 +24875,7 @@
 "word": "ORADAN",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 723
 },
@@ -28771,7 +28771,7 @@
 "word": "SENDEN",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 287
 },
@@ -30691,7 +30691,7 @@
 "word": "SİZDEN",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1180
 },
@@ -34435,7 +34435,7 @@
 "word": "UNUTMA",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 918
 },
@@ -36195,7 +36195,7 @@
 "word": "YERİNE",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 352
 },
@@ -36611,7 +36611,7 @@
 "word": "YÜZDEN",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 133
 },
@@ -38163,7 +38163,7 @@
 "word": "ÇOKTAN",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 905
 },
