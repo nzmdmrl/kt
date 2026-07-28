@@ -103,12 +103,13 @@ async def on_startup():
             try:
                 from app.models.game_setting import GameSetting
                 from sqlalchemy import select as _sel
-                stamp = (await db.execute(_sel(GameSetting).where(GameSetting.key == "freq_resync_v1"))).scalar_one_or_none()
+                # v2: member eşiği 2000'e düştü + bot tüm kelimeler. Damga değişti -> tekrar çalışır.
+                stamp = (await db.execute(_sel(GameSetting).where(GameSetting.key == "freq_resync_v2"))).scalar_one_or_none()
                 if stamp is None:
                     updated = await resync_flags_from_json(db)
-                    db.add(GameSetting(key="freq_resync_v1", value="done"))
+                    db.add(GameSetting(key="freq_resync_v2", value="done"))
                     await db.commit()
-                    print(f"[startup] Frekans resync: {updated} kelime bayrağı güncellendi.")
+                    print(f"[startup] Frekans resync v2: {updated} kelime bayrağı güncellendi.")
             except Exception as e:
                 print(f"[startup] Frekans resync atlandı: {e}")
             await refresh_pools(db)

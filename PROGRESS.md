@@ -1332,3 +1332,14 @@ Frontend only. Build ok.
 Yol haritası açılınca/oyundan dönünce current level'e otomatik kayar (ekran ortasına).
 currentRef isCurrent olan daireye bağlı; effect [playing, prog] -> playing null iken
 scrollIntoView(block:center). Frontend only. Build ok.
+
+## Kelime bankası yeniden analiz: member eşiği 2000 + bot tüm kelimeler (Nazım)
+Sorun: ADLİ, AKLI gibi seyrek/net olmayan kelimeler üyeye (member) soruluyordu.
+- rebuild_pools_by_freq.py: TARGET_THRESHOLD 12000 -> 2000 (sadece en yaygın kelimeler member).
+  item["bot"] = True (artık BÜTÜN kelimeler bot havuzunda). Script çalıştırıldı, JSON'lar güncellendi:
+  member sayısı 4h:166, 5h:285, 6h:142 (toplam 593 yaygın kelime). Kabul/bot: tüm 12327 kelime.
+- main.py: resync damgası freq_resync_v1 -> v2. Deploy'da resync_flags_from_json TEKRAR çalışır,
+  mevcut canlı DB'ye yeni member/bot bayraklarını uygular (bir kez).
+Doğrulama: ADLİ/AKLI member=False ama kabul/bot=True; ANNE/EVET member=True. Solo da member
+kelimeleri kullandığı için solo hedefleri de artık yaygın. NOT: 6h 142 az olabilir; gerekirse
+eşik 2500/3000'e çekilir.

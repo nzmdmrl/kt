@@ -28,7 +28,8 @@ DATA = Path(__file__).resolve().parent / "data"
 FREQ_FILE = DATA / "tr_freq_50k.txt"
 
 # Hedef (member) eşiği: frekans rank bunun altındaysa kelime maçta sorulabilir.
-TARGET_THRESHOLD = 12000
+# 2000 = sadece en yaygın/net kelimeler (ADLİ, AKLI gibi seyrek kelimeler elenir).
+TARGET_THRESHOLD = 2000
 # Zorluk eşikleri (rank).
 EASY_THRESHOLD = 4000
 MEDIUM_THRESHOLD = 12000
@@ -68,8 +69,8 @@ def main() -> None:
         for item in pool:
             r = ranks.get(tr_lower(item["word"]))
             is_target = r is not None and r < TARGET_THRESHOLD
-            item["member"] = is_target        # hedef havuzu (yaygın)
-            item["bot"] = is_target           # bot da yaygın kelimeleri bilir
+            item["member"] = is_target        # hedef havuzu (yaygın) — üyeye sorulur
+            item["bot"] = True                 # bot TÜM kelimeleri kullanabilir
             item["active"] = True             # hepsi geçerli tahmin
             item["difficulty"] = difficulty_for(r)
             item["freq_rank"] = r if r is not None else -1
