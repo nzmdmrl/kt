@@ -107,7 +107,11 @@ export default function BottomNav() {
                 display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
                 background: "none", border: "none", cursor: "pointer", flex: 1, padding: "4px 0",
               }}>
-              <span style={{ position: "relative", fontSize: 24, opacity: active ? 1 : 0.85 }}>
+              <span style={{
+                position: "relative", fontSize: 24, opacity: active ? 1 : 0.85,
+                color: active ? "var(--accent)" : "var(--text-soft)",
+                lineHeight: 1,
+              }}>
                 {item.icon}
                 {item.key === "bildirim" && unread > 0 && (
                   <span style={{

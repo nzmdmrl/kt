@@ -124,11 +124,29 @@ export default function ProfilePage({ params }: { params: { username: string } }
 
   return (
     <Wrap>
+      {/* Mobil: logo + düzenle (KT logosu hizasında, sağ üstte). Desktopta TopBar logosu var. */}
+      <div className="kt-mobile-only" style={{ marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <a href="/"><Logo size={36} /></a>
+        {isMe && (
+          <button
+            onClick={() => setEditOpen(true)}
+            style={{
+              padding: "8px 16px", fontSize: 13, fontWeight: 600,
+              background: "var(--bg-elevated)", color: "var(--text-strong)",
+              border: "1px solid var(--border-soft)", borderRadius: 9, cursor: "pointer",
+            }}
+          >
+            ⚙️ Düzenle
+          </button>
+        )}
+      </div>
+
       {/* Üst kart */}
       <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 16, marginBottom: 24 }}>
         {isMe && (
           <button
             onClick={() => setEditOpen(true)}
+            className="kt-desktop-only"
             style={{
               position: "absolute", top: 0, right: 0, zIndex: 2,
               padding: "7px 14px", fontSize: 13, fontWeight: 600,
@@ -414,9 +432,6 @@ const awardBox: React.CSSProperties = {
 function Wrap({ children }: { children: React.ReactNode }) {
   return (
     <main style={{ flex: 1, maxWidth: 640, width: "100%", margin: "0 auto", padding: "24px 18px 60px" }}>
-      <div style={{ marginBottom: 20 }}>
-        <a href="/"><Logo size={36} /></a>
-      </div>
       {children}
     </main>
   );

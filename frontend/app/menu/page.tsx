@@ -29,7 +29,7 @@ export default function MenuPage() {
   }
 
   return (
-    <main style={{ maxWidth: 520, margin: "0 auto", padding: "24px 18px 40px" }}>
+    <main style={{ maxWidth: 520, margin: "0 auto", padding: "20px 14px 40px" }}>
       <div style={{ marginBottom: 16 }}><a href="/"><Logo size={32} /></a></div>
       {/* Ayarlar (toggle'lar) */}
       <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-soft)", marginBottom: 10, marginTop: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>Ayarlar</div>
@@ -70,16 +70,16 @@ const rowStyle: React.CSSProperties = {
 function NavRow({ icon, label, onClick }: { icon: string; label: string; onClick: () => void }) {
   return (
     <button onClick={onClick} style={{
-      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10,
-      padding: "20px 12px", background: "var(--bg-panel)", borderRadius: 14,
+      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8,
+      padding: "16px 8px", background: "var(--bg-panel)", borderRadius: 14,
       border: "1px solid var(--border-soft)", boxShadow: "0 1px 3px rgba(0,0,0,.15)",
-      cursor: "pointer", width: "100%", minHeight: 100,
+      cursor: "pointer", width: "100%", minHeight: 92,
     }}>
       <span style={{
-        fontSize: 26, width: 52, height: 52, flexShrink: 0, borderRadius: 14,
+        fontSize: 24, width: 46, height: 46, flexShrink: 0, borderRadius: 13,
         background: "var(--bg-elevated)", display: "grid", placeItems: "center",
       }}>{icon}</span>
-      <span style={{ fontWeight: 600, fontSize: 15, color: "var(--text-strong)", textAlign: "center" }}>{label}</span>
+      <span style={{ fontWeight: 600, fontSize: 14, color: "var(--text-strong)", textAlign: "center", lineHeight: 1.2, wordBreak: "break-word" }}>{label}</span>
     </button>
   );
 }

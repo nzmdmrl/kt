@@ -1650,3 +1650,17 @@ Düzeltme: Footer HomeDesktop'tan kaldırıldı. page.tsx .home-desktop içinde 
 Footer eklendi (en son). Artık: TopBar->içerik->HomeBoards->Footer. Mobilde .home-desktop gizli
 olduğu için footer sadece masaüstünde. Ana sayfa DesktopChrome'dan zaten hariç (isHome).
 Build ok.
+
+## Profil çift logo + bottomnav menü ikonu + mobil düzenle konumu + menü sıkışıklık (Nazım)
+1) Desktop profil çift logo: profildeki Logo .kt-mobile-only oldu (desktopta TopBar/DesktopChrome
+   logosu var). CSS: .kt-mobile-only (min721px gizli), .kt-desktop-only (mobilde gizli, min721px
+   block).
+2) BottomNav "Menü" ikonu (☰ metin karakteri, emoji değil -> renk alır, koyu zeminde kayboluyordu):
+   ikon span'ine color verildi (active accent, değilse text-soft). Artık görünür. Emoji ikonlar
+   renkten etkilenmez.
+3) Mobil profil düzenle: return başına .kt-mobile-only logo+düzenle satırı (justify space-between,
+   KT logosu hizasında sağda). Üst karttaki absolute düzenle butonu .kt-desktop-only (mobilde gizli).
+   Wrap'tan logo satırı çıkarıldı (isMe/setEditOpen erişimi için ProfilePage içine taşındı).
+4) Menü sıkışıklık: NavRow kompakt (padding 16/8, ikon 46px, font 14, minHeight 92, wordBreak
+   break-word, lineHeight 1.2). main padding 20/14. 2 sütun sığıyor.
+Build ok.
