@@ -22,10 +22,11 @@ import asyncio
 import random
 import time
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, Depends
 from sqlalchemy import select
 
-from app.core.database import AsyncSessionLocal
+from app.core.database import AsyncSessionLocal, get_db
+from app.core.deps import get_current_user
 from app.core.security import decode_token
 from app.core.config import get_settings
 from app.models.user import User
@@ -35,6 +36,22 @@ from app.game.settings_service import cached_int
 from app.words.word_service import get_pool
 
 router = APIRouter()
+
+
+@router.get("/arena/history")
+async def arena_history(
+    limit: int = 20,
+    user=Depends(get_current_user),
+    db=Depends(get_db),
+):
+    """Kullanıcının Arena maç geçmişi (kaçıncı oldu, skor, doğru sayısı)."""
+    from app.models.arena_history import ArenaHistory
+    from sqlalchemy import select as _select
+    rows = (await db.execute(
+        _select(ArenaHistory).where(ArenaHistory.user_id == user.id)
+        .order_by(ArenaHistory.created_at.desc()).limit(min(limit, 50))
+    )).scalars().all()
+    return {"matches": [r.to_public() for r in rows]}
 
 # Aktif WS bağlantıları: code -> {pid: websocket}
 _connections: dict[str, dict[str, WebSocket]] = {}
@@ -182,12 +199,15 @@ def _wrong_guess(word: str) -> str:
 
 
 async def _persist_results(match: ArenaMatch):
-    """Arena sonucu: gerçek oyunculara XP ver (katılım + 1. olana ek XP)."""
+    """Arena sonucu: geçmişe kaydet + gerçek oyunculara XP ver."""
     try:
         ranking = match.final_ranking()
         rank_by_pid = {r["pid"]: r["rank"] for r in ranking}
+        player_count = len(match.players)
+        total_words = len(match.questions)
         from app.game.xp_service import grant_xp
         from app.models.user import User
+        from app.models.arena_history import ArenaHistory
         from sqlalchemy import select as _select
         async with AsyncSessionLocal() as db:
             for pid, p in match.players.items():
@@ -200,11 +220,19 @@ async def _persist_results(match: ArenaMatch):
                 user = (await db.execute(_select(User).where(User.id == uid))).scalar_one_or_none()
                 if not user:
                     continue
+                rank = rank_by_pid.get(pid, 0)
+                # Geçmişe kaydet
+                db.add(ArenaHistory(
+                    user_id=uid, rank=rank, score=p.score,
+                    correct_count=p.correct_count, total_words=total_words,
+                    player_count=player_count,
+                ))
                 # Katılım XP'si
                 await grant_xp(db, user, "arena_played")
                 # 1. olduysa ek XP
-                if rank_by_pid.get(pid) == 1:
+                if rank == 1:
                     await grant_xp(db, user, "arena_win")
+            await db.commit()
     except Exception as e:
         print(f"[arena xp] HATA: {e}")
 

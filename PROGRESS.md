@@ -1492,3 +1492,16 @@ SONRAKİ: Parça 3 geçmiş + Arena sonuç kaydı (ArenaHistory: kaçıncı oldu
      class -> masaüstünde display:none. Mobilde QuizzLand tarzı + alt nav, masaüstünde eski
      TopBar üst menü, alt menü YOK.
 Build ok.
+
+## QuizzLand tarzı — PARÇA 3: Arena sonuç kaydı + geçmişte "kaçıncı oldun"
+- models/arena_history.py: ArenaHistory (user_id, rank, score, correct_count, total_words,
+  player_count, created_at). database.py model listesine eklendi (otomatik migration).
+- arena.py _persist_results: her gerçek oyuncu için ArenaHistory kaydı + XP (zaten vardı). rank
+  final_ranking'ten.
+- arena.py GET /api/arena/history?limit: kullanıcının arena geçmişi (get_current_user + get_db
+  dependency). r.to_public() listesi.
+- app/gecmis/page.tsx: "⚔️ Arena maçların" bölümü. Her satır: 🏆/🥈/🥉/N. madalya + "N oyuncu
+  arasında X." + doğru sayısı + skor⭐.
+Test: kayıt+geçmiş (rank/correct_count) ✓, boş geçmiş ✓, tablo migration ✓. Build ok.
+NOT: Günün kelimesi XP hâlâ bağlı değil (check_daily_guess auth'suz). Görevler/Arkadaşlar
+sekmeleri henüz yok.
