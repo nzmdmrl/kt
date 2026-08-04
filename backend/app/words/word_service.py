@@ -189,6 +189,7 @@ async def resync_flags_from_json(db: AsyncSession) -> int:
             continue
         by_word = {it["word"]: it for it in items}
         rows = (await db.execute(_select(Word).where(Word.length == length))).scalars().all()
+        existing_words = {row.word for row in rows}
         for row in rows:
             it = by_word.get(row.word)
             if not it:
@@ -200,6 +201,17 @@ async def resync_flags_from_json(db: AsyncSession) -> int:
                 row.member = new_member
                 row.bot = new_bot
                 row.difficulty = new_diff
+                updated += 1
+        # JSON'da olup DB'de OLMAYAN kelimeleri ekle (yeni member kelimeleri için kritik)
+        for w, it in by_word.items():
+            if w not in existing_words:
+                db.add(Word(
+                    word=w, length=length,
+                    difficulty=it.get("difficulty", "orta"),
+                    active=it.get("active", True),
+                    member=it.get("member", True),
+                    bot=it.get("bot", True),
+                ))
                 updated += 1
     await db.commit()
     return updated

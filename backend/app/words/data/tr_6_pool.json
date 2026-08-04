@@ -41,9 +41,9 @@
 },
 {
 "word": "ABARTI",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 25951
 },
@@ -273,9 +273,9 @@
 },
 {
 "word": "ADALET",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 2364
 },
@@ -337,9 +337,9 @@
 },
 {
 "word": "ADLİYE",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 37296
 },
@@ -363,7 +363,7 @@
 "word": "AFERİN",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1041
 },
@@ -379,7 +379,7 @@
 "word": "AFİYET",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 6671
 },
@@ -619,7 +619,7 @@
 "word": "AKILLI",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1425
 },
@@ -641,9 +641,9 @@
 },
 {
 "word": "AKINTI",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 18431
 },
@@ -683,7 +683,7 @@
 "word": "AKRABA",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 11088
 },
@@ -721,9 +721,9 @@
 },
 {
 "word": "AKTRİS",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 13032
 },
@@ -769,7 +769,7 @@
 },
 {
 "word": "ALACAK",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
 "member": true,
 "bot": true,
@@ -785,9 +785,9 @@
 },
 {
 "word": "ALAMET",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 24321
 },
@@ -929,9 +929,9 @@
 },
 {
 "word": "ALERJİ",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 23429
 },
@@ -1011,7 +1011,7 @@
 "word": "ALINTI",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 9660
 },
@@ -1209,9 +1209,9 @@
 },
 {
 "word": "AMAZON",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 15081
 },
@@ -1331,7 +1331,7 @@
 "word": "AMİRAL",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 6013
 },
@@ -1403,7 +1403,7 @@
 "word": "ANALİZ",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 5526
 },
@@ -1417,17 +1417,17 @@
 },
 {
 "word": "ANANAS",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 24316
 },
 {
 "word": "ANARŞİ",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 36328
 },
@@ -1795,7 +1795,7 @@
 "word": "ARABAN",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 6631
 },
@@ -2121,9 +2121,9 @@
 },
 {
 "word": "ARTİST",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 22290
 },
@@ -2505,9 +2505,9 @@
 },
 {
 "word": "ATMACA",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 37931
 },
@@ -2545,9 +2545,9 @@
 },
 {
 "word": "ATÖLYE",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 40445
 },
@@ -2601,7 +2601,7 @@
 },
 {
 "word": "AVUKAT",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
 "member": true,
 "bot": true,
@@ -2835,7 +2835,7 @@
 "word": "AYRICA",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 307
 },
@@ -2939,7 +2939,7 @@
 "word": "AÇACAK",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 7464
 },
@@ -3387,7 +3387,7 @@
 "word": "BAHANE",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 4625
 },
@@ -3403,7 +3403,7 @@
 "word": "BAHŞİŞ",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 7643
 },
@@ -3433,9 +3433,9 @@
 },
 {
 "word": "BAKKAL",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 29977
 },
@@ -3507,7 +3507,7 @@
 "word": "BALAYI",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 11619
 },
@@ -3561,9 +3561,9 @@
 },
 {
 "word": "BALKON",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 38367
 },
@@ -3619,7 +3619,7 @@
 "word": "BALİNA",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 9042
 },
@@ -3633,9 +3633,9 @@
 },
 {
 "word": "BANDAJ",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 27032
 },
@@ -3747,7 +3747,7 @@
 "word": "BARMEN",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 9792
 },
@@ -3819,15 +3819,15 @@
 "word": "BASINÇ",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 6234
 },
 {
 "word": "BASKET",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 15207
 },
@@ -3857,9 +3857,9 @@
 },
 {
 "word": "BASTON",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 29119
 },
@@ -3883,7 +3883,7 @@
 "word": "BATMAN",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 6596
 },
@@ -3931,7 +3931,7 @@
 "word": "BAYAĞI",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1254
 },
@@ -3945,9 +3945,9 @@
 },
 {
 "word": "BAYKUŞ",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 16614
 },
@@ -3971,7 +3971,7 @@
 "word": "BAYRAK",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 8482
 },
@@ -3979,7 +3979,7 @@
 "word": "BAYRAM",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 11965
 },
@@ -4115,7 +4115,7 @@
 "word": "BAŞARI",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 4381
 },
@@ -4129,7 +4129,7 @@
 },
 {
 "word": "BAŞKAN",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
 "member": true,
 "bot": true,
@@ -4137,9 +4137,9 @@
 },
 {
 "word": "BAŞLIK",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 13278
 },
@@ -4161,9 +4161,9 @@
 },
 {
 "word": "BAŞROL",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 17643
 },
@@ -4201,9 +4201,9 @@
 },
 {
 "word": "BECERİ",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 26479
 },
@@ -4337,9 +4337,9 @@
 },
 {
 "word": "BELLEK",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 22548
 },
@@ -4393,9 +4393,9 @@
 },
 {
 "word": "BENLİK",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 27349
 },
@@ -4411,7 +4411,7 @@
 "word": "BENZER",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1818
 },
@@ -4433,17 +4433,17 @@
 },
 {
 "word": "BENZİN",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 3238
 },
 {
 "word": "BERAAT",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 21859
 },
@@ -4451,15 +4451,15 @@
 "word": "BERBAT",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 654
 },
 {
 "word": "BERBER",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 17244
 },
@@ -4577,9 +4577,9 @@
 },
 {
 "word": "BEYGİR",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 20516
 },
@@ -4731,7 +4731,7 @@
 "word": "BODRUM",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 8860
 },
@@ -4745,9 +4745,9 @@
 },
 {
 "word": "BOKSÖR",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 15600
 },
@@ -4777,9 +4777,9 @@
 },
 {
 "word": "BOLLUK",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 36261
 },
@@ -4825,9 +4825,9 @@
 },
 {
 "word": "BONCUK",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 26256
 },
@@ -4897,9 +4897,9 @@
 },
 {
 "word": "BORNOZ",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 40542
 },
@@ -5131,7 +5131,7 @@
 "word": "BOŞLUK",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 5881
 },
@@ -5201,9 +5201,9 @@
 },
 {
 "word": "BROŞÜR",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 25312
 },
@@ -5387,7 +5387,7 @@
 "word": "BURADA",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 39
 },
@@ -5481,9 +5481,9 @@
 },
 {
 "word": "BUYRUK",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 35574
 },
@@ -5529,9 +5529,9 @@
 },
 {
 "word": "BUĞDAY",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 14807
 },
@@ -5547,7 +5547,7 @@
 "word": "BÖBREK",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 10075
 },
@@ -5641,9 +5641,9 @@
 },
 {
 "word": "BÜLBÜL",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 31191
 },
@@ -5683,7 +5683,7 @@
 "word": "BÜYÜCÜ",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 5128
 },
@@ -5747,7 +5747,7 @@
 "word": "BİFTEK",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 5862
 },
@@ -5761,9 +5761,9 @@
 },
 {
 "word": "BİKİNİ",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 19674
 },
@@ -5785,9 +5785,9 @@
 },
 {
 "word": "BİLEĞİ",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 29509
 },
@@ -5795,7 +5795,7 @@
 "word": "BİLGİN",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 7226
 },
@@ -5849,9 +5849,9 @@
 },
 {
 "word": "BİLİNÇ",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 13535
 },
@@ -6241,9 +6241,9 @@
 },
 {
 "word": "CAZİBE",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 24240
 },
@@ -6313,9 +6313,9 @@
 },
 {
 "word": "CEMAAT",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 28500
 },
@@ -6337,9 +6337,9 @@
 },
 {
 "word": "CENAZE",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 3164
 },
@@ -6395,7 +6395,7 @@
 "word": "CERRAH",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 8216
 },
@@ -6441,9 +6441,9 @@
 },
 {
 "word": "CEVHER",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 39593
 },
@@ -6457,9 +6457,9 @@
 },
 {
 "word": "CEYLAN",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 34926
 },
@@ -6521,9 +6521,9 @@
 },
 {
 "word": "CIRCIR",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 38511
 },
@@ -6649,9 +6649,9 @@
 },
 {
 "word": "CÜZDAN",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 14650
 },
@@ -6737,9 +6737,9 @@
 },
 {
 "word": "CİNNET",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 40497
 },
@@ -6747,7 +6747,7 @@
 "word": "CİNSEL",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1627
 },
@@ -6761,9 +6761,9 @@
 },
 {
 "word": "CİVCİV",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 36018
 },
@@ -6787,7 +6787,7 @@
 "word": "DAKİKA",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 207
 },
@@ -6841,9 +6841,9 @@
 },
 {
 "word": "DALGIÇ",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 26796
 },
@@ -7001,9 +7001,9 @@
 },
 {
 "word": "DAVACI",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 19645
 },
@@ -7129,9 +7129,9 @@
 },
 {
 "word": "DEFANS",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 22178
 },
@@ -7145,9 +7145,9 @@
 },
 {
 "word": "DEFTER",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 14162
 },
@@ -7161,9 +7161,9 @@
 },
 {
 "word": "DEFİNE",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 33207
 },
@@ -7355,7 +7355,7 @@
 "word": "DEPREM",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 9974
 },
@@ -7363,7 +7363,7 @@
 "word": "DERECE",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1201
 },
@@ -7379,7 +7379,7 @@
 "word": "DERKEN",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1706
 },
@@ -7401,9 +7401,9 @@
 },
 {
 "word": "DERNEK",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 27672
 },
@@ -7481,9 +7481,9 @@
 },
 {
 "word": "DESTAN",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 42701
 },
@@ -7497,7 +7497,7 @@
 },
 {
 "word": "DESTEK",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
 "member": true,
 "bot": true,
@@ -7553,9 +7553,9 @@
 },
 {
 "word": "DEVLET",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 2269
 },
@@ -7609,9 +7609,9 @@
 },
 {
 "word": "DEĞNEK",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 39196
 },
@@ -7633,9 +7633,9 @@
 },
 {
 "word": "DIRDIR",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 19261
 },
@@ -7675,7 +7675,7 @@
 "word": "DIŞARI",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 312
 },
@@ -7713,7 +7713,7 @@
 },
 {
 "word": "DOKTOR",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
 "member": true,
 "bot": true,
@@ -7747,7 +7747,7 @@
 "word": "DOLAYI",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 911
 },
@@ -7801,9 +7801,9 @@
 },
 {
 "word": "DOMİNO",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 25359
 },
@@ -7897,9 +7897,9 @@
 },
 {
 "word": "DRAGON",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 22957
 },
@@ -7969,9 +7969,9 @@
 },
 {
 "word": "DUBLÖR",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 25635
 },
@@ -8049,9 +8049,9 @@
 },
 {
 "word": "DUYURU",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 14570
 },
@@ -8129,9 +8129,9 @@
 },
 {
 "word": "DÜELLO",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 15092
 },
@@ -8201,9 +8201,9 @@
 },
 {
 "word": "DÜRBÜN",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 42514
 },
@@ -8235,7 +8235,7 @@
 "word": "DÜRÜST",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 906
 },
@@ -8267,7 +8267,7 @@
 "word": "DÜZGÜN",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1392
 },
@@ -8299,7 +8299,7 @@
 "word": "DÜZİNE",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 4929
 },
@@ -8323,7 +8323,7 @@
 "word": "DÜŞMAN",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1934
 },
@@ -8379,7 +8379,7 @@
 "word": "DİKKAT",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 350
 },
@@ -8641,9 +8641,9 @@
 },
 {
 "word": "DİRENÇ",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 32814
 },
@@ -8673,9 +8673,9 @@
 },
 {
 "word": "DİRSEK",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 24352
 },
@@ -8745,9 +8745,9 @@
 },
 {
 "word": "DİZAYN",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 13923
 },
@@ -8945,9 +8945,9 @@
 },
 {
 "word": "ECZANE",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 25074
 },
@@ -9033,9 +9033,9 @@
 },
 {
 "word": "EDİTÖR",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 19499
 },
@@ -9067,7 +9067,7 @@
 "word": "EFSANE",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 5458
 },
@@ -9233,9 +9233,9 @@
 },
 {
 "word": "ELBİSE",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 2280
 },
@@ -9267,7 +9267,7 @@
 "word": "ELEMAN",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 5153
 },
@@ -9387,7 +9387,7 @@
 "word": "EMANET",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 6119
 },
@@ -9425,9 +9425,9 @@
 },
 {
 "word": "EMPATİ",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 24685
 },
@@ -9473,9 +9473,9 @@
 },
 {
 "word": "ENDİŞE",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 2242
 },
@@ -9489,7 +9489,7 @@
 },
 {
 "word": "ENERJİ",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
 "member": true,
 "bot": true,
@@ -9529,9 +9529,9 @@
 },
 {
 "word": "ENSEST",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 37451
 },
@@ -9545,9 +9545,9 @@
 },
 {
 "word": "ENİŞTE",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 26879
 },
@@ -9761,9 +9761,9 @@
 },
 {
 "word": "ERİŞTE",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 17063
 },
@@ -9771,15 +9771,15 @@
 "word": "ERİŞİM",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 7971
 },
 {
 "word": "ESARET",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 42897
 },
@@ -9833,17 +9833,17 @@
 },
 {
 "word": "ESKORT",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 19146
 },
 {
 "word": "ESKRİM",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 43672
 },
@@ -9921,9 +9921,9 @@
 },
 {
 "word": "ESİNTİ",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 32924
 },
@@ -10017,9 +10017,9 @@
 },
 {
 "word": "ETİKET",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 18720
 },
@@ -10105,9 +10105,9 @@
 },
 {
 "word": "EYALET",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 3043
 },
@@ -10203,7 +10203,7 @@
 "word": "EZİYET",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 9355
 },
@@ -10313,9 +10313,9 @@
 },
 {
 "word": "EĞİTİM",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 2043
 },
@@ -10361,9 +10361,9 @@
 },
 {
 "word": "EŞKIYA",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 36095
 },
@@ -10417,9 +10417,9 @@
 },
 {
 "word": "FAKTÖR",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 33319
 },
@@ -10531,7 +10531,7 @@
 "word": "FARKLI",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 356
 },
@@ -10587,7 +10587,7 @@
 "word": "FATURA",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 10284
 },
@@ -10689,9 +10689,9 @@
 },
 {
 "word": "FAŞİST",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 17258
 },
@@ -10809,9 +10809,9 @@
 },
 {
 "word": "FERYAT",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 36612
 },
@@ -10857,9 +10857,9 @@
 },
 {
 "word": "FINDIK",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 15688
 },
@@ -10881,7 +10881,7 @@
 },
 {
 "word": "FIRSAT",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
 "member": true,
 "bot": true,
@@ -11065,9 +11065,9 @@
 },
 {
 "word": "FORMÜL",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 25333
 },
@@ -11153,9 +11153,9 @@
 },
 {
 "word": "FRENGİ",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 28687
 },
@@ -11209,9 +11209,9 @@
 },
 {
 "word": "FUTBOL",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 2170
 },
@@ -11225,9 +11225,9 @@
 },
 {
 "word": "FÜZYON",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 24466
 },
@@ -11289,9 +11289,9 @@
 },
 {
 "word": "FİLTRE",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 32170
 },
@@ -11305,9 +11305,9 @@
 },
 {
 "word": "FİNANS",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 12540
 },
@@ -11315,7 +11315,7 @@
 "word": "FİNCAN",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 5544
 },
@@ -11489,9 +11489,9 @@
 },
 {
 "word": "GALERİ",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 22091
 },
@@ -11523,7 +11523,7 @@
 "word": "GALİBA",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 506
 },
@@ -11611,7 +11611,7 @@
 "word": "GARSON",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 4602
 },
@@ -11643,7 +11643,7 @@
 "word": "GAYRET",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 11390
 },
@@ -11665,9 +11665,9 @@
 },
 {
 "word": "GAZETE",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 3815
 },
@@ -11729,7 +11729,7 @@
 },
 {
 "word": "GELENİ",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
 "member": true,
 "bot": true,
@@ -11753,9 +11753,9 @@
 },
 {
 "word": "GELGİT",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 28381
 },
@@ -11859,7 +11859,7 @@
 "word": "GERÇEK",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 197
 },
@@ -11987,7 +11987,7 @@
 "word": "GEÇMİŞ",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1348
 },
@@ -12169,9 +12169,9 @@
 },
 {
 "word": "GRAFİK",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 26689
 },
@@ -12363,7 +12363,7 @@
 "word": "GÖMLEK",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 7112
 },
@@ -12451,7 +12451,7 @@
 "word": "GÖRMÜŞ",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1573
 },
@@ -12465,9 +12465,9 @@
 },
 {
 "word": "GÖRÜCÜ",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 35805
 },
@@ -12531,7 +12531,7 @@
 "word": "GÖZLEM",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 7457
 },
@@ -12539,7 +12539,7 @@
 "word": "GÖZLÜK",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 10013
 },
@@ -12649,9 +12649,9 @@
 },
 {
 "word": "GÜMRÜK",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 16622
 },
@@ -12681,9 +12681,9 @@
 },
 {
 "word": "GÜNDEM",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 40511
 },
@@ -12809,9 +12809,9 @@
 },
 {
 "word": "GÜÇLÜK",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 17765
 },
@@ -12841,9 +12841,9 @@
 },
 {
 "word": "GİRDAP",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 31623
 },
@@ -12865,9 +12865,9 @@
 },
 {
 "word": "HADEME",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 23768
 },
@@ -12883,7 +12883,7 @@
 "word": "HAFIZA",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 5385
 },
@@ -13067,7 +13067,7 @@
 "word": "HAMİLE",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1378
 },
@@ -13089,9 +13089,9 @@
 },
 {
 "word": "HANGAR",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 34420
 },
@@ -13113,17 +13113,17 @@
 },
 {
 "word": "HANÇER",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 17372
 },
 {
 "word": "HARABE",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 35366
 },
@@ -13169,9 +13169,9 @@
 },
 {
 "word": "HARDAL",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 16909
 },
@@ -13243,7 +13243,7 @@
 "word": "HARİKA",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 117
 },
@@ -13251,7 +13251,7 @@
 "word": "HARİTA",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 5810
 },
@@ -13323,7 +13323,7 @@
 "word": "HATIRA",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 7846
 },
@@ -13353,9 +13353,9 @@
 },
 {
 "word": "HAVALE",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 20202
 },
@@ -13393,9 +13393,9 @@
 },
 {
 "word": "HAVYAR",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 24143
 },
@@ -13411,7 +13411,7 @@
 "word": "HAYDUT",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 9014
 },
@@ -13475,7 +13475,7 @@
 "word": "HAYVAN",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1347
 },
@@ -13499,7 +13499,7 @@
 "word": "HAZİNE",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 5381
 },
@@ -13545,9 +13545,9 @@
 },
 {
 "word": "HAŞHAŞ",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 40094
 },
@@ -13609,7 +13609,7 @@
 },
 {
 "word": "HEDİYE",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
 "member": true,
 "bot": true,
@@ -13633,9 +13633,9 @@
 },
 {
 "word": "HELYUM",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 30023
 },
@@ -13649,9 +13649,9 @@
 },
 {
 "word": "HENDEK",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 34960
 },
@@ -13739,7 +13739,7 @@
 "word": "HEYKEL",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 10811
 },
@@ -13849,25 +13849,25 @@
 },
 {
 "word": "HORMON",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 24258
 },
 {
 "word": "HORTUM",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 18715
 },
 {
 "word": "HOSTES",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 26145
 },
@@ -14025,9 +14025,9 @@
 },
 {
 "word": "HÜRMET",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 35300
 },
@@ -14097,9 +14097,9 @@
 },
 {
 "word": "HİJYEN",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 41653
 },
@@ -14129,9 +14129,9 @@
 },
 {
 "word": "HİLKAT",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 41046
 },
@@ -14161,9 +14161,9 @@
 },
 {
 "word": "HİPNOZ",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 21499
 },
@@ -14201,7 +14201,7 @@
 },
 {
 "word": "HİZMET",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
 "member": true,
 "bot": true,
@@ -14387,7 +14387,7 @@
 "word": "ISIRIK",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 11584
 },
@@ -14569,17 +14569,17 @@
 },
 {
 "word": "JAGUAR",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 21591
 },
 {
 "word": "JAKUZİ",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 28878
 },
@@ -14593,9 +14593,9 @@
 },
 {
 "word": "JAMBON",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 14420
 },
@@ -14635,7 +14635,7 @@
 "word": "JERSEY",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 5240
 },
@@ -14737,17 +14737,17 @@
 },
 {
 "word": "KABİLE",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 12821
 },
 {
 "word": "KABİNE",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 20114
 },
@@ -14761,9 +14761,9 @@
 },
 {
 "word": "KADEME",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 32345
 },
@@ -14817,17 +14817,17 @@
 },
 {
 "word": "KAFEİN",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 24132
 },
 {
 "word": "KAFTAN",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 29325
 },
@@ -14841,9 +14841,9 @@
 },
 {
 "word": "KAFİYE",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 35524
 },
@@ -14889,9 +14889,9 @@
 },
 {
 "word": "KAKTÜS",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 31704
 },
@@ -14929,9 +14929,9 @@
 },
 {
 "word": "KALECİ",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 38960
 },
@@ -14955,7 +14955,7 @@
 "word": "KALKAN",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 7186
 },
@@ -15009,9 +15009,9 @@
 },
 {
 "word": "KALORİ",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 26119
 },
@@ -15145,9 +15145,9 @@
 },
 {
 "word": "KAMPÜS",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 20386
 },
@@ -15161,9 +15161,9 @@
 },
 {
 "word": "KANAAT",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 27301
 },
@@ -15233,9 +15233,9 @@
 },
 {
 "word": "KANEPE",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 14419
 },
@@ -15249,17 +15249,17 @@
 },
 {
 "word": "KANKAN",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 40986
 },
 {
 "word": "KANSER",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 3863
 },
@@ -15321,9 +15321,9 @@
 },
 {
 "word": "KANYON",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 26131
 },
@@ -15339,7 +15339,7 @@
 "word": "KAPALI",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1354
 },
@@ -15457,15 +15457,15 @@
 },
 {
 "word": "KAPSÜL",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 29418
 },
 {
 "word": "KAPTAN",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
 "member": true,
 "bot": true,
@@ -15537,9 +15537,9 @@
 },
 {
 "word": "KARATE",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 12892
 },
@@ -15563,7 +15563,7 @@
 "word": "KARBON",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 11411
 },
@@ -15579,7 +15579,7 @@
 "word": "KARDEŞ",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1658
 },
@@ -15657,9 +15657,9 @@
 },
 {
 "word": "KARPUZ",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 22143
 },
@@ -15689,9 +15689,9 @@
 },
 {
 "word": "KARTEL",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 23431
 },
@@ -15705,9 +15705,9 @@
 },
 {
 "word": "KARTON",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 20808
 },
@@ -15745,9 +15745,9 @@
 },
 {
 "word": "KARİNA",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 32896
 },
@@ -15777,9 +15777,9 @@
 },
 {
 "word": "KASABA",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 2871
 },
@@ -15897,9 +15897,9 @@
 },
 {
 "word": "KATMAN",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 33725
 },
@@ -15921,9 +15921,9 @@
 },
 {
 "word": "KATRAN",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 38881
 },
@@ -16017,9 +16017,9 @@
 },
 {
 "word": "KAVRAM",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 27748
 },
@@ -16065,17 +16065,17 @@
 },
 {
 "word": "KAYISI",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 42185
 },
 {
 "word": "KAYKAY",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 27507
 },
@@ -16083,7 +16083,7 @@
 "word": "KAYNAK",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 5030
 },
@@ -16195,7 +16195,7 @@
 "word": "KAZANÇ",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 10910
 },
@@ -16209,9 +16209,9 @@
 },
 {
 "word": "KAZAĞI",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 35057
 },
@@ -16401,9 +16401,9 @@
 },
 {
 "word": "KEKLİK",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 18530
 },
@@ -16433,7 +16433,7 @@
 },
 {
 "word": "KELİME",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
 "member": true,
 "bot": true,
@@ -16705,9 +16705,9 @@
 },
 {
 "word": "KETÇAP",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 17926
 },
@@ -16905,9 +16905,9 @@
 },
 {
 "word": "KIRBAÇ",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 27765
 },
@@ -17073,9 +17073,9 @@
 },
 {
 "word": "KISRAK",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 43439
 },
@@ -17105,9 +17105,9 @@
 },
 {
 "word": "KITLIK",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 27954
 },
@@ -17185,9 +17185,9 @@
 },
 {
 "word": "KIYMIK",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 34251
 },
@@ -17203,7 +17203,7 @@
 "word": "KIZGIN",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1587
 },
@@ -17289,9 +17289,9 @@
 },
 {
 "word": "KLOZET",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 32833
 },
@@ -17449,9 +17449,9 @@
 },
 {
 "word": "KOLERA",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 38606
 },
@@ -17465,17 +17465,17 @@
 },
 {
 "word": "KOLLUK",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 32764
 },
 {
 "word": "KOLONİ",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 15873
 },
@@ -17499,7 +17499,7 @@
 "word": "KOLTUK",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 4884
 },
@@ -17523,7 +17523,7 @@
 "word": "KOMEDİ",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 8599
 },
@@ -17547,7 +17547,7 @@
 "word": "KOMPLO",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 6012
 },
@@ -17555,7 +17555,7 @@
 "word": "KOMUTA",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 5045
 },
@@ -17569,17 +17569,17 @@
 },
 {
 "word": "KOMİTE",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 13527
 },
 {
 "word": "KONDOM",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 21564
 },
@@ -17603,7 +17603,7 @@
 "word": "KONGRE",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 6207
 },
@@ -17635,7 +17635,7 @@
 "word": "KONSER",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 6440
 },
@@ -17643,7 +17643,7 @@
 "word": "KONSEY",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 8915
 },
@@ -17683,7 +17683,7 @@
 "word": "KONTES",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 10834
 },
@@ -17729,17 +17729,17 @@
 },
 {
 "word": "KONVOY",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 26056
 },
 {
 "word": "KONYAK",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 16913
 },
@@ -17753,9 +17753,9 @@
 },
 {
 "word": "KORDON",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 35959
 },
@@ -17841,9 +17841,9 @@
 },
 {
 "word": "KORUCU",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 29255
 },
@@ -17899,7 +17899,7 @@
 "word": "KOSTÜM",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 8082
 },
@@ -17923,7 +17923,7 @@
 "word": "KOVBOY",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 5576
 },
@@ -18017,9 +18017,9 @@
 },
 {
 "word": "KRATER",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 40069
 },
@@ -18027,7 +18027,7 @@
 "word": "KRAVAT",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 9352
 },
@@ -18105,9 +18105,9 @@
 },
 {
 "word": "KRİKET",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 17336
 },
@@ -18145,9 +18145,9 @@
 },
 {
 "word": "KUAFÖR",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 23808
 },
@@ -18219,7 +18219,7 @@
 "word": "KULÜBE",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 5311
 },
@@ -18297,9 +18297,9 @@
 },
 {
 "word": "KUNDUZ",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 21649
 },
@@ -18339,7 +18339,7 @@
 "word": "KURBAN",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1517
 },
@@ -18411,7 +18411,7 @@
 "word": "KURŞUN",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1966
 },
@@ -18433,9 +18433,9 @@
 },
 {
 "word": "KUSMUK",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 17758
 },
@@ -18443,7 +18443,7 @@
 "word": "KUTSAL",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1243
 },
@@ -18483,7 +18483,7 @@
 "word": "KUVVET",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 7673
 },
@@ -18491,7 +18491,7 @@
 "word": "KUYRUK",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 10038
 },
@@ -18505,9 +18505,9 @@
 },
 {
 "word": "KUZGUN",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 24863
 },
@@ -18851,7 +18851,7 @@
 "word": "KÜLTÜR",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 9005
 },
@@ -18913,9 +18913,9 @@
 },
 {
 "word": "KÜRDAN",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 40489
 },
@@ -18963,7 +18963,7 @@
 "word": "KÜRTAJ",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 10592
 },
@@ -19041,9 +19041,9 @@
 },
 {
 "word": "KİBRİT",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 12872
 },
@@ -19081,17 +19081,17 @@
 },
 {
 "word": "KİLİSE",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 3275
 },
 {
 "word": "KİMLİK",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 3139
 },
@@ -19297,9 +19297,9 @@
 },
 {
 "word": "LAHANA",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 14226
 },
@@ -19465,9 +19465,9 @@
 },
 {
 "word": "LAVABO",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 19361
 },
@@ -19569,9 +19569,9 @@
 },
 {
 "word": "LEOPAR",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 22278
 },
@@ -19593,9 +19593,9 @@
 },
 {
 "word": "LEVREK",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 39050
 },
@@ -19625,9 +19625,9 @@
 },
 {
 "word": "LEZZET",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 27576
 },
@@ -19737,9 +19737,9 @@
 },
 {
 "word": "LOSYON",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 40404
 },
@@ -19753,9 +19753,9 @@
 },
 {
 "word": "LÖSEMİ",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 31895
 },
@@ -19803,7 +19803,7 @@
 "word": "LÜTFEN",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 60
 },
@@ -19905,9 +19905,9 @@
 },
 {
 "word": "LİSANS",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 15850
 },
@@ -19979,7 +19979,7 @@
 "word": "MACERA",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 6706
 },
@@ -20281,9 +20281,9 @@
 },
 {
 "word": "MAHŞER",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 37255
 },
@@ -20291,15 +20291,15 @@
 "word": "MAKALE",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 8457
 },
 {
 "word": "MAKARA",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 37211
 },
@@ -20321,9 +20321,9 @@
 },
 {
 "word": "MAKBUZ",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 33742
 },
@@ -20371,7 +20371,7 @@
 "word": "MAKYAJ",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 5818
 },
@@ -20393,9 +20393,9 @@
 },
 {
 "word": "MAKİNE",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 3289
 },
@@ -20449,9 +20449,9 @@
 },
 {
 "word": "MALİYE",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 24538
 },
@@ -20505,9 +20505,9 @@
 },
 {
 "word": "MANGAL",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 17604
 },
@@ -20537,9 +20537,9 @@
 },
 {
 "word": "MANKEN",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 14353
 },
@@ -20555,7 +20555,7 @@
 "word": "MANTAR",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 7557
 },
@@ -20563,7 +20563,7 @@
 "word": "MANTIK",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 9647
 },
@@ -20641,9 +20641,9 @@
 },
 {
 "word": "MANŞET",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 27800
 },
@@ -20699,7 +20699,7 @@
 "word": "MARKET",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 10744
 },
@@ -20729,9 +20729,9 @@
 },
 {
 "word": "MARLEY",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 16678
 },
@@ -20753,7 +20753,7 @@
 },
 {
 "word": "MARTİN",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
 "member": true,
 "bot": true,
@@ -20763,7 +20763,7 @@
 "word": "MARİNA",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 11773
 },
@@ -20777,9 +20777,9 @@
 },
 {
 "word": "MASKOT",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 37878
 },
@@ -20801,9 +20801,9 @@
 },
 {
 "word": "MASRAF",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 25733
 },
@@ -20889,9 +20889,9 @@
 },
 {
 "word": "MATKAP",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 24696
 },
@@ -21099,7 +21099,7 @@
 "word": "MAĞARA",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 8106
 },
@@ -21107,7 +21107,7 @@
 "word": "MAĞAZA",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 11823
 },
@@ -21283,7 +21283,7 @@
 "word": "MECLİS",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 5675
 },
@@ -21345,9 +21345,9 @@
 },
 {
 "word": "MEDYUM",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 12891
 },
@@ -21449,7 +21449,7 @@
 },
 {
 "word": "MEKTUP",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
 "member": true,
 "bot": true,
@@ -21489,9 +21489,9 @@
 },
 {
 "word": "MELODİ",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 21284
 },
@@ -21539,7 +21539,7 @@
 "word": "MEMNUN",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 593
 },
@@ -21561,9 +21561,9 @@
 },
 {
 "word": "MENDİL",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 12368
 },
@@ -21633,9 +21633,9 @@
 },
 {
 "word": "MENZİL",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 25803
 },
@@ -21689,17 +21689,17 @@
 },
 {
 "word": "MERHEM",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 26887
 },
 {
 "word": "MERHUM",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 17024
 },
@@ -21721,9 +21721,9 @@
 },
 {
 "word": "MERKEZ",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 3200
 },
@@ -21779,7 +21779,7 @@
 "word": "MESAFE",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 5330
 },
@@ -21827,13 +21827,13 @@
 "word": "MESELA",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1007
 },
 {
 "word": "MESELE",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
 "member": true,
 "bot": true,
@@ -21851,7 +21851,7 @@
 "word": "MESLEK",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 7993
 },
@@ -21897,9 +21897,9 @@
 },
 {
 "word": "METEOR",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 12546
 },
@@ -22049,9 +22049,9 @@
 },
 {
 "word": "MEVSİM",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 18611
 },
@@ -22081,9 +22081,9 @@
 },
 {
 "word": "MEYDAN",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 3360
 },
@@ -22153,9 +22153,9 @@
 },
 {
 "word": "MEŞALE",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 31921
 },
@@ -22163,7 +22163,7 @@
 "word": "MEŞGUL",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1630
 },
@@ -22305,9 +22305,9 @@
 },
 {
 "word": "MIZRAK",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 17144
 },
@@ -22377,9 +22377,9 @@
 },
 {
 "word": "MONTAJ",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 30892
 },
@@ -22411,7 +22411,7 @@
 "word": "MORFİN",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 11003
 },
@@ -22561,9 +22561,9 @@
 },
 {
 "word": "MUHBİR",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 12122
 },
@@ -22705,9 +22705,9 @@
 },
 {
 "word": "MUSLUK",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 26031
 },
@@ -22739,7 +22739,7 @@
 "word": "MUTFAK",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 4742
 },
@@ -22881,9 +22881,9 @@
 },
 {
 "word": "MÜDDET",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 20928
 },
@@ -22913,9 +22913,9 @@
 },
 {
 "word": "MÜDİRE",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 35676
 },
@@ -23035,7 +23035,7 @@
 "word": "MÜMKÜN",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 619
 },
@@ -23187,7 +23187,7 @@
 "word": "MÜTHİŞ",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1460
 },
@@ -23273,9 +23273,9 @@
 },
 {
 "word": "MİGREN",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 40636
 },
@@ -23363,7 +23363,7 @@
 "word": "MİKTAR",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 5154
 },
@@ -23393,7 +23393,7 @@
 },
 {
 "word": "MİLLET",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
 "member": true,
 "bot": true,
@@ -23419,7 +23419,7 @@
 "word": "MİLYON",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 678
 },
@@ -23481,9 +23481,9 @@
 },
 {
 "word": "MİNNET",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 18299
 },
@@ -23529,9 +23529,9 @@
 },
 {
 "word": "MİSKET",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 37142
 },
@@ -23633,9 +23633,9 @@
 },
 {
 "word": "NAFAKA",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 22065
 },
@@ -23657,9 +23657,9 @@
 },
 {
 "word": "NAKAVT",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 15373
 },
@@ -23929,15 +23929,15 @@
 },
 {
 "word": "NEDİME",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 23624
 },
 {
 "word": "NEFRET",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
 "member": true,
 "bot": true,
@@ -24089,9 +24089,9 @@
 },
 {
 "word": "NETİCE",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 42518
 },
@@ -24169,9 +24169,9 @@
 },
 {
 "word": "NEŞTER",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 19194
 },
@@ -24211,7 +24211,7 @@
 "word": "NORMAL",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 679
 },
@@ -24225,7 +24225,7 @@
 },
 {
 "word": "NUMARA",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
 "member": true,
 "bot": true,
@@ -24233,9 +24233,9 @@
 },
 {
 "word": "NUMUNE",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 18909
 },
@@ -24257,9 +24257,9 @@
 },
 {
 "word": "NÖTRON",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 32388
 },
@@ -24353,9 +24353,9 @@
 },
 {
 "word": "NİTRAT",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 40722
 },
@@ -24595,7 +24595,7 @@
 "word": "OLACAK",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 85
 },
@@ -24603,15 +24603,15 @@
 "word": "OLAMAZ",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 393
 },
 {
 "word": "OLANAK",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 18148
 },
@@ -24705,9 +24705,9 @@
 },
 {
 "word": "OLUŞUM",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 28860
 },
@@ -24721,9 +24721,9 @@
 },
 {
 "word": "OMURGA",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 27053
 },
@@ -24779,7 +24779,7 @@
 "word": "ONBAŞI",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 8348
 },
@@ -24803,7 +24803,7 @@
 "word": "ONLARA",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 286
 },
@@ -24947,15 +24947,15 @@
 "word": "ORGAZM",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 11345
 },
 {
 "word": "ORKİDE",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 28902
 },
@@ -24963,7 +24963,7 @@
 "word": "ORTADA",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1692
 },
@@ -25049,9 +25049,9 @@
 },
 {
 "word": "OTOBAN",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 29873
 },
@@ -25065,9 +25065,9 @@
 },
 {
 "word": "OTOBÜS",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 2970
 },
@@ -25123,7 +25123,7 @@
 "word": "OTOPSİ",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 6516
 },
@@ -25137,9 +25137,9 @@
 },
 {
 "word": "OTOYOL",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 17890
 },
@@ -25161,9 +25161,9 @@
 },
 {
 "word": "OTURUM",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 23819
 },
@@ -25409,17 +25409,17 @@
 },
 {
 "word": "PANAMA",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 18590
 },
 {
 "word": "PANCAR",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 36655
 },
@@ -25441,9 +25441,9 @@
 },
 {
 "word": "PANTER",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 21788
 },
@@ -25489,9 +25489,9 @@
 },
 {
 "word": "PAPYON",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 43111
 },
@@ -25545,7 +25545,7 @@
 },
 {
 "word": "PARDON",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
 "member": true,
 "bot": true,
@@ -25555,7 +25555,7 @@
 "word": "PARFÜM",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 10084
 },
@@ -25579,7 +25579,7 @@
 "word": "PARLAK",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1982
 },
@@ -25593,9 +25593,9 @@
 },
 {
 "word": "PAROLA",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 27946
 },
@@ -25657,9 +25657,9 @@
 },
 {
 "word": "PASPAS",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 24973
 },
@@ -25729,9 +25729,9 @@
 },
 {
 "word": "PATENT",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 27059
 },
@@ -25753,7 +25753,7 @@
 },
 {
 "word": "PATRON",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
 "member": true,
 "bot": true,
@@ -25769,9 +25769,9 @@
 },
 {
 "word": "PATİKA",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 32087
 },
@@ -26075,7 +26075,7 @@
 "word": "PETROL",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 4351
 },
@@ -26089,9 +26089,9 @@
 },
 {
 "word": "PEYNİR",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 3717
 },
@@ -26121,9 +26121,9 @@
 },
 {
 "word": "PEÇETE",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 16771
 },
@@ -26217,9 +26217,9 @@
 },
 {
 "word": "PLANET",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 19623
 },
@@ -26249,17 +26249,17 @@
 },
 {
 "word": "PLATİN",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 31033
 },
 {
 "word": "PLAZMA",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 12384
 },
@@ -26313,9 +26313,9 @@
 },
 {
 "word": "PONPON",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 17142
 },
@@ -26353,17 +26353,17 @@
 },
 {
 "word": "PORTAL",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 34591
 },
 {
 "word": "PORTRE",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 32178
 },
@@ -26393,9 +26393,9 @@
 },
 {
 "word": "POSTER",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 25511
 },
@@ -26513,9 +26513,9 @@
 },
 {
 "word": "PROFİL",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 15113
 },
@@ -26553,9 +26553,9 @@
 },
 {
 "word": "PROTON",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 34915
 },
@@ -26601,9 +26601,9 @@
 },
 {
 "word": "PUDİNG",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 15974
 },
@@ -26753,9 +26753,9 @@
 },
 {
 "word": "PİJAMA",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 15949
 },
@@ -26763,7 +26763,7 @@
 "word": "PİKNİK",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 11461
 },
@@ -26875,7 +26875,7 @@
 "word": "PİSLİK",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1015
 },
@@ -26889,9 +26889,9 @@
 },
 {
 "word": "PİYADE",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 16367
 },
@@ -26913,9 +26913,9 @@
 },
 {
 "word": "PİYASA",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 14085
 },
@@ -27033,9 +27033,9 @@
 },
 {
 "word": "RAHMET",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 40950
 },
@@ -27049,9 +27049,9 @@
 },
 {
 "word": "RAHİBE",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 3143
 },
@@ -27145,9 +27145,9 @@
 },
 {
 "word": "RAĞBET",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 40865
 },
@@ -27155,7 +27155,7 @@
 "word": "RAĞMEN",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 850
 },
@@ -27177,9 +27177,9 @@
 },
 {
 "word": "REFORM",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 36149
 },
@@ -27203,7 +27203,7 @@
 "word": "REHBER",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 11446
 },
@@ -27211,7 +27211,7 @@
 "word": "REHİNE",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 7157
 },
@@ -27281,9 +27281,9 @@
 },
 {
 "word": "REPLİK",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 32699
 },
@@ -27299,7 +27299,7 @@
 "word": "RESMEN",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1563
 },
@@ -27307,7 +27307,7 @@
 "word": "RESSAM",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 10617
 },
@@ -27377,9 +27377,9 @@
 },
 {
 "word": "REÇETE",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 16251
 },
@@ -27489,9 +27489,9 @@
 },
 {
 "word": "RUHSAT",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 17650
 },
@@ -27561,9 +27561,9 @@
 },
 {
 "word": "RÖVANŞ",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 37183
 },
@@ -27595,7 +27595,7 @@
 "word": "RÜŞVET",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 4587
 },
@@ -27689,9 +27689,9 @@
 },
 {
 "word": "SAADET",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 39931
 },
@@ -27721,17 +27721,17 @@
 },
 {
 "word": "SABIKA",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 12629
 },
 {
 "word": "SABOTE",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 12201
 },
@@ -27753,9 +27753,9 @@
 },
 {
 "word": "SADAKA",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 21332
 },
@@ -27763,7 +27763,7 @@
 "word": "SADECE",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 37
 },
@@ -27899,7 +27899,7 @@
 "word": "SALATA",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 7675
 },
@@ -27969,25 +27969,25 @@
 },
 {
 "word": "SANAYİ",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 15156
 },
 {
 "word": "SANCAK",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 12840
 },
 {
 "word": "SANDAL",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 31906
 },
@@ -28043,7 +28043,7 @@
 "word": "SANTİM",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 8150
 },
@@ -28059,7 +28059,7 @@
 "word": "SANİYE",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 488
 },
@@ -28139,7 +28139,7 @@
 "word": "SARHOŞ",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1288
 },
@@ -28315,7 +28315,7 @@
 "word": "SATICI",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 9946
 },
@@ -28513,9 +28513,9 @@
 },
 {
 "word": "SAĞDIÇ",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 26418
 },
@@ -28539,13 +28539,13 @@
 "word": "SAĞLAM",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1455
 },
 {
 "word": "SAĞLIK",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
 "member": true,
 "bot": true,
@@ -28705,9 +28705,9 @@
 },
 {
 "word": "SEKTÖR",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 15853
 },
@@ -28745,9 +28745,9 @@
 },
 {
 "word": "SEMBOL",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 13897
 },
@@ -28761,9 +28761,9 @@
 },
 {
 "word": "SENATO",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 12633
 },
@@ -28955,15 +28955,15 @@
 "word": "SERVET",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 6106
 },
 {
 "word": "SERVİS",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 2257
 },
@@ -29019,7 +29019,7 @@
 "word": "SESSİZ",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 742
 },
@@ -29057,9 +29057,9 @@
 },
 {
 "word": "SEVİNÇ",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 18913
 },
@@ -29067,7 +29067,7 @@
 "word": "SEVİYE",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 6398
 },
@@ -29145,9 +29145,9 @@
 },
 {
 "word": "SEÇMEN",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 21441
 },
@@ -29195,7 +29195,7 @@
 "word": "SIKICI",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1584
 },
@@ -29209,9 +29209,9 @@
 },
 {
 "word": "SIKLET",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 35147
 },
@@ -29417,9 +29417,9 @@
 },
 {
 "word": "SLOGAN",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 28961
 },
@@ -29433,9 +29433,9 @@
 },
 {
 "word": "SMOKİN",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 18927
 },
@@ -29449,9 +29449,9 @@
 },
 {
 "word": "SODYUM",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 20676
 },
@@ -29489,9 +29489,9 @@
 },
 {
 "word": "SOHBET",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 3069
 },
@@ -29601,9 +29601,9 @@
 },
 {
 "word": "SONDAJ",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 24448
 },
@@ -29691,7 +29691,7 @@
 "word": "SOYADI",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 9200
 },
@@ -29707,7 +29707,7 @@
 "word": "SOYGUN",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 4286
 },
@@ -29761,9 +29761,9 @@
 },
 {
 "word": "SPORCU",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 15737
 },
@@ -29899,7 +29899,7 @@
 "word": "STÜDYO",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 10903
 },
@@ -29963,7 +29963,7 @@
 "word": "SULTAN",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 10288
 },
@@ -29985,9 +29985,9 @@
 },
 {
 "word": "SUNUCU",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 17525
 },
@@ -30129,17 +30129,17 @@
 },
 {
 "word": "SÖZCÜK",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 13066
 },
 {
 "word": "SÖZLÜK",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 33104
 },
@@ -30177,9 +30177,9 @@
 },
 {
 "word": "SÜLFÜR",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 28358
 },
@@ -30241,25 +30241,25 @@
 },
 {
 "word": "SÜNGER",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 15387
 },
 {
 "word": "SÜNNET",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 24434
 },
 {
 "word": "SÜRAHİ",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 38462
 },
@@ -30273,9 +30273,9 @@
 },
 {
 "word": "SÜRGÜN",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 12264
 },
@@ -30323,7 +30323,7 @@
 "word": "SÜRÜCÜ",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 5686
 },
@@ -30385,17 +30385,17 @@
 },
 {
 "word": "SÜTYEN",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 21656
 },
 {
 "word": "SÜVARİ",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 12735
 },
@@ -30449,7 +30449,7 @@
 },
 {
 "word": "SİGARA",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
 "member": true,
 "bot": true,
@@ -30521,9 +30521,9 @@
 },
 {
 "word": "SİNCAP",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 12147
 },
@@ -30531,7 +30531,7 @@
 "word": "SİNEMA",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 5830
 },
@@ -30561,17 +30561,17 @@
 },
 {
 "word": "SİNYAL",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 2968
 },
 {
 "word": "SİNYOR",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 20616
 },
@@ -30633,9 +30633,9 @@
 },
 {
 "word": "SİSTEM",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 3559
 },
@@ -30705,9 +30705,9 @@
 },
 {
 "word": "TABAKA",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 26727
 },
@@ -30721,9 +30721,9 @@
 },
 {
 "word": "TABLET",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 29919
 },
@@ -30737,9 +30737,9 @@
 },
 {
 "word": "TABİAT",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 31789
 },
@@ -30809,9 +30809,9 @@
 },
 {
 "word": "TAHLİL",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 18375
 },
@@ -30833,7 +30833,7 @@
 },
 {
 "word": "TAHMİN",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
 "member": true,
 "bot": true,
@@ -30867,7 +30867,7 @@
 "word": "TAHRİK",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 6382
 },
@@ -30881,9 +30881,9 @@
 },
 {
 "word": "TAHRİP",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 15729
 },
@@ -30905,17 +30905,17 @@
 },
 {
 "word": "TAHSİL",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 31194
 },
 {
 "word": "TAHSİS",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 23031
 },
@@ -30955,15 +30955,15 @@
 "word": "TAKDİM",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 6444
 },
 {
 "word": "TAKDİR",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 2620
 },
@@ -30995,7 +30995,7 @@
 "word": "TAKLİT",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 5256
 },
@@ -31051,23 +31051,23 @@
 "word": "TAKTİK",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 8058
 },
 {
 "word": "TAKTİR",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 41181
 },
 {
 "word": "TAKVİM",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 26424
 },
@@ -31153,9 +31153,9 @@
 },
 {
 "word": "TAMPON",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 15181
 },
@@ -31377,17 +31377,17 @@
 },
 {
 "word": "TARÇIN",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 25490
 },
 {
 "word": "TARİFE",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 29973
 },
@@ -31401,17 +31401,17 @@
 },
 {
 "word": "TASARI",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 38159
 },
 {
 "word": "TASDİK",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 36873
 },
@@ -31433,9 +31433,9 @@
 },
 {
 "word": "TASLAK",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 22760
 },
@@ -31481,17 +31481,17 @@
 },
 {
 "word": "TASVİP",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 34399
 },
 {
 "word": "TASVİR",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 20798
 },
@@ -31513,9 +31513,9 @@
 },
 {
 "word": "TATMİN",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 3470
 },
@@ -31577,9 +31577,9 @@
 },
 {
 "word": "TAVŞAN",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 3927
 },
@@ -31801,9 +31801,9 @@
 },
 {
 "word": "TEBRİK",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 2999
 },
@@ -31833,9 +31833,9 @@
 },
 {
 "word": "TECRİT",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 15755
 },
@@ -31857,7 +31857,7 @@
 },
 {
 "word": "TEDAVİ",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
 "member": true,
 "bot": true,
@@ -31865,9 +31865,9 @@
 },
 {
 "word": "TEDBİR",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 16962
 },
@@ -31945,9 +31945,9 @@
 },
 {
 "word": "TEFECİ",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 31266
 },
@@ -32025,9 +32025,9 @@
 },
 {
 "word": "TEFTİŞ",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 22887
 },
@@ -32049,7 +32049,7 @@
 },
 {
 "word": "TEHDİT",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
 "member": true,
 "bot": true,
@@ -32121,7 +32121,7 @@
 },
 {
 "word": "TEKLİF",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
 "member": true,
 "bot": true,
@@ -32155,7 +32155,7 @@
 "word": "TEKRAR",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 169
 },
@@ -32211,7 +32211,7 @@
 "word": "TEKİLA",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 11438
 },
@@ -32297,9 +32297,9 @@
 },
 {
 "word": "TELKİN",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 39577
 },
@@ -32443,7 +32443,7 @@
 "word": "TEMMUZ",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 5449
 },
@@ -32465,17 +32465,17 @@
 },
 {
 "word": "TEMSİL",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 2761
 },
 {
 "word": "TEMYİZ",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 16715
 },
@@ -32635,7 +32635,7 @@
 "word": "TERAPİ",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 7922
 },
@@ -32649,7 +32649,7 @@
 },
 {
 "word": "TERCİH",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
 "member": true,
 "bot": true,
@@ -32713,9 +32713,9 @@
 },
 {
 "word": "TERHİS",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 34567
 },
@@ -32737,17 +32737,17 @@
 },
 {
 "word": "TERLİK",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 31701
 },
 {
 "word": "TERMAL",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 22417
 },
@@ -32867,7 +32867,7 @@
 "word": "TESLİM",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 920
 },
@@ -32889,17 +32889,17 @@
 },
 {
 "word": "TESPİT",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 2058
 },
 {
 "word": "TESTİS",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 33570
 },
@@ -32937,9 +32937,9 @@
 },
 {
 "word": "TEVAZU",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 36053
 },
@@ -33089,7 +33089,7 @@
 },
 {
 "word": "TEĞMEN",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
 "member": true,
 "bot": true,
@@ -33113,9 +33113,9 @@
 },
 {
 "word": "TEŞHİR",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 27399
 },
@@ -33123,7 +33123,7 @@
 "word": "TEŞHİS",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 4012
 },
@@ -33131,7 +33131,7 @@
 "word": "TEŞKİL",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 11305
 },
@@ -33145,9 +33145,9 @@
 },
 {
 "word": "TEŞRİF",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 26972
 },
@@ -33187,7 +33187,7 @@
 "word": "TEŞVİK",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 6352
 },
@@ -33241,9 +33241,9 @@
 },
 {
 "word": "TILSIM",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 25770
 },
@@ -33297,17 +33297,17 @@
 },
 {
 "word": "TIRMIK",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 38406
 },
 {
 "word": "TIRNAK",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 12226
 },
@@ -33337,9 +33337,9 @@
 },
 {
 "word": "TIRTIL",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 39718
 },
@@ -33385,9 +33385,9 @@
 },
 {
 "word": "TOKSİN",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 21932
 },
@@ -33467,7 +33467,7 @@
 "word": "TOPLAM",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 7078
 },
@@ -33483,7 +33483,7 @@
 "word": "TOPLUM",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 4891
 },
@@ -33537,9 +33537,9 @@
 },
 {
 "word": "TORPİL",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 35034
 },
@@ -33633,9 +33633,9 @@
 },
 {
 "word": "TRAFİK",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 3030
 },
@@ -33691,7 +33691,7 @@
 "word": "TRAVMA",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 5020
 },
@@ -33819,23 +33819,23 @@
 "word": "TURİST",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 11980
 },
 {
 "word": "TURİZM",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 35728
 },
 {
 "word": "TUTKAL",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 30493
 },
@@ -33969,9 +33969,9 @@
 },
 {
 "word": "TÜCCAR",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 21233
 },
@@ -34235,7 +34235,7 @@
 "word": "TİŞÖRT",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 9472
 },
@@ -34377,9 +34377,9 @@
 },
 {
 "word": "ULUSAL",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 2051
 },
@@ -34521,9 +34521,9 @@
 },
 {
 "word": "USTURA",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 42568
 },
@@ -34915,7 +34915,7 @@
 "word": "VAFTİZ",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 5658
 },
@@ -34929,9 +34929,9 @@
 },
 {
 "word": "VAHŞET",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 26509
 },
@@ -34961,17 +34961,17 @@
 },
 {
 "word": "VALİDE",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 34464
 },
 {
 "word": "VAMPİR",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 3409
 },
@@ -35003,7 +35003,7 @@
 "word": "VARLIK",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 8367
 },
@@ -35081,9 +35081,9 @@
 },
 {
 "word": "VAZİFE",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 20964
 },
@@ -35161,7 +35161,7 @@
 },
 {
 "word": "VERİCİ",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
 "member": true,
 "bot": true,
@@ -35209,9 +35209,9 @@
 },
 {
 "word": "VESİLE",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 33747
 },
@@ -35233,17 +35233,17 @@
 },
 {
 "word": "VOLKAN",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 19029
 },
 {
 "word": "VOLTAJ",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 42207
 },
@@ -35323,7 +35323,7 @@
 "word": "VİCDAN",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 9425
 },
@@ -35401,9 +35401,9 @@
 },
 {
 "word": "VİRGÜL",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 40792
 },
@@ -35449,9 +35449,9 @@
 },
 {
 "word": "VİZYON",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 36388
 },
@@ -35579,7 +35579,7 @@
 "word": "YALNIZ",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 318
 },
@@ -35699,7 +35699,7 @@
 "word": "YANLIŞ",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 285
 },
@@ -35729,9 +35729,9 @@
 },
 {
 "word": "YAPBOZ",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 38460
 },
@@ -35755,7 +35755,7 @@
 "word": "YAPRAK",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 11240
 },
@@ -35795,7 +35795,7 @@
 "word": "YARBAY",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 7264
 },
@@ -35811,13 +35811,13 @@
 "word": "YARDIM",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 90
 },
 {
 "word": "YARGIÇ",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
 "member": true,
 "bot": true,
@@ -35977,9 +35977,9 @@
 },
 {
 "word": "YAZMAN",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 23939
 },
@@ -35993,7 +35993,7 @@
 },
 {
 "word": "YAĞMUR",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
 "member": true,
 "bot": true,
@@ -36075,7 +36075,7 @@
 "word": "YELKEN",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 9808
 },
@@ -36105,9 +36105,9 @@
 },
 {
 "word": "YEMENİ",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 40299
 },
@@ -36131,7 +36131,7 @@
 "word": "YENGEÇ",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 9995
 },
@@ -36259,7 +36259,7 @@
 "word": "YILDIZ",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1317
 },
@@ -36275,7 +36275,7 @@
 "word": "YILLIK",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1898
 },
@@ -36371,7 +36371,7 @@
 "word": "YOLDAŞ",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 5202
 },
@@ -36433,9 +36433,9 @@
 },
 {
 "word": "YORGAN",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 38174
 },
@@ -36491,15 +36491,15 @@
 "word": "YUKARI",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 771
 },
 {
 "word": "YUMRUK",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 3290
 },
@@ -36547,7 +36547,7 @@
 "word": "YÖNTEM",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 6789
 },
@@ -36571,7 +36571,7 @@
 "word": "YÜKSEK",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 596
 },
@@ -36713,9 +36713,9 @@
 },
 {
 "word": "ZAHMET",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 3892
 },
@@ -36745,9 +36745,9 @@
 },
 {
 "word": "ZAMANE",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 36865
 },
@@ -36755,15 +36755,15 @@
 "word": "ZAMANI",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 432
 },
 {
 "word": "ZAMBAK",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 31464
 },
@@ -36833,9 +36833,9 @@
 },
 {
 "word": "ZAYİAT",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 36922
 },
@@ -36923,7 +36923,7 @@
 "word": "ZENGİN",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1090
 },
@@ -37129,9 +37129,9 @@
 },
 {
 "word": "ZÜRAFA",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 32460
 },
@@ -37209,17 +37209,17 @@
 },
 {
 "word": "ZİNCİR",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 13087
 },
 {
 "word": "ZİNDAN",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 29803
 },
@@ -37561,9 +37561,9 @@
 },
 {
 "word": "ÇARÇUR",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 29152
 },
@@ -37577,9 +37577,9 @@
 },
 {
 "word": "ÇARŞAF",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 20373
 },
@@ -37633,9 +37633,9 @@
 },
 {
 "word": "ÇAVDAR",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 31604
 },
@@ -37771,7 +37771,7 @@
 "word": "ÇEKİCİ",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1592
 },
@@ -37817,9 +37817,9 @@
 },
 {
 "word": "ÇEMBER",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 13691
 },
@@ -37937,7 +37937,7 @@
 },
 {
 "word": "ÇEVİRİ",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
 "member": true,
 "bot": true,
@@ -37995,7 +37995,7 @@
 "word": "ÇILGIN",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1760
 },
@@ -38043,7 +38043,7 @@
 "word": "ÇIPLAK",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1835
 },
@@ -38137,9 +38137,9 @@
 },
 {
 "word": "ÇIĞLIK",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 3449
 },
@@ -38241,17 +38241,17 @@
 },
 {
 "word": "ÇÖMLEK",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 32276
 },
 {
 "word": "ÇÖPLÜK",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 15689
 },
@@ -38307,7 +38307,7 @@
 "word": "ÇİFTÇİ",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 8609
 },
@@ -38379,7 +38379,7 @@
 "word": "ÇİRKİN",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1998
 },
@@ -38521,9 +38521,9 @@
 },
 {
 "word": "ÖDENEK",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 32930
 },
@@ -38691,7 +38691,7 @@
 "word": "ÖNCEKİ",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1016
 },
@@ -38699,7 +38699,7 @@
 "word": "ÖNEMLİ",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 168
 },
@@ -38737,9 +38737,9 @@
 },
 {
 "word": "ÖNGÖRÜ",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 40547
 },
@@ -38753,17 +38753,17 @@
 },
 {
 "word": "ÖNSEZİ",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 23771
 },
 {
 "word": "ÖPÜCÜK",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 3456
 },
@@ -38803,7 +38803,7 @@
 "word": "ÖRTBAS",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 8385
 },
@@ -38963,7 +38963,7 @@
 "word": "ÖYLECE",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1258
 },
@@ -39251,7 +39251,7 @@
 "word": "ÜRETİM",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 9677
 },
@@ -39355,7 +39355,7 @@
 "word": "ÜSTÜNE",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 763
 },
@@ -39483,7 +39483,7 @@
 "word": "ÜZÜNTÜ",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 10862
 },
@@ -39515,7 +39515,7 @@
 "word": "ÜÇÜNCÜ",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1098
 },
@@ -39585,9 +39585,9 @@
 },
 {
 "word": "İBADET",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 20347
 },
@@ -39673,9 +39673,9 @@
 },
 {
 "word": "İFTİRA",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 17804
 },
@@ -39697,7 +39697,7 @@
 },
 {
 "word": "İHANET",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
 "member": true,
 "bot": true,
@@ -39737,9 +39737,9 @@
 },
 {
 "word": "İKAMET",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 27931
 },
@@ -39779,7 +39779,7 @@
 "word": "İKİNCİ",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 820
 },
@@ -39891,7 +39891,7 @@
 "word": "İLGİLİ",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 228
 },
@@ -39899,7 +39899,7 @@
 "word": "İLGİNÇ",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1094
 },
@@ -39953,9 +39953,9 @@
 },
 {
 "word": "İLTİCA",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 41003
 },
@@ -40001,9 +40001,9 @@
 },
 {
 "word": "İLİŞKİ",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 2019
 },
@@ -40307,7 +40307,7 @@
 "word": "İNŞAAT",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 8610
 },
@@ -40329,9 +40329,9 @@
 },
 {
 "word": "İPOTEK",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 22245
 },
@@ -40433,9 +40433,9 @@
 },
 {
 "word": "İSKELE",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 25610
 },
@@ -40539,7 +40539,7 @@
 "word": "İSTİFA",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 5216
 },
@@ -40601,9 +40601,9 @@
 },
 {
 "word": "İTİBAR",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 20973
 },
@@ -40649,15 +40649,15 @@
 },
 {
 "word": "İTİMAT",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 42282
 },
 {
 "word": "İTİRAF",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
 "member": true,
 "bot": true,
@@ -40667,7 +40667,7 @@
 "word": "İTİRAZ",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 7215
 },
@@ -40763,7 +40763,7 @@
 "word": "İYİLİK",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1117
 },
@@ -40859,7 +40859,7 @@
 "word": "İÇECEK",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 4395
 },
@@ -40889,9 +40889,9 @@
 },
 {
 "word": "İÇGÜDÜ",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 36092
 },
@@ -40971,7 +40971,7 @@
 "word": "İÇİNDE",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 177
 },
@@ -41019,13 +41019,13 @@
 "word": "İĞRENÇ",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1475
 },
 {
 "word": "İŞARET",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
 "member": true,
 "bot": true,
@@ -41185,9 +41185,9 @@
 },
 {
 "word": "ŞAHİKA",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 19289
 },
@@ -41305,9 +41305,9 @@
 },
 {
 "word": "ŞAMATA",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 36687
 },
@@ -41347,7 +41347,7 @@
 "word": "ŞANSLI",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1286
 },
@@ -41363,7 +41363,7 @@
 "word": "ŞANTAJ",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 5303
 },
@@ -41385,9 +41385,9 @@
 },
 {
 "word": "ŞAPLAK",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 17486
 },
@@ -41417,17 +41417,17 @@
 },
 {
 "word": "ŞARBON",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 38125
 },
 {
 "word": "ŞARJÖR",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 31262
 },
@@ -41489,9 +41489,9 @@
 },
 {
 "word": "ŞEBEKE",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 23565
 },
@@ -41537,9 +41537,9 @@
 },
 {
 "word": "ŞEFKAT",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 15643
 },
@@ -41569,9 +41569,9 @@
 },
 {
 "word": "ŞEHVET",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 18694
 },
@@ -41609,9 +41609,9 @@
 },
 {
 "word": "ŞENLİK",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 22755
 },
@@ -41641,9 +41641,9 @@
 },
 {
 "word": "ŞEREFE",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 2106
 },
@@ -41699,7 +41699,7 @@
 "word": "ŞEYTAN",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1462
 },
@@ -41883,7 +41883,7 @@
 "word": "ŞURADA",
 "difficulty": "kolay",
 "active": true,
-"member": true,
+"member": false,
 "bot": true,
 "freq_rank": 1530
 },
@@ -41913,17 +41913,17 @@
 },
 {
 "word": "ŞÖHRET",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 12404
 },
 {
 "word": "ŞÖMİNE",
-"difficulty": "zor",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 23272
 },
@@ -41947,15 +41947,15 @@
 "word": "ŞÜKRAN",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 4175
 },
 {
 "word": "ŞİDDET",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 3062
 },
@@ -41995,7 +41995,7 @@
 "word": "ŞİMŞEK",
 "difficulty": "orta",
 "active": true,
-"member": false,
+"member": true,
 "bot": true,
 "freq_rank": 10500
 },
@@ -42033,7 +42033,7 @@
 },
 {
 "word": "ŞİRKET",
-"difficulty": "kolay",
+"difficulty": "orta",
 "active": true,
 "member": true,
 "bot": true,
@@ -42126,5 +42126,53 @@
 "member": false,
 "bot": true,
 "freq_rank": 3372
+},
+{
+"word": "MOTİVE",
+"difficulty": "orta",
+"active": true,
+"member": true,
+"bot": true,
+"freq_rank": 14599
+},
+{
+"word": "SENSÖR",
+"difficulty": "orta",
+"active": true,
+"member": true,
+"bot": true,
+"freq_rank": 25864
+},
+{
+"word": "HERKÜL",
+"difficulty": "orta",
+"active": true,
+"member": true,
+"bot": true,
+"freq_rank": 10721
+},
+{
+"word": "KAYMAK",
+"difficulty": "orta",
+"active": true,
+"member": true,
+"bot": true,
+"freq_rank": 23311
+},
+{
+"word": "KRAKER",
+"difficulty": "orta",
+"active": true,
+"member": true,
+"bot": true,
+"freq_rank": 15193
+},
+{
+"word": "ÇAKMAK",
+"difficulty": "orta",
+"active": true,
+"member": true,
+"bot": true,
+"freq_rank": 13163
 }
 ]

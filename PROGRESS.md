@@ -1420,3 +1420,17 @@ Test: history/correct_count doğru ✓. Build ok.
 3) Katılım sesi: ArenaGame players.length artınca playSound("opponent_found"). prevCountRef ile
    takip, sadece lobby/connecting fazında.
 Build ok.
+
+## Üye kelimeleri Nazım'ın elle seçtiği listelerle DEĞİŞTİRİLDİ
+Kaynak: member_4.txt(503), member_5.txt(892), member_6.txt(580) = 1975 kelime. words/data/ altında.
+- app/words/set_member_words.py: member = SADECE listedeki kelimeler; bot=True (TÜM kelimeler);
+  kabul (is_valid) dokunulmadı (geniş havuz+frekans, liste harici de kabul). Listedeki kelimelerin
+  difficulty="orta" yapıldı (selectable kolay/orta filtresine takılmasın). Havuzda olmayan liste
+  kelimeleri eklendi.
+- Sıra: rebuild_pools_by_freq (sıfırla) -> set_member_words (listeyle kur). JSON'lar güncellendi.
+  member: 4h=503, 5h=892, 6h=580, fazlalık YOK.
+- word_service.resync_flags_from_json: artık JSON'da olup DB'de OLMAYAN kelimeleri de EKLER
+  (yeni member kelimeleri için kritik). main.py damga v3->v4.
+Doğrulama: SOLO/JUDO/ADAM üyeye sorulur; ABAT/ADLİ sorulmaz ama kabul; member=liste (fazlalık 0);
+eski DB simülasyonu (bozuk member + eksik kelime) resync v4 ile düzeldi ✓. Solo mod da member
+kullandığı için solo hedefleri de artık bu liste.
