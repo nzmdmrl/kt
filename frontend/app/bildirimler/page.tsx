@@ -5,24 +5,15 @@ import { apiUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import Logo from "@/components/Logo";
 
-type Notif = { id: number; title: string; body: string; read: boolean; created_at: string; type?: string; link?: string; icon?: string };
-type Award = { award: string; period_type: string; period_key: string };
+type Notif = { id: number; title: string; body: string; read: boolean; created_at: string; link?: string; icon?: string };
 type FriendReq = { id: number; username: string; display_name: string; avatar_url: string | null };
 
 export default function BildirimlerPage() {
   const { user, loading } = useAuth();
   const [notifs, setNotifs] = useState<Notif[]>([]);
-  const [trophies, setTrophies] = useState(0);
-  const [medals, setMedals] = useState(0);
-  const [awards, setAwards] = useState<Award[]>([]);
   const [requests, setRequests] = useState<FriendReq[]>([]);
 
   function token() { return typeof window !== "undefined" ? localStorage.getItem("kt_token") : null; }
-
-  function loadRequests() {
-    fetch(apiUrl("/api/friends/requests"), { headers: { Authorization: `Bearer ${token()}` } })
-      .then((r) => r.json()).then((d) => setRequests(d.requests || [])).catch(() => {});
-  }
 
   async function respondRequest(id: number, accept: boolean) {
     const path = accept ? `/api/friends/accept/${id}` : `/api/friends/reject/${id}`;
@@ -35,59 +26,18 @@ export default function BildirimlerPage() {
     fetch(apiUrl("/api/notifications"), { headers: { Authorization: `Bearer ${token()}` } })
       .then((r) => r.json()).then((d) => setNotifs(d.notifications || [])).catch(() => {});
     fetch(apiUrl("/api/notifications/read"), { method: "POST", headers: { Authorization: `Bearer ${token()}` } }).catch(() => {});
-    loadRequests();
-    if (user.username) {
-      fetch(apiUrl(`/api/profile/${user.username}`))
-        .then((r) => r.json())
-        .then((d) => {
-          setTrophies(d.trophies || 0);
-          setMedals(d.medals || 0);
-          setAwards(d.awards || []);
-        }).catch(() => {});
-    }
+    fetch(apiUrl("/api/friends/requests"), { headers: { Authorization: `Bearer ${token()}` } })
+      .then((r) => r.json()).then((d) => setRequests(d.requests || [])).catch(() => {});
   }, [user]);
 
   if (loading) return <Wrap><Center>Yükleniyor…</Center></Wrap>;
   if (!user) return <Wrap><Center><a href="/giris" style={{ color: "var(--accent)" }}>Giriş yap →</a></Center></Wrap>;
 
+  const hasContent = requests.length > 0 || notifs.length > 0;
+
   return (
     <Wrap>
       <h1 className="brand-mono" style={{ fontSize: 26, marginBottom: 20 }}>🔔 Bildirimler</h1>
-
-      {/* Kazanılan kupalar özeti */}
-      <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
-        <div style={{ flex: 1, background: "var(--bg-panel)", borderRadius: 12, padding: 16, textAlign: "center" }}>
-          <div style={{ fontSize: 30 }}>🏆</div>
-          <div className="brand-mono" style={{ fontSize: 22, color: "var(--accent)" }}>{trophies}</div>
-          <div style={{ fontSize: 12, color: "var(--text-dim)" }}>Kupa</div>
-        </div>
-        <div style={{ flex: 1, background: "var(--bg-panel)", borderRadius: 12, padding: 16, textAlign: "center" }}>
-          <div style={{ fontSize: 30 }}>🥈</div>
-          <div className="brand-mono" style={{ fontSize: 22, color: "var(--text-soft)" }}>{medals}</div>
-          <div style={{ fontSize: 12, color: "var(--text-dim)" }}>Madalya</div>
-        </div>
-      </div>
-
-      {/* Kupa/madalya listesi */}
-      {awards.length > 0 && (
-        <>
-          <h2 style={{ fontSize: 15, color: "var(--text-soft)", marginBottom: 10 }}>Kazandıkların</h2>
-          <div style={{ display: "grid", gap: 8, marginBottom: 24 }}>
-            {awards.map((a, i) => (
-              <div key={i} style={{
-                display: "flex", alignItems: "center", gap: 12, padding: "10px 14px",
-                background: "var(--bg-panel)", borderRadius: 10,
-              }}>
-                <span style={{ fontSize: 22 }}>{a.award === "trophy" ? "🏆" : "🥈"}</span>
-                <span style={{ color: "var(--text-strong)", fontWeight: 600 }}>
-                  {a.period_type === "monthly" ? "Ayın Şampiyonu" : a.period_type === "yearly" ? "Yılın Şampiyonu" : "Günün Şampiyonu"}
-                </span>
-                <span style={{ marginLeft: "auto", color: "var(--text-dim)", fontSize: 13 }}>{a.period_key}</span>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
 
       {/* Gelen arkadaşlık istekleri (aksiyon gerektiren) */}
       {requests.length > 0 && (
@@ -109,10 +59,12 @@ export default function BildirimlerPage() {
         </>
       )}
 
-      {/* Bildirimler */}
-      <h2 style={{ fontSize: 15, color: "var(--text-soft)", marginBottom: 10 }}>Son bildirimler</h2>
-      {notifs.length === 0 ? (
-        <p style={{ color: "var(--text-dim)", textAlign: "center", padding: 30 }}>Henüz bildirim yok.</p>
+      {/* Son bildirimler */}
+      {notifs.length > 0 && (
+        <h2 style={{ fontSize: 15, color: "var(--text-soft)", marginBottom: 10 }}>Son bildirimler</h2>
+      )}
+      {!hasContent ? (
+        <p style={{ color: "var(--text-dim)", textAlign: "center", padding: 40 }}>Henüz bildirim yok.</p>
       ) : (
         <div style={{ display: "grid", gap: 8 }}>
           {notifs.map((n) => {

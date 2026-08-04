@@ -31,15 +31,17 @@ export default function MenuPage() {
   return (
     <main style={{ maxWidth: 520, margin: "0 auto", padding: "24px 18px 40px" }}>
       <div style={{ marginBottom: 16 }}><a href="/"><Logo size={32} /></a></div>
-      <h1 className="brand-mono" style={{ fontSize: 26, marginBottom: 20 }}>☰ Menü</h1>
+      <h1 className="brand-mono" style={{ fontSize: 30, marginBottom: 24 }}>☰ Menü</h1>
 
       {/* Ayarlar (toggle'lar) */}
-      <div style={{ display: "grid", gap: 10, marginBottom: 24 }}>
+      <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-soft)", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.05em" }}>Ayarlar</div>
+      <div style={{ display: "grid", gap: 10, marginBottom: 28 }}>
         <ToggleRow icon={dark ? "🌙" : "☀️"} label={dark ? "Gece modu" : "Gündüz modu"} on={dark} onClick={toggleTheme} />
         <ToggleRow icon="🔊" label="Ses" on={sound} onClick={toggleSound} />
       </div>
 
       {/* Hesap & bilgi butonları */}
+      <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-soft)", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.05em" }}>Hesap & Bilgi</div>
       <div style={{ display: "grid", gap: 10 }}>
         {user && (
           <NavRow icon="👤" label="Profilim" onClick={() => router.push(`/profil/${user.username}`)} />
@@ -50,9 +52,9 @@ export default function MenuPage() {
         <NavRow icon="🔒" label="Gizlilik" onClick={() => router.push("/gizlilik")} />
         <NavRow icon="📄" label="Şartlar ve Koşullar" onClick={() => router.push("/kosullar")} />
         {user && (
-          <button onClick={logout} style={{ ...rowStyle, color: "var(--accent-hot)", cursor: "pointer", border: "none", width: "100%", textAlign: "left" }}>
-            <span style={{ fontSize: 22, width: 28, textAlign: "center" }}>🚪</span>
-            <span style={{ flex: 1, fontWeight: 600 }}>Çıkış Yap</span>
+          <button onClick={logout} style={{ ...rowStyle, color: "var(--accent-hot)", cursor: "pointer", width: "100%", textAlign: "left" }}>
+            <span style={{ fontSize: 22, width: 40, height: 40, flexShrink: 0, borderRadius: 11, background: "rgba(217,90,90,.12)", display: "grid", placeItems: "center" }}>🚪</span>
+            <span style={{ flex: 1, fontWeight: 600, fontSize: 16, color: "var(--accent-hot)" }}>Çıkış Yap</span>
           </button>
         )}
       </div>
@@ -61,32 +63,41 @@ export default function MenuPage() {
 }
 
 const rowStyle: React.CSSProperties = {
-  display: "flex", alignItems: "center", gap: 14, padding: "15px 16px",
-  background: "var(--bg-panel)", borderRadius: 12, color: "var(--text-strong)",
+  display: "flex", alignItems: "center", gap: 16, padding: "17px 18px",
+  background: "var(--bg-panel)", borderRadius: 14, color: "var(--text-strong)",
+  border: "1px solid var(--border-soft)", boxShadow: "0 1px 3px rgba(0,0,0,.15)",
+  fontSize: 16,
 };
 
 function NavRow({ icon, label, onClick }: { icon: string; label: string; onClick: () => void }) {
   return (
-    <button onClick={onClick} style={{ ...rowStyle, border: "none", cursor: "pointer", width: "100%", textAlign: "left" }}>
-      <span style={{ fontSize: 22, width: 28, textAlign: "center" }}>{icon}</span>
-      <span style={{ flex: 1, fontWeight: 600 }}>{label}</span>
-      <span style={{ color: "var(--text-dim)" }}>›</span>
+    <button onClick={onClick} style={{ ...rowStyle, cursor: "pointer", width: "100%", textAlign: "left" }}>
+      <span style={{
+        fontSize: 22, width: 40, height: 40, flexShrink: 0, borderRadius: 11,
+        background: "var(--bg-elevated)", display: "grid", placeItems: "center",
+      }}>{icon}</span>
+      <span style={{ flex: 1, fontWeight: 600, fontSize: 16, color: "var(--text-strong)" }}>{label}</span>
+      <span style={{ color: "var(--text-soft)", fontSize: 20 }}>›</span>
     </button>
   );
 }
 
 function ToggleRow({ icon, label, on, onClick }: { icon: string; label: string; on: boolean; onClick: () => void }) {
   return (
-    <button onClick={onClick} style={{ ...rowStyle, border: "none", cursor: "pointer", width: "100%", textAlign: "left" }}>
-      <span style={{ fontSize: 22, width: 28, textAlign: "center" }}>{icon}</span>
-      <span style={{ flex: 1, fontWeight: 600 }}>{label}</span>
+    <button onClick={onClick} style={{ ...rowStyle, cursor: "pointer", width: "100%", textAlign: "left" }}>
       <span style={{
-        width: 44, height: 26, borderRadius: 13, background: on ? "var(--accent)" : "var(--bg-elevated)",
-        position: "relative", transition: "background .2s", flexShrink: 0, border: "1px solid var(--border-soft)",
+        fontSize: 22, width: 40, height: 40, flexShrink: 0, borderRadius: 11,
+        background: "var(--bg-elevated)", display: "grid", placeItems: "center",
+      }}>{icon}</span>
+      <span style={{ flex: 1, fontWeight: 600, fontSize: 16, color: "var(--text-strong)" }}>{label}</span>
+      <span style={{
+        width: 48, height: 28, borderRadius: 14, background: on ? "var(--accent)" : "var(--bg-elevated)",
+        position: "relative", transition: "background .2s", flexShrink: 0,
+        border: on ? "none" : "1px solid var(--border-soft)",
       }}>
         <span style={{
-          position: "absolute", top: 2, left: on ? 20 : 2, width: 20, height: 20, borderRadius: "50%",
-          background: "#fff", transition: "left .2s",
+          position: "absolute", top: 2, left: on ? 22 : 2, width: 22, height: 22, borderRadius: "50%",
+          background: "#fff", transition: "left .2s", boxShadow: "0 1px 3px rgba(0,0,0,.3)",
         }} />
       </span>
     </button>

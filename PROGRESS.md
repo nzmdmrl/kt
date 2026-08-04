@@ -1595,3 +1595,14 @@ kupa/madalya YOK (özel arenada _persist farklı).
   Çıkış. Buton genişlikleri width:100% düzgün. theme (getThemeMode/setThemeMode/effectiveTheme) +
   sound (isSoundEnabled/setSoundEnabled) doğru API.
 Build ok.
+
+## Bildirim sesi + bildirimler sadeleştirme + menü güzelleştirme (Nazım)
+1) Bildirim sesi: BottomNav'a poller (20sn) — /api/notifications unread. prevUnread ref, artış
+   olunca playSound("opponent_found"). Bildirim ikonuna kırmızı badge (unread, 9+). Her sayfada
+   (mobil alt nav) çalışır.
+2) Bildirimler sayfası: kupalar/madalya/kazanımlar özeti KALDIRILDI. Sadece arkadaşlık istekleri
+   (✅/❌) + son bildirimler (link'li tıklanabilir). Boşsa "Henüz bildirim yok".
+3) Menü güzelleştirme: satırlar border+shadow+ikon arka planlı kutu (40x40 radius), font 16,
+   renkler görünür (text-strong). Başlık 30px. Bölüm başlıkları ("AYARLAR", "HESAP & BİLGİ").
+   Toggle 48x28 gölgeli. Çıkış kırmızı ikon kutulu. Çizgiler artık görünür (border-soft).
+Build ok.
