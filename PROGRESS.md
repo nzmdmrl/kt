@@ -1580,3 +1580,18 @@ Build ok.
 SONRAKİ (Parça 3): özel arena WS entegrasyonu (custom_lobby -> ArenaMatch word_plan ile, bot son
 10sn, botsuz min2 başla), "Arenaya Katıl" -> WS bağlan, bitişte custom_arena_played++ & rozet,
 kupa/madalya YOK (özel arenada _persist farklı).
+
+## Ana sayfa/menü düzenlemeleri (Nazım)
+- app/arena/page.tsx: menü kaldırıldı, DOĞRUDAN ArenaGame (rakip arar). Özel arena ayrı /arena/ozel.
+- HomeHero (mobil): profil barı gelişmiş KART oldu (avatar+level rozeti+unvan ikonlu+solo level+XP
+  çubuğu, DesktopUserSummary tarzı). Mod kartları: Arena + Özel Arena AYRI (5 kart: Arena/Özel
+  Arena/Solo/Günün/Lig). title_info profilden çekiliyor.
+- HomeDesktop: ortadaki büyük Logo KALDIRILDI, gap 40->20 (başlık profil barına yakın). Mod
+  butonlarına Özel Arena eklendi (Arena ayrı).
+- TopBar: sol'a Logo eklendi (justify space-between), sağ grup div'e sarıldı. Desktop logo artık
+  üst menüde solda.
+- app/menu/page.tsx: YENİDEN yazıldı. Mod butonları KALDIRILDI (ana sayfada var). Ayar odaklı:
+  gündüz/gece toggle, ses toggle, Profilim, Bildirimler, Geçmiş, Nasıl Oynanır, Gizlilik, Şartlar,
+  Çıkış. Buton genişlikleri width:100% düzgün. theme (getThemeMode/setThemeMode/effectiveTheme) +
+  sound (isSoundEnabled/setSoundEnabled) doğru API.
+Build ok.

@@ -6,12 +6,15 @@ import { apiUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
 type LevelInfo = { level: number; xp: number; level_xp: number; level_need: number };
+type TitleInfo = { title: string; title_icon?: string; next_title: string | null; xp_to_next: number; title_progress: number };
 
-// QuizzLand tarzı ana ekran: üst bar (avatar+seviye+XP) + büyük Oyna + kart ızgarası.
+// Mobil ana ekran: gelişmiş profil kartı + mod kartları (Arena / Özel Arena ayrı).
 export default function HomeHero() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const [lvl, setLvl] = useState<LevelInfo | null>(null);
+  const [title, setTitle] = useState<TitleInfo | null>(null);
+  const [xp, setXp] = useState(0);
   const [soloLevel, setSoloLevel] = useState<number | null>(null);
 
   function token() { return typeof window !== "undefined" ? localStorage.getItem("kt_token") : null; }
@@ -22,71 +25,77 @@ export default function HomeHero() {
       .then((r) => r.json()).then(setLvl).catch(() => {});
     fetch(apiUrl("/api/solo/progress"), { headers: { Authorization: `Bearer ${token()}` } })
       .then((r) => r.json()).then((d) => setSoloLevel(d.current_level ?? null)).catch(() => {});
+    if (user.username) {
+      fetch(apiUrl(`/api/profile/${user.username}`), { headers: { Authorization: `Bearer ${token()}` } })
+        .then((r) => r.json()).then((d) => { setTitle(d.title_info || null); setXp(d.xp || 0); }).catch(() => {});
+    }
   }, [user]);
 
   const avatar = user?.avatar_url || `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(user?.username || "guest")}`;
   const level = lvl?.level ?? user?.level ?? 1;
-  const pct = lvl ? Math.min(100, (lvl.level_xp / Math.max(1, lvl.level_need)) * 100) : 0;
+  const pct = title?.title_progress ?? 0;
 
-  // Kart ızgarası — sadece çalışan modlar
+  // Mod kartları — Arena ve Özel Arena AYRI.
   const cards = [
-    { icon: "⚔️", label: "Arena", href: "/arena", bg: "linear-gradient(145deg,#e0940a,#c47a00)", desc: "5 kişilik yarış" },
-    { icon: "🏆", label: "Lig", href: "/lig", bg: "linear-gradient(145deg,#3a7fc4,#2868a8)", desc: "Sıralama" },
-    { icon: "🗺️", label: "Solo Mod", href: "/solo", bg: "linear-gradient(145deg,#7b52c4,#5e3a9e)", desc: "Bölümler" },
+    { icon: "⚔️", label: "Arena", href: "/arena", bg: "linear-gradient(145deg,#e0940a,#c47a00)", desc: "Rakip bul" },
+    { icon: "🎪", label: "Özel Arena", href: "/arena/ozel", bg: "linear-gradient(145deg,#7b52c4,#5e3a9e)", desc: "Arkadaşlarınla" },
+    { icon: "🗺️", label: "Solo Mod", href: "/solo", bg: "linear-gradient(145deg,#4a8fc4,#2e6da8)", desc: "Bölümler" },
     { icon: "📅", label: "Günün Kelimesi", href: "/gunun-kelimesi", bg: "linear-gradient(145deg,#c44a7e,#a23763)", desc: "Günlük" },
+    { icon: "🏆", label: "Lig", href: "/lig", bg: "linear-gradient(145deg,#3a7fc4,#2868a8)", desc: "Sıralama" },
   ];
 
   return (
     <div style={{ maxWidth: 520, margin: "0 auto", padding: "16px 16px 20px" }}>
-      {/* Üst bar: avatar + isim + seviye + XP çubuğu */}
+      {/* Gelişmiş profil kartı */}
       {user ? (
-        <div style={{ textAlign: "center", marginBottom: 20 }}>
-          <div style={{ position: "relative", width: 88, height: 88, margin: "0 auto 8px" }}>
+        <div style={{
+          display: "flex", alignItems: "center", gap: 16, padding: "16px 18px", marginBottom: 20,
+          background: "var(--bg-panel)", borderRadius: 16, border: "1px solid var(--border-soft)",
+        }}>
+          <div style={{ position: "relative", flexShrink: 0 }}>
             <img src={avatar} alt="avatar"
-              style={{ width: 88, height: 88, borderRadius: "50%", border: "3px solid var(--accent)", background: "var(--bg-elevated)", objectFit: "cover" }} />
+              style={{ width: 68, height: 68, borderRadius: "50%", border: "3px solid var(--accent)", background: "var(--bg-elevated)", objectFit: "cover" }} />
             <span style={{
-              position: "absolute", bottom: -2, right: -2, minWidth: 28, height: 28, padding: "0 6px",
-              borderRadius: 14, background: "var(--accent)", color: "#1a1330",
-              fontSize: 13, fontWeight: 800, display: "grid", placeItems: "center",
-              border: "2px solid var(--bg)", fontFamily: "var(--font-display)",
+              position: "absolute", bottom: -2, right: -2, minWidth: 26, height: 26, padding: "0 6px",
+              borderRadius: 13, background: "var(--accent)", color: "#1a1330",
+              fontSize: 12, fontWeight: 800, display: "grid", placeItems: "center",
+              border: "2px solid var(--bg-panel)", fontFamily: "var(--font-display)",
             }}>{level}</span>
           </div>
-          <div className="brand-mono" style={{ fontSize: 18, marginBottom: 6 }}>{user.display_name || user.username}</div>
-          {/* Solo level + seviye rozetleri */}
-          <div style={{ display: "flex", gap: 8, justifyContent: "center", marginBottom: 8, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 12, padding: "3px 10px", borderRadius: 10, background: "var(--bg-panel)", color: "var(--accent)", fontWeight: 600 }}>
-              💎 Seviye {level}
-            </span>
-            {soloLevel != null && (
-              <span style={{ fontSize: 12, padding: "3px 10px", borderRadius: 10, background: "var(--bg-panel)", color: "#7b52c4", fontWeight: 600 }}>
-                🗺️ Solo Level {soloLevel}
-              </span>
-            )}
-          </div>
-          {/* XP çubuğu */}
-          <div style={{ maxWidth: 260, margin: "0 auto" }}>
-            <div style={{ height: 8, background: "var(--bg-panel)", borderRadius: 4, overflow: "hidden" }}>
-              <div style={{ width: `${pct}%`, height: "100%", background: "linear-gradient(90deg,var(--accent),var(--accent-hot))", transition: "width .4s" }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
+              <span className="brand-mono" style={{ fontSize: 18 }}>{user.display_name || user.username}</span>
+              {title && (
+                <span style={{ padding: "2px 9px", borderRadius: 10, fontSize: 11, fontWeight: 700, background: "rgba(63,185,80,.15)", color: "var(--tile-correct)", border: "1px solid rgba(63,185,80,.3)" }}>
+                  {title.title_icon} {title.title}
+                </span>
+              )}
+              {soloLevel != null && (
+                <span style={{ padding: "2px 9px", borderRadius: 10, fontSize: 11, fontWeight: 600, background: "var(--bg-elevated)", color: "#a586e0" }}>
+                  🗺️ Solo {soloLevel}
+                </span>
+              )}
             </div>
-            {lvl && (
-              <div style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 4 }}>
-                Seviye {level} · {lvl.level_xp}/{lvl.level_need} XP
-              </div>
-            )}
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 4 }}>
+              <span style={{ color: "var(--accent)" }}>💎 {xp.toLocaleString("tr")} XP</span>
+              {title?.next_title && (
+                <span style={{ color: "var(--text-dim)" }}>{title.next_title} · {title.xp_to_next.toLocaleString("tr")} XP</span>
+              )}
+            </div>
+            <div style={{ height: 7, background: "var(--bg-elevated)", borderRadius: 4, overflow: "hidden" }}>
+              <div style={{ width: `${pct}%`, height: "100%", background: "linear-gradient(90deg,var(--tile-correct),var(--accent))", transition: "width .4s" }} />
+            </div>
           </div>
         </div>
       ) : (
         <div style={{ textAlign: "center", marginBottom: 20 }}>
           <div className="brand-mono" style={{ fontSize: 28, marginBottom: 6 }}>Kelime Tahmin</div>
-          {!loading && (
-            <a href="/giris" style={{ color: "var(--accent)", fontWeight: 700 }}>Giriş yap / Kayıt ol →</a>
-          )}
+          {!loading && <a href="/giris" style={{ color: "var(--accent)", fontWeight: 700 }}>Giriş yap / Kayıt ol →</a>}
         </div>
       )}
 
       {/* Büyük Oyna butonu */}
-      <button
-        onClick={() => router.push("/oyna")}
+      <button onClick={() => router.push("/oyna")}
         style={{
           width: "100%", padding: "20px 24px", borderRadius: 16, border: "none",
           background: "linear-gradient(145deg,#3fb950,#2ea043)", color: "#fff",
@@ -97,19 +106,19 @@ export default function HomeHero() {
         <span style={{ fontSize: 15, opacity: 0.9 }}>1v1 Düello →</span>
       </button>
 
-      {/* Kart ızgarası (2 sütun) */}
+      {/* Mod kartları (2 sütun) */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         {cards.map((c) => (
           <button key={c.href} onClick={() => router.push(c.href)}
             style={{
-              padding: "20px 16px", borderRadius: 14, border: "none", background: c.bg,
-              color: "#fff", cursor: "pointer", textAlign: "left", minHeight: 110,
+              padding: "18px 16px", borderRadius: 14, border: "none", background: c.bg,
+              color: "#fff", cursor: "pointer", textAlign: "left", minHeight: 104,
               display: "flex", flexDirection: "column", justifyContent: "space-between",
               boxShadow: "0 2px 10px rgba(0,0,0,.2)",
             }}>
-            <span style={{ fontSize: 30 }}>{c.icon}</span>
+            <span style={{ fontSize: 28 }}>{c.icon}</span>
             <div>
-              <div className="brand-mono" style={{ fontSize: 17, fontWeight: 700 }}>{c.label}</div>
+              <div className="brand-mono" style={{ fontSize: 16, fontWeight: 700 }}>{c.label}</div>
               <div style={{ fontSize: 12, opacity: 0.85 }}>{c.desc}</div>
             </div>
           </button>
