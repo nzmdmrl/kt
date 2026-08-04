@@ -15,6 +15,8 @@ export type AuthUser = {
   draws: number;
   words_solved: number;
   solo_best_score: number;
+  xp?: number;
+  level?: number;
   email?: string | null;
   has_password?: boolean;
   google_linked?: boolean;

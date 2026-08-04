@@ -41,6 +41,13 @@ async def account_me(user: User = Depends(get_current_user)):
     }
 
 
+@router.get("/level")
+async def account_level(user: User = Depends(get_current_user)):
+    """Seviye + XP ilerlemesi (üst bar için)."""
+    from app.game.xp_service import level_progress
+    return level_progress(user.xp or 0)
+
+
 class UsernameIn(BaseModel):
     username: str
 

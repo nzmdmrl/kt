@@ -1469,3 +1469,14 @@ ALT NAV + SAYFALAR:
 Test: XP/level/admin ayarları/bildirimler ✓. Build ok.
 SONRAKİ: Parça 2 ana sayfa yeniden tasarım (üst bar XP/level/avatar + Oyna + kart ızgarası),
 Parça 3 geçmiş + Arena sonuç kaydı (ArenaHistory: kaçıncı oldun).
+
+## QuizzLand tarzı — PARÇA 2: ana sayfa yeniden tasarım (Nazım)
+- account.py: GET /account/level -> level_progress (üst bar XP çubuğu için).
+- auth.tsx: AuthUser tipine xp?, level? eklendi.
+- components/HomeHero.tsx (client): üst bar (avatar 88px + level rozeti + display_name + XP çubuğu),
+  büyük yeşil "Oyna" butonu (1v1 -> /oyna), 2 sütun kart ızgarası (Arena/Lig/Solo/Günün Kelimesi
+  renkli gradient kartlar). Giriş yoksa "Giriş yap/Kayıt ol".
+- app/page.tsx: server component sadeleştirildi -> HomeHero + HomeBoards (canlı lig/son maçlar
+  korundu) + HomeMusic. TopBar/Footer kaldırıldı (üst bar HomeHero'da, alt nav layout'ta).
+Build ok, level endpoint test ✓.
+SONRAKİ: Parça 3 geçmiş + Arena sonuç kaydı (ArenaHistory: kaçıncı oldun) + Arena/günün XP bağlantısı.
