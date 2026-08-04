@@ -97,6 +97,20 @@ async def my_custom_arenas(limit: int = 10, user=Depends(get_current_user), db=D
     return {"arenas": [r.to_public() for r in rows]}
 
 
+@router.delete("/arena/custom/mine/{arena_id}")
+async def delete_custom_arena(arena_id: int, user=Depends(get_current_user), db=Depends(get_db)):
+    """Önceki arenalarımdan birini sil (sadece sahibi)."""
+    from app.models.custom_arena import CustomArena
+    rec = (await db.execute(
+        select(CustomArena).where(CustomArena.id == arena_id, CustomArena.owner_id == user.id)
+    )).scalar_one_or_none()
+    if not rec:
+        raise HTTPException(404, "Arena bulunamadı.")
+    await db.delete(rec)
+    await db.commit()
+    return {"ok": True}
+
+
 @router.get("/arena/custom/{code}")
 async def custom_arena_info(code: str, user=Depends(get_current_user)):
     """Bir özel arena lobisinin bilgisi (davet linkiyle girince)."""

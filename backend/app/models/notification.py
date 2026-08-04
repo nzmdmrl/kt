@@ -41,7 +41,7 @@ class Notification(Base):
             "title": self.title,
             "body": self.body,
             "icon": self.icon,
-            "link": self.link or "",
+            "link": getattr(self, "link", "") or "",
             "read": self.read,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }

@@ -39,6 +39,15 @@ export default function OzelArenaPage() {
       .then((r) => r.json()).then((d) => setSaved(d.arenas || [])).catch(() => {});
   }, [user]);
 
+  async function deleteArena(id: number) {
+    try {
+      const r = await fetch(apiUrl(`/api/arena/custom/mine/${id}`), {
+        method: "DELETE", headers: { Authorization: `Bearer ${token()}` },
+      });
+      if (r.ok) setSaved((list) => list.filter((x) => x.id !== id));
+    } catch {}
+  }
+
   const totalWords = count4 + count5 + count6;
 
   function buildPlan(): number[] {
@@ -178,16 +187,19 @@ export default function OzelArenaPage() {
           <h2 style={{ fontSize: 15, color: "var(--text-soft)", marginBottom: 10 }}>Önceki arenalarım</h2>
           <div style={{ display: "grid", gap: 8 }}>
             {saved.map((s) => (
-              <button key={s.id} onClick={() => create(s)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", background: "var(--bg-panel)", borderRadius: 10, border: "none", cursor: "pointer", textAlign: "left", width: "100%" }}>
-                <span style={{ fontSize: 22 }}>🎪</span>
-                <div style={{ flex: 1 }}>
-                  <div style={{ color: "var(--text-strong)", fontWeight: 600 }}>{s.name}</div>
-                  <div style={{ color: "var(--text-dim)", fontSize: 12 }}>
-                    {s.size} kişi · {s.word_plan.length} kelime · {s.bots_enabled ? "botlu" : "botsuz"}
+              <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 4, background: "var(--bg-panel)", borderRadius: 10, overflow: "hidden" }}>
+                <button onClick={() => create(s)} style={{ flex: 1, display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}>
+                  <span style={{ fontSize: 22 }}>🎪</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ color: "var(--text-strong)", fontWeight: 600 }}>{s.name}</div>
+                    <div style={{ color: "var(--text-dim)", fontSize: 12 }}>
+                      {s.size} kişi · {s.word_plan.length} kelime · {s.bots_enabled ? "botlu" : "botsuz"}
+                    </div>
                   </div>
-                </div>
-                <span style={{ color: "var(--accent)", fontSize: 13, fontWeight: 700 }}>Tekrar →</span>
-              </button>
+                  <span style={{ color: "var(--accent)", fontSize: 13, fontWeight: 700 }}>Tekrar →</span>
+                </button>
+                <button onClick={() => deleteArena(s.id)} title="Sil" style={{ padding: "12px 14px", background: "none", border: "none", cursor: "pointer", color: "var(--text-dim)", fontSize: 16 }}>🗑️</button>
+              </div>
             ))}
           </div>
         </div>

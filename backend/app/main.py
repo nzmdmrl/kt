@@ -82,6 +82,19 @@ async def on_startup():
                 print(f"[startup] DB init başarısız (devam ediliyor): {e}")
             else:
                 await asyncio.sleep(3)
+    # notifications.link sütununu garantile (davet bildirimleri için kritik).
+    try:
+        from app.core.database import engine
+        from sqlalchemy import text as _text
+        async with engine.begin() as conn:
+            try:
+                await conn.execute(_text("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS link VARCHAR(128) DEFAULT ''"))
+                print("[startup] notifications.link garantilendi.")
+            except Exception as _e:
+                # SQLite gibi IF NOT EXISTS desteklemeyen dialektler için sessiz geç.
+                print(f"[startup] link ALTER atlandı: {_e}")
+    except Exception as e:
+        print(f"[startup] link garantileme hatası: {e}")
     # İlk kez ise botları seed et (100 Türkçe bot).
     try:
         from app.core.database import AsyncSessionLocal

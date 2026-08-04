@@ -80,6 +80,7 @@ export default function BildirimlerPage() {
               display: "block", padding: "12px 14px", background: "var(--bg-panel)", borderRadius: 10,
               borderLeft: n.read ? "3px solid var(--border-soft)" : "3px solid var(--accent)",
               textDecoration: "none", cursor: clickable ? "pointer" : "default",
+              position: "relative", zIndex: 1,
             };
             return clickable ? (
               <a key={n.id} href={n.link} style={cardStyle}>{inner}</a>

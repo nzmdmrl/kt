@@ -1712,3 +1712,18 @@ Fix: app/bildirimler/page.tsx — link'li bildirim artık native <a href={n.link
 none). Link'siz olanlar <div>. Native link her yerde çalışır.
 Doğrulama: backend davet bildirimi link='/arena/ozel/{code}' içeriyor ✓ (arkadaşlık isteği link'siz,
 o zaten requests bölümünde ✅/❌ butonlu). Build ok.
+
+## Bildirim link migration + önceki arena silme (Nazım)
+Sorun: desktopta arena daveti bildirimine tıklanmıyor, imleç el olmuyor -> n.link BOŞ geliyor
+(clickable false). Kök neden: canlı PostgreSQL'de notifications.link sütunu migration ile
+eklenmemiş olabilir -> to_public link hep "".
+Fix backend:
+- main.py startup: init_models sonrası hedefli "ALTER TABLE notifications ADD COLUMN IF NOT EXISTS
+  link VARCHAR(128) DEFAULT ''" (PostgreSQL). try/except (SQLite'ta IF NOT EXISTS yok -> atlar).
+- notification.py to_public: getattr(self,"link","") güvenli erişim (sütun yoksa crash yok).
+Fix frontend: bildirim kartına position relative + zIndex 1 (üste binen katman ihtimaline karşı).
+Önceki arena silme:
+- arena.py: DELETE /arena/custom/mine/{arena_id} (sadece sahibi).
+- app/arena/ozel/page.tsx: her önceki arena satırında 🗑️ sil butonu, deleteArena(id) -> DELETE ->
+  listeden çıkar. Satır: tekrar-aç butonu + ayrı sil butonu (iç içe button değil).
+Test: arena silme ✓. Build ok. (link fix canlıda deploy sonrası startup'ta sütunu garantiler.)
