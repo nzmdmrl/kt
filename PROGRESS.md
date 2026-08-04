@@ -1434,3 +1434,11 @@ Kaynak: member_4.txt(503), member_5.txt(892), member_6.txt(580) = 1975 kelime. w
 Doğrulama: SOLO/JUDO/ADAM üyeye sorulur; ABAT/ADLİ sorulmaz ama kabul; member=liste (fazlalık 0);
 eski DB simülasyonu (bozuk member + eksik kelime) resync v4 ile düzeldi ✓. Solo mod da member
 kullandığı için solo hedefleri de artık bu liste.
+
+## ARENA düzeltmeler (Nazım): flash bug + cevap geri bildirimi + "Kelimeler"
+1) FLASH BUG: yanlış hızlı cevaba da flash veriliyordu. arena.py submit: flash SADECE
+   (p.correct AND elapsed<=FLASH_SECONDS). Yanlış cevapta flash yok. Test ✓.
+2) Cevap geri bildirimi: alreadyAnswered ekranı artık myResult'ı gösterir — ✅ Doğru! +puan ⚡
+   veya ❌ Yanlış (rakipler beklenirken kendi durumunu görürsün, reveal'i beklemeden).
+3) "Sorular: 6" -> "Kelimeler: 6" (lobi+geri sayım), "Soru X/6" -> "Kelime X/6".
+Frontend+backend. Build ok.

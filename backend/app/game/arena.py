@@ -125,7 +125,8 @@ class ArenaMatch:
         p.answer_time = now
         g = normalize(guess)
         p.correct = is_correct(g, q.word)
-        if elapsed <= FLASH_SECONDS:
+        # Flash: SADECE doğru cevabı 5sn içinde verene (yanlış hızlı cevaba yok).
+        if p.correct and elapsed <= FLASH_SECONDS:
             p.flash = True
 
         gained = 0

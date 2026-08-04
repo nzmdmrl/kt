@@ -109,7 +109,7 @@ export default function ArenaGame({ onExit }: { onExit: () => void }) {
       <ArenaShell onExit={onExit} players={state.players}>
         <div style={{ textAlign: "center", paddingTop: 40 }}>
           <h2 className="brand-mono" style={{ fontSize: 26, marginBottom: 8 }}>Arena</h2>
-          <p style={{ color: "var(--text-soft)", marginBottom: 4 }}>Sorular: 6</p>
+          <p style={{ color: "var(--text-soft)", marginBottom: 4 }}>Kelimeler: 6</p>
           <p style={{ color: "var(--text-soft)", marginBottom: 30 }}>👤 {state.players.length}/5</p>
           <div style={{ borderTop: "1px solid var(--border-soft)", paddingTop: 30 }}>
             <p className="brand-mono" style={{ fontSize: 20, marginBottom: 16 }}>Rakip aranıyor…</p>
@@ -149,7 +149,7 @@ export default function ArenaGame({ onExit }: { onExit: () => void }) {
       <ArenaShell onExit={onExit} players={state.players}>
         <div style={{ textAlign: "center", paddingTop: 30 }}>
           <h2 className="brand-mono" style={{ fontSize: 26, marginBottom: 6 }}>Arena</h2>
-          <p style={{ color: "var(--text-soft)", marginBottom: 4 }}>Sorular: 6</p>
+          <p style={{ color: "var(--text-soft)", marginBottom: 4 }}>Kelimeler: 6</p>
           <p style={{ color: "var(--text-soft)", marginBottom: 24 }}>👤 5</p>
           <p className="brand-mono" style={{ fontSize: 22, marginBottom: 10 }}>içinde başlayacak</p>
           <div className="brand-mono" style={{ fontSize: 90, color: "var(--text-dim)", lineHeight: 1 }}>
@@ -183,7 +183,7 @@ export default function ArenaGame({ onExit }: { onExit: () => void }) {
         <div>
           {/* Üst: soru no + süre (1v1 tarzı) */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-            <span className="brand-mono" style={{ fontSize: 15, color: "var(--text-soft)" }}>Soru {q.index + 1}/{q.total}</span>
+            <span className="brand-mono" style={{ fontSize: 15, color: "var(--text-soft)" }}>Kelime {q.index + 1}/{q.total}</span>
             <span className="brand-mono" style={{ fontSize: 15, color: "var(--text-soft)" }}>{q.length} harf</span>
             <span className="brand-mono" style={{ fontSize: 20, color: timeColor }}>{secondsLeft}s</span>
           </div>
@@ -229,9 +229,31 @@ export default function ArenaGame({ onExit }: { onExit: () => void }) {
               )}
             </div>
           ) : alreadyAnswered ? (
-            <p style={{ textAlign: "center", color: "var(--text-soft)", padding: 20 }}>
-              Cevabın alındı, diğer oyuncular bekleniyor… ⏳
-            </p>
+            <div style={{ textAlign: "center", padding: 20 }}>
+              {state.myResult ? (
+                <>
+                  <div style={{ fontSize: 40, marginBottom: 8 }}>
+                    {state.myResult.correct ? "✅" : "❌"}
+                  </div>
+                  <p className="brand-mono" style={{
+                    fontSize: 20, fontWeight: 700, marginBottom: 6,
+                    color: state.myResult.correct ? "var(--tile-correct)" : "var(--accent-hot)",
+                  }}>
+                    {state.myResult.correct ? "Doğru!" : "Yanlış"}
+                  </p>
+                  {state.myResult.correct && (
+                    <p style={{ color: "var(--accent)", fontWeight: 600 }}>
+                      +{state.myResult.gained} puan {state.myResult.flash ? "⚡" : ""}
+                    </p>
+                  )}
+                </>
+              ) : (
+                <p style={{ color: "var(--text-soft)" }}>Cevabın gönderiliyor…</p>
+              )}
+              <p style={{ color: "var(--text-dim)", fontSize: 13, marginTop: 14 }}>
+                Diğer oyuncular bekleniyor… ⏳
+              </p>
+            </div>
           ) : (
             <div style={{ display: "grid", gap: 12, justifyItems: "center" }}>
               {/* Anagram harfleri (üstte, tıklanabilir) */}
