@@ -49,6 +49,7 @@ export default function ProfilePage({ params }: { params: { username: string } }
   const [challengeErr, setChallengeErr] = useState("");
   const [friendStatus, setFriendStatus] = useState<string>("none");
   const [friendBusy, setFriendBusy] = useState(false);
+  const [friendErr, setFriendErr] = useState("");
 
   // profile yüklenince arkadaşlık durumunu al
   useEffect(() => {
@@ -58,11 +59,19 @@ export default function ProfilePage({ params }: { params: { username: string } }
   async function friendAction(path: string, newStatus: string) {
     if (!profile) return;
     setFriendBusy(true);
+    setFriendErr("");
     try {
       const token = localStorage.getItem("kt_token");
       const r = await fetch(apiUrl(path), { method: "POST", headers: { Authorization: `Bearer ${token}` } });
-      if (r.ok) setFriendStatus(newStatus);
-    } catch {}
+      if (r.ok) {
+        setFriendStatus(newStatus);
+      } else {
+        const j = await r.json().catch(() => ({}));
+        setFriendErr(j.detail || "İşlem başarısız.");
+      }
+    } catch {
+      setFriendErr("Bağlantı hatası.");
+    }
     setFriendBusy(false);
   }
 
@@ -199,6 +208,9 @@ export default function ProfilePage({ params }: { params: { username: string } }
                     ❌ Reddet
                   </button>
                 </div>
+              )}
+              {friendErr && (
+                <div style={{ marginTop: 8, fontSize: 13, color: "var(--accent-hot)" }}>{friendErr}</div>
               )}
             </div>
           )}

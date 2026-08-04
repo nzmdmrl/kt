@@ -1614,3 +1614,12 @@ Build ok.
 - HomeDesktop: Footer geri eklendi (main sonrası). Footer zaten Nasıl Oynanır/Gizlilik/Kullanım
   Koşulları linklerini içeriyor. Sadece .home-desktop içinde -> masaüstünde görünür, mobilde alt nav.
 Build ok.
+
+## Saatlik arkadaşlık isteği limiti (Nazım)
+- game_setting.py: friend_request_hourly_limit (varsayılan 5) admin ayarı.
+- friends.py send_request: son 1 saatte requester=user olan Friendship kayıtlarını say
+  (created_at >= now-1h). limit>0 ve recent>=limit ise HTTP 429. cached_int ile ayardan okur.
+  (Reddedilen istekler silindiği için sayılmaz — kullanıcı lehine, kötüye kullanımı yine engeller.)
+- Frontend profil: friendAction hata yakalar (r.ok değilse j.detail) -> friendErr state, buton
+  altında kırmızı mesaj gösterilir.
+Test: 5 istek geçti, 6. 429 ✓, admin ayarı görünür ✓. Build ok.

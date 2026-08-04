@@ -68,6 +68,23 @@ async def send_request(target_id: int, user: User = Depends(get_current_user), d
         if existing.status == "accepted":
             raise HTTPException(400, "Zaten arkadaşsınız.")
         raise HTTPException(400, "Zaten bekleyen bir istek var.")
+
+    # Saatlik istek limiti (admin: friend_request_hourly_limit, varsayılan 5)
+    from datetime import datetime, timedelta, timezone
+    from sqlalchemy import func as _func
+    from app.game.settings_service import cached_int
+    limit = cached_int("friend_request_hourly_limit", 5)
+    if limit > 0:
+        since = datetime.now(timezone.utc) - timedelta(hours=1)
+        recent = (await db.execute(
+            select(_func.count()).select_from(Friendship).where(
+                Friendship.requester_id == user.id,
+                Friendship.created_at >= since,
+            )
+        )).scalar() or 0
+        if recent >= limit:
+            raise HTTPException(429, f"Saatlik istek sınırına ulaştın (en fazla {limit}). Lütfen sonra tekrar dene.")
+
     db.add(Friendship(requester_id=user.id, addressee_id=target_id, status="pending"))
     # Karşı tarafa bildirim
     db.add(Notification(
