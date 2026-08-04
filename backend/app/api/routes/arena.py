@@ -252,19 +252,19 @@ async def arena_ws(websocket: WebSocket, token: str = Query(default="")):
 
 
 async def _matchmaker(code: str):
-    """Bir lobiyi 5 kişi VEYA 30sn sonra başlatır. Sadece bir kez çalışır."""
+    """Bir lobiyi 5 kişi VEYA süre dolunca başlatır. Eksikse botlar 2sn arayla katılır."""
     if _runners.get(code):
         return
     lobby = arena_manager.lobby_for(code)
     if not lobby:
         return
 
-    # Bekleme döngüsü
+    # Bekleme döngüsü (5 kişi veya süre dolana kadar)
     while True:
         await asyncio.sleep(0.5)
         lobby = arena_manager.lobby_for(code)
         if lobby is None:
-            return  # başka bir yol başlattı
+            return
         if lobby.started:
             return
         if lobby.is_full() or lobby.waited_enough():
@@ -275,5 +275,23 @@ async def _matchmaker(code: str):
     _runners[code] = True
 
     words = _pick_words()
-    await arena_manager.build_match(code, words)
+    match = await arena_manager.build_match(code, words)  # sadece gerçek oyuncular
+
+    # Botları 2sn (admin: arena_bot_interval) arayla tek tek ekle + yayınla
+    interval = cached_int("arena_bot_interval", 2)
+    while len(match.players) < ARENA_SIZE:
+        await asyncio.sleep(interval)
+        bot = arena_manager.add_one_bot(code)
+        if not bot:
+            break
+        await _broadcast(code, {
+            "type": "lobby",
+            "code": code,
+            "players": match.player_list(),
+            "size": ARENA_SIZE,
+            "joined_bot": bot,   # yeni katılan bot (istemci animasyon için)
+        })
+
+    # Kısa bekleme, sonra maçı başlat
+    await asyncio.sleep(0.8)
     asyncio.create_task(_run_match(code))

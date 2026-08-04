@@ -135,10 +135,10 @@ export default function ArenaGame({ onExit }: { onExit: () => void }) {
   const alreadyAnswered = q ? submittedRef.current === q.index : false;
 
   return (
-    <ArenaShell onExit={onExit} players={state.players} answers={state.answers}>
+    <ArenaShell onExit={onExit} players={state.players} answers={state.answers} showResults={isReveal}>
       {q && (
         <div>
-          {/* Üst: soru no + süre */}
+          {/* Üst: soru no + süre (1v1 tarzı) */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             <span className="brand-mono" style={{ fontSize: 15, color: "var(--text-soft)" }}>Soru {q.index + 1}/{q.total}</span>
             <span className="brand-mono" style={{ fontSize: 15, color: "var(--text-soft)" }}>{q.length} harf</span>
@@ -148,37 +148,33 @@ export default function ArenaGame({ onExit }: { onExit: () => void }) {
             <div style={{ width: `${timePct}%`, height: "100%", background: timeColor, transition: "width 1s linear" }} />
           </div>
 
-          {/* Cevap kutuları (dizilen) */}
-          <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 8 }}>
+          {/* Cevap kutuları (1v1 Grid tarzı — büyük kareler) */}
+          <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 16 }}>
             {Array.from({ length: q.length }).map((_, j) => {
               let letter = "";
-              if (useKeyboard) letter = typed[j] || "";
+              if (isReveal) letter = state.revealAnswer[j] || "";
+              else if (useKeyboard) letter = typed[j] || "";
               else if (j < picked.length) letter = q.scrambled[picked[j]];
-              const showReveal = isReveal;
+              else if (j === 0) letter = q.first_letter;  // ilk harf ipucu soluk
+              const isHint = !isReveal && !useKeyboard && j === 0 && j >= picked.length;
               return (
                 <span key={j} style={{
-                  width: 48, height: 48, display: "grid", placeItems: "center", borderRadius: 10,
-                  fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 22,
-                  color: showReveal ? "#fff" : "var(--text-strong)",
-                  background: showReveal ? "var(--tile-correct)" : letter ? "var(--bg-elevated)" : "var(--tile-empty)",
-                  border: letter || showReveal ? "none" : "2px solid var(--tile-border)",
-                }}>{showReveal ? state.revealAnswer[j] : letter}</span>
+                  width: 52, height: 52, display: "grid", placeItems: "center", borderRadius: 10,
+                  fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 24,
+                  color: isReveal ? "#fff" : isHint ? "var(--text-dim)" : "var(--text-strong)",
+                  background: isReveal ? "var(--tile-correct)" : (letter && !isHint) ? "var(--bg-elevated)" : "var(--tile-empty)",
+                  border: (letter && !isHint) || isReveal ? "none" : "2px solid var(--tile-border)",
+                }}>{letter}</span>
               );
             })}
           </div>
-          {/* İlk harf ipucu */}
-          {!isReveal && (
-            <p style={{ textAlign: "center", color: "var(--text-dim)", fontSize: 12, marginBottom: 16 }}>
-              İlk harf: <b style={{ color: "var(--accent)" }}>{q.first_letter}</b>
-            </p>
-          )}
 
           {isReveal ? (
-            <div style={{ textAlign: "center", padding: 20 }}>
+            <div style={{ textAlign: "center", padding: 16 }}>
               <p className="brand-mono" style={{ fontSize: 18, color: "var(--tile-correct)" }}>Doğru cevap: {state.revealAnswer}</p>
               {state.myResult && (
-                <p style={{ color: state.myResult.correct ? "var(--tile-correct)" : "var(--accent-hot)", marginTop: 8 }}>
-                  {state.myResult.correct ? `+${state.myResult.gained} puan ${state.myResult.flash ? "⚡" : ""}` : "Yanlış"}
+                <p style={{ color: state.myResult.correct ? "var(--tile-correct)" : "var(--accent-hot)", marginTop: 8, fontWeight: 600 }}>
+                  {state.myResult.correct ? `+${state.myResult.gained} puan ${state.myResult.flash ? "⚡" : ""}` : "Yanlış cevap"}
                 </p>
               )}
             </div>
@@ -186,74 +182,95 @@ export default function ArenaGame({ onExit }: { onExit: () => void }) {
             <p style={{ textAlign: "center", color: "var(--text-soft)", padding: 20 }}>
               Cevabın alındı, diğer oyuncular bekleniyor… ⏳
             </p>
-          ) : useKeyboard ? (
-            // Klavye/ses modu
-            <div style={{ display: "flex", gap: 8, justifyContent: "center", alignItems: "center" }}>
-              <input
-                value={typed}
-                onChange={(e) => setTyped(toUpperTr(e.target.value).replace(/[^A-ZÇĞİÖŞÜI]/g, "").slice(0, q.length))}
-                onKeyDown={(e) => e.key === "Enter" && typed.length === q.length && doAnswer(typed)}
-                placeholder={`${q.first_letter}...`}
-                autoFocus
-                style={{
-                  padding: "12px 14px", borderRadius: 10, border: "2px solid var(--tile-border)",
-                  background: "var(--bg-elevated)", color: "var(--text-strong)", fontSize: 19,
-                  fontFamily: "var(--font-display)", width: 150, textAlign: "center",
-                  letterSpacing: "0.15em", textTransform: "uppercase",
-                }}
-              />
-              <button onClick={() => typed.length === q.length && doAnswer(typed)}
-                disabled={typed.length !== q.length}
-                style={{ padding: "12px 18px", borderRadius: 10, border: "none", background: "var(--accent)", color: "#1a1330", fontWeight: 700, cursor: "pointer", opacity: typed.length === q.length ? 1 : 0.5 }}>
-                Gönder
-              </button>
-              <button onClick={() => { setUseKeyboard(false); setTyped(""); }}
-                style={{ padding: "12px 14px", borderRadius: 10, border: "1px solid var(--border-soft)", background: "transparent", color: "var(--text-soft)", cursor: "pointer" }}>
-                🔤
-              </button>
-            </div>
           ) : (
-            // Anagram harf modu
-            <div>
-              <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap", marginBottom: 14 }}>
-                {q.scrambled.map((ltr, i) => {
-                  const used = picked.includes(i);
-                  const isFirst = ltr === q.first_letter && i === q.scrambled.findIndex((x) => x === q.first_letter);
-                  return (
-                    <button key={i} onClick={() => pickLetter(i)} disabled={used}
-                      style={{
-                        width: 46, height: 46, borderRadius: 10, position: "relative",
-                        border: "2px solid var(--border-soft)",
-                        background: used ? "var(--bg-panel)" : "var(--bg-elevated)",
-                        color: used ? "var(--text-dim)" : "var(--text-strong)",
-                        fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 20,
-                        cursor: used ? "default" : "pointer", opacity: used ? 0.35 : 1,
-                      }}>
-                      {ltr}
-                      {isFirst && <span style={{ position: "absolute", top: -6, left: -6, width: 18, height: 18, borderRadius: "50%", background: "var(--accent)", color: "#1a1330", fontSize: 10, fontWeight: 800, display: "grid", placeItems: "center" }}>1</span>}
-                    </button>
-                  );
-                })}
-              </div>
-              <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
-                <button onClick={undoLetter} disabled={picked.length === 0}
-                  style={{ padding: "10px 16px", borderRadius: 10, border: "1px solid var(--border-soft)", background: "transparent", color: "var(--text-soft)", cursor: "pointer", opacity: picked.length ? 1 : 0.5 }}>
-                  ⌫ Geri
-                </button>
-                <button onClick={() => setUseKeyboard(true)}
-                  style={{ padding: "10px 16px", borderRadius: 10, border: "1px solid var(--border-soft)", background: "transparent", color: "var(--text-soft)", cursor: "pointer" }}>
-                  🔤 Klavye
-                </button>
+            <div style={{ display: "grid", gap: 12, justifyItems: "center" }}>
+              {/* Anagram harfleri (üstte, tıklanabilir) */}
+              {!useKeyboard && (
+                <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
+                  {q.scrambled.map((ltr, i) => {
+                    const used = picked.includes(i);
+                    const isFirst = i === q.scrambled.findIndex((x) => x === q.first_letter);
+                    return (
+                      <button key={i} onClick={() => pickLetter(i)} disabled={used}
+                        style={{
+                          width: 46, height: 46, borderRadius: 10, position: "relative",
+                          border: "2px solid var(--border-soft)",
+                          background: used ? "var(--bg-panel)" : "var(--bg-elevated)",
+                          color: used ? "var(--text-dim)" : "var(--text-strong)",
+                          fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 20,
+                          cursor: used ? "default" : "pointer", opacity: used ? 0.35 : 1,
+                        }}>
+                        {ltr}
+                        {isFirst && <span style={{ position: "absolute", top: -6, left: -6, width: 18, height: 18, borderRadius: "50%", background: "var(--accent)", color: "#1a1330", fontSize: 10, fontWeight: 800, display: "grid", placeItems: "center" }}>1</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* 1v1 TARZI giriş satırı: input + mikrofon + Gönder */}
+              <div style={{ display: "flex", gap: 8, justifyContent: "center", alignItems: "stretch", flexWrap: "wrap", width: "100%" }}>
+                <input
+                  value={useKeyboard ? typed : picked.map((idx) => q.scrambled[idx]).join("")}
+                  onChange={(e) => { setUseKeyboard(true); setTyped(toUpperTr(e.target.value).replace(/[^A-ZÇĞİÖŞÜI]/g, "").slice(0, q.length)); }}
+                  onKeyDown={(e) => { if (e.key === "Enter") { const w = useKeyboard ? typed : picked.map((idx) => q.scrambled[idx]).join(""); if (w.length === q.length) doAnswer(w); } }}
+                  placeholder={`${q.first_letter} ile başla, ${q.length} harf`}
+                  maxLength={q.length}
+                  style={{
+                    padding: "13px 16px", borderRadius: 10,
+                    border: "2px solid var(--tile-correct)", background: "var(--bg-elevated)",
+                    color: "var(--text-strong)", fontSize: 20, fontFamily: "var(--font-display)",
+                    flex: "1 1 150px", minWidth: 0, maxWidth: 240, textAlign: "center",
+                    letterSpacing: "0.15em", textTransform: "uppercase",
+                  }}
+                />
                 {micSupported && (
                   <button
-                    onPointerDown={(e) => { e.preventDefault(); setUseKeyboard(true); micStart(); }}
+                    onPointerDown={(e) => { e.preventDefault(); micStart(); }}
                     onPointerUp={(e) => { e.preventDefault(); stopMicDelayed(); }}
                     onPointerLeave={() => { if (listening) stopMicDelayed(); }}
-                    style={{ padding: "10px 16px", borderRadius: 10, border: listening ? "2px solid var(--accent-hot)" : "1px solid var(--border-soft)", background: listening ? "var(--accent-glow)" : "transparent", color: "var(--text-soft)", cursor: "pointer" }}>
-                    🎤
+                    onContextMenu={(e) => e.preventDefault()}
+                    title="Basılı tut ve konuş"
+                    style={{
+                      width: 52, borderRadius: 10,
+                      border: listening ? "2px solid var(--accent-hot)" : "2px solid var(--border-soft)",
+                      background: listening ? "var(--accent-hot)" : "var(--bg-elevated)",
+                      cursor: "pointer", fontSize: 22, display: "flex", alignItems: "center", justifyContent: "center",
+                      boxShadow: listening ? "0 0 20px rgba(217,90,90,.45)" : "none",
+                      userSelect: "none", WebkitUserSelect: "none", touchAction: "none",
+                    }}
+                  >{listening ? "🔴" : "🎤"}</button>
+                )}
+                <button
+                  onClick={() => { const w = useKeyboard ? typed : picked.map((idx) => q.scrambled[idx]).join(""); if (w.length === q.length) doAnswer(w); }}
+                  disabled={(useKeyboard ? typed.length : picked.length) !== q.length}
+                  style={{ ...sendBtn, opacity: (useKeyboard ? typed.length : picked.length) === q.length ? 1 : 0.5 }}
+                >Gönder</button>
+              </div>
+
+              {/* Harf modu kontrolleri */}
+              <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+                {!useKeyboard && (
+                  <button onClick={undoLetter} disabled={picked.length === 0}
+                    style={{ padding: "8px 14px", borderRadius: 9, border: "1px solid var(--border-soft)", background: "transparent", color: "var(--text-soft)", cursor: "pointer", fontSize: 13, opacity: picked.length ? 1 : 0.5 }}>
+                    ⌫ Geri
+                  </button>
+                )}
+                {useKeyboard && (
+                  <button onClick={() => { setUseKeyboard(false); setTyped(""); setPicked([]); }}
+                    style={{ padding: "8px 14px", borderRadius: 9, border: "1px solid var(--border-soft)", background: "transparent", color: "var(--text-soft)", cursor: "pointer", fontSize: 13 }}>
+                    🔡 Harfleri kullan
                   </button>
                 )}
               </div>
+
+              {listening && (
+                <p style={{ fontSize: 13, color: "var(--accent-hot)", fontWeight: 600 }}>🔴 Dinliyorum… kelimeyi söyle</p>
+              )}
+              <p style={{ color: "var(--text-dim)", fontSize: 12 }}>
+                İpucu: kelime <strong style={{ color: "var(--accent)" }}>{q.first_letter}</strong> harfiyle başlıyor
+                {micSupported && <span> · 🎤 basılı tut & söyle</span>}
+              </p>
             </div>
           )}
         </div>
@@ -262,10 +279,12 @@ export default function ArenaGame({ onExit }: { onExit: () => void }) {
   );
 }
 
+
 // Alt barlı kabuk (her fazda oyuncular altta)
-function ArenaShell({ children, onExit, players, answers }: {
+function ArenaShell({ children, onExit, players, answers, showResults }: {
   children: React.ReactNode; onExit: () => void;
   players: ArenaPlayer[]; answers?: Record<string, { correct: boolean; flash: boolean }>;
+  showResults?: boolean;
 }) {
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", maxWidth: 520, margin: "0 auto" }}>
@@ -277,16 +296,30 @@ function ArenaShell({ children, onExit, players, answers }: {
       <div style={{ display: "flex", gap: 10, overflowX: "auto", padding: "12px 16px", borderTop: "1px solid var(--border-soft)", background: "var(--bg-panel)" }}>
         {players.map((p) => {
           const a = answers?.[p.pid];
+          const answered = !!a;
           const ring = a ? (a.correct ? "var(--tile-correct)" : "var(--accent-hot)") : "var(--border-soft)";
           return (
-            <div key={p.pid} style={{ textAlign: "center", flexShrink: 0, width: 60 }}>
+            <div key={p.pid} style={{ textAlign: "center", flexShrink: 0, width: 62 }}>
               <div style={{ position: "relative", width: 48, height: 48, margin: "0 auto" }}>
                 <img src={p.avatar_url || `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(p.name)}`}
                   alt={p.name}
                   style={{ width: 48, height: 48, borderRadius: "50%", border: `3px solid ${ring}`, background: "var(--bg-elevated)", objectFit: "cover" }} />
                 {a?.flash && <span style={{ position: "absolute", top: -4, right: -4, fontSize: 14 }}>⚡</span>}
+                {/* Reveal'de ✓/✗ rozeti */}
+                {showResults && answered && (
+                  <span style={{
+                    position: "absolute", bottom: -3, right: -3, width: 18, height: 18, borderRadius: "50%",
+                    background: a!.correct ? "var(--tile-correct)" : "var(--accent-hot)",
+                    color: "#fff", fontSize: 11, fontWeight: 800, display: "grid", placeItems: "center",
+                    border: "2px solid var(--bg-panel)",
+                  }}>{a!.correct ? "✓" : "✗"}</span>
+                )}
               </div>
               <div style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
+              {/* Puan (reveal'de veya oyun boyunca) */}
+              {typeof p.score === "number" && p.score > 0 && (
+                <div className="brand-mono" style={{ fontSize: 11, color: "var(--accent)" }}>{p.score}</div>
+              )}
             </div>
           );
         })}
@@ -325,3 +358,9 @@ function ArenaResult({ ranking, onExit }: { ranking: ArenaPlayer[]; onExit: () =
     </div>
   );
 }
+
+const sendBtn: React.CSSProperties = {
+  padding: "13px 16px", borderRadius: 10, border: "none",
+  background: "var(--accent)", color: "#1a1330", fontWeight: 700, fontSize: 16,
+  cursor: "pointer", fontFamily: "var(--font-display)", whiteSpace: "nowrap", flexShrink: 0,
+};

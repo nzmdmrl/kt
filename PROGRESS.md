@@ -1385,3 +1385,18 @@ Parça 3 sonuç ekranı + ana sayfa butonu. _persist_results şimdilik boş (ile
 Build ok. NOT: kt_uid localStorage'da yoksa ArenaResult "me" vurgusu çalışmaz (zararsız).
 KALAN/İYİLEŞTİRME: reveal'de alt bar renkleri, arena geçmişi/istatistik, ana sayfa QuizzLand tarzı
 kart düzeni (ayrı iş), eşleşmede canlı oyuncu sayacı animasyonu.
+
+## ARENA iyileştirme (Nazım): 15sn + kademeli bot + 1v1 görünüm + reveal durumları
+1) Rakip arama 15sn (admin arena_wait_seconds). WAIT_SECONDS default 30->15. waited_enough
+   cached_int'ten okur. arena_bot_interval (2sn) admin ayarı.
+2) Botlar KADEMELİ: build_match artık sadece gerçek oyuncular. add_one_bot() tek bot ekler.
+   _matchmaker: maçı kur -> her arena_bot_interval'da bir bot ekle + lobby yayınla (joined_bot)
+   -> 5 olunca run_match. Test: 15sn sonra 17/19/21/23s'de bot katıldı ✓.
+3) Maç görünümü 1v1 TARZI: ArenaGame soru bloğu yeniden yazıldı. 52px cevap kutuları (Grid gibi),
+   ilk harf soluk ipucu. Giriş satırı 1v1 ile birebir: input (yeşil border, ortalı, letter-spacing)
+   + mikrofon (52px, 🔴/🎤 basılı-tut) + Gönder (sendBtn). Anagram harfleri input ÜSTÜNDE (tıkla-diz,
+   ilk harf "1" rozeti), input harflerle senkron. Klavye yazınca useKeyboard moduna geçer, "harfleri
+   kullan" ile döner. İpucu satırı 1v1 ile aynı.
+4) Reveal'de HER oyuncunun durumu: useArena reveal msg.players -> answers'a map. Alt barda avatar
+   ring (yeşil bildi/kırmızı bilemedi), ⚡ flash, ✓/✗ rozeti (showResults), puan. 
+Build ok. Test: kademeli bot ✓, admin ayarları ✓.

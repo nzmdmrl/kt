@@ -19,7 +19,7 @@ from typing import Optional
 from app.game.arena import ArenaMatch
 
 ARENA_SIZE = 5
-WAIT_SECONDS = 30
+WAIT_SECONDS = 15   # varsayılan; admin ayarı arena_wait_seconds ile değişir
 
 
 class ArenaLobby:
@@ -39,7 +39,9 @@ class ArenaLobby:
         return len(self.members) >= ARENA_SIZE
 
     def waited_enough(self) -> bool:
-        return time.time() - self.created_at >= WAIT_SECONDS
+        from app.game.settings_service import cached_int
+        wait = cached_int("arena_wait_seconds", WAIT_SECONDS)
+        return time.time() - self.created_at >= wait
 
 
 class ArenaManager:
@@ -62,11 +64,10 @@ class ArenaManager:
         return None
 
     async def build_match(self, code: str, words: list[str]) -> ArenaMatch:
-        """Lobiyi maça çevir; eksik oyuncuları botla tamamla."""
+        """Lobiyi maça çevir (SADECE gerçek oyuncular). Botlar sonra kademeli eklenir."""
         async with self._lock:
             lobby = self.lobby_for(code)
             if not lobby:
-                # zaten kurulmuş olabilir
                 if code in self.matches:
                     return self.matches[code]
                 raise RuntimeError("Lobi bulunamadı")
@@ -76,19 +77,22 @@ class ArenaManager:
             for pid, info in lobby.members.items():
                 match.add_player(pid, info["name"], info.get("avatar_url", ""), is_bot=False)
 
-            # Botlarla tamamla
-            need = ARENA_SIZE - len(match.players)
-            if need > 0:
-                from app.game.bot_names import random_bot_names, avatar_url_for
-                names = random_bot_names(need)
-                for i, bn in enumerate(names):
-                    bpid = f"bot:{uuid.uuid4().hex[:6]}"
-                    match.add_player(bpid, bn, avatar_url_for(bn), is_bot=True)
-
             self.matches[code] = match
             if self._lobby and self._lobby.code == code:
                 self._lobby = None
             return match
+
+    def add_one_bot(self, code: str) -> Optional[dict]:
+        """Maça bir bot ekler; eklenen botun bilgisini döndürür (yoksa None)."""
+        match = self.matches.get(code)
+        if not match or len(match.players) >= ARENA_SIZE:
+            return None
+        import uuid as _uuid
+        from app.game.bot_names import random_bot_names, avatar_url_for
+        bn = random_bot_names(1)[0]
+        bpid = f"bot:{_uuid.uuid4().hex[:6]}"
+        match.add_player(bpid, bn, avatar_url_for(bn), is_bot=True)
+        return {"pid": bpid, "name": bn, "avatar_url": avatar_url_for(bn), "is_bot": True}
 
     def get_match(self, code: str) -> Optional[ArenaMatch]:
         return self.matches.get(code)

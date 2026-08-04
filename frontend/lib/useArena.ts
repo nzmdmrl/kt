@@ -94,13 +94,19 @@ export function useArena(enabled: boolean) {
         case "answer_result":
           setState((s) => ({ ...s, myResult: { correct: msg.correct, gained: msg.gained, flash: msg.flash } }));
           break;
-        case "reveal":
+        case "reveal": {
+          const revAnswers: Record<string, AnswerState> = {};
+          (msg.players || []).forEach((p: any) => {
+            revAnswers[p.pid] = { pid: p.pid, correct: p.correct, flash: p.flash };
+          });
           setState((s) => ({
             ...s, phase: "reveal", revealAnswer: msg.answer,
             scores: msg.scores || s.scores,
+            answers: revAnswers,
             players: s.players.map((p) => ({ ...p, score: (msg.scores || {})[p.pid] ?? p.score })),
           }));
           break;
+        }
         case "finished":
           setState((s) => ({ ...s, phase: "finished", ranking: msg.ranking || [] }));
           break;
