@@ -86,6 +86,22 @@ async def dashboard(admin: User = Depends(get_admin_user), db: AsyncSession = De
     }
 
 
+@router.get("/titles")
+async def get_titles(admin: User = Depends(get_admin_user)):
+    """XP unvanları — isim, ikon, XP eşiği (admin görünümü)."""
+    from app.game.xp_service import TITLES, XP_EVENTS
+    from app.game.settings_service import cached_int
+    titles = [
+        {"name": name, "icon": icon, "xp_required": xp}
+        for (name, xp, icon) in TITLES
+    ]
+    # XP kazanç ayarları (event -> aktif değer)
+    events = []
+    for event, (key, default) in XP_EVENTS.items():
+        events.append({"event": event, "key": key, "xp": cached_int(key, default)})
+    return {"titles": titles, "xp_events": events}
+
+
 @router.get("/settings")
 async def get_settings_list(admin: User = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
     return {"settings": await settings_service.all_settings(db)}

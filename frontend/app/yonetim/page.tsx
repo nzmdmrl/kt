@@ -16,6 +16,7 @@ const TABS = [
   { key: "bots", label: "🤖 Botlar" },
   { key: "words", label: "📚 Kelimeler" },
   { key: "sounds", label: "🔊 Sesler" },
+  { key: "titles", label: "🏅 Unvanlar" },
 ];
 
 export default function AdminPage() {
@@ -46,6 +47,7 @@ export default function AdminPage() {
       {tab === "bots" && <Bots />}
       {tab === "words" && <Words />}
       {tab === "sounds" && <Sounds />}
+      {tab === "titles" && <Titles />}
     </Wrap>
   );
 }
@@ -387,4 +389,81 @@ function Wrap({ children }: { children: React.ReactNode }) {
 
 function Centered({ children }: { children: React.ReactNode }) {
   return <div style={{ display: "grid", placeItems: "center", minHeight: 200, color: "var(--text-soft)" }}>{children}</div>;
+}
+
+// Unvanlar sekmesi — 10 unvan (isim, ikon, XP eşiği) + XP kazanç ayarları.
+function Titles() {
+  const [titles, setTitles] = useState<{ name: string; icon: string; xp_required: number }[]>([]);
+  const [events, setEvents] = useState<{ event: string; key: string; xp: number }[]>([]);
+
+  useEffect(() => {
+    fetch(apiUrl("/api/admin/titles"), { headers: authHeaders() })
+      .then((r) => r.json())
+      .then((d) => { setTitles(d.titles || []); setEvents(d.xp_events || []); })
+      .catch(() => {});
+  }, []);
+
+  const eventLabel: Record<string, string> = {
+    match_win: "1v1 Galibiyet", match_loss: "1v1 Mağlubiyet", match_draw: "1v1 Beraberlik",
+    arena_played: "Arena Katılım", arena_win: "Arena Birincilik",
+    solo_level: "Solo Level Geçme", daily_solved: "Günün Kelimesi",
+  };
+
+  async function saveEvent(key: string, value: string) {
+    await fetch(apiUrl("/api/admin/settings"), { method: "POST", headers: authHeaders(), body: JSON.stringify({ key, value }) }).catch(() => {});
+  }
+
+  return (
+    <div style={{ display: "grid", gap: 24 }}>
+      <div>
+        <h3 style={{ fontSize: 16, marginBottom: 4 }}>🏅 Unvanlar (XP barajları)</h3>
+        <p style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 12 }}>
+          Kullanıcılar XP kazandıkça unvan atlar. Eşikler kodda tanımlı (xp_service.py TITLES).
+        </p>
+        <div style={{ display: "grid", gap: 6 }}>
+          {titles.map((t, i) => (
+            <div key={t.name} style={{
+              display: "flex", alignItems: "center", gap: 12, padding: "10px 14px",
+              background: "var(--bg-panel)", borderRadius: 10,
+            }}>
+              <span style={{ fontSize: 24 }}>{t.icon}</span>
+              <span style={{ flex: 1, fontWeight: 600, color: "var(--text-strong)" }}>
+                {i + 1}. {t.name}
+              </span>
+              <span className="brand-mono" style={{ color: "var(--accent)" }}>
+                {t.xp_required.toLocaleString("tr")} XP
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <h3 style={{ fontSize: 16, marginBottom: 4 }}>💎 XP kazanç ayarları</h3>
+        <p style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 12 }}>
+          Her oyun türünün kazandırdığı XP. Değiştirip kaydedebilirsin.
+        </p>
+        <div style={{ display: "grid", gap: 6 }}>
+          {events.map((e) => (
+            <div key={e.key} style={{
+              display: "flex", alignItems: "center", gap: 12, padding: "10px 14px",
+              background: "var(--bg-panel)", borderRadius: 10,
+            }}>
+              <span style={{ flex: 1, color: "var(--text-strong)" }}>{eventLabel[e.event] || e.event}</span>
+              <input
+                type="number" defaultValue={e.xp}
+                onBlur={(ev) => saveEvent(e.key, ev.target.value)}
+                style={{
+                  width: 80, padding: "6px 10px", borderRadius: 8, textAlign: "center",
+                  border: "1px solid var(--border-soft)", background: "var(--bg-elevated)",
+                  color: "var(--text-strong)", fontFamily: "var(--font-display)",
+                }}
+              />
+              <span style={{ color: "var(--text-dim)", fontSize: 13 }}>XP</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }

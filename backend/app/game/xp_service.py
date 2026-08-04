@@ -74,19 +74,18 @@ def xp_amount(event: str) -> int:
     return cached_int(key, default)
 
 
-# 10 unvan — her biri bir XP eşiğinde açılır. (isim, gereken toplam XP)
-# Ekrandaki mantık: "Usta" aktif, "Bilgin için X XP kaldı" gibi.
+# 10 unvan — (isim, gereken toplam XP, ikon). XP eşiğinde açılır.
 TITLES = [
-    ("Çırak", 0),
-    ("Acemi", 150),
-    ("Öğrenci", 400),
-    ("Bilgili", 800),
-    ("Yetenekli", 1400),
-    ("Uzman", 2200),
-    ("Usta", 3200),
-    ("Bilgin", 5000),
-    ("Üstat", 7500),
-    ("Efsane", 11000),
+    ("Çırak", 0, "🌱"),
+    ("Acemi", 150, "🔰"),
+    ("Öğrenci", 400, "📘"),
+    ("Bilgili", 800, "🧠"),
+    ("Yetenekli", 1400, "⭐"),
+    ("Uzman", 2200, "🎯"),
+    ("Usta", 3200, "🏅"),
+    ("Bilgin", 5000, "🎓"),
+    ("Üstat", 7500, "👑"),
+    ("Efsane", 11000, "🔥"),
 ]
 
 
@@ -94,17 +93,19 @@ def title_for_xp(xp: int) -> dict:
     """XP'ye göre mevcut unvan + sonraki unvan bilgisi (bar/etiket için)."""
     current = TITLES[0]
     nxt = None
-    for i, (name, threshold) in enumerate(TITLES):
-        if xp >= threshold:
-            current = (name, threshold)
+    for i, item in enumerate(TITLES):
+        if xp >= item[1]:
+            current = item
             nxt = TITLES[i + 1] if i + 1 < len(TITLES) else None
         else:
             break
     result = {
         "title": current[0],
         "title_xp": current[1],
+        "title_icon": current[2],
         "next_title": nxt[0] if nxt else None,
         "next_title_xp": nxt[1] if nxt else None,
+        "next_title_icon": nxt[2] if nxt else None,
         "xp": xp,
     }
     if nxt:

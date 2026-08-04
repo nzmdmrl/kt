@@ -1530,3 +1530,15 @@ Test: unvan (10 kademe, ilerleme) ✓, arkadaşlık tam akış (istek->bildirim-
 ✓, migration (friendships/arena_history) ✓. Build ok.
 NOT: Arkadaş listesi sayfası (ana sayfadaki Arkadaşlar sekmesi) henüz ayrı sayfa değil; /friends
 endpoint hazır. Görevler sekmesi hâlâ yok.
+
+## Unvan ikonları + admin unvan paneli + solo level üst bar + desktop özet (Nazım)
+1) Unvan ikonları: xp_service.TITLES artık (isim, xp, ikon) — 🌱🔰📘🧠⭐🎯🏅🎓👑🔥. title_for_xp
+   title_icon + next_title_icon döndürür.
+2) Admin panel: GET /api/admin/titles (titles + xp_events). Frontend yonetim/page.tsx: "🏅 Unvanlar"
+   sekmesi (Titles bileşeni) — 10 unvan listesi (ikon+isim+XP eşiği) + XP kazanç ayarları
+   (düzenlenebilir input, /admin/settings'e kaydeder).
+3) Ana sayfa üst bar (HomeHero): solo level çekiliyor (/api/solo/progress). "💎 Seviye N" +
+   "🗺️ Solo Level N" rozetleri.
+4) Desktop özet: components/DesktopUserSummary.tsx (client) — giriş yapınca avatar+level rozeti+
+   unvan(ikonlu)+solo level+XP çubuğu+"Profilim". HomeDesktop TopBar altına eklendi.
+Test: admin titles (10 unvan ikonlu + 7 XP), solo progress, profil unvan ikonu ✓. Build ok.

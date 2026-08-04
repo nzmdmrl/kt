@@ -12,6 +12,7 @@ export default function HomeHero() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const [lvl, setLvl] = useState<LevelInfo | null>(null);
+  const [soloLevel, setSoloLevel] = useState<number | null>(null);
 
   function token() { return typeof window !== "undefined" ? localStorage.getItem("kt_token") : null; }
 
@@ -19,6 +20,8 @@ export default function HomeHero() {
     if (!user) return;
     fetch(apiUrl("/api/account/level"), { headers: { Authorization: `Bearer ${token()}` } })
       .then((r) => r.json()).then(setLvl).catch(() => {});
+    fetch(apiUrl("/api/solo/progress"), { headers: { Authorization: `Bearer ${token()}` } })
+      .then((r) => r.json()).then((d) => setSoloLevel(d.current_level ?? null)).catch(() => {});
   }, [user]);
 
   const avatar = user?.avatar_url || `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(user?.username || "guest")}`;
@@ -48,7 +51,18 @@ export default function HomeHero() {
               border: "2px solid var(--bg)", fontFamily: "var(--font-display)",
             }}>{level}</span>
           </div>
-          <div className="brand-mono" style={{ fontSize: 18, marginBottom: 8 }}>{user.display_name || user.username}</div>
+          <div className="brand-mono" style={{ fontSize: 18, marginBottom: 6 }}>{user.display_name || user.username}</div>
+          {/* Solo level + seviye rozetleri */}
+          <div style={{ display: "flex", gap: 8, justifyContent: "center", marginBottom: 8, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 12, padding: "3px 10px", borderRadius: 10, background: "var(--bg-panel)", color: "var(--accent)", fontWeight: 600 }}>
+              💎 Seviye {level}
+            </span>
+            {soloLevel != null && (
+              <span style={{ fontSize: 12, padding: "3px 10px", borderRadius: 10, background: "var(--bg-panel)", color: "#7b52c4", fontWeight: 600 }}>
+                🗺️ Solo Level {soloLevel}
+              </span>
+            )}
+          </div>
           {/* XP çubuğu */}
           <div style={{ maxWidth: 260, margin: "0 auto" }}>
             <div style={{ height: 8, background: "var(--bg-panel)", borderRadius: 4, overflow: "hidden" }}>

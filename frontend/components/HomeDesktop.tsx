@@ -1,6 +1,7 @@
 import Logo from "@/components/Logo";
 import TopBar from "@/components/TopBar";
 import Footer from "@/components/Footer";
+import DesktopUserSummary from "@/components/DesktopUserSummary";
 
 // Masaüstü ana içerik — eski geniş tasarım (logo + açıklama + mod butonları).
 // Sadece geniş ekranda görünür (mobilde HomeHero gösterilir).
@@ -16,6 +17,7 @@ export default function HomeDesktop() {
     <>
       <TopBar />
       <main style={{ flex: 1, maxWidth: 720, width: "100%", margin: "0 auto", padding: "20px 20px 64px", display: "grid", gap: 40 }}>
+        <DesktopUserSummary />
         <header style={{ display: "grid", gap: 20, justifyItems: "center", textAlign: "center" }}>
           <Logo size={52} />
           <div>
