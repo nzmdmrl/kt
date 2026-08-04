@@ -6,6 +6,7 @@ import { toUpperTr } from "@/lib/turkish";
 import { useSpeech } from "@/lib/useSpeech";
 import { playSound, initSound, startTicking, stopTicking } from "@/lib/sound";
 import Grid from "./Grid";
+import MatchRewards from "./MatchRewards";
 import ScoreBar from "./ScoreBar";
 import SoundToggle from "./SoundToggle";
 import ThemeToggle from "./ThemeToggle";
@@ -34,15 +35,18 @@ export default function MatchGame({
   );
   // Maç bitti durumu — lastEvent'e bağlı DEĞİL (rematch_request gelince kaybolmasın).
   const [matchOverData, setMatchOverData] = useState<any>(null);
+  const [rewards, setRewards] = useState<any>(null);
   useEffect(() => {
     if (lastEvent?.type === "match_over") {
       const res = lastEvent.result;
       setMatchOverData(res ?? { winner: null });
+      setRewards(lastEvent.rewards ?? null);
       // Kazanma/kaybetme sesi.
       if (res?.winner === playerId) playSound("win");
       else if (res?.winner && res.winner !== playerId) playSound("lose");
     } else if (lastEvent?.type === "match_start" || lastEvent?.type === "rematch_accepted") {
       setMatchOverData(null);
+      setRewards(null);
     }
   }, [lastEvent, playerId]);
 
@@ -358,6 +362,9 @@ export default function MatchGame({
 
           <div style={{ fontSize: 12, color: "var(--text-dim)" }}>kelimetahmin.com</div>
         </div>
+
+        {/* Kazanımlar: ELO / XP / rozet — sırayla, sayaç + seslerle */}
+        <MatchRewards rewards={rewards} />
 
         {/* Butonlar: Rövanş + Yeni Rakip */}
         <div style={{ display: "grid", gap: 10 }}>

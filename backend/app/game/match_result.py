@@ -59,6 +59,18 @@ async def apply_match_result(
     if not user:
         return None
 
+    # Rozet durumu (öncesi) — istatistik değişmeden ÖNCE hesapla
+    def _earned_codes(u) -> set:
+        from app.game.badges import earned_badges
+        stats = {
+            "matches_played": u.matches_played, "wins": u.wins, "losses": u.losses,
+            "draws": u.draws, "words_solved": u.words_solved, "total_score": u.total_score,
+            "elo": u.elo, "custom_arena_played": getattr(u, "custom_arena_played", 0) or 0,
+        }
+        return {b["code"]: b for b in earned_badges(stats) if b["earned"]}
+
+    badges_before = _earned_codes(user)
+
     user.matches_played += 1
     user.total_score += score
     user.words_solved += words_solved
@@ -72,15 +84,20 @@ async def apply_match_result(
         user.losses += 1
         result_val = 0.0
 
+    elo_before = user.elo
     user.elo = max(100, elo_change(user.elo, opp_elo, result_val))
+    elo_after = user.elo
+
     await db.commit()
     await db.refresh(user)
 
     # XP ver (galibiyet/beraberlik/mağlubiyet).
+    xp_gained = 0
     try:
         from app.game.xp_service import grant_xp
         event = "match_draw" if draw else ("match_win" if won else "match_loss")
-        await grant_xp(db, user, event)
+        res = await grant_xp(db, user, event)
+        xp_gained = res.get("gained", 0) if isinstance(res, dict) else 0
     except Exception as e:
         print(f"[xp] HATA user={user_id}: {e}")
 
@@ -91,4 +108,15 @@ async def apply_match_result(
     except Exception as e:
         print(f"[lig] HATA user={user_id}: {e}")
 
-    return user
+    # Yeni açılan rozetler
+    badges_after = _earned_codes(user)
+    new_badges = [badges_after[c] for c in badges_after.keys() - badges_before.keys()]
+
+    return {
+        "user": user,
+        "elo_before": elo_before,
+        "elo_after": elo_after,
+        "elo_delta": elo_after - elo_before,
+        "xp_gained": xp_gained,
+        "new_badges": new_badges,
+    }

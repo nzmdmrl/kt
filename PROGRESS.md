@@ -1685,3 +1685,22 @@ Frontend:
   <ArenaGame customCode={code}>. Katılınca WS özel koda bağlanır.
 Test: 2 kişi WS özel koda bağlandı, match_start (2 oyuncu), sorular, finished ✓. persist ->
 custom_arena_played=1 iki oyuncuda, rozet earned ✓. Build ok.
+
+## Maç sonu kazanım animasyonu (ELO/XP/rozet sırayla + sayaç + ses) (Nazım)
+Backend:
+- match_result.py apply_match_result: artık dict döndürür {user, elo_before, elo_after, elo_delta,
+  xp_gained, new_badges}. badges_before istatistik DEĞİŞMEDEN önce hesaplanır (yoksa yeni rozet
+  farkı çıkmaz). grant_xp'den gained alınır. new_badges = sonrası - öncesi.
+- match.py on_over: rewards_by_pid[pid] toplar, sonunda return eder.
+- room.py: _end_match ve handle_opponent_left artık ÖNCE on_match_over callback'i çağırır
+  (rewards_by_pid alır), SONRA _broadcast_match_over ile her sokete kendi rewards'ıyla match_over
+  gönderir. (Eskiden broadcast önce, callback sonraydı -> rewards eklenemiyordu.)
+Frontend:
+- components/MatchRewards.tsx: rewards'tan satırlar (elo/xp/badge) -> sırayla 1.1sn arayla belirir.
+  CountUp: sayarken "tick" sesi (2 adımda bir, dırdırdır), bitince "tile_correct" (çlink). ELO
+  before->after +delta, XP 0->amount, rozet vurgulu kart.
+- MatchGame.tsx: rewards state (match_over event'inden lastEvent.rewards). Skor kartından sonra
+  <MatchRewards rewards={rewards}/>.
+Test: apply_match_result rewards (elo delta, xp, ilk galibiyet rozetleri) ✓, room _broadcast_match_over
+metodu ✓. Build ok.
+NOT: Sadece 1v1 maçlar (MatchGame). Arena maç sonu ayrı ekran (ArenaResult) - oraya eklenmedi.

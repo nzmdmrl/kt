@@ -80,6 +80,7 @@ def _attach_stats_callback(room):
         order = match.player_order
         scores = result["scores"]
         winner = result["winner"]
+        rewards_by_pid: dict = {}
         try:
             async with AsyncSessionLocal() as db:
                 for pid in order:
@@ -94,12 +95,20 @@ def _attach_stats_callback(room):
                     opp_elo = getattr(opp_player, "elo", 1000) or 1000
                     won = (winner == pid)
                     draw = (winner is None)
-                    await apply_match_result(
+                    outcome = await apply_match_result(
                         db, uid, opp_elo,
                         won=won, draw=draw,
                         score=scores.get(pid, 0),
                         words_solved=0,
                     )
+                    if isinstance(outcome, dict):
+                        rewards_by_pid[pid] = {
+                            "elo_before": outcome.get("elo_before"),
+                            "elo_after": outcome.get("elo_after"),
+                            "elo_delta": outcome.get("elo_delta", 0),
+                            "xp_gained": outcome.get("xp_gained", 0),
+                            "new_badges": outcome.get("new_badges", []),
+                        }
                     # Toplanan kelimeler: bu oyuncunun bu maçta doğru bildiği kelimeler.
                     try:
                         from app.models.collected_word import CollectedWord
@@ -163,6 +172,7 @@ def _attach_stats_callback(room):
                 await db.commit()
         except Exception as e:
             print(f"[match_history] HATA: {e}")
+        return rewards_by_pid
     room.on_match_over = on_over
 
 
