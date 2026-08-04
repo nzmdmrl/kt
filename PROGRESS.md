@@ -1505,3 +1505,28 @@ Build ok.
 Test: kayıt+geçmiş (rank/correct_count) ✓, boş geçmiş ✓, tablo migration ✓. Build ok.
 NOT: Günün kelimesi XP hâlâ bağlı değil (check_daily_guess auth'suz). Görevler/Arkadaşlar
 sekmeleri henüz yok.
+
+## Unvan sistemi + Arkadaşlık sistemi (Nazım)
+UNVAN (10 unvan + XP barajı):
+- xp_service.py TITLES: Çırak(0)/Acemi(150)/Öğrenci(400)/Bilgili(800)/Yetenekli(1400)/Uzman(2200)/
+  Usta(3200)/Bilgin(5000)/Üstat(7500)/Efsane(11000). title_for_xp(xp) -> title, next_title,
+  xp_to_next, title_progress.
+- profile.py: _title_info/_level_info -> profile'a title_info, level_info, xp eklendi.
+- profil frontend: isim yanına unvan rozeti (yeşil), altına XP çizgisi ("💎 N XP" + "X için Y XP" +
+  bar %title_progress).
+ARKADAŞLIK:
+- models/friendship.py: Friendship(requester_id, addressee_id, status pending|accepted). database.py
+  listesine eklendi. UniqueConstraint.
+- api/routes/friends.py: request/accept/reject/remove/{id}, GET /friends (liste), /friends/requests
+  (gelen bekleyenler), /friends/status/{id}. friend_status() -> none|friends|request_sent|
+  request_received|self. friend_count(). Her aksiyon karşı tarafa Notification (friend_request/
+  accept/reject). main.py router /api.
+- profile.py: friend_count profile'a; public_profile opsiyonel auth (_optional_user) -> friend_status.
+- profil frontend: friend_status'a göre buton — Arkadaş Ekle / ⏳İstek gönderildi / Kabul et+Reddet /
+  🤝Arkadaşın. profil load token gönderiyor (friend_status için).
+- bildirimler frontend: gelen istekler listesi (avatar+isim+✅/❌ kabul/reddet), respondRequest.
+- profil: @user · 🤝 N arkadaş.
+Test: unvan (10 kademe, ilerleme) ✓, arkadaşlık tam akış (istek->bildirim->kabul->bildirim->arkadaş)
+✓, migration (friendships/arena_history) ✓. Build ok.
+NOT: Arkadaş listesi sayfası (ana sayfadaki Arkadaşlar sekmesi) henüz ayrı sayfa değil; /friends
+endpoint hazır. Görevler sekmesi hâlâ yok.

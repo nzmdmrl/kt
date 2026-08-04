@@ -10,7 +10,7 @@ lig kup/madalyaları + güncel lig sıraları (günlük/aylık/tüm zamanlar).
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,6 +22,36 @@ from app.game.badges import earned_badges
 from app.game.league_service import user_rank
 
 router = APIRouter(prefix="/profile", tags=["profile"])
+
+
+def _level_info(xp: int) -> dict:
+    from app.game.xp_service import level_progress
+    return level_progress(xp)
+
+
+def _title_info(xp: int) -> dict:
+    from app.game.xp_service import title_for_xp
+    return title_for_xp(xp)
+
+
+async def _friend_count(db, user_id: int) -> int:
+    from app.api.routes.friends import friend_count
+    return await friend_count(db, user_id)
+
+
+async def _optional_user(request: Request, db):
+    """Authorization header varsa kullanıcıyı çöz, yoksa None (hata fırlatmaz)."""
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer "):
+        return None
+    try:
+        from app.core.security import decode_token
+        uid = decode_token(auth[7:])
+        if not uid:
+            return None
+        return (await db.execute(select(User).where(User.id == uid))).scalar_one_or_none()
+    except Exception:
+        return None
 
 
 def _group_achievements(awards) -> list[dict]:
@@ -101,6 +131,10 @@ async def _build_profile(db: AsyncSession, user: User) -> dict:
         "achievements": _group_achievements(awards),
         "trophies": trophies,
         "medals": medals,
+        "xp": user.xp or 0,
+        "level_info": _level_info(user.xp or 0),
+        "title_info": _title_info(user.xp or 0),
+        "friend_count": await _friend_count(db, user.id),
         "ranks": {
             "daily": daily["rank"] if daily else None,
             "monthly": monthly["rank"] if monthly else None,
@@ -116,12 +150,20 @@ async def my_profile(user: User = Depends(get_current_user), db: AsyncSession = 
 
 
 @router.get("/{username}")
-async def public_profile(username: str, db: AsyncSession = Depends(get_db)):
+async def public_profile(username: str, request: Request, db: AsyncSession = Depends(get_db)):
     res = await db.execute(select(User).where(User.username == username))
     user = res.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
-    return await _build_profile(db, user)
+    data = await _build_profile(db, user)
+    # Bakan kişi giriş yapmışsa, aralarındaki arkadaşlık durumunu ekle.
+    viewer = await _optional_user(request, db)
+    if viewer and viewer.id != user.id:
+        from app.api.routes.friends import friend_status
+        data["friend_status"] = await friend_status(db, viewer.id, user.id)
+    else:
+        data["friend_status"] = "self" if viewer and viewer.id == user.id else "none"
+    return data
 
 
 @router.get("/{username}/matches")

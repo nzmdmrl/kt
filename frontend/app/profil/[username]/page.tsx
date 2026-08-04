@@ -27,6 +27,11 @@ type Profile = {
   achievements: { title: string; icon: string; count: number; period_type: string; rank: number }[];
   trophies: number;
   medals: number;
+  xp?: number;
+  level_info?: { level: number; level_xp: number; level_need: number };
+  title_info?: { title: string; next_title: string | null; xp_to_next: number; title_progress: number };
+  friend_count?: number;
+  friend_status?: string;
   ranks: { daily: number | null; monthly: number | null; all: number | null };
   solo?: { level: number; stars: number };
 };
@@ -42,6 +47,24 @@ export default function ProfilePage({ params }: { params: { username: string } }
   const [oppAllow, setOppAllow] = useState(true);
   const [challengeSent, setChallengeSent] = useState(false);
   const [challengeErr, setChallengeErr] = useState("");
+  const [friendStatus, setFriendStatus] = useState<string>("none");
+  const [friendBusy, setFriendBusy] = useState(false);
+
+  // profile yüklenince arkadaşlık durumunu al
+  useEffect(() => {
+    if (profile?.friend_status) setFriendStatus(profile.friend_status);
+  }, [profile?.friend_status]);
+
+  async function friendAction(path: string, newStatus: string) {
+    if (!profile) return;
+    setFriendBusy(true);
+    try {
+      const token = localStorage.getItem("kt_token");
+      const r = await fetch(apiUrl(path), { method: "POST", headers: { Authorization: `Bearer ${token}` } });
+      if (r.ok) setFriendStatus(newStatus);
+    } catch {}
+    setFriendBusy(false);
+  }
 
   async function sendChallenge() {
     if (!profile) return;
@@ -62,7 +85,12 @@ export default function ProfilePage({ params }: { params: { username: string } }
   }
 
   function load() {
-    getJSON<Profile>(`/api/profile/${encodeURIComponent(params.username)}`)
+    const token = typeof window !== "undefined" ? localStorage.getItem("kt_token") : null;
+    fetch(apiUrl(`/api/profile/${encodeURIComponent(params.username)}`), {
+      cache: "no-store",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+      .then((r) => { if (!r.ok) throw new Error("404"); return r.json(); })
       .then(setProfile)
       .catch(() => setErr("Profil bulunamadı"))
       .finally(() => setLoading(false));
@@ -105,9 +133,75 @@ export default function ProfilePage({ params }: { params: { username: string } }
           )}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <h1 className="brand-mono" style={{ fontSize: 24, margin: 0 }}>{profile.display_name}</h1>
-          <p style={{ color: "var(--text-dim)", margin: "2px 0" }}>@{profile.username}</p>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <h1 className="brand-mono" style={{ fontSize: 24, margin: 0 }}>{profile.display_name}</h1>
+            {profile.title_info && (
+              <span style={{
+                padding: "3px 12px", borderRadius: 12, fontSize: 13, fontWeight: 700,
+                background: "rgba(63,185,80,.15)", color: "var(--tile-correct)",
+                border: "1px solid rgba(63,185,80,.3)",
+              }}>{profile.title_info.title}</span>
+            )}
+          </div>
+          <p style={{ color: "var(--text-dim)", margin: "2px 0" }}>
+            @{profile.username}
+            {typeof profile.friend_count === "number" && (
+              <span> · 🤝 {profile.friend_count} arkadaş</span>
+            )}
+          </p>
+          {/* XP çizgisi + unvan ilerlemesi */}
+          {profile.title_info && profile.level_info && (
+            <div style={{ margin: "8px 0" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}>
+                <span style={{ color: "var(--accent)" }}>💎 {(profile.xp || 0).toLocaleString("tr")} XP</span>
+                {profile.title_info.next_title && (
+                  <span style={{ color: "var(--text-dim)" }}>
+                    {profile.title_info.next_title} için {profile.title_info.xp_to_next.toLocaleString("tr")} XP
+                  </span>
+                )}
+              </div>
+              <div style={{ height: 8, background: "var(--bg-panel)", borderRadius: 4, overflow: "hidden" }}>
+                <div style={{
+                  width: `${profile.title_info.title_progress}%`, height: "100%",
+                  background: "linear-gradient(90deg,var(--tile-correct),var(--accent))", transition: "width .4s",
+                }} />
+              </div>
+            </div>
+          )}
           {!isMe && <PresenceBadge userId={profile.id} onStatus={(s, allow) => { setOppStatus(s); setOppAllow(allow); }} />}
+          {/* Arkadaşlık butonu / durumu */}
+          {!isMe && (
+            <div style={{ marginTop: 10 }}>
+              {friendStatus === "friends" && (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 10, background: "rgba(63,185,80,.15)", color: "var(--tile-correct)", fontWeight: 700, fontSize: 14, border: "1px solid rgba(63,185,80,.3)" }}>
+                  🤝 Arkadaşın
+                </span>
+              )}
+              {friendStatus === "none" && (
+                <button onClick={() => friendAction(`/api/friends/request/${profile.id}`, "request_sent")} disabled={friendBusy}
+                  style={{ padding: "9px 18px", fontSize: 14, fontWeight: 700, background: "var(--accent)", color: "#1a1330", border: "none", borderRadius: 10, cursor: "pointer" }}>
+                  🤝 Arkadaş Ekle
+                </button>
+              )}
+              {friendStatus === "request_sent" && (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 10, background: "var(--bg-elevated)", color: "var(--text-dim)", fontSize: 14 }}>
+                  ⏳ İstek gönderildi
+                </span>
+              )}
+              {friendStatus === "request_received" && (
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button onClick={() => friendAction(`/api/friends/accept/${profile.id}`, "friends")} disabled={friendBusy}
+                    style={{ padding: "9px 16px", fontSize: 14, fontWeight: 700, background: "var(--tile-correct)", color: "#fff", border: "none", borderRadius: 10, cursor: "pointer" }}>
+                    ✅ Kabul et
+                  </button>
+                  <button onClick={() => friendAction(`/api/friends/reject/${profile.id}`, "none")} disabled={friendBusy}
+                    style={{ padding: "9px 16px", fontSize: 14, fontWeight: 600, background: "var(--bg-elevated)", color: "var(--accent-hot)", border: "1px solid var(--border-soft)", borderRadius: 10, cursor: "pointer" }}>
+                    ❌ Reddet
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
           {!isMe && oppStatus === "online" && oppAllow && (
             <button
               onClick={sendChallenge}

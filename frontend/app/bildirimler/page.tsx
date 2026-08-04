@@ -7,6 +7,7 @@ import Logo from "@/components/Logo";
 
 type Notif = { id: number; title: string; body: string; read: boolean; created_at: string; type?: string };
 type Award = { award: string; period_type: string; period_key: string };
+type FriendReq = { id: number; username: string; display_name: string; avatar_url: string | null };
 
 export default function BildirimlerPage() {
   const { user, loading } = useAuth();
@@ -14,17 +15,27 @@ export default function BildirimlerPage() {
   const [trophies, setTrophies] = useState(0);
   const [medals, setMedals] = useState(0);
   const [awards, setAwards] = useState<Award[]>([]);
+  const [requests, setRequests] = useState<FriendReq[]>([]);
 
   function token() { return typeof window !== "undefined" ? localStorage.getItem("kt_token") : null; }
 
+  function loadRequests() {
+    fetch(apiUrl("/api/friends/requests"), { headers: { Authorization: `Bearer ${token()}` } })
+      .then((r) => r.json()).then((d) => setRequests(d.requests || [])).catch(() => {});
+  }
+
+  async function respondRequest(id: number, accept: boolean) {
+    const path = accept ? `/api/friends/accept/${id}` : `/api/friends/reject/${id}`;
+    await fetch(apiUrl(path), { method: "POST", headers: { Authorization: `Bearer ${token()}` } }).catch(() => {});
+    setRequests((rs) => rs.filter((r) => r.id !== id));
+  }
+
   useEffect(() => {
     if (!user) return;
-    // Bildirimler
     fetch(apiUrl("/api/notifications"), { headers: { Authorization: `Bearer ${token()}` } })
       .then((r) => r.json()).then((d) => setNotifs(d.notifications || [])).catch(() => {});
-    // Okundu işaretle
     fetch(apiUrl("/api/notifications/read"), { method: "POST", headers: { Authorization: `Bearer ${token()}` } }).catch(() => {});
-    // Kupalar (kendi profilinden)
+    loadRequests();
     if (user.username) {
       fetch(apiUrl(`/api/profile/${user.username}`))
         .then((r) => r.json())
@@ -72,6 +83,26 @@ export default function BildirimlerPage() {
                   {a.period_type === "monthly" ? "Ayın Şampiyonu" : a.period_type === "yearly" ? "Yılın Şampiyonu" : "Günün Şampiyonu"}
                 </span>
                 <span style={{ marginLeft: "auto", color: "var(--text-dim)", fontSize: 13 }}>{a.period_key}</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Gelen arkadaşlık istekleri (aksiyon gerektiren) */}
+      {requests.length > 0 && (
+        <>
+          <h2 style={{ fontSize: 15, color: "var(--text-soft)", marginBottom: 10 }}>🤝 Arkadaşlık istekleri</h2>
+          <div style={{ display: "grid", gap: 8, marginBottom: 24 }}>
+            {requests.map((r) => (
+              <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: "var(--bg-panel)", borderRadius: 10 }}>
+                <img src={r.avatar_url || `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(r.display_name)}`}
+                  alt={r.display_name} style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--bg-elevated)" }} />
+                <a href={`/profil/${r.username}`} style={{ flex: 1, minWidth: 0, color: "var(--text-strong)", fontWeight: 600, textDecoration: "none", fontSize: 14 }}>{r.display_name}</a>
+                <button onClick={() => respondRequest(r.id, true)}
+                  style={{ padding: "7px 12px", fontSize: 13, fontWeight: 700, background: "var(--tile-correct)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}>✅</button>
+                <button onClick={() => respondRequest(r.id, false)}
+                  style={{ padding: "7px 12px", fontSize: 13, fontWeight: 600, background: "var(--bg-elevated)", color: "var(--accent-hot)", border: "1px solid var(--border-soft)", borderRadius: 8, cursor: "pointer" }}>❌</button>
               </div>
             ))}
           </div>

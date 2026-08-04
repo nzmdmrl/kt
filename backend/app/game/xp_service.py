@@ -74,6 +74,49 @@ def xp_amount(event: str) -> int:
     return cached_int(key, default)
 
 
+# 10 unvan — her biri bir XP eşiğinde açılır. (isim, gereken toplam XP)
+# Ekrandaki mantık: "Usta" aktif, "Bilgin için X XP kaldı" gibi.
+TITLES = [
+    ("Çırak", 0),
+    ("Acemi", 150),
+    ("Öğrenci", 400),
+    ("Bilgili", 800),
+    ("Yetenekli", 1400),
+    ("Uzman", 2200),
+    ("Usta", 3200),
+    ("Bilgin", 5000),
+    ("Üstat", 7500),
+    ("Efsane", 11000),
+]
+
+
+def title_for_xp(xp: int) -> dict:
+    """XP'ye göre mevcut unvan + sonraki unvan bilgisi (bar/etiket için)."""
+    current = TITLES[0]
+    nxt = None
+    for i, (name, threshold) in enumerate(TITLES):
+        if xp >= threshold:
+            current = (name, threshold)
+            nxt = TITLES[i + 1] if i + 1 < len(TITLES) else None
+        else:
+            break
+    result = {
+        "title": current[0],
+        "title_xp": current[1],
+        "next_title": nxt[0] if nxt else None,
+        "next_title_xp": nxt[1] if nxt else None,
+        "xp": xp,
+    }
+    if nxt:
+        span = max(1, nxt[1] - current[1])
+        result["title_progress"] = min(100, int((xp - current[1]) / span * 100))
+        result["xp_to_next"] = max(0, nxt[1] - xp)
+    else:
+        result["title_progress"] = 100
+        result["xp_to_next"] = 0
+    return result
+
+
 async def grant_xp(db, user, event: str) -> dict:
     """Kullanıcıya bir olay için XP ver. {gained, level, leveled_up, ...} döner."""
     amount = xp_amount(event)
