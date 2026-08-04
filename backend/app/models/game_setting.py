@@ -46,4 +46,7 @@ DEFAULT_SETTINGS = {
     "solo_star2_min": {"value": "30", "label": "Solo 2 yıldız için min kalan süre (sn)", "type": "int"},
     "solo_jokers_enabled": {"value": "0", "label": "Solo joker sistemi açık (1/0)", "type": "bool"},
     "solo_joker_per_level": {"value": "1", "label": "Solo level başına joker hakkı", "type": "int"},
+    "arena_seconds_4": {"value": "10", "label": "Arena 4 harfli süre (sn)", "type": "int"},
+    "arena_seconds_5": {"value": "15", "label": "Arena 5 harfli süre (sn)", "type": "int"},
+    "arena_seconds_6": {"value": "20", "label": "Arena 6 harfli süre (sn)", "type": "int"},
 }

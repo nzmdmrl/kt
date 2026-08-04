@@ -1353,3 +1353,35 @@ eşik 2500/3000'e çekilir.
   member: 4h:159, 5h:266, 6h:118 = 543 net/yaygın kelime. Çıkanlar bot=True + kabul korundu.
 - main.py resync damgası v2 -> v3 (deploy'da DB tekrar güncellenir).
 Doğrulama: BİRİSİ/BİRÇOK/HERKES üyeye sorulmaz ama kabul; KELİME/ŞEYTAN sorulur. 
+
+## ARENA MODU — Parça 1: Backend (Nazım spec, BÜYÜK özellik)
+5 oyunculu senkron kelime yarışması. Kararlar: aynı 6 kelime herkese, senkron, süre+hız puan.
+- game/arena.py: ArenaMatch (state machine). QUESTION_PLAN=[4,4,5,5,6,6], DURATION 4h=10/5h=15/6h=20.
+  ArenaPlayer (score, answered, correct, flash), ArenaQuestion (word, scrambled karışık harfler,
+  duration). submit() hız bazlı puan (300 taban + kalan süre oranı*700, max~1000), flash<=5sn.
+  final_ranking() eşit puan aynı sıra. reveal() doğru cevap + herkesin durumu.
+- game/arena_manager.py: ArenaLobby (5 kişi/30sn), ArenaManager.join/build_match (botla tamamla).
+  bellekte tek instance. ARENA_SIZE=5, WAIT_SECONDS=30.
+- game/bot_names.py: random_bot_names(count,lang) eklendi.
+- api/routes/arena.py: WS /api/ws/arena?token. _matchmaker (5 kişi VEYA 30sn -> başlat),
+  _run_match (asyncio task: countdown 3-2-1 -> question -> süre/herkes bitince reveal -> 6 soru ->
+  finished). Botlar _schedule_bots (zorluğa göre doğruluk 85/70/55%, rastgele zaman) + _apply_due_bots.
+  Mesajlar: lobby, match_start, countdown, question, player_answered, answer_result, reveal, finished.
+- game_setting.py: arena_seconds_4/5/6 (10/15/20) admin ayarı.
+- main.py: router /api prefix (WS /api/ws/arena).
+Test: motor (dağılım/süre/puan/sıralama) ✓, WS akışı (eşleşme+botla tamamla+6 soru+finished) ✓.
+SONRAKİ: Parça 2 frontend (eşleşme ekranı + anagram harf girişi + klavye/ses + alt bar canlı),
+Parça 3 sonuç ekranı + ana sayfa butonu. _persist_results şimdilik boş (ileride ArenaHistory).
+
+## ARENA — Parça 2: Frontend (tamamlandı, backend+frontend tek pakette)
+- lib/useArena.ts: WS hook (/api/ws/arena?token). ArenaState fazları: connecting/lobby/starting/
+  countdown/question/reveal/finished. Mesajları state'e map eder, answer(guess) gönderir.
+- components/ArenaGame.tsx: TÜM fazlar. Lobi (rakip ara spinner + 5/5), geri sayım (3-2-1),
+  soru ekranı: cevap kutuları + ANAGRAM harf modu (karışık harfe tıkla-diz, ilk harfte "1" rozeti,
+  tüm harfler dizilince otomatik gönder) + klavye modu + sesli cevap (🎤). Reveal (doğru cevap+puan).
+  ArenaShell: alt oyuncu barı (avatar, cevaplayınca yeşil/kırmızı ring, flash ⚡). ArenaResult:
+  kupa🏆/madalya🥈🥉 sıralama + "Tekrar Arena" / "Ana Sayfa".
+- app/arena/page.tsx: giriş kontrolü + ArenaGame. app/page.tsx: ⚔️ Arena butonu (turuncu).
+Build ok. NOT: kt_uid localStorage'da yoksa ArenaResult "me" vurgusu çalışmaz (zararsız).
+KALAN/İYİLEŞTİRME: reveal'de alt bar renkleri, arena geçmişi/istatistik, ana sayfa QuizzLand tarzı
+kart düzeni (ayrı iş), eşleşmede canlı oyuncu sayacı animasyonu.

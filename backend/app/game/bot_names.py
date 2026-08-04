@@ -51,3 +51,18 @@ def avatar_url_for(seed: str) -> str:
     # 'thumbs' stili nötr ve hoş; seed isme göre sabit avatar verir.
     from urllib.parse import quote
     return f"https://api.dicebear.com/7.x/thumbs/svg?seed={quote(seed)}"
+
+
+def random_bot_names(count: int, lang: str = "tr") -> list[str]:
+    """Benzersiz rastgele bot isimleri üretir (Arena için)."""
+    import random
+    firsts, lasts = NAME_POOLS.get(lang, NAME_POOLS["tr"])
+    names: set[str] = set()
+    tries = 0
+    while len(names) < count and tries < count * 20:
+        tries += 1
+        names.add(f"{random.choice(firsts)} {random.choice(lasts)}")
+    # yetmezse numarayla tamamla
+    while len(names) < count:
+        names.add(f"Oyuncu {random.randint(1000, 9999)}")
+    return list(names)[:count]

@@ -116,6 +116,22 @@ export default async function Home() {
           >
             🗺️ Solo Mod
           </a>
+          <a
+            href="/arena"
+            style={{
+              display: "inline-block",
+              padding: "14px 28px",
+              background: "linear-gradient(145deg,#e0940a,#c47a00)",
+              color: "#fff",
+              borderRadius: 12,
+              fontWeight: 700,
+              fontSize: 18,
+              fontFamily: "var(--font-display)",
+              border: "none",
+            }}
+          >
+            ⚔️ Arena
+          </a>
         </div>
       </header>
 
