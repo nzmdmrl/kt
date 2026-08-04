@@ -1727,3 +1727,13 @@ Fix frontend: bildirim kartına position relative + zIndex 1 (üste binen katman
 - app/arena/ozel/page.tsx: her önceki arena satırında 🗑️ sil butonu, deleteArena(id) -> DELETE ->
   listeden çıkar. Satır: tekrar-aç butonu + ayrı sil butonu (iç içe button değil).
 Test: arena silme ✓. Build ok. (link fix canlıda deploy sonrası startup'ta sütunu garantiler.)
+
+## Desktop bildirim = mobil sistem (Nazım "mobildekini al")
+Kök neden netleşti: desktop TopBar'daki NotificationBell bir DROPDOWN açıyordu ve o dropdown'daki
+bildirimler tıklanabilir DEĞİLDİ (link yok, sadece görüntü). Mobildeki /bildirimler sayfası ise
+çalışıyor.
+Çözüm: NotificationBell dropdown'ı KALDIRILDI. Artık 🔔 -> router.push("/bildirimler") (mobildeki
+çalışan sayfanın aynısı). unread rozeti korundu (30sn poll). Tek tutarlı bildirim ekranı; hem mobil
+hem desktop aynı /bildirimler sayfasını kullanıyor (arena daveti <a href> tıklanabilir, arkadaşlık
+✅/❌ butonlu).
+Build ok.
