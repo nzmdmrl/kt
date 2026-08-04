@@ -1411,3 +1411,12 @@ Build ok. Test: kademeli bot ✓, admin ayarları ✓.
   gelecek sorular ÜSTTE boş kutu, cevaplananlar ALTTA (en yeni üstte), yeşil ✓ / pembe ✕,
   ⚡ flash rozeti, altta correct_count/total. Alt barda avatarlar. Resimdeki düzenle aynı.
 Test: history/correct_count doğru ✓. Build ok.
+
+## ARENA iyileştirme 3 (Nazım): harf geri alma + lobi isimleri + katılım sesi
+1) Anagram geri alma: cevap kutuları span->button. undoFrom(pos) o pozisyondan itibaren harfleri
+   geri alır (dolu kutuya tıkla). "Geri" butonu da duruyor. submittedRef sonrası kilitli.
+2) Lobi ekranı: "Diğer oyunculardan..." statik yazı KALDIRILDI. Yerine katılan oyuncuların
+   listesi (avatar + isim + bot🤖 + "katıldı"), slideIn animasyon, "(N/5) bekleniyor".
+3) Katılım sesi: ArenaGame players.length artınca playSound("opponent_found"). prevCountRef ile
+   takip, sadece lobby/connecting fazında.
+Build ok.

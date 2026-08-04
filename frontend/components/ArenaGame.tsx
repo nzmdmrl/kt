@@ -17,6 +17,17 @@ export default function ArenaGame({ onExit }: { onExit: () => void }) {
 
   useEffect(() => { initSound(true, 70); }, []);
 
+  // Lobide oyuncu sayısı artınca katılım sesi çal.
+  const prevCountRef = useRef(0);
+  useEffect(() => {
+    if (state.phase === "lobby" || state.phase === "connecting") {
+      if (state.players.length > prevCountRef.current) {
+        playSound("opponent_found");   // katılım sesi (rakip bulundu)
+      }
+    }
+    prevCountRef.current = state.players.length;
+  }, [state.players.length, state.phase]);
+
   const q = state.question;
 
   // Yeni soru gelince sıfırla
@@ -63,6 +74,13 @@ export default function ArenaGame({ onExit }: { onExit: () => void }) {
     if (submittedRef.current >= 0) return;
     setPicked((p) => p.slice(0, -1));
   }
+  // Cevap kutusuna tıklayınca o pozisyondan itibaren geri al (o harf ve sonrası çıkar).
+  function undoFrom(pos: number) {
+    if (!q || useKeyboard || submittedRef.current === q.index) return;
+    if (pos >= picked.length) return;   // boş kutuya tıklama etkisiz
+    setPicked((p) => p.slice(0, pos));
+    playSound("button");
+  }
 
   // Sesli cevap
   const onVoice = useCallback((text: string) => {
@@ -94,14 +112,33 @@ export default function ArenaGame({ onExit }: { onExit: () => void }) {
           <p style={{ color: "var(--text-soft)", marginBottom: 4 }}>Sorular: 6</p>
           <p style={{ color: "var(--text-soft)", marginBottom: 30 }}>👤 {state.players.length}/5</p>
           <div style={{ borderTop: "1px solid var(--border-soft)", paddingTop: 30 }}>
-            <p className="brand-mono" style={{ fontSize: 20, marginBottom: 16 }}>Rakip ara</p>
-            <div style={{ width: 40, height: 40, margin: "0 auto", borderRadius: "50%", border: "3px solid var(--border-soft)", borderTopColor: "var(--accent)", animation: "spin 1s linear infinite" }} />
-            <p style={{ color: "var(--text-dim)", fontSize: 13, marginTop: 20, maxWidth: 300, marginInline: "auto" }}>
-              Diğer oyunculardan gelen davetleri Ayarlar'dan devre dışı bırakabilirsin.
-            </p>
+            <p className="brand-mono" style={{ fontSize: 20, marginBottom: 16 }}>Rakip aranıyor…</p>
+            <div style={{ width: 40, height: 40, margin: "0 auto 20px", borderRadius: "50%", border: "3px solid var(--border-soft)", borderTopColor: "var(--accent)", animation: "spin 1s linear infinite" }} />
+            {/* Katılan oyuncuların isimleri */}
+            <div style={{ display: "grid", gap: 8, maxWidth: 320, margin: "0 auto" }}>
+              {state.players.map((p) => (
+                <div key={p.pid} style={{
+                  display: "flex", alignItems: "center", gap: 10, padding: "8px 14px",
+                  background: "var(--bg-panel)", borderRadius: 10,
+                  animation: "slideIn .3s ease",
+                }}>
+                  <img src={p.avatar_url || `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(p.name)}`}
+                    alt={p.name}
+                    style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--bg-elevated)" }} />
+                  <span style={{ color: "var(--text-strong)", fontWeight: 600, fontSize: 14 }}>{p.name}</span>
+                  {p.is_bot && <span style={{ fontSize: 12 }}>🤖</span>}
+                  <span style={{ marginLeft: "auto", color: "var(--tile-correct)", fontSize: 13 }}>katıldı</span>
+                </div>
+              ))}
+              {state.players.length < 5 && (
+                <p style={{ color: "var(--text-dim)", fontSize: 12, marginTop: 4 }}>
+                  Diğer oyuncular bekleniyor… ({state.players.length}/5)
+                </p>
+              )}
+            </div>
           </div>
         </div>
-        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+        <style>{`@keyframes spin{to{transform:rotate(360deg)}}@keyframes slideIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}`}</style>
       </ArenaShell>
     );
   }
@@ -154,7 +191,8 @@ export default function ArenaGame({ onExit }: { onExit: () => void }) {
             <div style={{ width: `${timePct}%`, height: "100%", background: timeColor, transition: "width 1s linear" }} />
           </div>
 
-          {/* Cevap kutuları (1v1 Grid tarzı — büyük kareler) */}
+          {/* Cevap kutuları (1v1 Grid tarzı — büyük kareler). Anagram modunda dolu kutuya
+              tıklanınca o pozisyondan itibaren harfler geri alınır. */}
           <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 16 }}>
             {Array.from({ length: q.length }).map((_, j) => {
               let letter = "";
@@ -163,14 +201,20 @@ export default function ArenaGame({ onExit }: { onExit: () => void }) {
               else if (j < picked.length) letter = q.scrambled[picked[j]];
               else if (j === 0) letter = q.first_letter;  // ilk harf ipucu soluk
               const isHint = !isReveal && !useKeyboard && j === 0 && j >= picked.length;
+              const clickable = !isReveal && !useKeyboard && j < picked.length && submittedRef.current !== q.index;
               return (
-                <span key={j} style={{
-                  width: 52, height: 52, display: "grid", placeItems: "center", borderRadius: 10,
-                  fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 24,
-                  color: isReveal ? "#fff" : isHint ? "var(--text-dim)" : "var(--text-strong)",
-                  background: isReveal ? "var(--tile-correct)" : (letter && !isHint) ? "var(--bg-elevated)" : "var(--tile-empty)",
-                  border: (letter && !isHint) || isReveal ? "none" : "2px solid var(--tile-border)",
-                }}>{letter}</span>
+                <button key={j}
+                  onClick={() => clickable && undoFrom(j)}
+                  disabled={!clickable}
+                  title={clickable ? "Geri almak için dokun" : undefined}
+                  style={{
+                    width: 52, height: 52, display: "grid", placeItems: "center", borderRadius: 10,
+                    fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 24, padding: 0,
+                    color: isReveal ? "#fff" : isHint ? "var(--text-dim)" : "var(--text-strong)",
+                    background: isReveal ? "var(--tile-correct)" : (letter && !isHint) ? "var(--bg-elevated)" : "var(--tile-empty)",
+                    border: (letter && !isHint) || isReveal ? "none" : "2px solid var(--tile-border)",
+                    cursor: clickable ? "pointer" : "default",
+                  }}>{letter}</button>
               );
             })}
           </div>
