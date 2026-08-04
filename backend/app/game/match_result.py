@@ -76,6 +76,14 @@ async def apply_match_result(
     await db.commit()
     await db.refresh(user)
 
+    # XP ver (galibiyet/beraberlik/mağlubiyet).
+    try:
+        from app.game.xp_service import grant_xp
+        event = "match_draw" if draw else ("match_win" if won else "match_loss")
+        await grant_xp(db, user, event)
+    except Exception as e:
+        print(f"[xp] HATA user={user_id}: {e}")
+
     # Lig puanı: bu maçın puanını bugünün lig kaydına işle (günün en iyisi tutulur).
     try:
         from app.game.league_service import record_daily_score

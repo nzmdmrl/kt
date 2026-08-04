@@ -1449,3 +1449,23 @@ Frontend+backend. Build ok.
 - Eşleşme ekranı: "Sıradaki kelime: 4 harf" (ilk hep 4). Geri sayım ekranı: "Sıradaki kelime:
   {countdownLen} harf" (her kelimeden önce güncel uzunluk).
 Build ok.
+
+## QuizzLand tarzı tasarım — PARÇA 1: alt menü + bildirimler + XP sistemi (Nazım)
+XP/SEVİYE SİSTEMİ (yeni):
+- User.xp sütunu (otomatik migration). models/user.py _level_from_xp helper, to_public'e xp+level.
+- game/xp_service.py: level eğrisi (L2=100,L3=250,L4=450... LEVEL_BASE=100+STEP=50), level_progress
+  (bar için), grant_xp(db,user,event). XP_EVENTS: match_win/loss/draw, arena_played/win, solo_level,
+  daily_solved. game_setting.py: 7 xp_* admin ayarı (50/15/25/20/60/30/40).
+- Bağlantılar: match_result.apply_match_result -> win/draw/loss XP; solo finish -> solo_level XP
+  (ilk geçişte). [Arena + günün kelimesi XP bağlantısı SONRA.]
+ALT NAV + SAYFALAR:
+- components/BottomNav.tsx: Profil/Geçmiş/Ana(orta büyük)/Bildirimler/Menü. layout'a eklendi,
+  her sayfada. Oyun ekranlarında (oyna/arena/solo/gunun/giris/yonetim) gizli. Mağaza YOK, yerine
+  Bildirimler (Nazım isteği).
+- app/bildirimler/page.tsx: kupa/madalya özeti (🏆🥈) + kazanılanlar listesi (LeagueAward) +
+  son bildirimler (okundu işaretler). 
+- app/menu/page.tsx: tüm mod linkleri + tema/ses + çıkış.
+- app/gecmis/page.tsx: son maçlar (profile/matches). [Arena geçmişi Parça 3'te.]
+Test: XP/level/admin ayarları/bildirimler ✓. Build ok.
+SONRAKİ: Parça 2 ana sayfa yeniden tasarım (üst bar XP/level/avatar + Oyna + kart ızgarası),
+Parça 3 geçmiş + Arena sonuç kaydı (ArenaHistory: kaçıncı oldun).

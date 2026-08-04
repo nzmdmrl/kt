@@ -168,13 +168,22 @@ async def finish_level(level: int, data: FinishIn, user: User = Depends(get_curr
 
     prog.total_stars += star_delta
     # Sonraki level'i aç (ilk kez geçildiyse).
-    if level == prog.current_level:
+    first_clear = (level == prog.current_level)
+    if first_clear:
         prog.current_level = level + 1
 
     await db.commit()
+
+    # XP ver (sadece ilk geçişte, tekrar oynamada değil).
+    xp_info = None
+    if first_clear:
+        from app.game.xp_service import grant_xp
+        xp_info = await grant_xp(db, user, "solo_level")
+
     return {
         "stars": stars,
         "best_stars": res.best_stars,
         "total_stars": prog.total_stars,
         "next_level": prog.current_level,
+        "xp": xp_info,
     }

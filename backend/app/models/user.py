@@ -17,6 +17,28 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
 
+# Seviye eğrisi (xp_service ile aynı formül; döngüsel import olmasın diye burada kopya).
+_LEVEL_BASE = 100
+_LEVEL_STEP = 50
+
+
+def _xp_for_level(level: int) -> int:
+    if level <= 1:
+        return 0
+    total = 0
+    for L in range(1, level):
+        total += _LEVEL_BASE + (L - 1) * _LEVEL_STEP
+    return total
+
+
+def _level_from_xp(xp: int) -> int:
+    level = 1
+    while xp >= _xp_for_level(level + 1):
+        level += 1
+        if level > 999:
+            break
+    return level
+
 
 class User(Base):
     __tablename__ = "users"
@@ -43,6 +65,7 @@ class User(Base):
     draws: Mapped[int] = mapped_column(Integer, default=0)
     words_solved: Mapped[int] = mapped_column(Integer, default=0)
     total_score: Mapped[int] = mapped_column(Integer, default=0)
+    xp: Mapped[int] = mapped_column(Integer, default=0)   # toplam XP (seviye buradan hesaplanır)
 
     # Solo istatistikleri (lige yazılmaz — ayrı tutulur)
     solo_matches: Mapped[int] = mapped_column(Integer, default=0)
@@ -75,6 +98,8 @@ class User(Base):
             "draws": self.draws,
             "words_solved": self.words_solved,
             "solo_best_score": self.solo_best_score,
+            "xp": self.xp or 0,
+            "level": _level_from_xp(self.xp or 0),
         }
 
     def to_private(self) -> dict:
