@@ -7,8 +7,8 @@ import { playSound, initSound, stopTicking } from "@/lib/sound";
 import { useSpeech } from "@/lib/useSpeech";
 
 // Arena maç ekranı — eşleşme, senkron sorular (anagram), sonuç.
-export default function ArenaGame({ onExit }: { onExit: () => void }) {
-  const { state, connected, answer } = useArena(true);
+export default function ArenaGame({ onExit, customCode }: { onExit: () => void; customCode?: string }) {
+  const { state, connected, answer } = useArena(true, customCode);
   const [picked, setPicked] = useState<number[]>([]);   // seçilen karışık harf indexleri (sırayla)
   const [typed, setTyped] = useState("");                // klavye/ses ile yazılan
   const [useKeyboard, setUseKeyboard] = useState(false);

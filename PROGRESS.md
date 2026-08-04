@@ -1664,3 +1664,24 @@ Build ok.
 4) Menü sıkışıklık: NavRow kompakt (padding 16/8, ikon 46px, font 14, minHeight 92, wordBreak
    break-word, lineHeight 1.2). main padding 20/14. 2 sütun sığıyor.
 Build ok.
+
+## ÖZEL ARENA — Parça 3: WS entegrasyonu (TAMAMLANDI) (Nazım)
+Sorun: "Arenaya Katıl" butonu maç motoruna bağlı değildi (sadece lobi vardı).
+Backend:
+- arena_manager.py: join_custom(code,pid,...) özel lobiye ekler. build_custom_match(code,words)
+  -> ArenaMatch(word_plan=lobby.word_plan). add_one_bot_custom(code,max_size).
+- arena.py WS /ws/arena: custom=<code> query param. custom varsa özel lobiye katıl + _custom_matchmaker.
+  _arena_receive_loop (answer) normal+özel ortak (refactor).
+- _custom_matchmaker: bekleme döngüsü (dolunca veya süre bitince). Bot açıksa son 10sn'de +
+  maç kurulunca size'a kadar botla doldur. Bot kapalı + <2 gerçek -> iptal (error mesajı).
+  build_custom_match -> _run_match(custom=True).
+- _run_match(custom=False): custom ise _persist_custom_results (kupa/madalya/XP YOK, sadece
+  user.custom_arena_played++ rozet için). Normal ise _persist_results (eskisi).
+- _pick_words(plan) plan alır.
+Frontend:
+- useArena(enabled, customCode?): WS url'e &custom=code ekler. dep array customCode.
+- ArenaGame({onExit, customCode?}) -> useArena'ya geçirir.
+- app/arena/ozel/[code]/page.tsx: joined state. "Arenaya Katıl" -> setJoined(true) ->
+  <ArenaGame customCode={code}>. Katılınca WS özel koda bağlanır.
+Test: 2 kişi WS özel koda bağlandı, match_start (2 oyuncu), sorular, finished ✓. persist ->
+custom_arena_played=1 iki oyuncuda, rozet earned ✓. Build ok.

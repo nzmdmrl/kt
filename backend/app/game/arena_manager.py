@@ -91,6 +91,44 @@ class ArenaManager:
     def custom_lobby(self, code: str) -> Optional[CustomArenaLobby]:
         return self.custom_lobbies.get(code)
 
+    async def join_custom(self, code: str, pid: str, name: str, avatar_url: str) -> bool:
+        """Oyuncuyu özel lobiye ekle. Lobi yoksa/başladıysa/doluysa False."""
+        async with self._lock:
+            lobby = self.custom_lobbies.get(code)
+            if not lobby or lobby.started:
+                return False
+            if pid not in lobby.members and lobby.is_full():
+                return False
+            lobby.add(pid, name, avatar_url)
+            return True
+
+    async def build_custom_match(self, code: str, words: list[str]) -> Optional[ArenaMatch]:
+        """Özel lobiyi maça çevir (word_plan lobiden). Sadece gerçek oyuncular."""
+        async with self._lock:
+            lobby = self.custom_lobbies.get(code)
+            if not lobby:
+                return self.matches.get(code)
+            if code in self.matches:
+                return self.matches[code]
+            lobby.started = True
+            match = ArenaMatch(code, words, word_plan=lobby.word_plan)
+            for pid, info in lobby.members.items():
+                match.add_player(pid, info["name"], info.get("avatar_url", ""), is_bot=False)
+            self.matches[code] = match
+            return match
+
+    def add_one_bot_custom(self, code: str, max_size: int) -> Optional[dict]:
+        """Özel maça bir bot ekler (max_size'a kadar)."""
+        match = self.matches.get(code)
+        if not match or len(match.players) >= max_size:
+            return None
+        import uuid as _uuid
+        from app.game.bot_names import random_bot_names, avatar_url_for
+        bn = random_bot_names(1)[0]
+        bpid = f"bot:{_uuid.uuid4().hex[:6]}"
+        match.add_player(bpid, bn, avatar_url_for(bn), is_bot=True)
+        return {"pid": bpid, "name": bn, "avatar_url": avatar_url_for(bn), "is_bot": True}
+
     async def join(self, pid: str, name: str, avatar_url: str) -> str:
         """Oyuncuyu bekleyen odaya ekle; oda kodunu döndür."""
         async with self._lock:

@@ -57,7 +57,7 @@ const initialState: ArenaState = {
   ranking: [],
 };
 
-export function useArena(enabled: boolean) {
+export function useArena(enabled: boolean, customCode?: string) {
   const [state, setState] = useState<ArenaState>(initialState);
   const [connected, setConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
@@ -67,7 +67,8 @@ export function useArena(enabled: boolean) {
     const token = typeof window !== "undefined" ? localStorage.getItem("kt_token") : null;
     if (!token) return;
 
-    const url = `${wsBase()}/api/ws/arena?token=${encodeURIComponent(token)}`;
+    let url = `${wsBase()}/api/ws/arena?token=${encodeURIComponent(token)}`;
+    if (customCode) url += `&custom=${encodeURIComponent(customCode)}`;
     const ws = new WebSocket(url);
     wsRef.current = ws;
 
@@ -128,7 +129,7 @@ export function useArena(enabled: boolean) {
     };
 
     return () => { try { ws.close(); } catch {} wsRef.current = null; };
-  }, [enabled]);
+  }, [enabled, customCode]);
 
   const answer = useCallback((guess: string) => {
     const ws = wsRef.current;

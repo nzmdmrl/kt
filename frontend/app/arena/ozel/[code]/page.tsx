@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { apiUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import Logo from "@/components/Logo";
+import ArenaGame from "@/components/ArenaGame";
 
 type LobbyInfo = {
   code: string; name: string; size: number; wait_seconds: number; seconds_left: number;
@@ -18,6 +19,7 @@ export default function OzelArenaLobbyPage({ params }: { params: { code: string 
   const router = useRouter();
   const [info, setInfo] = useState<LobbyInfo | null>(null);
   const [err, setErr] = useState("");
+  const [joined, setJoined] = useState(false);
 
   function token() { return typeof window !== "undefined" ? localStorage.getItem("kt_token") : null; }
 
@@ -29,14 +31,20 @@ export default function OzelArenaLobbyPage({ params }: { params: { code: string 
   }
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || joined) return;
     loadInfo();
     const t = setInterval(loadInfo, 3000);
     return () => clearInterval(t);
-  }, [user, params.code]);
+  }, [user, params.code, joined]);
 
   if (loading) return <Wrap><Center>Yükleniyor…</Center></Wrap>;
   if (!user) return <Wrap><Center><a href="/giris" style={{ color: "var(--accent)" }}>Giriş yap →</a></Center></Wrap>;
+
+  // Katıldıysa arena oyununu göster (özel kodla WS bağlanır).
+  if (joined) {
+    return <ArenaGame customCode={params.code} onExit={() => router.push("/")} />;
+  }
+
   if (err) return <Wrap><Center>{err}</Center></Wrap>;
   if (!info) return <Wrap><Center>Arena yükleniyor…</Center></Wrap>;
 
@@ -77,6 +85,7 @@ export default function OzelArenaLobbyPage({ params }: { params: { code: string 
 
       {/* Katıl butonu — WS bağlantısı Parça 3'te tamamlanacak */}
       <button
+        onClick={() => setJoined(true)}
         style={{ width: "100%", padding: "15px", borderRadius: 12, border: "none", background: "var(--tile-correct)", color: "#fff", fontWeight: 800, fontSize: 17, cursor: "pointer" }}>
         Arenaya Katıl
       </button>

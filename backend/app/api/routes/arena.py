@@ -194,16 +194,16 @@ async def _send(ws: WebSocket, message: dict):
         pass
 
 
-def _pick_words() -> list[str]:
-    """6 kelime: QUESTION_PLAN'a göre (2x4,2x5,2x6), member havuzundan."""
+def _pick_words(plan: list[int] | None = None) -> list[str]:
+    """Plana göre kelime seç (varsayılan QUESTION_PLAN: 2x4,2x5,2x6), member havuzundan."""
     lang = get_settings().GAME_LANG
     words = []
-    for length in QUESTION_PLAN:
+    for length in (plan or QUESTION_PLAN):
         words.append(get_pool(length, lang).random_word())
     return words
 
 
-async def _run_match(code: str):
+async def _run_match(code: str, custom: bool = False):
     """Maçı baştan sona süren tek görev (senkron akış)."""
     match = arena_manager.get_match(code)
     if not match:
@@ -261,7 +261,10 @@ async def _run_match(code: str):
     match.state = "finished"
     ranking = match.final_ranking()
     await _broadcast(code, {"type": "finished", "ranking": ranking})
-    await _persist_results(match)
+    if custom:
+        await _persist_custom_results(match)
+    else:
+        await _persist_results(match)
     # temizlik (bir süre sonra)
     await asyncio.sleep(2.0)
     arena_manager.cleanup(code)
@@ -314,6 +317,28 @@ def _wrong_guess(word: str) -> str:
     return word[::-1]
 
 
+async def _persist_custom_results(match: ArenaMatch):
+    """Özel arena sonucu: kupa/madalya/XP YOK. Sadece custom_arena_played++ (rozet için)."""
+    try:
+        from app.models.user import User
+        from sqlalchemy import select as _select
+        async with AsyncSessionLocal() as db:
+            for pid, p in match.players.items():
+                if p.is_bot or not pid.startswith("u"):
+                    continue
+                try:
+                    uid = int(pid[1:])
+                except ValueError:
+                    continue
+                user = (await db.execute(_select(User).where(User.id == uid))).scalar_one_or_none()
+                if not user:
+                    continue
+                user.custom_arena_played = (user.custom_arena_played or 0) + 1
+            await db.commit()
+    except Exception as e:
+        print(f"[custom arena] HATA: {e}")
+
+
 async def _persist_results(match: ArenaMatch):
     """Arena sonucu: geçmişe kaydet + gerçek oyunculara XP ver."""
     try:
@@ -354,7 +379,7 @@ async def _persist_results(match: ArenaMatch):
 
 
 @router.websocket("/ws/arena")
-async def arena_ws(websocket: WebSocket, token: str = Query(default="")):
+async def arena_ws(websocket: WebSocket, token: str = Query(default=""), custom: str = Query(default="")):
     await websocket.accept()
 
     # Kimlik doğrula
@@ -375,6 +400,32 @@ async def arena_ws(websocket: WebSocket, token: str = Query(default="")):
     name = user.username or user.display_name or "Oyuncu"
     avatar = user.avatar_url or ""
 
+    # ---- ÖZEL ARENA ----
+    if custom:
+        clobby = arena_manager.custom_lobby(custom)
+        if not clobby:
+            await _send(websocket, {"type": "error", "message": "Arena bulunamadı veya süresi doldu."})
+            await websocket.close()
+            return
+        ok = await arena_manager.join_custom(custom, pid, name, avatar)
+        code = custom
+        _connections.setdefault(code, {})[pid] = websocket
+        if not ok:
+            # Maç zaten başlamış olabilir; yine de bağlı kalsın (izleyici/tekrar bağlanan)
+            await _send(websocket, {"type": "error", "message": "Arenaya katılınamadı (dolu veya başladı)."})
+        clobby = arena_manager.custom_lobby(custom)
+        if clobby:
+            await _broadcast(code, {
+                "type": "lobby", "code": code,
+                "players": [{"pid": k, "name": v["name"], "avatar_url": v.get("avatar_url", "")} for k, v in clobby.members.items()],
+                "size": clobby.size, "wait_seconds": clobby.wait_seconds,
+                "seconds_left": clobby.seconds_left(),
+            })
+            asyncio.create_task(_custom_matchmaker(code))
+        await _arena_receive_loop(websocket, code, pid)
+        return
+
+    # ---- NORMAL ARENA ----
     # Eşleşmeye katıl
     code = await arena_manager.join(pid, name, avatar)
     _connections.setdefault(code, {})[pid] = websocket
@@ -392,6 +443,11 @@ async def arena_ws(websocket: WebSocket, token: str = Query(default="")):
         # Eşleşme başlatıcı: ilk giren tetikler (dolunca veya süre dolunca)
         asyncio.create_task(_matchmaker(code))
 
+    await _arena_receive_loop(websocket, code, pid)
+
+
+async def _arena_receive_loop(websocket: WebSocket, code: str, pid: str):
+    """WS mesaj döngüsü (answer). Normal ve özel arena ortak."""
     try:
         while True:
             data = await websocket.receive_json()
@@ -413,6 +469,68 @@ async def arena_ws(websocket: WebSocket, token: str = Query(default="")):
         conns.pop(pid, None)
     except Exception:
         pass
+
+
+async def _custom_matchmaker(code: str):
+    """Özel lobiyi başlatır. Bot açıksa son 10sn'de doldurur; kapalıysa gelenlerle (min2) başlar."""
+    if _runners.get(code):
+        return
+    clobby = arena_manager.custom_lobby(code)
+    if not clobby:
+        return
+
+    bots_added = False
+    while True:
+        await asyncio.sleep(0.5)
+        clobby = arena_manager.custom_lobby(code)
+        if clobby is None or clobby.started:
+            return
+        left = clobby.seconds_left()
+        full = clobby.is_full()
+        # Bot açıksa: son 10 sn'de eksikleri botla doldur
+        if clobby.bots_enabled and not bots_added and left <= 10 and not full:
+            bots_added = True  # aşağıda maç kurulunca eklenecek (işaret)
+        if full or left <= 0:
+            break
+
+    if _runners.get(code):
+        return
+    _runners[code] = True
+
+    clobby = arena_manager.custom_lobby(code)
+    if not clobby:
+        _runners.pop(code, None)
+        return
+
+    # En az 2 gerçek oyuncu yoksa ve bot kapalıysa iptal
+    real_count = len(clobby.members)
+    if real_count < 2 and not clobby.bots_enabled:
+        await _broadcast(code, {"type": "error", "message": "Yeterli oyuncu katılmadı, arena iptal edildi."})
+        _runners.pop(code, None)
+        return
+
+    words = _pick_words(clobby.word_plan)
+    match = await arena_manager.build_custom_match(code, words)
+    if not match:
+        _runners.pop(code, None)
+        return
+
+    # Bot açıksa: lobinin size'ına kadar botla doldur
+    if clobby.bots_enabled:
+        interval = cached_int("arena_bot_interval", 2)
+        while len(match.players) < clobby.size:
+            bot = arena_manager.add_one_bot_custom(code, clobby.size)
+            if not bot:
+                break
+            await _broadcast(code, {
+                "type": "lobby", "code": code,
+                "players": match.player_list(), "size": clobby.size,
+                "joined_bot": bot,
+            })
+            await asyncio.sleep(min(interval, 1.0))
+
+    await asyncio.sleep(0.8)
+    asyncio.create_task(_run_match(code, custom=True))
 
 
 async def _matchmaker(code: str):
