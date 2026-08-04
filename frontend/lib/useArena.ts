@@ -19,6 +19,12 @@ export type ArenaQuestion = {
 };
 export type AnswerState = { pid: string; correct: boolean; flash: boolean };
 
+export type PlayerHistory = { correct: boolean; flash: boolean; answered: boolean };
+export type RevealPlayer = {
+  pid: string; name: string; avatar_url: string; is_bot?: boolean;
+  score: number; correct_count: number; history: PlayerHistory[];
+};
+
 export type ArenaState = {
   phase: "connecting" | "lobby" | "starting" | "countdown" | "question" | "reveal" | "finished";
   players: ArenaPlayer[];
@@ -28,6 +34,8 @@ export type ArenaState = {
   answers: Record<string, AnswerState>;  // pid -> durum (o soru)
   myResult: { correct: boolean; gained: number; flash: boolean } | null;
   revealAnswer: string;
+  revealPlayers: RevealPlayer[];  // tablo için (geçmiş dahil)
+  revealTotal: number;            // toplam soru
   scores: Record<string, number>;
   ranking: ArenaPlayer[];
 };
@@ -41,6 +49,8 @@ const initialState: ArenaState = {
   answers: {},
   myResult: null,
   revealAnswer: "",
+  revealPlayers: [],
+  revealTotal: 6,
   scores: {},
   ranking: [],
 };
@@ -103,6 +113,8 @@ export function useArena(enabled: boolean) {
             ...s, phase: "reveal", revealAnswer: msg.answer,
             scores: msg.scores || s.scores,
             answers: revAnswers,
+            revealPlayers: msg.players || [],
+            revealTotal: msg.total || s.revealTotal,
             players: s.players.map((p) => ({ ...p, score: (msg.scores || {})[p.pid] ?? p.score })),
           }));
           break;

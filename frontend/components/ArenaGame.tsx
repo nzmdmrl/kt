@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useArena, ArenaPlayer } from "@/lib/useArena";
+import { useArena, ArenaPlayer, RevealPlayer } from "@/lib/useArena";
 import { toUpperTr } from "@/lib/turkish";
 import { playSound, initSound, stopTicking } from "@/lib/sound";
 import { useSpeech } from "@/lib/useSpeech";
@@ -130,6 +130,12 @@ export default function ArenaGame({ onExit }: { onExit: () => void }) {
 
   // Soru / reveal
   const isReveal = state.phase === "reveal";
+
+  // Reveal fazında TAM TABLO göster (ekteki resim gibi)
+  if (isReveal && state.revealPlayers.length > 0) {
+    return <ArenaScoreGrid players={state.revealPlayers} total={state.revealTotal} answer={state.revealAnswer} onExit={onExit} />;
+  }
+
   const timePct = q ? Math.max(0, (secondsLeft / q.duration) * 100) : 0;
   const timeColor = secondsLeft <= 3 ? "var(--accent-hot)" : secondsLeft <= 6 ? "#e0940a" : "var(--accent)";
   const alreadyAnswered = q ? submittedRef.current === q.index : false;
@@ -364,3 +370,81 @@ const sendBtn: React.CSSProperties = {
   background: "var(--accent)", color: "#1a1330", fontWeight: 700, fontSize: 16,
   cursor: "pointer", fontFamily: "var(--font-display)", whiteSpace: "nowrap", flexShrink: 0,
 };
+
+// Sonuç tablosu — her sütun bir oyuncu, satırlar sorular (✓/✗), altta X/total skoru.
+// Reveal fazında birkaç saniye gösterilir (ekteki resim düzeni).
+function ArenaScoreGrid({ players, total, answer, onExit }: {
+  players: RevealPlayer[]; total: number; answer: string; onExit: () => void;
+}) {
+  // Kaç soru cevaplandı (en uzun history)
+  const answered = Math.max(...players.map((p) => p.history.length), 0);
+  return (
+    <div style={{ minHeight: "100vh", maxWidth: 560, margin: "0 auto", display: "flex", flexDirection: "column" }}>
+      <div style={{ padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <button onClick={onExit} style={{ background: "var(--bg-panel)", border: "1px solid var(--border-soft)", borderRadius: "50%", width: 36, height: 36, cursor: "pointer", fontSize: 18, color: "var(--text-strong)" }}>←</button>
+        <span className="brand-mono" style={{ fontSize: 16, color: "var(--tile-correct)" }}>Doğru: {answer}</span>
+        <span style={{ width: 36 }} />
+      </div>
+
+      <div style={{ flex: 1, padding: "10px 16px", overflowY: "auto" }}>
+        {/* Izgara: her sütun oyuncu */}
+        <div style={{ display: "flex", gap: 8, justifyContent: "center", alignItems: "flex-start" }}>
+          {players.map((p) => (
+            <div key={p.pid} style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "center" }}>
+              {/* Satırlar: gelecek sorular ÜSTTE (boş), cevaplananlar ALTTA (resimdeki gibi).
+                  Toplam total satır; üstte (total - answered) boş, altta cevaplananlar (ters). */}
+              {Array.from({ length: total }).map((_, row) => {
+                const emptyCount = total - answered;
+                if (row < emptyCount) {
+                  return (
+                    <div key={row} style={{
+                      width: 52, height: 52, borderRadius: 12,
+                      border: "2px solid var(--tile-border)", background: "transparent",
+                    }} />
+                  );
+                }
+                // altta: en son soru en üstte olacak şekilde
+                const qi = answered - 1 - (row - emptyCount);
+                const h = p.history[qi];
+                if (!h) return <div key={row} style={{ width: 52, height: 52 }} />;
+                const bg = h.correct ? "#6b8e5a" : "#a86b7e";
+                return (
+                  <div key={row} style={{
+                    width: 52, height: 52, borderRadius: 12, position: "relative",
+                    background: bg, display: "grid", placeItems: "center",
+                    fontSize: 24, color: "#fff", fontWeight: 800,
+                  }}>
+                    {h.correct ? "✓" : "✕"}
+                    {h.flash && (
+                      <span style={{
+                        position: "absolute", top: -6, left: -6, width: 20, height: 20,
+                        borderRadius: "50%", background: "#f5c518", color: "#3a2e00",
+                        fontSize: 12, display: "grid", placeItems: "center", fontWeight: 800,
+                      }}>⚡</span>
+                    )}
+                  </div>
+                );
+              })}
+              {/* Skor: doğru/toplam */}
+              <div className="brand-mono" style={{ fontSize: 15, color: "var(--text-soft)", marginTop: 2 }}>
+                {p.correct_count}/{total}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Alt oyuncu barı (avatarlar) */}
+      <div style={{ display: "flex", gap: 10, overflowX: "auto", padding: "12px 16px", borderTop: "1px solid var(--border-soft)", background: "var(--bg-panel)" }}>
+        {players.map((p) => (
+          <div key={p.pid} style={{ textAlign: "center", flexShrink: 0, width: 62 }}>
+            <img src={p.avatar_url || `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(p.name)}`}
+              alt={p.name}
+              style={{ width: 44, height: 44, borderRadius: "50%", border: "2px solid var(--border-soft)", background: "var(--bg-elevated)", objectFit: "cover" }} />
+            <div style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}

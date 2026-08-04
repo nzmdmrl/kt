@@ -51,4 +51,5 @@ DEFAULT_SETTINGS = {
     "arena_seconds_6": {"value": "20", "label": "Arena 6 harfli süre (sn)", "type": "int"},
     "arena_wait_seconds": {"value": "15", "label": "Arena rakip arama süresi (sn)", "type": "int"},
     "arena_bot_interval": {"value": "2", "label": "Arena bot katılım aralığı (sn)", "type": "int"},
+    "arena_reveal_seconds": {"value": "4", "label": "Arena sonuç tablosu gösterim süresi (sn)", "type": "int"},
 }

@@ -1400,3 +1400,14 @@ kart düzeni (ayrı iş), eşleşmede canlı oyuncu sayacı animasyonu.
 4) Reveal'de HER oyuncunun durumu: useArena reveal msg.players -> answers'a map. Alt barda avatar
    ring (yeşil bildi/kırmızı bilemedi), ⚡ flash, ✓/✗ rozeti (showResults), puan. 
 Build ok. Test: kademeli bot ✓, admin ayarları ✓.
+
+## ARENA sonuç tablosu (Nazım: her tahmin sonrası ✓/✗ ızgarası, belirli saniye)
+- arena.py ArenaPlayer: history[] (her soru {correct,flash,answered}) + correct_count. reveal()
+  her soruda history'e ekler, players'a name/avatar/history/correct_count/total koyar.
+- route reveal broadcast: total eklendi. Gösterim süresi cached_int("arena_reveal_seconds",4) ->
+  admin ayarı arena_reveal_seconds (4sn).
+- useArena: RevealPlayer/PlayerHistory tipleri, revealPlayers + revealTotal state, reveal'de map.
+- ArenaGame: reveal fazında ArenaScoreGrid (tam ekran tablo). Her sütun oyuncu, satırlar sorular;
+  gelecek sorular ÜSTTE boş kutu, cevaplananlar ALTTA (en yeni üstte), yeşil ✓ / pembe ✕,
+  ⚡ flash rozeti, altta correct_count/total. Alt barda avatarlar. Resimdeki düzenle aynı.
+Test: history/correct_count doğru ✓. Build ok.

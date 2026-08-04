@@ -110,16 +110,18 @@ async def _run_match(code: str):
             if match.all_answered():
                 break
 
-        # Reveal
+        # Reveal — tablo (her oyuncunun tüm soru geçmişi) + skorlar
         rev = match.reveal()
         await _broadcast(code, {
             "type": "reveal",
             "index": index,
+            "total": rev["total"],
             "answer": rev["answer"],
             "players": rev["players"],
             "scores": {p.pid: p.score for p in match.players.values()},
         })
-        await asyncio.sleep(2.5)
+        # Tablo gösterim süresi (admin: arena_reveal_seconds)
+        await asyncio.sleep(cached_int("arena_reveal_seconds", 4))
 
     # Bitiş
     match.state = "finished"

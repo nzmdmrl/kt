@@ -43,6 +43,9 @@ class ArenaPlayer:
     correct: bool = False
     answer_time: float = 0.0  # cevap verdiği an (epoch)
     flash: bool = False       # 5sn içinde cevapladı mı (son soru)
+    # Soru-soru geçmiş: her eleman {"correct": bool, "flash": bool, "answered": bool}
+    history: list = field(default_factory=list)
+    correct_count: int = 0    # toplam doğru sayısı
 
 
 @dataclass
@@ -145,13 +148,26 @@ class ArenaMatch:
         return all(p.answered for p in self.players.values())
 
     def reveal(self) -> dict:
-        """Soru bitti — doğru cevap + herkesin durumu."""
+        """Soru bitti — doğru cevap + herkesin durumu + tüm soru geçmişi (tablo için)."""
         self.state = "reveal"
         q = self.current_question()
+        # Bu sorunun sonucunu her oyuncunun geçmişine ekle
+        for p in self.players.values():
+            p.history.append({"correct": p.correct, "flash": p.flash, "answered": p.answered})
+            if p.correct:
+                p.correct_count += 1
+        total_q = len(self.questions)
         return {
             "answer": q.word if q else "",
+            "index": self.current_index,
+            "total": total_q,
             "players": [
-                {"pid": p.pid, "answered": p.answered, "correct": p.correct, "flash": p.flash, "score": p.score}
+                {
+                    "pid": p.pid, "name": p.name, "avatar_url": p.avatar_url, "is_bot": p.is_bot,
+                    "answered": p.answered, "correct": p.correct, "flash": p.flash, "score": p.score,
+                    "correct_count": p.correct_count,
+                    "history": list(p.history),   # [{correct,flash,answered}, ...] soru sırasıyla
+                }
                 for p in self.players.values()
             ],
         }
