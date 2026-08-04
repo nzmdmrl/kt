@@ -93,6 +93,7 @@ async def _build_profile(db: AsyncSession, user: User) -> dict:
         "elo": user.elo,
         "trophies": trophies,
         "medals": medals,
+        "custom_arena_played": user.custom_arena_played or 0,
     }
 
     # Kazanım oranı

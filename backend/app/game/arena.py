@@ -60,9 +60,10 @@ class ArenaQuestion:
 class ArenaMatch:
     """Tek bir Arena maçının durumu."""
 
-    def __init__(self, code: str, words: list[str]):
+    def __init__(self, code: str, words: list[str], word_plan: list[int] | None = None):
         self.code = code
         self.players: dict[str, ArenaPlayer] = {}
+        self.word_plan = word_plan or QUESTION_PLAN
         self.questions: list[ArenaQuestion] = self._build_questions(words)
         self.current_index: int = -1     # aktif soru (henüz başlamadı)
         self.state: str = "waiting"      # waiting | countdown | question | reveal | finished
@@ -71,7 +72,9 @@ class ArenaMatch:
     def _build_questions(self, words: list[str]) -> list[ArenaQuestion]:
         import random
         qs = []
-        for i, length in enumerate(QUESTION_PLAN):
+        for i, length in enumerate(self.word_plan):
+            if i >= len(words):
+                break
             w = normalize(words[i])
             letters = list(w)
             random.shuffle(letters)

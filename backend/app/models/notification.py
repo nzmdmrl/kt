@@ -30,6 +30,7 @@ class Notification(Base):
     title: Mapped[str] = mapped_column(String(128))
     body: Mapped[str] = mapped_column(Text, default="")
     icon: Mapped[str] = mapped_column(String(8), default="🔔")
+    link: Mapped[str] = mapped_column(String(128), default="")   # tıklanınca gidilecek (ör. /arena/ozel/{code})
     read: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
@@ -40,6 +41,7 @@ class Notification(Base):
             "title": self.title,
             "body": self.body,
             "icon": self.icon,
+            "link": self.link or "",
             "read": self.read,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }

@@ -1542,3 +1542,41 @@ endpoint hazır. Görevler sekmesi hâlâ yok.
 4) Desktop özet: components/DesktopUserSummary.tsx (client) — giriş yapınca avatar+level rozeti+
    unvan(ikonlu)+solo level+XP çubuğu+"Profilim". HomeDesktop TopBar altına eklendi.
 Test: admin titles (10 unvan ikonlu + 7 XP), solo progress, profil unvan ikonu ✓. Build ok.
+
+## ÖZEL ARENA — Parça 1: Backend (Nazım, BÜYÜK özellik)
+Kararlar: kişi 2-5, bekleme max120/default60, bot default kapalı (açıksa son 10sn'de katılır),
+kelime max6, uzunluklar kullanıcı seçer (4/5/6), bot kapalı+süre dolunca gelen kişilerle başla (min2),
+kupa/madalya YOK ama tek seferlik "Özel Arena" rozeti, önceki arenalarım (tekrar aç), isim verilir.
+- models/custom_arena.py: CustomArena (owner_id, name, size, wait_seconds, bots_enabled,
+  word_plan_json). "önceki arenalarım" için. database.py listesine eklendi.
+- arena.py ArenaMatch: word_plan parametresi (esnek, sabit QUESTION_PLAN yerine). _build_questions
+  plan'a göre.
+- arena_manager.py: CustomArenaLobby (code ca-xxx, owner_pid, size 2-5, wait 10-120, bots_enabled,
+  word_plan max6, seconds_left). ArenaManager.create_custom/custom_lobby.
+- badges.py: "custom_arena" rozeti (🎪 Arena Kurucusu, custom_arena_played>=1). User.custom_arena_played
+  sayacı. profile stats'a eklendi.
+- notification.py: link alanı (otomatik migration) + to_public. Davet bildirimi link=/arena/ozel/{code}.
+- arena.py endpoints: POST /arena/custom/create (lobi+kayıt), GET /arena/custom/mine (önceki),
+  GET /arena/custom/{code} (lobi bilgisi), POST /arena/custom/invite (arkadaşlara bildirim, arkadaşlık
+  doğrulanır). _sanitize_plan (max6, 4/5/6).
+Test: oluştur/lobi/davet+link/önceki/rozet ✓. Build henüz (frontend Parça 2'de).
+SONRAKİ: Parça 2 frontend (oluşturma ekranı ayarlar + lobi davet/link + önceki arenalarım),
+Parça 3 davet akışı (bildirimden kabul->arena) + özel arena WS entegrasyonu + bitişte
+custom_arena_played++ & rozet.
+
+## ÖZEL ARENA — Parça 2: Frontend (oluşturma + lobi + davet + önceki arenalarım)
+- app/arena/page.tsx: menü eklendi -> "🎯 Rakip Bul" (normal ArenaGame) veya "🎪 Özel Arena"
+  (/arena/ozel'e gider).
+- app/arena/ozel/page.tsx: oluşturma ekranı — isim, kişi 2-5 (pill), bekleme slider 10-120,
+  bot açık/kapalı, kelime sayacı (4/5/6 harf, toplam max6, +/− Counter). Oluştur -> lobi görünümü
+  (link kopyala + Arenaya Gir + arkadaş davet listesi). "Önceki arenalarım" (kayıtlı ayarlarla
+  tekrar oluştur, tek tık).
+- app/arena/ozel/[code]/page.tsx: davet linkiyle girince lobi (isim, ayarlar, katılanlar, kalan
+  süre, 3sn'de bir yenilenir). "Arenaya Katıl" butonu [WS bağlantısı Parça 3'te].
+- bildirimler: link'li bildirimler tıklanabilir (arena_invite -> /arena/ozel/{code}), "Arenaya git →".
+  Notif tipine link+icon.
+Test: migration (custom_arenas, notifications.link, users.custom_arena_played) ✓, oluşturma ✓.
+Build ok.
+SONRAKİ (Parça 3): özel arena WS entegrasyonu (custom_lobby -> ArenaMatch word_plan ile, bot son
+10sn, botsuz min2 başla), "Arenaya Katıl" -> WS bağlan, bitişte custom_arena_played++ & rozet,
+kupa/madalya YOK (özel arenada _persist farklı).

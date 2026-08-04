@@ -5,7 +5,7 @@ import { apiUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import Logo from "@/components/Logo";
 
-type Notif = { id: number; title: string; body: string; read: boolean; created_at: string; type?: string };
+type Notif = { id: number; title: string; body: string; read: boolean; created_at: string; type?: string; link?: string; icon?: string };
 type Award = { award: string; period_type: string; period_key: string };
 type FriendReq = { id: number; username: string; display_name: string; avatar_url: string | null };
 
@@ -115,15 +115,22 @@ export default function BildirimlerPage() {
         <p style={{ color: "var(--text-dim)", textAlign: "center", padding: 30 }}>Henüz bildirim yok.</p>
       ) : (
         <div style={{ display: "grid", gap: 8 }}>
-          {notifs.map((n) => (
-            <div key={n.id} style={{
-              padding: "12px 14px", background: "var(--bg-panel)", borderRadius: 10,
-              borderLeft: n.read ? "3px solid var(--border-soft)" : "3px solid var(--accent)",
-            }}>
-              <div style={{ fontWeight: 600, color: "var(--text-strong)", fontSize: 14 }}>{n.title}</div>
-              {n.body && <div style={{ color: "var(--text-soft)", fontSize: 13, marginTop: 2 }}>{n.body}</div>}
-            </div>
-          ))}
+          {notifs.map((n) => {
+            const clickable = !!n.link;
+            return (
+              <div key={n.id}
+                onClick={() => { if (clickable) window.location.href = n.link!; }}
+                style={{
+                  padding: "12px 14px", background: "var(--bg-panel)", borderRadius: 10,
+                  borderLeft: n.read ? "3px solid var(--border-soft)" : "3px solid var(--accent)",
+                  cursor: clickable ? "pointer" : "default",
+                }}>
+                <div style={{ fontWeight: 600, color: "var(--text-strong)", fontSize: 14 }}>{n.icon} {n.title}</div>
+                {n.body && <div style={{ color: "var(--text-soft)", fontSize: 13, marginTop: 2 }}>{n.body}</div>}
+                {clickable && <div style={{ color: "var(--accent)", fontSize: 12, marginTop: 4, fontWeight: 600 }}>Arenaya git →</div>}
+              </div>
+            );
+          })}
         </div>
       )}
     </Wrap>

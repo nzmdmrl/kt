@@ -57,6 +57,8 @@ BADGES: list[Badge] = [
           lambda s: s.get("trophies", 0) >= 1),
     Badge("score_1000", "Puan Canavarı", "Toplam 1000 puan topla", "⭐", "silver",
           lambda s: s["total_score"] >= 1000),
+    Badge("custom_arena", "Arena Kurucusu", "Bir özel arena tamamla", "🎪", "gold",
+          lambda s: s.get("custom_arena_played", 0) >= 1),
 ]
 
 

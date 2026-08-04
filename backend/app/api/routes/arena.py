@@ -22,8 +22,9 @@ import asyncio
 import random
 import time
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, Depends
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, Depends, HTTPException
 from sqlalchemy import select
+from pydantic import BaseModel
 
 from app.core.database import AsyncSessionLocal, get_db
 from app.core.deps import get_current_user
@@ -36,6 +37,121 @@ from app.game.settings_service import cached_int
 from app.words.word_service import get_pool
 
 router = APIRouter()
+
+
+# ============ ÖZEL ARENA ============
+
+class CustomArenaIn(BaseModel):
+    name: str = "Özel Arena"
+    size: int = 5              # 2..5
+    wait_seconds: int = 60     # max 120
+    bots_enabled: bool = False
+    word_plan: list[int] = [4, 4, 5, 5, 6, 6]   # max 6, her biri 4/5/6
+
+
+def _sanitize_plan(plan: list[int]) -> list[int]:
+    """Kelime planını doğrula: max 6, her biri 4/5/6."""
+    clean = [n for n in plan if n in (4, 5, 6)][:6]
+    return clean or [4, 4, 5, 5, 6, 6]
+
+
+@router.post("/arena/custom/create")
+async def create_custom_arena(data: CustomArenaIn, user=Depends(get_current_user), db=Depends(get_db)):
+    """Özel arena oluştur: lobiyi kur + ayarları 'önceki arenalarım' için kaydet."""
+    from app.models.custom_arena import CustomArena
+    import json as _json
+    plan = _sanitize_plan(data.word_plan)
+    size = max(2, min(5, data.size))
+    wait = max(10, min(120, data.wait_seconds))
+    name = (data.name or "Özel Arena").strip()[:64] or "Özel Arena"
+
+    # Belleğe lobi kur
+    owner_pid = f"u{user.id}"
+    lobby = arena_manager.create_custom(
+        owner_pid=owner_pid, name=name, size=size, wait_seconds=wait,
+        bots_enabled=data.bots_enabled, word_plan=plan,
+    )
+    # Sahibi otomatik katılır
+    lobby.add(owner_pid, user.display_name or user.username, user.avatar_url or "")
+
+    # "Önceki arenalarım" için kaydet
+    rec = CustomArena(
+        owner_id=user.id, name=name, size=size, wait_seconds=wait,
+        bots_enabled=1 if data.bots_enabled else 0, word_plan_json=_json.dumps(plan),
+    )
+    db.add(rec)
+    await db.commit()
+
+    return {"code": lobby.code, "name": name, "size": size, "wait_seconds": wait,
+            "bots_enabled": data.bots_enabled, "word_plan": plan}
+
+
+@router.get("/arena/custom/mine")
+async def my_custom_arenas(limit: int = 10, user=Depends(get_current_user), db=Depends(get_db)):
+    """Önceki özel arenalarım (aynı ayarlarla tekrar açmak için)."""
+    from app.models.custom_arena import CustomArena
+    rows = (await db.execute(
+        select(CustomArena).where(CustomArena.owner_id == user.id)
+        .order_by(CustomArena.created_at.desc()).limit(min(limit, 20))
+    )).scalars().all()
+    return {"arenas": [r.to_public() for r in rows]}
+
+
+@router.get("/arena/custom/{code}")
+async def custom_arena_info(code: str, user=Depends(get_current_user)):
+    """Bir özel arena lobisinin bilgisi (davet linkiyle girince)."""
+    lobby = arena_manager.custom_lobby(code)
+    if not lobby:
+        raise HTTPException(404, "Arena bulunamadı veya süresi doldu.")
+    return {
+        "code": lobby.code, "name": lobby.name, "size": lobby.size,
+        "wait_seconds": lobby.wait_seconds, "seconds_left": lobby.seconds_left(),
+        "bots_enabled": lobby.bots_enabled, "word_plan": lobby.word_plan,
+        "players": [{"pid": k, "name": v["name"], "avatar_url": v.get("avatar_url", "")} for k, v in lobby.members.items()],
+        "started": lobby.started,
+    }
+
+
+class InviteIn(BaseModel):
+    code: str
+    friend_ids: list[int]
+
+
+@router.post("/arena/custom/invite")
+async def invite_to_custom_arena(data: InviteIn, user=Depends(get_current_user), db=Depends(get_db)):
+    """Arkadaşları özel arenaya davet et — her birine bildirim gönder."""
+    from app.models.notification import Notification
+    from app.models.friendship import Friendship
+    from sqlalchemy import or_, and_
+    lobby = arena_manager.custom_lobby(data.code)
+    if not lobby:
+        raise HTTPException(404, "Arena bulunamadı.")
+    if lobby.owner_pid != f"u{user.id}":
+        raise HTTPException(403, "Sadece arenayı kuran davet edebilir.")
+
+    inviter = user.display_name or user.username
+    sent = 0
+    for fid in data.friend_ids[:20]:
+        # Gerçekten arkadaş mı doğrula
+        f = (await db.execute(select(Friendship).where(and_(
+            Friendship.status == "accepted",
+            or_(
+                and_(Friendship.requester_id == user.id, Friendship.addressee_id == fid),
+                and_(Friendship.requester_id == fid, Friendship.addressee_id == user.id),
+            ),
+        )))).scalar_one_or_none()
+        if not f:
+            continue
+        db.add(Notification(
+            user_id=fid, kind="arena_invite",
+            title="Özel Arena daveti",
+            body=f"{inviter} seni '{lobby.name}' arenasına davet etti.",
+            icon="🎪",
+            link=f"/arena/ozel/{lobby.code}",
+        ))
+        sent += 1
+    await db.commit()
+    return {"ok": True, "sent": sent}
 
 
 @router.get("/arena/history")

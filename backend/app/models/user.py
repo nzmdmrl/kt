@@ -66,6 +66,7 @@ class User(Base):
     words_solved: Mapped[int] = mapped_column(Integer, default=0)
     total_score: Mapped[int] = mapped_column(Integer, default=0)
     xp: Mapped[int] = mapped_column(Integer, default=0)   # toplam XP (seviye buradan hesaplanır)
+    custom_arena_played: Mapped[int] = mapped_column(Integer, default=0)  # özel arena tamamlama (rozet için)
 
     # Solo istatistikleri (lige yazılmaz — ayrı tutulur)
     solo_matches: Mapped[int] = mapped_column(Integer, default=0)
