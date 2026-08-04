@@ -39,6 +39,7 @@ export type ArenaState = {
   revealTotal: number;            // toplam soru
   scores: Record<string, number>;
   ranking: ArenaPlayer[];
+  leftNotice: { name: string; at: number } | null;   // "xxx arenadan çıktı" popup
 };
 
 const initialState: ArenaState = {
@@ -55,6 +56,7 @@ const initialState: ArenaState = {
   revealTotal: 6,
   scores: {},
   ranking: [],
+  leftNotice: null,
 };
 
 export function useArena(enabled: boolean, customCode?: string) {
@@ -124,6 +126,14 @@ export function useArena(enabled: boolean, customCode?: string) {
         }
         case "finished":
           setState((s) => ({ ...s, phase: "finished", ranking: msg.ranking || [] }));
+          break;
+        case "player_left":
+          setState((s) => ({
+            ...s,
+            leftNotice: { name: msg.name || "Bir oyuncu", at: Date.now() },
+            // lobideyse oyuncu listesinden de düşür
+            players: s.players.filter((p) => p.pid !== msg.pid),
+          }));
           break;
       }
     };

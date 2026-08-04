@@ -17,6 +17,20 @@ export default function ArenaGame({ onExit, customCode }: { onExit: () => void; 
 
   useEffect(() => { initSound(true, 70); }, []);
 
+  // "xxx arenadan çıktı" popup — leftNotice değişince göster, 3.5sn sonra gizle.
+  const [leftToast, setLeftToast] = useState<string | null>(null);
+  const lastNoticeRef = useRef<number>(0);
+  useEffect(() => {
+    const n = state.leftNotice;
+    if (n && n.at !== lastNoticeRef.current) {
+      lastNoticeRef.current = n.at;
+      setLeftToast(`${n.name} arenadan çıktı`);
+      try { playSound("wrong"); } catch {}
+      const t = setTimeout(() => setLeftToast(null), 3500);
+      return () => clearTimeout(t);
+    }
+  }, [state.leftNotice]);
+
   // Lobide oyuncu sayısı artınca katılım sesi çal.
   const prevCountRef = useRef(0);
   useEffect(() => {
@@ -103,10 +117,25 @@ export default function ArenaGame({ onExit, customCode }: { onExit: () => void; 
 
   // ---- RENDER ----
 
+  const leftToastEl = leftToast ? (
+    <div style={{
+      position: "fixed", top: 16, left: "50%", transform: "translateX(-50%)",
+      zIndex: 500, background: "var(--bg-panel)", border: "1px solid var(--accent-hot)",
+      color: "var(--text-strong)", padding: "12px 20px", borderRadius: 12,
+      boxShadow: "0 6px 24px rgba(0,0,0,.35)", fontWeight: 600, fontSize: 14,
+      display: "flex", alignItems: "center", gap: 8, animation: "toastIn .3s ease",
+      maxWidth: "calc(100vw - 32px)",
+    }}>
+      🚪 {leftToast}
+      <style>{`@keyframes toastIn{from{opacity:0;transform:translate(-50%,-12px)}to{opacity:1;transform:translate(-50%,0)}}`}</style>
+    </div>
+  ) : null;
+
   // Eşleşme / lobi
   if (state.phase === "connecting" || state.phase === "lobby") {
     return (
       <ArenaShell onExit={onExit} players={state.players}>
+        {leftToastEl}
         <div style={{ textAlign: "center", paddingTop: 40 }}>
           <h2 className="brand-mono" style={{ fontSize: 26, marginBottom: 8 }}>Arena</h2>
           <p style={{ color: "var(--text-soft)", marginBottom: 4 }}>Kelimeler: 6</p>
@@ -182,6 +211,7 @@ export default function ArenaGame({ onExit, customCode }: { onExit: () => void; 
 
   return (
     <ArenaShell onExit={onExit} players={state.players} answers={state.answers} showResults={isReveal}>
+      {leftToastEl}
       {q && (
         <div>
           {/* Üst: soru no + süre (1v1 tarzı) */}

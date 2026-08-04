@@ -436,7 +436,7 @@ async def arena_ws(websocket: WebSocket, token: str = Query(default=""), custom:
                 "seconds_left": clobby.seconds_left(),
             })
             asyncio.create_task(_custom_matchmaker(code))
-        await _arena_receive_loop(websocket, code, pid)
+        await _arena_receive_loop(websocket, code, pid, name=name, is_custom=True)
         return
 
     # ---- NORMAL ARENA ----
@@ -457,10 +457,10 @@ async def arena_ws(websocket: WebSocket, token: str = Query(default=""), custom:
         # Eşleşme başlatıcı: ilk giren tetikler (dolunca veya süre dolunca)
         asyncio.create_task(_matchmaker(code))
 
-    await _arena_receive_loop(websocket, code, pid)
+    await _arena_receive_loop(websocket, code, pid, name=name, is_custom=False)
 
 
-async def _arena_receive_loop(websocket: WebSocket, code: str, pid: str):
+async def _arena_receive_loop(websocket: WebSocket, code: str, pid: str, name: str = "", is_custom: bool = False):
     """WS mesaj döngüsü (answer). Normal ve özel arena ortak."""
     try:
         while True:
@@ -481,8 +481,39 @@ async def _arena_receive_loop(websocket: WebSocket, code: str, pid: str):
     except WebSocketDisconnect:
         conns = _connections.get(code, {})
         conns.pop(pid, None)
+        await _handle_arena_leave(code, pid, name, is_custom)
     except Exception:
-        pass
+        conns = _connections.get(code, {})
+        conns.pop(pid, None)
+        await _handle_arena_leave(code, pid, name, is_custom)
+
+
+async def _handle_arena_leave(code: str, pid: str, name: str, is_custom: bool):
+    """Bir oyuncu arenadan çıktı/terk etti — diğerlerine bildir."""
+    # Çıkanın adını bul (parametre boşsa lobi/maçtan)
+    disp = name
+    if not disp:
+        clobby = arena_manager.custom_lobby(code)
+        if clobby and pid in clobby.members:
+            disp = clobby.members[pid].get("name", "")
+        else:
+            match = arena_manager.get_match(code)
+            if match and pid in match.players:
+                disp = match.players[pid].name
+    disp = disp or "Bir oyuncu"
+
+    # Özel lobiden de çıkar (henüz başlamadıysa)
+    clobby = arena_manager.custom_lobby(code)
+    if clobby and not clobby.started and pid in clobby.members:
+        clobby.members.pop(pid, None)
+
+    # Diğerlerine popup bildirimi
+    await _broadcast(code, {
+        "type": "player_left",
+        "pid": pid,
+        "name": disp,
+        "message": f"{disp} arenadan çıktı",
+    })
 
 
 async def _custom_matchmaker(code: str):

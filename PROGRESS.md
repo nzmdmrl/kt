@@ -1737,3 +1737,16 @@ bildirimler tıklanabilir DEĞİLDİ (link yok, sadece görüntü). Mobildeki /b
 hem desktop aynı /bildirimler sayfasını kullanıyor (arena daveti <a href> tıklanabilir, arkadaşlık
 ✅/❌ butonlu).
 Build ok.
+
+## Özel arena çıkış popup'ı (Nazım)
+Backend arena.py:
+- _arena_receive_loop(ws, code, pid, name, is_custom): WebSocketDisconnect VE genel Exception'da
+  _handle_arena_leave çağrılır. WS bağlanınca name+is_custom geçirilir (özel: is_custom=True).
+- _handle_arena_leave: çıkanın adını bulur (param/lobi/maç), özel lobiden çıkarır (başlamadıysa),
+  _broadcast player_left {pid, name, message:"X arenadan çıktı"}.
+Frontend:
+- useArena ArenaState.leftNotice {name, at}. case "player_left" -> leftNotice set + players'tan düşür.
+- ArenaGame: leftToast state, leftNotice.at değişince toast göster 3.5sn + playSound("wrong").
+  leftToastEl (fixed top-center, kırmızı border, 🚪 + mesaj). Lobi ve ana oyun return'lerine eklendi.
+Test: Veli çıkınca Ali "Veli arenadan çıktı" aldı ✓. Build ok. (Normal arenada da çalışır ama
+odak özel arena.)
