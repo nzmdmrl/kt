@@ -141,6 +141,25 @@ export default function MatchGame({
   const myTurnActive = myTurn && !round?.finished && phase === "round_active";
   const answerLeftRef = useRef(answerLeft);
   answerLeftRef.current = answerLeft;
+
+  // Input ref — sıra bize geçince (desktop) otomatik odaklanmak için.
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  // DESKTOP: sıra bana geçtiği anda input'a otomatik focus ver — böylece turun ilk
+  // sorusu dışında da her sıramda tekrar tıklamadan/buzzer'a basmadan yazabilirim.
+  // Mobilde YAPMA (otomatik klavye açılmasın; kullanıcı mobil değişiklik istemedi).
+  useEffect(() => {
+    if (!myTurnActive) return;
+    const isDesktop = typeof window !== "undefined"
+      && window.matchMedia && window.matchMedia("(min-width: 721px)").matches;
+    if (!isDesktop) return;
+    const el = inputRef.current;
+    if (el) {
+      // küçük gecikme: state güncellemesi otursun
+      const t = setTimeout(() => { try { el.focus(); } catch {} }, 40);
+      return () => clearTimeout(t);
+    }
+  }, [myTurnActive]);
   useEffect(() => {
     if (myTurnActive && answerLeftRef.current > 0) {
       startTicking(() => answerLeftRef.current);
@@ -559,6 +578,7 @@ export default function MatchGame({
         <div style={{ display: "grid", gap: 10, justifyItems: "center" }}>
           <div style={{ display: "flex", gap: 8, justifyContent: "center", alignItems: "stretch", flexWrap: "wrap", width: "100%" }}>
             <input
+              ref={inputRef}
               value={draft}
               onChange={(e) => onType(e.target.value)}
               onFocus={onFocus}

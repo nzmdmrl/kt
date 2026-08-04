@@ -1750,3 +1750,12 @@ Frontend:
   leftToastEl (fixed top-center, kırmızı border, 🚪 + mesaj). Lobi ve ana oyun return'lerine eklendi.
 Test: Veli çıkınca Ali "Veli arenadan çıktı" aldı ✓. Build ok. (Normal arenada da çalışır ama
 odak özel arena.)
+
+## Desktop 1v1: sıra bize geçince otomatik input focus (Nazım)
+Sorun: 1v1'de turun ilk sorusunda buzzer'a basıp/tıklayıp aktifleşiyor ama sıra rakibe geçip TEKRAR
+bize gelince yine tıklamak gerekiyordu (input focus kaybı). İstenen: sıra bende oldu mu direkt yaz.
+Fix (SADECE DESKTOP): MatchGame.tsx inputRef eklendi. myTurnActive true olunca window.matchMedia
+("(min-width:721px)") ise 40ms sonra inputRef.focus(). Mobilde YAPILMADI (otomatik klavye açılmasın;
+kullanıcı mobil değişiklik istemedi). myTurn iken writeBlocked zaten false, focus -> onFocus ->
+hasFocus true. Tur/sıra değişince (dep myTurnActive) tekrar tetiklenir.
+Build ok.
