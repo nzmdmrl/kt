@@ -1442,3 +1442,10 @@ kullandığı için solo hedefleri de artık bu liste.
    veya ❌ Yanlış (rakipler beklenirken kendi durumunu görürsün, reveal'i beklemeden).
 3) "Sorular: 6" -> "Kelimeler: 6" (lobi+geri sayım), "Soru X/6" -> "Kelime X/6".
 Frontend+backend. Build ok.
+
+## ARENA: sıradaki kelime uzunluğu gösterimi (Nazım)
+- Backend countdown mesajına "length" eklendi (o an başlayacak kelimenin uzunluğu).
+- useArena: countdownLen state (msg.length'ten).
+- Eşleşme ekranı: "Sıradaki kelime: 4 harf" (ilk hep 4). Geri sayım ekranı: "Sıradaki kelime:
+  {countdownLen} harf" (her kelimeden önce güncel uzunluk).
+Build ok.

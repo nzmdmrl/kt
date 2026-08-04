@@ -29,6 +29,7 @@ export type ArenaState = {
   phase: "connecting" | "lobby" | "starting" | "countdown" | "question" | "reveal" | "finished";
   players: ArenaPlayer[];
   countdownN: number;
+  countdownLen: number;
   question: ArenaQuestion | null;
   questionStartedAt: number;      // client tarafı, süre çubuğu için
   answers: Record<string, AnswerState>;  // pid -> durum (o soru)
@@ -44,6 +45,7 @@ const initialState: ArenaState = {
   phase: "connecting",
   players: [],
   countdownN: 0,
+  countdownLen: 4,
   question: null,
   questionStartedAt: 0,
   answers: {},
@@ -82,7 +84,7 @@ export function useArena(enabled: boolean) {
           setState((s) => ({ ...s, phase: "starting", players: msg.players || [], scores: {} }));
           break;
         case "countdown":
-          setState((s) => ({ ...s, phase: "countdown", countdownN: msg.n }));
+          setState((s) => ({ ...s, phase: "countdown", countdownN: msg.n, countdownLen: msg.length || s.countdownLen }));
           break;
         case "question":
           setState((s) => ({

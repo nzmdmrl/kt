@@ -81,9 +81,10 @@ async def _run_match(code: str):
     await asyncio.sleep(1.5)
 
     for index in range(len(match.questions)):
-        # Geri sayım 3-2-1
+        # Geri sayım 3-2-1 (sıradaki kelimenin uzunluğuyla)
+        next_len = match.questions[index].length
         for n in (3, 2, 1):
-            await _broadcast(code, {"type": "countdown", "n": n, "index": index, "total": len(match.questions)})
+            await _broadcast(code, {"type": "countdown", "n": n, "index": index, "total": len(match.questions), "length": next_len})
             await asyncio.sleep(1.0)
 
         q = match.start_question(index)

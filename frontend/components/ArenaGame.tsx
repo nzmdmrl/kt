@@ -110,6 +110,7 @@ export default function ArenaGame({ onExit }: { onExit: () => void }) {
         <div style={{ textAlign: "center", paddingTop: 40 }}>
           <h2 className="brand-mono" style={{ fontSize: 26, marginBottom: 8 }}>Arena</h2>
           <p style={{ color: "var(--text-soft)", marginBottom: 4 }}>Kelimeler: 6</p>
+          <p style={{ color: "var(--accent)", marginBottom: 4, fontSize: 14 }}>Sıradaki kelime: 4 harf</p>
           <p style={{ color: "var(--text-soft)", marginBottom: 30 }}>👤 {state.players.length}/5</p>
           <div style={{ borderTop: "1px solid var(--border-soft)", paddingTop: 30 }}>
             <p className="brand-mono" style={{ fontSize: 20, marginBottom: 16 }}>Rakip aranıyor…</p>
@@ -149,7 +150,9 @@ export default function ArenaGame({ onExit }: { onExit: () => void }) {
       <ArenaShell onExit={onExit} players={state.players}>
         <div style={{ textAlign: "center", paddingTop: 30 }}>
           <h2 className="brand-mono" style={{ fontSize: 26, marginBottom: 6 }}>Arena</h2>
-          <p style={{ color: "var(--text-soft)", marginBottom: 4 }}>Kelimeler: 6</p>
+          <p style={{ color: "var(--accent)", marginBottom: 4, fontSize: 16, fontWeight: 600 }}>
+            Sıradaki kelime: {state.countdownLen} harf
+          </p>
           <p style={{ color: "var(--text-soft)", marginBottom: 24 }}>👤 5</p>
           <p className="brand-mono" style={{ fontSize: 22, marginBottom: 10 }}>içinde başlayacak</p>
           <div className="brand-mono" style={{ fontSize: 90, color: "var(--text-dim)", lineHeight: 1 }}>
