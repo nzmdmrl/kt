@@ -2,6 +2,7 @@ import HomeHero from "@/components/HomeHero";
 import HomeDesktop from "@/components/HomeDesktop";
 import HomeBoards from "@/components/HomeBoards";
 import HomeMusic from "@/components/HomeMusic";
+import Footer from "@/components/Footer";
 
 // Ana sayfa: mobilde QuizzLand tarzı (HomeHero + alt nav), masaüstünde eski geniş tasarım
 // (HomeDesktop: TopBar + logo + mod butonları). CSS ile ekran genişliğine göre ayrılır.
@@ -22,6 +23,7 @@ export default function Home() {
         <div style={{ maxWidth: 720, margin: "0 auto", padding: "0 20px 40px" }}>
           <HomeBoards />
         </div>
+        <Footer />
       </div>
 
       <HomeMusic />

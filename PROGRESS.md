@@ -1642,3 +1642,11 @@ Test: 5 istek geçti, 6. 429 ✓, admin ayarı görünür ✓. Build ok.
    badge border'lı.
 6) Mobil menü başlık "☰ Menü" KALDIRILDI.
 Test: arkadaş kontrolü 403 ✓, collected_words ✓, migration ✓. Build ok.
+
+## Desktop ana sayfa footer sırası düzeltme (Nazım)
+Sorun: HomeDesktop içinde Footer vardı ama HomeBoards (Bugünün Ligi/Son Maçlar) HomeDesktop'tan
+SONRA render ediliyordu -> footer araya giriyordu (içerik->footer->boards).
+Düzeltme: Footer HomeDesktop'tan kaldırıldı. page.tsx .home-desktop içinde HomeBoards'DAN SONRA
+Footer eklendi (en son). Artık: TopBar->içerik->HomeBoards->Footer. Mobilde .home-desktop gizli
+olduğu için footer sadece masaüstünde. Ana sayfa DesktopChrome'dan zaten hariç (isHome).
+Build ok.
