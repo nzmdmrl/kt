@@ -31,10 +31,8 @@ export default function MenuPage() {
   return (
     <main style={{ maxWidth: 520, margin: "0 auto", padding: "24px 18px 40px" }}>
       <div style={{ marginBottom: 16 }}><a href="/"><Logo size={32} /></a></div>
-      <h1 className="brand-mono" style={{ fontSize: 30, marginBottom: 24 }}>☰ Menü</h1>
-
       {/* Ayarlar (toggle'lar) */}
-      <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-soft)", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.05em" }}>Ayarlar</div>
+      <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-soft)", marginBottom: 10, marginTop: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>Ayarlar</div>
       <div style={{ display: "grid", gap: 10, marginBottom: 28 }}>
         <ToggleRow icon={dark ? "🌙" : "☀️"} label={dark ? "Gece modu" : "Gündüz modu"} on={dark} onClick={toggleTheme} />
         <ToggleRow icon="🔊" label="Ses" on={sound} onClick={toggleSound} />

@@ -100,6 +100,24 @@ def _attach_stats_callback(room):
                         score=scores.get(pid, 0),
                         words_solved=0,
                     )
+                    # Toplanan kelimeler: bu oyuncunun bu maçta doğru bildiği kelimeler.
+                    try:
+                        from app.models.collected_word import CollectedWord
+                        from sqlalchemy import select as _sel
+                        words = match.solved_words.get(pid, set())
+                        if words:
+                            existing = set((await db.execute(
+                                _sel(CollectedWord.word).where(
+                                    CollectedWord.user_id == uid,
+                                    CollectedWord.word.in_(list(words)),
+                                )
+                            )).scalars().all())
+                            for w in words:
+                                if w not in existing:
+                                    db.add(CollectedWord(user_id=uid, word=w))
+                            await db.commit()
+                    except Exception as _e:
+                        print(f"[collected] HATA uid={uid}: {_e}")
         except Exception as e:
             import traceback
             print(f"[stats] HATA: {e}")

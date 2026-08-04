@@ -39,6 +39,14 @@ async def _friend_count(db, user_id: int) -> int:
     return await friend_count(db, user_id)
 
 
+async def _collected_words_count(db, user_id: int) -> int:
+    from app.models.collected_word import CollectedWord
+    from sqlalchemy import select as _sel, func as _func
+    return (await db.execute(
+        _sel(_func.count()).select_from(CollectedWord).where(CollectedWord.user_id == user_id)
+    )).scalar() or 0
+
+
 async def _optional_user(request: Request, db):
     """Authorization header varsa kullanıcıyı çöz, yoksa None (hata fırlatmaz)."""
     auth = request.headers.get("Authorization", "")
@@ -136,6 +144,7 @@ async def _build_profile(db: AsyncSession, user: User) -> dict:
         "level_info": _level_info(user.xp or 0),
         "title_info": _title_info(user.xp or 0),
         "friend_count": await _friend_count(db, user.id),
+        "collected_words": await _collected_words_count(db, user.id),
         "ranks": {
             "daily": daily["rank"] if daily else None,
             "monthly": monthly["rank"] if monthly else None,

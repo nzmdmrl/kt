@@ -43,6 +43,8 @@ class Match:
         self.phase: MatchPhase = MatchPhase.WAITING
         self.round: Optional[RoundState] = None
         self.round_index: int = -1
+        # Doğru bilinen kelimeler: pid -> set(word) (toplanan kelime istatistiği için).
+        self.solved_words: dict[str, set] = {p.id: set() for p in players}
         # Joker hakları (maç boyunca, oyuncu başına). Admin panelden ayarlanır.
         # jokers_enabled kapalıysa tüm haklar 0 (joker sistemi devre dışı).
         from app.game.settings_service import cached_bool, cached_int
@@ -263,6 +265,8 @@ class Match:
                 points += SPEED_BONUS
             self.players[player_id].score += points
             r.solved_by = player_id
+            if player_id in self.solved_words:
+                self.solved_words[player_id].add(r.target)
             r.finished = True
             r.reveal_word = r.target   # doğru cevabı herkese göster
             round_over = True

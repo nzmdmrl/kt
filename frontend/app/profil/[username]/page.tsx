@@ -32,6 +32,7 @@ type Profile = {
   title_info?: { title: string; next_title: string | null; xp_to_next: number; title_progress: number };
   friend_count?: number;
   friend_status?: string;
+  collected_words?: number;
   ranks: { daily: number | null; monthly: number | null; all: number | null };
   solo?: { level: number; stars: number };
 };
@@ -124,7 +125,20 @@ export default function ProfilePage({ params }: { params: { username: string } }
   return (
     <Wrap>
       {/* Üst kart */}
-      <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 24 }}>
+      <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 16, marginBottom: 24 }}>
+        {isMe && (
+          <button
+            onClick={() => setEditOpen(true)}
+            style={{
+              position: "absolute", top: 0, right: 0, zIndex: 2,
+              padding: "7px 14px", fontSize: 13, fontWeight: 600,
+              background: "var(--bg-elevated)", color: "var(--text-strong)",
+              border: "1px solid var(--border-soft)", borderRadius: 9, cursor: "pointer",
+            }}
+          >
+            ⚙️ Düzenle
+          </button>
+        )}
         <div
           style={{
             width: 76, height: 76, borderRadius: 18, overflow: "hidden",
@@ -232,18 +246,6 @@ export default function ProfilePage({ params }: { params: { username: string } }
           <div className="brand-mono" style={{ fontSize: 20, color: "var(--accent)" }}>
             {profile.elo} <span style={{ fontSize: 13, color: "var(--text-dim)" }}>ELO</span>
           </div>
-          {isMe && (
-            <button
-              onClick={() => setEditOpen(true)}
-              style={{
-                marginTop: 8, padding: "7px 16px", fontSize: 13, fontWeight: 600,
-                background: "var(--bg-elevated)", color: "var(--text-strong)",
-                border: "1px solid var(--border-soft)", borderRadius: 9, cursor: "pointer",
-              }}
-            >
-              ⚙️ Profili Düzenle
-            </button>
-          )}
         </div>
       </div>
 
@@ -282,6 +284,7 @@ export default function ProfilePage({ params }: { params: { username: string } }
         <Stat label="Kazanma %" value={`${profile.stats.win_rate}%`} />
         <Stat label="Mağlubiyet" value={profile.stats.losses} />
         <Stat label="Kelime" value={profile.stats.words_solved} />
+        <Stat label="Toplanan Kelime" value={profile.collected_words ?? 0} accent />
         <Stat label="Puan" value={profile.stats.total_score} />
       </div>
 

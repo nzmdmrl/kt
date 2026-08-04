@@ -71,12 +71,15 @@ export default function BottomNav() {
   return (
     <>
       {/* Alt bar yüksekliği kadar boşluk (içerik gizlenmesin) */}
-      <div className="kt-bottom-nav" style={{ height: 72 }} />
+      <div className="kt-bottom-nav" style={{ height: 76 }} />
       <nav className="kt-bottom-nav" style={{
         position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50,
         display: "flex", justifyContent: "space-around", alignItems: "flex-end",
-        background: "var(--bg-panel)", borderTop: "1px solid var(--border-soft)",
-        padding: "8px 4px 10px", maxWidth: 560, margin: "0 auto",
+        background: "var(--bg-panel)",
+        borderTop: "1px solid var(--border-soft)",
+        borderTopLeftRadius: 22, borderTopRightRadius: 22,
+        padding: "10px 6px 12px", maxWidth: 560, margin: "0 auto",
+        boxShadow: "0 -6px 24px rgba(0,0,0,.22)",
       }}>
         {ITEMS.map((item) => {
           const active = isActive(item);
@@ -84,37 +87,38 @@ export default function BottomNav() {
             return (
               <button key={item.key} onClick={() => go(item.href)}
                 style={{
-                  display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
+                  display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
                   background: "none", border: "none", cursor: "pointer",
-                  transform: "translateY(-12px)",
+                  transform: "translateY(-14px)",
                 }}>
                 <span style={{
-                  width: 56, height: 56, borderRadius: "50%",
-                  background: active ? "var(--accent)" : "var(--accent)",
-                  display: "grid", placeItems: "center", fontSize: 26,
-                  boxShadow: "0 4px 14px rgba(0,0,0,.3)", border: "3px solid var(--bg-panel)",
+                  width: 58, height: 58, borderRadius: "50%",
+                  background: "linear-gradient(145deg,var(--accent),var(--accent-hot))",
+                  display: "grid", placeItems: "center", fontSize: 28,
+                  boxShadow: "0 6px 18px rgba(224,148,10,.45)", border: "4px solid var(--bg-panel)",
                 }}>{item.icon}</span>
-                <span style={{ fontSize: 10, color: active ? "var(--accent)" : "var(--text-dim)", fontWeight: 600 }}>{item.label}</span>
+                <span style={{ fontSize: 11, color: active ? "var(--accent)" : "var(--text-soft)", fontWeight: 700 }}>{item.label}</span>
               </button>
             );
           }
           return (
             <button key={item.key} onClick={() => go(item.href)}
               style={{
-                display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
+                display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
                 background: "none", border: "none", cursor: "pointer", flex: 1, padding: "4px 0",
               }}>
-              <span style={{ position: "relative", fontSize: 20, opacity: active ? 1 : 0.55, filter: active ? "none" : "grayscale(0.3)" }}>
+              <span style={{ position: "relative", fontSize: 24, opacity: active ? 1 : 0.85 }}>
                 {item.icon}
                 {item.key === "bildirim" && unread > 0 && (
                   <span style={{
-                    position: "absolute", top: -4, right: -8, minWidth: 16, height: 16, padding: "0 4px",
-                    borderRadius: 8, background: "var(--accent-hot)", color: "#fff",
-                    fontSize: 10, fontWeight: 800, display: "grid", placeItems: "center", filter: "none",
+                    position: "absolute", top: -5, right: -9, minWidth: 17, height: 17, padding: "0 4px",
+                    borderRadius: 9, background: "var(--accent-hot)", color: "#fff",
+                    fontSize: 10, fontWeight: 800, display: "grid", placeItems: "center",
+                    border: "1.5px solid var(--bg-panel)",
                   }}>{unread > 9 ? "9+" : unread}</span>
                 )}
               </span>
-              <span style={{ fontSize: 10, color: active ? "var(--accent)" : "var(--text-dim)", fontWeight: active ? 700 : 500 }}>{item.label}</span>
+              <span style={{ fontSize: 11, color: active ? "var(--accent)" : "var(--text-soft)", fontWeight: active ? 700 : 600 }}>{item.label}</span>
             </button>
           );
         })}

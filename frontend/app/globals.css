@@ -159,3 +159,9 @@ a { color: inherit; text-decoration: none; }
 @media (min-width: 721px) {
   .kt-bottom-nav { display: none !important; }
 }
+
+/* Masaüstü top menü + footer: sadece masaüstünde (mobilde gizli) */
+.kt-desktop-chrome { display: none; }
+@media (min-width: 721px) {
+  .kt-desktop-chrome { display: block; }
+}

@@ -1623,3 +1623,22 @@ Build ok.
 - Frontend profil: friendAction hata yakalar (r.ok değilse j.detail) -> friendErr state, buton
   altında kırmızı mesaj gösterilir.
 Test: 5 istek geçti, 6. 429 ✓, admin ayarı görünür ✓. Build ok.
+
+## Desktop chrome + maç teklifi arkadaş + toplanan kelime + profil düzenle sağ üst + bottomnav + menü başlık (Nazım)
+1) Desktop top menü + footer her sayfada (maç ekranları HARİÇ): components/DesktopChrome.tsx
+   (usePathname; HIDE_ON=/oyna,/arena,/solo,/gunun-kelimesi,/giris,/yonetim; ana sayfa / hariç çünkü
+   HomeDesktop kendi TopBar+Footer'ını render ediyor). layout.tsx'e sarıldı. CSS .kt-desktop-chrome
+   (mobilde display:none, min-width721px'de block).
+2) Maç teklifi sadece arkadaşlar: challenge.py send_challenge -> friend_status != friends ise 403.
+3) Toplanan kelimeler: models/collected_word.py (CollectedWord user_id+word UniqueConstraint,
+   migration). match.py MatchState.solved_words (pid->set), çözümde ekle. match.py route on_over:
+   apply_match_result sonrası her gerçek oyuncunun solved_words'ünü CollectedWord'e kaydet (mevcut
+   olmayanları). profile.py _collected_words_count -> profile "collected_words". Frontend profil:
+   "Toplanan Kelime" Stat kartı (accent).
+4) Profili düzenle butonu SAĞ ÜST: profil üst kartı position relative, buton absolute top:0 right:0
+   ("⚙️ Düzenle"). Eski alt buton kaldırıldı. Mobil+desktop aynı.
+5) BottomNav güzelleştirme: üst köşeler radius 22, boxShadow -6px 24px, orta buton gradient+58px+
+   gölge, font renkleri text-soft (daha açık), ikonlar 24px opacity .85 (grayscale kaldırıldı),
+   badge border'lı.
+6) Mobil menü başlık "☰ Menü" KALDIRILDI.
+Test: arkadaş kontrolü 403 ✓, collected_words ✓, migration ✓. Build ok.
