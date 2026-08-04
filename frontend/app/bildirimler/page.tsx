@@ -69,18 +69,22 @@ export default function BildirimlerPage() {
         <div style={{ display: "grid", gap: 8 }}>
           {notifs.map((n) => {
             const clickable = !!n.link;
-            return (
-              <div key={n.id}
-                onClick={() => { if (clickable) window.location.href = n.link!; }}
-                style={{
-                  padding: "12px 14px", background: "var(--bg-panel)", borderRadius: 10,
-                  borderLeft: n.read ? "3px solid var(--border-soft)" : "3px solid var(--accent)",
-                  cursor: clickable ? "pointer" : "default",
-                }}>
+            const inner = (
+              <>
                 <div style={{ fontWeight: 600, color: "var(--text-strong)", fontSize: 14 }}>{n.icon} {n.title}</div>
                 {n.body && <div style={{ color: "var(--text-soft)", fontSize: 13, marginTop: 2 }}>{n.body}</div>}
                 {clickable && <div style={{ color: "var(--accent)", fontSize: 12, marginTop: 4, fontWeight: 600 }}>Arenaya git →</div>}
-              </div>
+              </>
+            );
+            const cardStyle: React.CSSProperties = {
+              display: "block", padding: "12px 14px", background: "var(--bg-panel)", borderRadius: 10,
+              borderLeft: n.read ? "3px solid var(--border-soft)" : "3px solid var(--accent)",
+              textDecoration: "none", cursor: clickable ? "pointer" : "default",
+            };
+            return clickable ? (
+              <a key={n.id} href={n.link} style={cardStyle}>{inner}</a>
+            ) : (
+              <div key={n.id} style={cardStyle}>{inner}</div>
             );
           })}
         </div>

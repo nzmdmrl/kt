@@ -1704,3 +1704,11 @@ Frontend:
 Test: apply_match_result rewards (elo delta, xp, ilk galibiyet rozetleri) ✓, room _broadcast_match_over
 metodu ✓. Build ok.
 NOT: Sadece 1v1 maçlar (MatchGame). Arena maç sonu ayrı ekran (ArenaResult) - oraya eklenmedi.
+
+## Bildirimler tıklama fix (desktop) (Nazım)
+Sorun: desktopta link'li bildirimlere (arena daveti) tıklanmıyordu. <div onClick window.location.href>
+güvenilir değildi.
+Fix: app/bildirimler/page.tsx — link'li bildirim artık native <a href={n.link}> (block, textDecoration
+none). Link'siz olanlar <div>. Native link her yerde çalışır.
+Doğrulama: backend davet bildirimi link='/arena/ozel/{code}' içeriyor ✓ (arkadaşlık isteği link'siz,
+o zaten requests bölümünde ✅/❌ butonlu). Build ok.
