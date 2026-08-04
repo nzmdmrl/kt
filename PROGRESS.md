@@ -1759,3 +1759,10 @@ Fix (SADECE DESKTOP): MatchGame.tsx inputRef eklendi. myTurnActive true olunca w
 kullanıcı mobil değişiklik istemedi). myTurn iken writeBlocked zaten false, focus -> onFocus ->
 hasFocus true. Tur/sıra değişince (dep myTurnActive) tekrar tetiklenir.
 Build ok.
+
+## Yasal sayfalar çift logo fix (Nazım)
+Sorun: desktopta bilgi sayfalarında (nasil-oynanir, gizlilik, kosullar) 2 logo — DesktopChrome TopBar
++ LegalPage kendi logosu.
+Fix: components/LegalPage.tsx logo div'i .kt-mobile-only oldu (mobilde görünür, desktopta gizli;
+desktopta TopBar logosu kalır). Sınıf globals.css'te mevcut.
+Build ok.
