@@ -1,4 +1,5 @@
 import TopBar from "@/components/TopBar";
+import Footer from "@/components/Footer";
 import DesktopUserSummary from "@/components/DesktopUserSummary";
 
 // Masaüstü ana içerik — TopBar (sol logo) + kullanıcı özeti + başlık + mod butonları.
@@ -40,6 +41,7 @@ export default function HomeDesktop() {
           </div>
         </header>
       </main>
+      <Footer />
     </>
   );
 }

@@ -1606,3 +1606,11 @@ Build ok.
    renkler görünür (text-strong). Başlık 30px. Bölüm başlıkları ("AYARLAR", "HESAP & BİLGİ").
    Toggle 48x28 gölgeli. Çıkış kırmızı ikon kutulu. Çizgiler artık görünür (border-soft).
 Build ok.
+
+## Menü 2 sütun + desktop footer geri (Nazım)
+- app/menu/page.tsx: Hesap&Bilgi butonları 2 sütun grid (gridTemplateColumns 1fr 1fr). NavRow dikey
+  kart oldu (ikon 52px kutu üstte, label altta, minHeight 100). Çıkış gridColumn 1/-1 tam genişlik.
+  Toggle'lar (gece/ses) tam genişlik kaldı. "Şartlar ve Koşullar"->"Şartlar" (dar sütun).
+- HomeDesktop: Footer geri eklendi (main sonrası). Footer zaten Nasıl Oynanır/Gizlilik/Kullanım
+  Koşulları linklerini içeriyor. Sadece .home-desktop içinde -> masaüstünde görünür, mobilde alt nav.
+Build ok.

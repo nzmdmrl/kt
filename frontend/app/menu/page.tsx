@@ -42,7 +42,7 @@ export default function MenuPage() {
 
       {/* Hesap & bilgi butonları */}
       <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-soft)", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.05em" }}>Hesap & Bilgi</div>
-      <div style={{ display: "grid", gap: 10 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         {user && (
           <NavRow icon="👤" label="Profilim" onClick={() => router.push(`/profil/${user.username}`)} />
         )}
@@ -50,9 +50,9 @@ export default function MenuPage() {
         <NavRow icon="🕐" label="Geçmiş" onClick={() => router.push("/gecmis")} />
         <NavRow icon="❓" label="Nasıl Oynanır" onClick={() => router.push("/nasil-oynanir")} />
         <NavRow icon="🔒" label="Gizlilik" onClick={() => router.push("/gizlilik")} />
-        <NavRow icon="📄" label="Şartlar ve Koşullar" onClick={() => router.push("/kosullar")} />
+        <NavRow icon="📄" label="Şartlar" onClick={() => router.push("/kosullar")} />
         {user && (
-          <button onClick={logout} style={{ ...rowStyle, color: "var(--accent-hot)", cursor: "pointer", width: "100%", textAlign: "left" }}>
+          <button onClick={logout} style={{ ...rowStyle, color: "var(--accent-hot)", cursor: "pointer", width: "100%", textAlign: "left", gridColumn: "1 / -1" }}>
             <span style={{ fontSize: 22, width: 40, height: 40, flexShrink: 0, borderRadius: 11, background: "rgba(217,90,90,.12)", display: "grid", placeItems: "center" }}>🚪</span>
             <span style={{ flex: 1, fontWeight: 600, fontSize: 16, color: "var(--accent-hot)" }}>Çıkış Yap</span>
           </button>
@@ -71,13 +71,17 @@ const rowStyle: React.CSSProperties = {
 
 function NavRow({ icon, label, onClick }: { icon: string; label: string; onClick: () => void }) {
   return (
-    <button onClick={onClick} style={{ ...rowStyle, cursor: "pointer", width: "100%", textAlign: "left" }}>
+    <button onClick={onClick} style={{
+      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10,
+      padding: "20px 12px", background: "var(--bg-panel)", borderRadius: 14,
+      border: "1px solid var(--border-soft)", boxShadow: "0 1px 3px rgba(0,0,0,.15)",
+      cursor: "pointer", width: "100%", minHeight: 100,
+    }}>
       <span style={{
-        fontSize: 22, width: 40, height: 40, flexShrink: 0, borderRadius: 11,
+        fontSize: 26, width: 52, height: 52, flexShrink: 0, borderRadius: 14,
         background: "var(--bg-elevated)", display: "grid", placeItems: "center",
       }}>{icon}</span>
-      <span style={{ flex: 1, fontWeight: 600, fontSize: 16, color: "var(--text-strong)" }}>{label}</span>
-      <span style={{ color: "var(--text-soft)", fontSize: 20 }}>›</span>
+      <span style={{ fontWeight: 600, fontSize: 15, color: "var(--text-strong)", textAlign: "center" }}>{label}</span>
     </button>
   );
 }
