@@ -1480,3 +1480,15 @@ Parça 3 geçmiş + Arena sonuç kaydı (ArenaHistory: kaçıncı oldun).
   korundu) + HomeMusic. TopBar/Footer kaldırıldı (üst bar HomeHero'da, alt nav layout'ta).
 Build ok, level endpoint test ✓.
 SONRAKİ: Parça 3 geçmiş + Arena sonuç kaydı (ArenaHistory: kaçıncı oldun) + Arena/günün XP bağlantısı.
+
+## ARENA XP + desktop/mobil ana sayfa ayrımı (Nazım)
+1) Arena XP: _persist_results dolduruldu. Gerçek oyunculara arena_played (20) XP, 1. olana ek
+   arena_win (60) XP. Test: 1. olan 80 XP ✓. (Günün kelimesi XP: check_daily_guess auth'suz
+   olduğu için ertelendi.)
+2) Desktop/mobil ana sayfa: 
+   - components/HomeDesktop.tsx: eski geniş tasarım (TopBar + logo + açıklama + mod butonları).
+   - page.tsx: .home-mobile (HomeHero+HomeBoards) + .home-desktop (HomeDesktop+HomeBoards).
+   - globals.css: @media min-width 721px -> mobil gizle/desktop göster. Alt nav .kt-bottom-nav
+     class -> masaüstünde display:none. Mobilde QuizzLand tarzı + alt nav, masaüstünde eski
+     TopBar üst menü, alt menü YOK.
+Build ok.

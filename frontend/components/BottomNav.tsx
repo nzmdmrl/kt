@@ -41,8 +41,8 @@ export default function BottomNav() {
   return (
     <>
       {/* Alt bar yüksekliği kadar boşluk (içerik gizlenmesin) */}
-      <div style={{ height: 72 }} />
-      <nav style={{
+      <div className="kt-bottom-nav" style={{ height: 72 }} />
+      <nav className="kt-bottom-nav" style={{
         position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50,
         display: "flex", justifyContent: "space-around", alignItems: "flex-end",
         background: "var(--bg-panel)", borderTop: "1px solid var(--border-soft)",

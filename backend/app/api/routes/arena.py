@@ -182,14 +182,31 @@ def _wrong_guess(word: str) -> str:
 
 
 async def _persist_results(match: ArenaMatch):
-    """Arena sonucunu kaydet (istatistik/geçmiş). Şimdilik hafif: kazanana rozet vb. sonra."""
+    """Arena sonucu: gerçek oyunculara XP ver (katılım + 1. olana ek XP)."""
     try:
+        ranking = match.final_ranking()
+        rank_by_pid = {r["pid"]: r["rank"] for r in ranking}
+        from app.game.xp_service import grant_xp
+        from app.models.user import User
+        from sqlalchemy import select as _select
         async with AsyncSessionLocal() as db:
-            # İleride ArenaHistory tablosu eklenebilir. Şimdilik gerçek oyuncuların
-            # total_score'una arena puanı eklenmez (ayrı sistem). Sadece placeholder.
-            pass
-    except Exception:
-        pass
+            for pid, p in match.players.items():
+                if p.is_bot or not pid.startswith("u"):
+                    continue
+                try:
+                    uid = int(pid[1:])
+                except ValueError:
+                    continue
+                user = (await db.execute(_select(User).where(User.id == uid))).scalar_one_or_none()
+                if not user:
+                    continue
+                # Katılım XP'si
+                await grant_xp(db, user, "arena_played")
+                # 1. olduysa ek XP
+                if rank_by_pid.get(pid) == 1:
+                    await grant_xp(db, user, "arena_win")
+    except Exception as e:
+        print(f"[arena xp] HATA: {e}")
 
 
 @router.websocket("/ws/arena")
