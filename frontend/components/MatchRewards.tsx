@@ -103,7 +103,7 @@ function CountUp({ from, to, color, prefix = "", suffix = "" }: { from: number; 
     const range = Math.abs(to - from);
     const dir = to >= from ? 1 : -1;
     const steps = Math.min(range, 30);           // en çok 30 adım
-    if (steps === 0) { setVal(to); playSound("tile_correct"); return; }
+    if (steps === 0) { setVal(to); try { playSound("count_done"); } catch {} return; }
     const stepSize = range / steps;
     let cur = from;
     let n = 0;
@@ -112,13 +112,13 @@ function CountUp({ from, to, color, prefix = "", suffix = "" }: { from: number; 
       cur += dir * stepSize;
       const shown = n >= steps ? to : Math.round(cur);
       setVal(shown);
-      // Sayarken kısa tık sesi (çok sık çalmasın diye 2 adımda bir)
-      if (n % 2 === 0) { try { playSound("tick"); } catch {} }
+      // Her adımda kısa keskin tık -> hızlı "dırdırdır"
+      if (n < steps) { try { playSound("count_tick"); } catch {} }
       if (n >= steps) {
         clearInterval(iv);
-        if (!done.current) { done.current = true; try { playSound("tile_correct"); } catch {} } // "çlink"
+        if (!done.current) { done.current = true; try { playSound("count_done"); } catch {} } // "çlink"
       }
-    }, 55);
+    }, 45);
     return () => clearInterval(iv);
   }, [from, to]);
 

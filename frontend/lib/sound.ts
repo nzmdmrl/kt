@@ -9,7 +9,7 @@ import { apiUrl } from "./api";
 type Slot =
   | "button" | "tile_correct" | "tile_present" | "tile_absent"
   | "correct" | "wrong" | "win" | "lose" | "round_start" | "match_start"
-  | "radar" | "opponent_found" | "tick"
+  | "radar" | "opponent_found" | "tick" | "count_tick" | "count_done"
   | "joker_yellow" | "joker_green" | "joker_time"
   | "music1" | "music2" | "music3" | "music4" | "music5" | "music6";
 
@@ -155,6 +155,32 @@ function playSynth(slot: Slot, opts?: { intensity?: number }) {
       gain.connect(c.destination);
       osc.start(now);
       osc.stop(now + 0.13);
+      break;
+    }
+    case "count_tick": {
+      // Çok kısa, keskin "dır" tıkırtısı — hızlı ardışık çalınca "dırdırdır" olur.
+      const c = ctx();
+      if (!c) break;
+      const now = c.currentTime;
+      const osc = c.createOscillator();
+      const gain = c.createGain();
+      osc.type = "square";                 // keskin, net
+      osc.frequency.value = 1050;          // tiz, mekanik sayaç hissi
+      const peak = volume * 0.16;
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(peak, now + 0.003);   // çok hızlı attack
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.035); // çok kısa decay
+      osc.connect(gain);
+      gain.connect(c.destination);
+      osc.start(now);
+      osc.stop(now + 0.04);
+      break;
+    }
+    case "count_done": {
+      // Tatmin edici "çlink" — parlak, yükselen iki nota + tiz parıltı.
+      tone(880, 0.09, "triangle", 0, 1.0);      // la
+      tone(1318, 0.16, "triangle", 0.07, 0.95); // yüksek mi
+      tone(1760, 0.20, "sine", 0.13, 0.6);      // parlaklık (yüksek la)
       break;
     }
     default: break;

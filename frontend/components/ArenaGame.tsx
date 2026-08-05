@@ -508,12 +508,12 @@ function ArenaXpReward({ xp, won }: { xp: number; won: boolean }) {
       n += 1;
       cur += stepSize;
       setVal(n >= steps ? xp : Math.round(cur));
-      if (n % 2 === 0) { try { playSound("tick"); } catch {} }
+      if (n < steps) { try { playSound("count_tick"); } catch {} }
       if (n >= steps) {
         clearInterval(iv);
-        if (!done.current) { done.current = true; try { playSound("tile_correct"); } catch {} }
+        if (!done.current) { done.current = true; try { playSound("count_done"); } catch {} }
       }
-    }, 55);
+    }, 45);
     return () => clearInterval(iv);
   }, [show, xp]);
 

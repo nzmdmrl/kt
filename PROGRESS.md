@@ -1786,3 +1786,14 @@ Test: normal arena rewards (1.->80xp won, 2.->20xp) ✓, özel arena rewards Non
 - phase "countdown" + countdownN>0 değişince playSound("tick") — backend for n in (3,2,1) ayrı mesaj
   gönderdiği için 3'te/2'de/1'de birer tık sesi.
 Build ok. (Tamamen frontend ses efekti.)
+
+## Maç sonu sayaç sesi iyileştirme (Nazım "dırdırdır + çlink yok")
+Sorun: tick sesi (120ms yumuşak) hızlı sayaç için uygun değildi, üst üste binip bulanıklaşıyordu;
+bitiş sesi (tile_correct) çlink gibi değildi.
+lib/sound.ts: 2 yeni slot:
+- count_tick: 35ms, square dalga, 1050Hz, keskin -> hızlı ardışıkta "dırdırdır".
+- count_done: parlak çlink (880->1318 triangle + 1760 sine parıltı).
+CountUp (MatchRewards.tsx) + ArenaXpReward (ArenaGame.tsx): interval 55->45ms, her adımda
+count_tick (n%2 değil), bitişte count_done. steps==0 -> count_done. mp3 fallback: yeni slotlar
+uploadedSlots'ta yok -> doğrudan playSynth.
+Build ok.
