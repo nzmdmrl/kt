@@ -1806,3 +1806,19 @@ kelime sayısı) apply_match_result'a geçilir. apply_match_result zaten user.wo
 yapıyor -> kümülatif TEKRARLI toplam (aynı kelime farklı maçlarda tekrar sayılır). "Toplanan Kelime"
 (collected_words) benzersiz kalır. İkisi farklı: Kelime=toplam çözüm, Toplanan Kelime=farklı kelime.
 Test: 3+2=5 ✓. Build gerekmez (frontend zaten words_solved gösteriyor).
+
+## 20 unvan + DB'de düzenlenebilir (admin) (Nazım)
+Yeni 20 unvan, başta hızlı (0/20/50/100), sonra kademeli artan eşikler:
+Çaylak0 Meraklı20 Kaşif50 Bilgin100 Düşünür180 Araştırmacı300 Usta480 Uzman720 Âlim1050 Deha1500
+Üstat2100 Fenomen2900 Şampiyon3900 Titan5200 Efsane6800 İkon8800 Zirve11300 Öncü14400 Mit18200
+Ölümsüz22800.
+- models/title.py: Title (name, icon, xp_required) + DEFAULT_TITLES. database.py listesine eklendi.
+- xp_service.py: TITLES sabit KALDIRILDI. _titles_cache (bellek), set_titles_cache(rows), _titles()
+  (cache yoksa DEFAULT fallback). title_for_xp cache'ten okur (senkron).
+- main.py startup: titles tablosu boşsa DEFAULT_TITLES seed + set_titles_cache. Her açılışta cache
+  yüklenir.
+- admin.py: GET /admin/titles DB'den. POST/PUT/DELETE /admin/titles[/{id}] (TitleIn name/icon/
+  xp_required). _reload_titles_cache her değişiklikte cache'i tazeler. HTTPException import eklendi.
+- yonetim/page.tsx Titles: her unvan düzenlenebilir (ikon/isim/xp input + Kaydet + 🗑️ sil) +
+  "Yeni Unvan Ekle". Kaydedince cache anında güncel.
+Test: 20 unvan seed, eşikler (0/20/50/100 hızlı), admin PUT -> cache anında, profil unvan ✓. Build ok.

@@ -17,7 +17,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -87,19 +87,73 @@ async def dashboard(admin: User = Depends(get_admin_user), db: AsyncSession = De
 
 
 @router.get("/titles")
-async def get_titles(admin: User = Depends(get_admin_user)):
-    """XP unvanları — isim, ikon, XP eşiği (admin görünümü)."""
-    from app.game.xp_service import TITLES, XP_EVENTS
+async def get_titles(admin: User = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+    """XP unvanları — DB'den (admin düzenleyebilir) + XP kazanç ayarları."""
+    from app.models.title import Title
+    from app.game.xp_service import XP_EVENTS
     from app.game.settings_service import cached_int
-    titles = [
-        {"name": name, "icon": icon, "xp_required": xp}
-        for (name, xp, icon) in TITLES
-    ]
-    # XP kazanç ayarları (event -> aktif değer)
+    from sqlalchemy import select as _sel
+    rows = (await db.execute(_sel(Title).order_by(Title.xp_required))).scalars().all()
+    titles = [t.to_public() for t in rows]
     events = []
     for event, (key, default) in XP_EVENTS.items():
         events.append({"event": event, "key": key, "xp": cached_int(key, default)})
     return {"titles": titles, "xp_events": events}
+
+
+class TitleIn(BaseModel):
+    name: str
+    icon: str = "🌱"
+    xp_required: int = 0
+
+
+async def _reload_titles_cache(db):
+    from app.models.title import Title
+    from app.game.xp_service import set_titles_cache
+    from sqlalchemy import select as _sel
+    rows = (await db.execute(_sel(Title))).scalars().all()
+    set_titles_cache([(t.name, t.xp_required, t.icon) for t in rows])
+
+
+@router.post("/titles")
+async def create_title(data: TitleIn, admin: User = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+    """Yeni unvan ekle."""
+    from app.models.title import Title
+    t = Title(name=data.name.strip()[:48] or "Unvan", icon=(data.icon or "🌱")[:8], xp_required=max(0, data.xp_required))
+    db.add(t)
+    await db.commit()
+    await _reload_titles_cache(db)
+    return {"ok": True, "id": t.id}
+
+
+@router.put("/titles/{title_id}")
+async def update_title(title_id: int, data: TitleIn, admin: User = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+    """Unvanı düzenle (isim/ikon/XP eşiği)."""
+    from app.models.title import Title
+    from sqlalchemy import select as _sel
+    t = (await db.execute(_sel(Title).where(Title.id == title_id))).scalar_one_or_none()
+    if not t:
+        raise HTTPException(404, "Unvan bulunamadı.")
+    t.name = data.name.strip()[:48] or t.name
+    t.icon = (data.icon or t.icon)[:8]
+    t.xp_required = max(0, data.xp_required)
+    await db.commit()
+    await _reload_titles_cache(db)
+    return {"ok": True}
+
+
+@router.delete("/titles/{title_id}")
+async def delete_title(title_id: int, admin: User = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+    """Unvanı sil."""
+    from app.models.title import Title
+    from sqlalchemy import select as _sel
+    t = (await db.execute(_sel(Title).where(Title.id == title_id))).scalar_one_or_none()
+    if not t:
+        raise HTTPException(404, "Unvan bulunamadı.")
+    await db.delete(t)
+    await db.commit()
+    await _reload_titles_cache(db)
+    return {"ok": True}
 
 
 @router.get("/settings")

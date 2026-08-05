@@ -95,6 +95,25 @@ async def on_startup():
                 print(f"[startup] link ALTER atlandı: {_e}")
     except Exception as e:
         print(f"[startup] link garantileme hatası: {e}")
+
+    # Unvanları seed et (yoksa) ve cache'e yükle.
+    try:
+        from app.core.database import AsyncSessionLocal as _ASL
+        from app.models.title import Title, DEFAULT_TITLES
+        from app.game.xp_service import set_titles_cache
+        from sqlalchemy import select as _sel
+        async with _ASL() as db:
+            rows = (await db.execute(_sel(Title))).scalars().all()
+            if not rows:
+                for (name, icon, xp) in DEFAULT_TITLES:
+                    db.add(Title(name=name, icon=icon, xp_required=xp))
+                await db.commit()
+                rows = (await db.execute(_sel(Title))).scalars().all()
+                print(f"[startup] {len(rows)} unvan seed edildi.")
+            set_titles_cache([(t.name, t.xp_required, t.icon) for t in rows])
+    except Exception as e:
+        print(f"[startup] Unvan seed/cache hatası: {e}")
+
     # İlk kez ise botları seed et (100 Türkçe bot).
     try:
         from app.core.database import AsyncSessionLocal

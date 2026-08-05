@@ -393,15 +393,18 @@ function Centered({ children }: { children: React.ReactNode }) {
 
 // Unvanlar sekmesi — 10 unvan (isim, ikon, XP eşiği) + XP kazanç ayarları.
 function Titles() {
-  const [titles, setTitles] = useState<{ name: string; icon: string; xp_required: number }[]>([]);
+  type T = { id: number; name: string; icon: string; xp_required: number };
+  const [titles, setTitles] = useState<T[]>([]);
   const [events, setEvents] = useState<{ event: string; key: string; xp: number }[]>([]);
+  const [saved, setSaved] = useState<number | null>(null);
 
-  useEffect(() => {
+  function load() {
     fetch(apiUrl("/api/admin/titles"), { headers: authHeaders() })
       .then((r) => r.json())
       .then((d) => { setTitles(d.titles || []); setEvents(d.xp_events || []); })
       .catch(() => {});
-  }, []);
+  }
+  useEffect(() => { load(); }, []);
 
   const eventLabel: Record<string, string> = {
     match_win: "1v1 Galibiyet", match_loss: "1v1 Mağlubiyet", match_draw: "1v1 Beraberlik",
@@ -413,29 +416,63 @@ function Titles() {
     await fetch(apiUrl("/api/admin/settings"), { method: "POST", headers: authHeaders(), body: JSON.stringify({ key, value }) }).catch(() => {});
   }
 
+  function updateLocal(id: number, patch: Partial<T>) {
+    setTitles((ts) => ts.map((t) => t.id === id ? { ...t, ...patch } : t));
+  }
+
+  async function saveTitle(t: T) {
+    await fetch(apiUrl(`/api/admin/titles/${t.id}`), {
+      method: "PUT", headers: authHeaders(),
+      body: JSON.stringify({ name: t.name, icon: t.icon, xp_required: Number(t.xp_required) || 0 }),
+    }).catch(() => {});
+    setSaved(t.id); setTimeout(() => setSaved(null), 1500);
+    load();
+  }
+
+  async function deleteTitle(id: number) {
+    await fetch(apiUrl(`/api/admin/titles/${id}`), { method: "DELETE", headers: authHeaders() }).catch(() => {});
+    load();
+  }
+
+  async function addTitle() {
+    await fetch(apiUrl("/api/admin/titles"), {
+      method: "POST", headers: authHeaders(),
+      body: JSON.stringify({ name: "Yeni Unvan", icon: "🌟", xp_required: 0 }),
+    }).catch(() => {});
+    load();
+  }
+
   return (
     <div style={{ display: "grid", gap: 24 }}>
       <div>
-        <h3 style={{ fontSize: 16, marginBottom: 4 }}>🏅 Unvanlar (XP barajları)</h3>
+        <h3 style={{ fontSize: 16, marginBottom: 4 }}>🏅 Unvanlar</h3>
         <p style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 12 }}>
-          Kullanıcılar XP kazandıkça unvan atlar. Eşikler kodda tanımlı (xp_service.py TITLES).
+          İsim, ikon ve XP eşiğini düzenleyip kaydet. Kullanıcılar XP kazandıkça sıradaki unvana geçer.
         </p>
-        <div style={{ display: "grid", gap: 6 }}>
+        <div style={{ display: "grid", gap: 8 }}>
           {titles.map((t, i) => (
-            <div key={t.name} style={{
-              display: "flex", alignItems: "center", gap: 12, padding: "10px 14px",
-              background: "var(--bg-panel)", borderRadius: 10,
+            <div key={t.id} style={{
+              display: "flex", alignItems: "center", gap: 8, padding: "8px 10px",
+              background: "var(--bg-panel)", borderRadius: 10, flexWrap: "wrap",
             }}>
-              <span style={{ fontSize: 24 }}>{t.icon}</span>
-              <span style={{ flex: 1, fontWeight: 600, color: "var(--text-strong)" }}>
-                {i + 1}. {t.name}
-              </span>
-              <span className="brand-mono" style={{ color: "var(--accent)" }}>
-                {t.xp_required.toLocaleString("tr")} XP
-              </span>
+              <span style={{ color: "var(--text-dim)", fontSize: 12, width: 20, textAlign: "center" }}>{i + 1}</span>
+              <input value={t.icon} onChange={(e) => updateLocal(t.id, { icon: e.target.value })}
+                style={{ width: 44, padding: "6px", borderRadius: 8, textAlign: "center", fontSize: 18, border: "1px solid var(--border-soft)", background: "var(--bg-elevated)" }} />
+              <input value={t.name} onChange={(e) => updateLocal(t.id, { name: e.target.value })}
+                style={{ flex: "1 1 120px", minWidth: 100, padding: "6px 10px", borderRadius: 8, border: "1px solid var(--border-soft)", background: "var(--bg-elevated)", color: "var(--text-strong)", fontWeight: 600 }} />
+              <input type="number" value={t.xp_required} onChange={(e) => updateLocal(t.id, { xp_required: Number(e.target.value) })}
+                style={{ width: 90, padding: "6px 8px", borderRadius: 8, textAlign: "center", border: "1px solid var(--border-soft)", background: "var(--bg-elevated)", color: "var(--accent)", fontFamily: "var(--font-display)" }} />
+              <span style={{ color: "var(--text-dim)", fontSize: 12 }}>XP</span>
+              <button onClick={() => saveTitle(t)} style={{ padding: "6px 12px", borderRadius: 8, border: "none", background: saved === t.id ? "var(--tile-correct)" : "var(--accent)", color: saved === t.id ? "#fff" : "#1a1330", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+                {saved === t.id ? "✓" : "Kaydet"}
+              </button>
+              <button onClick={() => deleteTitle(t.id)} title="Sil" style={{ padding: "6px 8px", borderRadius: 8, border: "none", background: "none", color: "var(--text-dim)", cursor: "pointer", fontSize: 15 }}>🗑️</button>
             </div>
           ))}
         </div>
+        <button onClick={addTitle} style={{ marginTop: 10, padding: "9px 16px", borderRadius: 9, border: "1px dashed var(--border-soft)", background: "transparent", color: "var(--accent)", fontWeight: 600, cursor: "pointer" }}>
+          + Yeni Unvan Ekle
+        </button>
       </div>
 
       <div>

@@ -74,29 +74,35 @@ def xp_amount(event: str) -> int:
     return cached_int(key, default)
 
 
-# 10 unvan — (isim, gereken toplam XP, ikon). XP eşiğinde açılır.
-TITLES = [
-    ("Çırak", 0, "🌱"),
-    ("Acemi", 150, "🔰"),
-    ("Öğrenci", 400, "📘"),
-    ("Bilgili", 800, "🧠"),
-    ("Yetenekli", 1400, "⭐"),
-    ("Uzman", 2200, "🎯"),
-    ("Usta", 3200, "🏅"),
-    ("Bilgin", 5000, "🎓"),
-    ("Üstat", 7500, "👑"),
-    ("Efsane", 11000, "🔥"),
-]
+# Unvan cache — (isim, xp, ikon) tuple listesi, xp'ye göre sıralı.
+# DB'den yüklenir (models.title.Title). Fallback: DEFAULT_TITLES.
+_titles_cache: list[tuple] = []
+
+
+def _fallback_titles() -> list[tuple]:
+    from app.models.title import DEFAULT_TITLES
+    return [(name, xp, icon) for (name, icon, xp) in DEFAULT_TITLES]
+
+
+def set_titles_cache(rows: list[tuple]) -> None:
+    """rows: [(name, xp, icon), ...] — admin/startup çağırır."""
+    global _titles_cache
+    _titles_cache = sorted(rows, key=lambda t: t[1]) if rows else []
+
+
+def _titles() -> list[tuple]:
+    return _titles_cache if _titles_cache else _fallback_titles()
 
 
 def title_for_xp(xp: int) -> dict:
     """XP'ye göre mevcut unvan + sonraki unvan bilgisi (bar/etiket için)."""
-    current = TITLES[0]
+    titles = _titles()
+    current = titles[0]
     nxt = None
-    for i, item in enumerate(TITLES):
+    for i, item in enumerate(titles):
         if xp >= item[1]:
             current = item
-            nxt = TITLES[i + 1] if i + 1 < len(TITLES) else None
+            nxt = titles[i + 1] if i + 1 < len(titles) else None
         else:
             break
     result = {
