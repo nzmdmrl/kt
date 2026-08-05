@@ -190,8 +190,10 @@ class ArenaMatch:
             if p.score != prev_score:
                 rank = i + 1
                 prev_score = p.score
+            flash_count = sum(1 for h in p.history if h.get("flash"))
             out.append({
                 "pid": p.pid, "name": p.name, "avatar_url": p.avatar_url,
                 "is_bot": p.is_bot, "score": p.score, "rank": rank,
+                "correct_count": p.correct_count, "flash_count": flash_count,
             })
         return out

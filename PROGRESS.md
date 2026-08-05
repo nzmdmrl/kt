@@ -1851,3 +1851,17 @@ Frontend:
 - Link gerçek username ile (/profil/{username}) — /profil/me sayfası yok, dinamik [username] rotası
   "me"yi kullanıcı sanır.
 Test: unvan atlayınca title_up bildirimi 1 adet, link=/profil/Ali ✓. Build ok.
+
+## Arena bitiş ekranı yenileme + radar/countdown sesleri (Nazım, bilgimaratonu resmi örnek)
+Sesler (ArenaGame.tsx):
+- radar sesi playSynth'te TANIMLI DEĞİLDİ -> eklendi (sonar bip 760->1140Hz). Lobi/connecting
+  fazında setInterval 1600ms ile aralıklı radar çalar (rakip aranıyor).
+- countdown: playSound("tick") -> playSound("count_tick",{intensity:1}) (keskin, belirgin).
+Backend arena.py final_ranking: correct_count (✓) + flash_count (⚡ = history'de flash sayısı) eklendi.
+Frontend ArenaResult tümden yenilendi (bilgimaratonu podyum düzeni):
+- Başlık "🏆 Kazandın!" (kendi 1.isem) / "Sonuçlar". "Doğru + hız + ⚡ bonusu".
+- Podyum: 2-1-3 kürsü (avatar+isim+puan+madalya, 1. büyük+altın parıltı).
+- Tablo: # / Oyuncu / ✓(correct) / ⚡(flash) / Puan. Kendi satırım vurgulu (myPid=u{kt_uid}).
+- Altta ArenaXpReward (XP sayaç) + butonlar.
+- auth.tsx: kt_uid localStorage'a yazılır (me fetch + applyAuth) -> kendi satır vurgusu için.
+Test: final_ranking doğru=7 hız=4 puan=385 (resimdeki nazim gibi) ✓. Build ok.

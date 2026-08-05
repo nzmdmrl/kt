@@ -53,7 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       headers: { Authorization: `Bearer ${saved}` },
     })
       .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((data) => setUser(data.user))
+      .then((data) => { setUser(data.user); try { if (data.user?.id) localStorage.setItem("kt_uid", String(data.user.id)); } catch {} })
       .catch(() => {
         localStorage.removeItem(TOKEN_KEY);
         setToken(null);
@@ -63,6 +63,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const applyAuth = useCallback((data: { token: string; user: AuthUser }) => {
     localStorage.setItem(TOKEN_KEY, data.token);
+    try { if (data.user?.id) localStorage.setItem("kt_uid", String(data.user.id)); } catch {}
     setToken(data.token);
     setUser(data.user);
   }, []);

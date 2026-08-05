@@ -12,7 +12,7 @@ function wsBase(): string {
   return "";
 }
 
-export type ArenaPlayer = { pid: string; name: string; avatar_url: string; is_bot?: boolean; score?: number };
+export type ArenaPlayer = { pid: string; name: string; avatar_url: string; is_bot?: boolean; score?: number; rank?: number; correct_count?: number; flash_count?: number };
 export type ArenaQuestion = {
   index: number; total: number; length: number;
   first_letter: string; scrambled: string[]; duration: number;

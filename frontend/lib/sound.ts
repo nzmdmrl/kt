@@ -183,6 +183,12 @@ function playSynth(slot: Slot, opts?: { intensity?: number }) {
       tone(1760, 0.20, "sine", 0.13, 0.6);      // parlaklık (yüksek la)
       break;
     }
+    case "radar": {
+      // Rakip aranıyor — sonar "bip" (yükselip sönen tek nota, uzayan kuyruk).
+      tone(760, 0.10, "sine", 0, 0.7);
+      tone(1140, 0.22, "sine", 0.08, 0.4);
+      break;
+    }
     default: break;
   }
 }
