@@ -1797,3 +1797,12 @@ CountUp (MatchRewards.tsx) + ArenaXpReward (ArenaGame.tsx): interval 55->45ms, h
 count_tick (n%2 değil), bitişte count_done. steps==0 -> count_done. mp3 fallback: yeni slotlar
 uploadedSlots'ta yok -> doğrudan playSynth.
 Build ok.
+
+## "Kelime" istatistiği düzeltme (Nazım)
+Sorun: profilde "Kelime" (words_solved) hep 0 — match.py apply_match_result'a words_solved=0 sabit
+geçiliyordu.
+Fix: match.py on_over -> solved_this_match = len(match.solved_words.get(pid, set())) (o maçta çözülen
+kelime sayısı) apply_match_result'a geçilir. apply_match_result zaten user.words_solved += words_solved
+yapıyor -> kümülatif TEKRARLI toplam (aynı kelime farklı maçlarda tekrar sayılır). "Toplanan Kelime"
+(collected_words) benzersiz kalır. İkisi farklı: Kelime=toplam çözüm, Toplanan Kelime=farklı kelime.
+Test: 3+2=5 ✓. Build gerekmez (frontend zaten words_solved gösteriyor).

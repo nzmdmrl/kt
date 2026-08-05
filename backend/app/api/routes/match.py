@@ -95,11 +95,13 @@ def _attach_stats_callback(room):
                     opp_elo = getattr(opp_player, "elo", 1000) or 1000
                     won = (winner == pid)
                     draw = (winner is None)
+                    # Bu maçta bu oyuncunun çözdüğü kelime sayısı (tekrarlı toplama eklenir).
+                    solved_this_match = len(match.solved_words.get(pid, set()))
                     outcome = await apply_match_result(
                         db, uid, opp_elo,
                         won=won, draw=draw,
                         score=scores.get(pid, 0),
-                        words_solved=0,
+                        words_solved=solved_this_match,
                     )
                     if isinstance(outcome, dict):
                         rewards_by_pid[pid] = {
