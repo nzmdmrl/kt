@@ -395,7 +395,9 @@ async def _persist_results(match: ArenaMatch) -> dict:
                     correct_count=p.correct_count, total_words=total_words,
                     player_count=player_count,
                 ))
-                # Katılım XP'si
+                # Katılım XP'si (öncesi/sonrası unvanı karşılaştır)
+                from app.game.xp_service import title_for_xp
+                title_before = title_for_xp(user.xp or 0)["title"]
                 r1 = await grant_xp(db, user, "arena_played")
                 xp_total = r1.get("gained", 0) if isinstance(r1, dict) else 0
                 won = rank == 1
@@ -403,10 +405,15 @@ async def _persist_results(match: ArenaMatch) -> dict:
                 if won:
                     r2 = await grant_xp(db, user, "arena_win")
                     xp_total += r2.get("gained", 0) if isinstance(r2, dict) else 0
+                title_after = title_for_xp(user.xp or 0)
+                new_title = None
+                if title_after["title"] != title_before:
+                    new_title = {"name": title_after["title"], "icon": title_after["title_icon"]}
                 rewards_by_pid[pid] = {
                     "xp_gained": xp_total,
                     "rank": rank,
                     "won": won,
+                    "new_title": new_title,
                 }
             await db.commit()
     except Exception as e:

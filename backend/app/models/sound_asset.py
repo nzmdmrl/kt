@@ -34,6 +34,7 @@ SOUND_SLOTS = {
     "joker_yellow": "Joker — sarı harf",
     "joker_green": "Joker — yeşil harf",
     "joker_time": "Joker — süre uzatma",
+    "title_up": "Yeni unvan kutlaması (müzik)",
     "music1": "Ana sayfa müzik 1",
     "music2": "Ana sayfa müzik 2",
     "music3": "Ana sayfa müzik 3",

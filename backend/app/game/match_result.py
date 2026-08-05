@@ -91,13 +91,22 @@ async def apply_match_result(
     await db.commit()
     await db.refresh(user)
 
-    # XP ver (galibiyet/beraberlik/mağlubiyet).
+    # XP ver (galibiyet/beraberlik/mağlubiyet). Öncesi/sonrası unvanı karşılaştır.
     xp_gained = 0
+    new_title = None
     try:
-        from app.game.xp_service import grant_xp
+        from app.game.xp_service import grant_xp, title_for_xp
+        xp_before = user.xp or 0
+        title_before = title_for_xp(xp_before)["title"]
         event = "match_draw" if draw else ("match_win" if won else "match_loss")
         res = await grant_xp(db, user, event)
         xp_gained = res.get("gained", 0) if isinstance(res, dict) else 0
+        title_after_info = title_for_xp(user.xp or 0)
+        if title_after_info["title"] != title_before:
+            new_title = {
+                "name": title_after_info["title"],
+                "icon": title_after_info["title_icon"],
+            }
     except Exception as e:
         print(f"[xp] HATA user={user_id}: {e}")
 
@@ -119,4 +128,5 @@ async def apply_match_result(
         "elo_delta": elo_after - elo_before,
         "xp_gained": xp_gained,
         "new_badges": new_badges,
+        "new_title": new_title,
     }

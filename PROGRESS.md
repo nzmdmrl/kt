@@ -1822,3 +1822,19 @@ Yeni 20 unvan, başta hızlı (0/20/50/100), sonra kademeli artan eşikler:
 - yonetim/page.tsx Titles: her unvan düzenlenebilir (ikon/isim/xp input + Kaydet + 🗑️ sil) +
   "Yeni Unvan Ekle". Kaydedince cache anında güncel.
 Test: 20 unvan seed, eşikler (0/20/50/100 hızlı), admin PUT -> cache anında, profil unvan ✓. Build ok.
+
+## Yeni unvan kutlama modalı (konfeti + müzik) (Nazım)
+Backend:
+- sound_asset.py SOUND_SLOTS: "title_up" (Yeni unvan kutlaması müziği) — admin ses sekmesinden mp3
+  yüklenebilir.
+- match_result.py apply_match_result: grant_xp öncesi/sonrası title_for_xp karşılaştırır, değiştiyse
+  new_title {name, icon} döndürür. match.py rewards_by_pid'e new_title.
+- arena.py _persist_results: aynı unvan öncesi/sonrası kontrolü -> rewards new_title.
+Frontend:
+- components/TitleCelebration.tsx: fixed karartma (.82 siyah), 60 konfeti (confettiFall anim), unvan
+  kartı (YENİ UNVAN! + büyük ikon titlePop + isim), müzik (/api/sounds/file/title_up, isSoundEnabled),
+  5sn sonra kapanır (tıklayınca da). 
+- MatchGame: rewards.new_title -> 1.5sn gecikmeyle celebrateTitle -> <TitleCelebration>.
+- ArenaGame: finished + rewards.new_title -> 1.2sn gecikmeyle modal. finished return <>ArenaResult +
+  TitleCelebration</>.
+Test: 15+50=65 XP -> Kaşif unvanı, new_title döndü ✓, title_up slot ✓. Build ok.

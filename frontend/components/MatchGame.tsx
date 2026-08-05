@@ -7,6 +7,7 @@ import { useSpeech } from "@/lib/useSpeech";
 import { playSound, initSound, startTicking, stopTicking } from "@/lib/sound";
 import Grid from "./Grid";
 import MatchRewards from "./MatchRewards";
+import TitleCelebration from "./TitleCelebration";
 import ScoreBar from "./ScoreBar";
 import SoundToggle from "./SoundToggle";
 import ThemeToggle from "./ThemeToggle";
@@ -36,11 +37,17 @@ export default function MatchGame({
   // Maç bitti durumu — lastEvent'e bağlı DEĞİL (rematch_request gelince kaybolmasın).
   const [matchOverData, setMatchOverData] = useState<any>(null);
   const [rewards, setRewards] = useState<any>(null);
+  const [celebrateTitle, setCelebrateTitle] = useState<{ name: string; icon: string } | null>(null);
   useEffect(() => {
     if (lastEvent?.type === "match_over") {
       const res = lastEvent.result;
       setMatchOverData(res ?? { winner: null });
       setRewards(lastEvent.rewards ?? null);
+      // Yeni unvan kazanıldıysa kutlama modalını biraz gecikmeyle aç (skor animasyonu görünsün).
+      const nt = lastEvent.rewards?.new_title;
+      if (nt) {
+        setTimeout(() => setCelebrateTitle(nt), 1500);
+      }
       // Kazanma/kaybetme sesi.
       if (res?.winner === playerId) playSound("win");
       else if (res?.winner && res.winner !== playerId) playSound("lose");
@@ -384,6 +391,7 @@ export default function MatchGame({
 
         {/* Kazanımlar: ELO / XP / rozet — sırayla, sayaç + seslerle */}
         <MatchRewards rewards={rewards} />
+        <TitleCelebration title={celebrateTitle} onClose={() => setCelebrateTitle(null)} />
 
         {/* Butonlar: Rövanş + Yeni Rakip */}
         <div style={{ display: "grid", gap: 10 }}>

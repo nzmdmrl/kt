@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useArena, ArenaPlayer, RevealPlayer } from "@/lib/useArena";
 import { toUpperTr } from "@/lib/turkish";
 import { playSound, initSound, stopTicking } from "@/lib/sound";
+import TitleCelebration from "./TitleCelebration";
 import { useSpeech } from "@/lib/useSpeech";
 
 // Arena maç ekranı — eşleşme, senkron sorular (anagram), sonuç.
@@ -129,6 +130,15 @@ export default function ArenaGame({ onExit, customCode }: { onExit: () => void; 
     }
   }, [state.phase, state.countdownN]);
 
+  // Yeni unvan kazanıldıysa (finished) kutlama modalını aç.
+  const [celebrateTitle, setCelebrateTitle] = useState<{ name: string; icon: string } | null>(null);
+  useEffect(() => {
+    if (state.phase === "finished" && state.rewards?.new_title) {
+      const t = setTimeout(() => setCelebrateTitle(state.rewards!.new_title!), 1200);
+      return () => clearTimeout(t);
+    }
+  }, [state.phase, state.rewards]);
+
   // ---- RENDER ----
 
   const leftToastEl = leftToast ? (
@@ -208,7 +218,12 @@ export default function ArenaGame({ onExit, customCode }: { onExit: () => void; 
 
   // Sonuç
   if (state.phase === "finished") {
-    return <ArenaResult ranking={state.ranking} rewards={state.rewards} onExit={onExit} />;
+    return (
+      <>
+        <ArenaResult ranking={state.ranking} rewards={state.rewards} onExit={onExit} />
+        <TitleCelebration title={celebrateTitle} onClose={() => setCelebrateTitle(null)} />
+      </>
+    );
   }
 
   // Soru / reveal

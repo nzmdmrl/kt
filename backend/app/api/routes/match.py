@@ -110,6 +110,7 @@ def _attach_stats_callback(room):
                             "elo_delta": outcome.get("elo_delta", 0),
                             "xp_gained": outcome.get("xp_gained", 0),
                             "new_badges": outcome.get("new_badges", []),
+                            "new_title": outcome.get("new_title"),
                         }
                     # Toplanan kelimeler: bu oyuncunun bu maçta doğru bildiği kelimeler.
                     try:

@@ -40,7 +40,7 @@ export type ArenaState = {
   scores: Record<string, number>;
   ranking: ArenaPlayer[];
   leftNotice: { name: string; at: number } | null;   // "xxx arenadan çıktı" popup
-  rewards: { xp_gained: number; rank: number; won: boolean } | null;
+  rewards: { xp_gained: number; rank: number; won: boolean; new_title?: { name: string; icon: string } | null } | null;
 };
 
 const initialState: ArenaState = {
