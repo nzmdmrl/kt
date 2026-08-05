@@ -492,7 +492,7 @@ function ArenaResult({ ranking, rewards, onExit }: { ranking: ArenaPlayer[]; rew
   const Podium = ({ p, place, h }: { p?: ArenaPlayer; place: 1 | 2 | 3; h: number }) => {
     if (!p) return <div style={{ flex: 1 }} />;
     const medal = place === 1 ? "🥇" : place === 2 ? "🥈" : "🥉";
-    const size = place === 1 ? 78 : 60;
+    const size = place === 1 ? 64 : 50;
     return (
       <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
         <img src={avatar(p)} alt={p.name} style={{
@@ -515,66 +515,66 @@ function ArenaResult({ ranking, rewards, onExit }: { ranking: ArenaPlayer[]; rew
   };
 
   return (
-    <div style={{ minHeight: "100vh", maxWidth: 560, margin: "0 auto", padding: "24px 16px 40px" }}>
+    <div style={{ maxWidth: 560, margin: "0 auto", padding: "16px 14px 28px" }}>
       {/* Başlık */}
-      <div style={{ textAlign: "center", marginBottom: 20 }}>
-        <div style={{ fontSize: 34, fontWeight: 800, color: iWon ? "var(--accent)" : "var(--text-strong)" }}>
+      <div style={{ textAlign: "center", marginBottom: 12 }}>
+        <div style={{ fontSize: 28, fontWeight: 800, color: iWon ? "var(--accent)" : "var(--text-strong)" }}>
           {iWon ? "🏆 Kazandın!" : "Sonuçlar"}
         </div>
-        <div style={{ color: "var(--text-dim)", fontSize: 14, marginTop: 2 }}>Doğru + hız + ⚡ bonusu</div>
+        <div style={{ color: "var(--text-dim)", fontSize: 13, marginTop: 1 }}>Doğru + hız + ⚡ bonusu</div>
       </div>
 
       {/* Podyum: 2 - 1 - 3 */}
-      <div style={{ display: "flex", alignItems: "flex-end", gap: 8, marginBottom: 24 }}>
-        <Podium p={second} place={2} h={70} />
-        <Podium p={first} place={1} h={104} />
-        <Podium p={third} place={3} h={52} />
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 8, marginBottom: 14 }}>
+        <Podium p={second} place={2} h={48} />
+        <Podium p={first} place={1} h={72} />
+        <Podium p={third} place={3} h={36} />
       </div>
+
+      {/* Kazanılan XP — podyumun hemen altında (görünür kalsın) */}
+      {showXp && (
+        <div style={{ marginBottom: 14 }}>
+          <ArenaXpReward xp={rewards!.xp_gained} won={rewards!.won} />
+        </div>
+      )}
 
       {/* Tablo */}
       <div style={{ background: "var(--bg-panel)", borderRadius: 14, overflow: "hidden", border: "1px solid var(--border-soft)" }}>
         {/* başlık satırı */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", color: "var(--text-dim)", fontSize: 13, fontWeight: 600, borderBottom: "1px solid var(--border-soft)" }}>
-          <span style={{ width: 24 }}>#</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 14px", color: "var(--text-dim)", fontSize: 13, fontWeight: 600, borderBottom: "1px solid var(--border-soft)" }}>
+          <span style={{ width: 22 }}>#</span>
           <span style={{ flex: 1 }}>Oyuncu</span>
-          <span style={{ width: 34, textAlign: "center", color: "var(--tile-correct)" }}>✓</span>
-          <span style={{ width: 34, textAlign: "center", color: "var(--accent)" }}>⚡</span>
-          <span style={{ width: 60, textAlign: "right" }}>Puan</span>
+          <span style={{ width: 32, textAlign: "center", color: "var(--tile-correct)" }}>✓</span>
+          <span style={{ width: 32, textAlign: "center", color: "var(--accent)" }}>⚡</span>
+          <span style={{ width: 58, textAlign: "right" }}>Puan</span>
         </div>
         {ranking.map((p) => {
           const isMe = p.pid === myPid;
           const medalIcon = p.rank === 1 ? "🥇" : p.rank === 2 ? "🥈" : p.rank === 3 ? "🥉" : null;
           return (
             <div key={p.pid} style={{
-              display: "flex", alignItems: "center", gap: 10, padding: "11px 14px",
+              display: "flex", alignItems: "center", gap: 10, padding: "7px 14px",
               borderBottom: "1px solid var(--border-soft)",
               background: isMe ? "rgba(224,148,10,.10)" : "transparent",
             }}>
-              <span style={{ width: 24, textAlign: "center", fontSize: medalIcon ? 16 : 14, color: "var(--text-dim)", fontWeight: 700 }}>
+              <span style={{ width: 22, textAlign: "center", fontSize: medalIcon ? 15 : 13, color: "var(--text-dim)", fontWeight: 700 }}>
                 {medalIcon || p.rank}
               </span>
-              <img src={avatar(p)} alt={p.name} style={{ width: 34, height: 34, borderRadius: "50%", background: "var(--bg-elevated)" }} />
-              <span style={{ flex: 1, fontWeight: isMe ? 800 : 600, color: isMe ? "var(--accent)" : "var(--text-strong)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <img src={avatar(p)} alt={p.name} style={{ width: 30, height: 30, borderRadius: "50%", background: "var(--bg-elevated)" }} />
+              <span style={{ flex: 1, fontWeight: isMe ? 800 : 600, fontSize: 14, color: isMe ? "var(--accent)" : "var(--text-strong)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {p.name}{p.is_bot ? " 🤖" : ""}
               </span>
-              <span className="brand-mono" style={{ width: 34, textAlign: "center", color: "var(--tile-correct)", fontWeight: 700 }}>{p.correct_count ?? 0}</span>
-              <span className="brand-mono" style={{ width: 34, textAlign: "center", color: "var(--accent)", fontWeight: 700 }}>{p.flash_count ?? 0}</span>
-              <span className="brand-mono" style={{ width: 60, textAlign: "right", color: "var(--accent)", fontWeight: 800, fontSize: 17 }}>{p.score}</span>
+              <span className="brand-mono" style={{ width: 32, textAlign: "center", color: "var(--tile-correct)", fontWeight: 700, fontSize: 14 }}>{p.correct_count ?? 0}</span>
+              <span className="brand-mono" style={{ width: 32, textAlign: "center", color: "var(--accent)", fontWeight: 700, fontSize: 14 }}>{p.flash_count ?? 0}</span>
+              <span className="brand-mono" style={{ width: 58, textAlign: "right", color: "var(--accent)", fontWeight: 800, fontSize: 16 }}>{p.score}</span>
             </div>
           );
         })}
       </div>
 
-      {/* Kazanılan XP — sayaç animasyonu + ses */}
-      {showXp && (
-        <div style={{ marginTop: 18 }}>
-          <ArenaXpReward xp={rewards!.xp_gained} won={rewards!.won} />
-        </div>
-      )}
-
-      <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 24, flexWrap: "wrap" }}>
-        <button onClick={() => window.location.reload()} style={{ padding: "13px 24px", borderRadius: 11, border: "none", background: "var(--accent)", color: "#1a1330", fontWeight: 700, fontSize: 15, cursor: "pointer" }}>Tekrar Arena'ya Gir</button>
-        <button onClick={onExit} style={{ padding: "13px 20px", borderRadius: 11, border: "1px solid var(--border-soft)", background: "transparent", color: "var(--text-soft)", fontWeight: 600, fontSize: 15, cursor: "pointer" }}>Ana Sayfa</button>
+      <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 16, flexWrap: "wrap" }}>
+        <button onClick={() => window.location.reload()} style={{ padding: "12px 22px", borderRadius: 11, border: "none", background: "var(--accent)", color: "#1a1330", fontWeight: 700, fontSize: 15, cursor: "pointer" }}>Tekrar Arena'ya Gir</button>
+        <button onClick={onExit} style={{ padding: "12px 20px", borderRadius: 11, border: "1px solid var(--border-soft)", background: "transparent", color: "var(--text-soft)", fontWeight: 600, fontSize: 15, cursor: "pointer" }}>Ana Sayfa</button>
       </div>
     </div>
   );

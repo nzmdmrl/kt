@@ -1877,3 +1877,10 @@ Backend match.py maç geçmişi:
 - Üye + misafir maçında üye ELO/XP alır (apply_match_result u{id} için çalışır, misafiri atlar) — zaten
   böyleydi, korundu.
 Test: misafir gizleme kodu ✓, üye kazanımı (elo+16 xp+50) ✓. Build ok.
+
+## Arena sonuç ekranı kompaktlaştırma (Nazım, ekrana sığmıyordu)
+ArenaResult (ArenaGame.tsx): XP kutusu podyum ile tablo ARASINA taşındı (en altta kalıp görünmüyordu).
+Dikey sıkılaştırma: minHeight:100vh kaldırıldı, padding 24->16, başlık 34->28 font + margin 20->12,
+podyum yükseklikleri (104/70/52 -> 72/48/36) + avatar (78/60 -> 64/50), tablo satır padding 11->7px +
+font/avatar küçültme, buton margin 24->16. Böylece "Tekrar Arena" + "Ana Sayfa" butonları görünür.
+Sadece frontend layout. Build ok.
