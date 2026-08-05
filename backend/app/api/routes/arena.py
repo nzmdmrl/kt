@@ -274,11 +274,23 @@ async def _run_match(code: str, custom: bool = False):
     # Bitiş
     match.state = "finished"
     ranking = match.final_ranking()
-    await _broadcast(code, {"type": "finished", "ranking": ranking})
+    # Önce XP/geçmiş kaydı (rewards_by_pid al), sonra her oyuncuya kendi kazanımıyla finished.
     if custom:
         await _persist_custom_results(match)
+        rewards_by_pid = {}
     else:
-        await _persist_results(match)
+        rewards_by_pid = await _persist_results(match)
+    # Her bağlı oyuncuya kendi rewards'ıyla finished gönder.
+    conns = _connections.get(code, {})
+    for cpid, ws in list(conns.items()):
+        try:
+            await ws.send_json({
+                "type": "finished",
+                "ranking": ranking,
+                "rewards": rewards_by_pid.get(cpid),
+            })
+        except Exception:
+            pass
     # temizlik (bir süre sonra)
     await asyncio.sleep(2.0)
     arena_manager.cleanup(code)
@@ -353,14 +365,15 @@ async def _persist_custom_results(match: ArenaMatch):
         print(f"[custom arena] HATA: {e}")
 
 
-async def _persist_results(match: ArenaMatch):
-    """Arena sonucu: geçmişe kaydet + gerçek oyunculara XP ver."""
+async def _persist_results(match: ArenaMatch) -> dict:
+    """Arena sonucu: geçmişe kaydet + gerçek oyunculara XP ver. rewards_by_pid döndürür."""
+    rewards_by_pid: dict = {}
     try:
         ranking = match.final_ranking()
         rank_by_pid = {r["pid"]: r["rank"] for r in ranking}
         player_count = len(match.players)
         total_words = len(match.questions)
-        from app.game.xp_service import grant_xp
+        from app.game.xp_service import grant_xp, xp_amount
         from app.models.user import User
         from app.models.arena_history import ArenaHistory
         from sqlalchemy import select as _select
@@ -383,13 +396,22 @@ async def _persist_results(match: ArenaMatch):
                     player_count=player_count,
                 ))
                 # Katılım XP'si
-                await grant_xp(db, user, "arena_played")
+                r1 = await grant_xp(db, user, "arena_played")
+                xp_total = r1.get("gained", 0) if isinstance(r1, dict) else 0
+                won = rank == 1
                 # 1. olduysa ek XP
-                if rank == 1:
-                    await grant_xp(db, user, "arena_win")
+                if won:
+                    r2 = await grant_xp(db, user, "arena_win")
+                    xp_total += r2.get("gained", 0) if isinstance(r2, dict) else 0
+                rewards_by_pid[pid] = {
+                    "xp_gained": xp_total,
+                    "rank": rank,
+                    "won": won,
+                }
             await db.commit()
     except Exception as e:
         print(f"[arena xp] HATA: {e}")
+    return rewards_by_pid
 
 
 @router.websocket("/ws/arena")

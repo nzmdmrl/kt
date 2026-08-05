@@ -194,7 +194,7 @@ export default function ArenaGame({ onExit, customCode }: { onExit: () => void; 
 
   // Sonuç
   if (state.phase === "finished") {
-    return <ArenaResult ranking={state.ranking} onExit={onExit} />;
+    return <ArenaResult ranking={state.ranking} rewards={state.rewards} onExit={onExit} />;
   }
 
   // Soru / reveal
@@ -434,10 +434,10 @@ function ArenaShell({ children, onExit, players, answers, showResults }: {
 }
 
 // Sonuç ekranı — kupa/madalya sıralaması
-function ArenaResult({ ranking, onExit }: { ranking: ArenaPlayer[]; onExit: () => void }) {
-  const me = typeof window !== "undefined" ? localStorage.getItem("kt_uid") : null;
+function ArenaResult({ ranking, rewards, onExit }: { ranking: ArenaPlayer[]; rewards: { xp_gained: number; rank: number; won: boolean } | null; onExit: () => void }) {
   useEffect(() => { playSound("win"); }, []);
   const medal = (rank: number) => rank === 1 ? "🏆" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : `${rank}.`;
+  const showXp = !!rewards && rewards.xp_gained > 0;
   return (
     <div style={{ minHeight: "100vh", maxWidth: 520, margin: "0 auto", padding: "30px 18px" }}>
       <h1 className="brand-mono" style={{ textAlign: "center", fontSize: 30, marginBottom: 24 }}>Sonuçlar</h1>
@@ -456,10 +456,67 @@ function ArenaResult({ ranking, onExit }: { ranking: ArenaPlayer[]; onExit: () =
           </div>
         ))}
       </div>
+
+      {/* Kazanılan XP — sayaç animasyonu + ses (dırdırdır / çlink) */}
+      {showXp && (
+        <div style={{ marginTop: 20 }}>
+          <ArenaXpReward xp={rewards!.xp_gained} won={rewards!.won} />
+        </div>
+      )}
+
       <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 28, flexWrap: "wrap" }}>
         <button onClick={() => window.location.reload()} style={{ padding: "12px 22px", borderRadius: 11, border: "none", background: "var(--accent)", color: "#1a1330", fontWeight: 700, fontSize: 15, cursor: "pointer" }}>Tekrar Arena'ya Gir</button>
         <button onClick={onExit} style={{ padding: "12px 18px", borderRadius: 11, border: "1px solid var(--border-soft)", background: "transparent", color: "var(--text-soft)", fontWeight: 600, fontSize: 15, cursor: "pointer" }}>Ana Sayfa</button>
       </div>
+    </div>
+  );
+}
+
+// Arena XP kazanım kartı — 0'dan kazanılan XP'ye sayar; sayarken "tick", bitince "çlink".
+function ArenaXpReward({ xp, won }: { xp: number; won: boolean }) {
+  const [val, setVal] = useState(0);
+  const done = useRef(false);
+  const [show, setShow] = useState(false);
+
+  useEffect(() => {
+    // Kısa gecikmeyle başlat (sonuç ekranı otursun).
+    const startT = setTimeout(() => setShow(true), 500);
+    return () => clearTimeout(startT);
+  }, []);
+
+  useEffect(() => {
+    if (!show) return;
+    const steps = Math.min(xp, 30);
+    if (steps === 0) { setVal(xp); return; }
+    const stepSize = xp / steps;
+    let cur = 0, n = 0;
+    const iv = setInterval(() => {
+      n += 1;
+      cur += stepSize;
+      setVal(n >= steps ? xp : Math.round(cur));
+      if (n % 2 === 0) { try { playSound("tick"); } catch {} }
+      if (n >= steps) {
+        clearInterval(iv);
+        if (!done.current) { done.current = true; try { playSound("tile_correct"); } catch {} }
+      }
+    }, 55);
+    return () => clearInterval(iv);
+  }, [show, xp]);
+
+  if (!show) return null;
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", gap: 14, padding: "14px 16px",
+      background: "var(--bg-panel)", borderRadius: 12, border: "1px solid var(--accent)",
+      boxShadow: "0 0 16px rgba(224,148,10,.25)", animation: "rewardIn .35s ease",
+    }}>
+      <span style={{ fontSize: 26 }}>💎</span>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{won ? "Birincilik + katılım" : "Katılım"}</div>
+        <div style={{ fontWeight: 600, color: "var(--text-strong)" }}>Kazanılan XP</div>
+      </div>
+      <span className="brand-mono" style={{ fontSize: 22, fontWeight: 800, color: "var(--accent)" }}>+{val}</span>
+      <style>{`@keyframes rewardIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}`}</style>
     </div>
   );
 }

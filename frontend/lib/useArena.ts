@@ -40,6 +40,7 @@ export type ArenaState = {
   scores: Record<string, number>;
   ranking: ArenaPlayer[];
   leftNotice: { name: string; at: number } | null;   // "xxx arenadan çıktı" popup
+  rewards: { xp_gained: number; rank: number; won: boolean } | null;
 };
 
 const initialState: ArenaState = {
@@ -57,6 +58,7 @@ const initialState: ArenaState = {
   scores: {},
   ranking: [],
   leftNotice: null,
+  rewards: null,
 };
 
 export function useArena(enabled: boolean, customCode?: string) {
@@ -125,7 +127,7 @@ export function useArena(enabled: boolean, customCode?: string) {
           break;
         }
         case "finished":
-          setState((s) => ({ ...s, phase: "finished", ranking: msg.ranking || [] }));
+          setState((s) => ({ ...s, phase: "finished", ranking: msg.ranking || [], rewards: msg.rewards || null }));
           break;
         case "player_left":
           setState((s) => ({

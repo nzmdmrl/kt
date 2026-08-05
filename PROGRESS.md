@@ -1766,3 +1766,17 @@ Sorun: desktopta bilgi sayfalarında (nasil-oynanir, gizlilik, kosullar) 2 logo 
 Fix: components/LegalPage.tsx logo div'i .kt-mobile-only oldu (mobilde görünür, desktopta gizli;
 desktopta TopBar logosu kalır). Sınıf globals.css'te mevcut.
 Build ok.
+
+## Arena maç sonu XP kazanım animasyonu (Nazım)
+Sorun: arena maç sonunda XP/kazanımlar görünmüyordu.
+Backend arena.py:
+- _persist_results artık rewards_by_pid döndürür {pid: {xp_gained, rank, won}}. grant_xp'lerden
+  gained toplanır (arena_played + 1.ise arena_win).
+- _run_match bitiş: ÖNCE persist (rewards al), SONRA her bağlı sokete kendi rewards'ıyla finished
+  gönder (eskiden _broadcast tek mesaj + persist sonra). Özel arena rewards None (XP yok).
+Frontend:
+- useArena ArenaState.rewards {xp_gained, rank, won}. finished case rewards set.
+- ArenaGame ArenaResult(rewards): showXp -> <ArenaXpReward xp won/>. ArenaXpReward: 0->xp sayar,
+  sayarken "tick" (2 adımda bir, dırdırdır), bitince "tile_correct" (çlink). 💎 kart, +xp, vurgulu.
+  500ms gecikmeyle başlar.
+Test: normal arena rewards (1.->80xp won, 2.->20xp) ✓, özel arena rewards None ✓. Build ok.
