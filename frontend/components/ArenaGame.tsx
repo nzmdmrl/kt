@@ -115,6 +115,20 @@ export default function ArenaGame({ onExit, customCode }: { onExit: () => void; 
   }, [state.myResult]);
   useEffect(() => { if (state.phase === "finished") stopTicking(); }, [state.phase]);
 
+  // Ara durum (reveal) sahnesi açılınca bir ses çal.
+  useEffect(() => {
+    if (state.phase === "reveal") {
+      try { playSound("round_start"); } catch {}
+    }
+  }, [state.phase]);
+
+  // Geri sayım (3-2-1) — her sayıda bir tık sesi.
+  useEffect(() => {
+    if (state.phase === "countdown" && state.countdownN > 0) {
+      try { playSound("tick"); } catch {}
+    }
+  }, [state.phase, state.countdownN]);
+
   // ---- RENDER ----
 
   const leftToastEl = leftToast ? (

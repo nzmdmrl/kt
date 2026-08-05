@@ -1780,3 +1780,9 @@ Frontend:
   sayarken "tick" (2 adımda bir, dırdırdır), bitince "tile_correct" (çlink). 💎 kart, +xp, vurgulu.
   500ms gecikmeyle başlar.
 Test: normal arena rewards (1.->80xp won, 2.->20xp) ✓, özel arena rewards None ✓. Build ok.
+
+## Arena reveal + countdown sesleri (Nazım)
+- ArenaGame.tsx: phase "reveal" olunca playSound("round_start") (ara durum tablosu sesi).
+- phase "countdown" + countdownN>0 değişince playSound("tick") — backend for n in (3,2,1) ayrı mesaj
+  gönderdiği için 3'te/2'de/1'de birer tık sesi.
+Build ok. (Tamamen frontend ses efekti.)
