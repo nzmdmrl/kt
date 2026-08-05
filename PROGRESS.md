@@ -1865,3 +1865,15 @@ Frontend ArenaResult tümden yenilendi (bilgimaratonu podyum düzeni):
 - Altta ArenaXpReward (XP sayaç) + butonlar.
 - auth.tsx: kt_uid localStorage'a yazılır (me fetch + applyAuth) -> kendi satır vurgusu için.
 Test: final_ranking doğru=7 hız=4 puan=385 (resimdeki nazim gibi) ✓. Build ok.
+
+## Misafir maçı: sonuç ekranı + üye ol teşviki + kayıtta gizleme (Nazım)
+Sonuç ekranı: teknik olarak zaten geliyordu (match_over _end_match'te callback'ten bağımsız broadcast,
+callback hatası try/except). Olası hata kaynağı MatchRewards misafirde kaldırıldı (!isGuest).
+- MatchGame prop isGuest (oyna/page.tsx isGuest={!user}). Üyeler MatchRewards görür; misafir görmez.
+- Misafir sonuç ekranına teşvik kutusu: 🎁 "Kazanımların kaybolmasın!" + "Ücretsiz Üye Ol →" (/giris).
+Backend match.py maç geçmişi:
+- Misafir (u ile başlamayan, bot değil) oyuncunun uydurduğu adı GİZLE -> "Misafir" (_disp). winner_name
+  de misafirse "Misafir". Kayıt SİLİNMEDİ (Nazım: kaydedilsin ama misafir gizli).
+- Üye + misafir maçında üye ELO/XP alır (apply_match_result u{id} için çalışır, misafiri atlar) — zaten
+  böyleydi, korundu.
+Test: misafir gizleme kodu ✓, üye kazanımı (elo+16 xp+50) ✓. Build ok.

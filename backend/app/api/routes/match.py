@@ -163,13 +163,20 @@ def _attach_stats_callback(room):
             async with AsyncSessionLocal() as db:
                 u1 = await _uname(db, p1, pl1)
                 u2 = await _uname(db, p2, pl2)
+                # Misafir (u ile başlamayan, bot olmayan) oyuncunun uydurduğu adı GİZLE -> "Misafir".
+                def _disp(pid, pl):
+                    if pl and pl.is_bot:
+                        return (pl.name or "Bot")[:48]
+                    if not pid.startswith("u"):
+                        return "Misafir"
+                    return (pl.name if pl else "?")[:48]
                 db.add(MatchHistory(
-                    p1_name=(pl1.name if pl1 else "?")[:48],
-                    p2_name=(pl2.name if pl2 else "?")[:48],
+                    p1_name=_disp(p1, pl1),
+                    p2_name=_disp(p2, pl2),
                     p1_username=u1, p2_username=u2,
                     p1_score=scores.get(p1, 0),
                     p2_score=scores.get(p2, 0),
-                    winner_name=winner_name[:48],
+                    winner_name=(("Misafir" if (winner and not winner.startswith("u") and not (match.players.get(winner) and match.players[winner].is_bot)) else winner_name))[:48],
                     has_bot=bool((pl1 and pl1.is_bot) or (pl2 and pl2.is_bot)),
                 ))
                 await db.commit()
