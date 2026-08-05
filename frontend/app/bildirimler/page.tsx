@@ -73,7 +73,7 @@ export default function BildirimlerPage() {
               <>
                 <div style={{ fontWeight: 600, color: "var(--text-strong)", fontSize: 14 }}>{n.icon} {n.title}</div>
                 {n.body && <div style={{ color: "var(--text-soft)", fontSize: 13, marginTop: 2 }}>{n.body}</div>}
-                {clickable && <div style={{ color: "var(--accent)", fontSize: 12, marginTop: 4, fontWeight: 600 }}>Arenaya git →</div>}
+                {clickable && <div style={{ color: "var(--accent)", fontSize: 12, marginTop: 4, fontWeight: 600 }}>{n.link!.startsWith("/profil") ? "Profile git →" : "Arenaya git →"}</div>}
               </>
             );
             const cardStyle: React.CSSProperties = {

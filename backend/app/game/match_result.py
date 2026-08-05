@@ -107,6 +107,19 @@ async def apply_match_result(
                 "name": title_after_info["title"],
                 "icon": title_after_info["title_icon"],
             }
+            # Bildirim: yeni unvan (profile götürür)
+            try:
+                from app.models.notification import Notification
+                db.add(Notification(
+                    user_id=user_id, kind="title_up",
+                    title="Yeni unvan kazandın!",
+                    body=f"{title_after_info['title_icon']} {title_after_info['title']} unvanına yükseldin.",
+                    icon=title_after_info["title_icon"],
+                    link=f"/profil/{user.username}" if user.username else "/profil/me",
+                ))
+                await db.commit()
+            except Exception as e:
+                print(f"[unvan bildirim] HATA user={user_id}: {e}")
     except Exception as e:
         print(f"[xp] HATA user={user_id}: {e}")
 

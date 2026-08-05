@@ -1838,3 +1838,16 @@ Frontend:
 - ArenaGame: finished + rewards.new_title -> 1.2sn gecikmeyle modal. finished return <>ArenaResult +
   TitleCelebration</>.
 Test: 15+50=65 XP -> Kaşif unvanı, new_title döndü ✓, title_up slot ✓. Build ok.
+
+## Unvan bildirimi + profile link (Nazım)
+Backend:
+- match_result.py apply_match_result: new_title tespit edilince Notification(kind="title_up",
+  title="Yeni unvan kazandın!", body="🧭 Kaşif unvanına yükseldin.", icon, link=/profil/{username}).
+  await db.commit().
+- arena.py _persist_results: aynı unvan bildirimi (döngü sonrası ortak commit).
+Frontend:
+- bildirimler/page.tsx: link etiketi dinamik — /profil ile başlıyorsa "Profile git →", değilse
+  "Arenaya git →". (Link'li bildirim zaten <a href> tıklanabilir.)
+- Link gerçek username ile (/profil/{username}) — /profil/me sayfası yok, dinamik [username] rotası
+  "me"yi kullanıcı sanır.
+Test: unvan atlayınca title_up bildirimi 1 adet, link=/profil/Ali ✓. Build ok.

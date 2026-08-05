@@ -409,6 +409,17 @@ async def _persist_results(match: ArenaMatch) -> dict:
                 new_title = None
                 if title_after["title"] != title_before:
                     new_title = {"name": title_after["title"], "icon": title_after["title_icon"]}
+                    try:
+                        from app.models.notification import Notification
+                        db.add(Notification(
+                            user_id=uid, kind="title_up",
+                            title="Yeni unvan kazandın!",
+                            body=f"{title_after['title_icon']} {title_after['title']} unvanına yükseldin.",
+                            icon=title_after["title_icon"],
+                            link=f"/profil/{user.username}" if user.username else "/profil/me",
+                        ))
+                    except Exception as e:
+                        print(f"[arena unvan bildirim] HATA: {e}")
                 rewards_by_pid[pid] = {
                     "xp_gained": xp_total,
                     "rank": rank,
