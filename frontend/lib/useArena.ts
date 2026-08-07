@@ -33,7 +33,7 @@ export type ArenaState = {
   question: ArenaQuestion | null;
   questionStartedAt: number;      // client tarafı, süre çubuğu için
   answers: Record<string, AnswerState>;  // pid -> durum (o soru)
-  myResult: { correct: boolean; gained: number; flash: boolean } | null;
+  myResult: { correct: boolean; gained: number; flash: boolean; answer?: string } | null;
   revealAnswer: string;
   revealPlayers: RevealPlayer[];  // tablo için (geçmiş dahil)
   revealTotal: number;            // toplam soru
@@ -109,7 +109,7 @@ export function useArena(enabled: boolean, customCode?: string) {
           }));
           break;
         case "answer_result":
-          setState((s) => ({ ...s, myResult: { correct: msg.correct, gained: msg.gained, flash: msg.flash } }));
+          setState((s) => ({ ...s, myResult: { correct: msg.correct, gained: msg.gained, flash: msg.flash, answer: msg.answer } }));
           break;
         case "reveal": {
           const revAnswers: Record<string, AnswerState> = {};

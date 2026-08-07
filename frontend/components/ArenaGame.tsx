@@ -121,10 +121,7 @@ export default function ArenaGame({ onExit, customCode }: { onExit: () => void; 
     micTimer.current = setTimeout(() => micStop(), 1000);
   }, [micStop]);
 
-  // Ses efektleri: kendi sonucun
-  useEffect(() => {
-    if (state.myResult) playSound(state.myResult.correct ? "tile_correct" : "wrong");
-  }, [state.myResult]);
+  // Ses efektleri: kendi sonucun — flip animasyonu her harfte ses çaldığı için burada tek ses YOK.
   useEffect(() => { if (state.phase === "finished") stopTicking(); }, [state.phase]);
 
   // Ara durum (reveal) sahnesi açılınca bir ses çal.
@@ -264,8 +261,8 @@ export default function ArenaGame({ onExit, customCode }: { onExit: () => void; 
             <div style={{ width: `${timePct}%`, height: "100%", background: timeColor, transition: "width 1s linear" }} />
           </div>
 
-          {/* Cevap kutuları (1v1 Grid tarzı — büyük kareler). Anagram modunda dolu kutuya
-              tıklanınca o pozisyondan itibaren harfler geri alınır. */}
+          {/* Cevap kutuları — cevap gönderilip sonuç geldiyse GİZLE (aşağıda FlipReveal gösterilir) */}
+          {!(alreadyAnswered && state.myResult && !isReveal) && (
           <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 16 }}>
             {Array.from({ length: q.length }).map((_, j) => {
               let letter = "";
@@ -291,6 +288,7 @@ export default function ArenaGame({ onExit, customCode }: { onExit: () => void; 
               );
             })}
           </div>
+          )}
 
           {isReveal ? (
             <div style={{ textAlign: "center", padding: 16 }}>
@@ -302,20 +300,22 @@ export default function ArenaGame({ onExit, customCode }: { onExit: () => void; 
               )}
             </div>
           ) : alreadyAnswered ? (
-            <div style={{ textAlign: "center", padding: 20 }}>
+            <div style={{ textAlign: "center", padding: "12px 8px" }}>
               {state.myResult ? (
                 <>
-                  <div style={{ fontSize: 40, marginBottom: 8 }}>
-                    {state.myResult.correct ? "✅" : "❌"}
-                  </div>
                   <p className="brand-mono" style={{
-                    fontSize: 20, fontWeight: 700, marginBottom: 6,
+                    fontSize: 20, fontWeight: 700, marginBottom: 12,
                     color: state.myResult.correct ? "var(--tile-correct)" : "var(--accent-hot)",
                   }}>
-                    {state.myResult.correct ? "Doğru!" : "Yanlış"}
+                    {state.myResult.correct ? "Doğru! 🎉" : "Yanlış — Doğrusu:"}
                   </p>
+                  {/* Harf kutuları: sırayla dönerek renk alır (yeşil/kırmızı) + her harfte ses */}
+                  <FlipReveal
+                    word={state.myResult.answer || ""}
+                    correct={state.myResult.correct}
+                  />
                   {state.myResult.correct && (
-                    <p style={{ color: "var(--accent)", fontWeight: 600 }}>
+                    <p style={{ color: "var(--accent)", fontWeight: 600, marginTop: 12 }}>
                       +{state.myResult.gained} puan {state.myResult.flash ? "⚡" : ""}
                     </p>
                   )}
@@ -709,6 +709,47 @@ function ArenaScoreGrid({ players, total, answer, onExit }: {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+// Cevap sonucu harf kutuları: önce gri, sonra tek tek dönerek (flip) renk alır.
+// correct=true -> yeşil, false -> kırmızı (doğru cevabı gösterir). Her harfte bir ses.
+function FlipReveal({ word, correct }: { word: string; correct: boolean }) {
+  const letters = (word || "").toUpperCase().split("");
+  const [revealed, setRevealed] = useState(0);
+
+  useEffect(() => {
+    setRevealed(0);
+    let i = 0;
+    const step = () => {
+      i += 1;
+      setRevealed(i);
+      try { playSound(correct ? "tile_correct" : "tile_absent"); } catch {}
+      if (i < letters.length) setTimeout(step, 260);
+    };
+    const t = setTimeout(step, 200);
+    return () => clearTimeout(t);
+  }, [word, correct]);
+
+  const okColor = "var(--tile-correct)";
+  const badColor = "#d13a3a"; // net kırmızı (yanlış cevabın doğrusu)
+  return (
+    <div style={{ display: "flex", gap: 6, justifyContent: "center", flexWrap: "wrap" }}>
+      {letters.map((ch, j) => {
+        const on = j < revealed;
+        return (
+          <div key={j} style={{
+            width: 46, height: 46, display: "grid", placeItems: "center", borderRadius: 10,
+            fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 22,
+            color: on ? "#fff" : "var(--text-dim)",
+            background: on ? (correct ? okColor : badColor) : "var(--tile-empty)",
+            border: on ? "none" : "2px solid var(--tile-border)",
+            transition: "background .15s ease, color .15s ease",
+            animation: on ? "flipIn .35s ease both" : undefined,
+          }}>{ch}</div>
+        );
+      })}
     </div>
   );
 }

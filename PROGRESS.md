@@ -1884,3 +1884,17 @@ Dikey sıkılaştırma: minHeight:100vh kaldırıldı, padding 24->16, başlık 
 podyum yükseklikleri (104/70/52 -> 72/48/36) + avatar (78/60 -> 64/50), tablo satır padding 11->7px +
 font/avatar küçültme, buton margin 24->16. Böylece "Tekrar Arena" + "Ana Sayfa" butonları görünür.
 Sadece frontend layout. Build ok.
+
+## Arena cevap flip animasyonu (gri->dönerek yeşil/kırmızı + her harfte ses) (Nazım)
+Sorun: arena doğru cevapta "Doğru" yazıyor ama harfler gri. İstenen: harf kutuları önce gri, sonra
+tek tek DÖNEREK (flipIn rotateX) renk alsın (doğru=yeşil, yanlış=kırmızı doğru cevap), her harfte ses.
+Backend arena.py submit: dönüşe "answer": q.word eklendi (yanlışta doğru cevabı göstermek için).
+Frontend:
+- useArena myResult.answer eklendi (answer_result msg.answer).
+- ArenaGame FlipReveal bileşeni: harfler önce gri (tile_empty), 200ms sonra 260ms arayla tek tek
+  flipIn + renk (yeşil #tile-correct / kırmızı #d13a3a), her harfte playSound (doğru=tile_correct tiz,
+  yanlış=tile_absent boğuk).
+- alreadyAnswered bloğu: "Doğru! 🎉" / "Yanlış — Doğrusu:" + <FlipReveal word={answer} correct>.
+  Üstteki statik cevap kutuları cevap gönderilince gizlenir (sadece flip görünür). Tek seferlik
+  myResult sesi kaldırıldı (flip her harfte çalıyor).
+Test: submit answer içeriyor ✓. Build ok.

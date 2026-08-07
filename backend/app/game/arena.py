@@ -145,6 +145,7 @@ class ArenaMatch:
             "correct": p.correct,
             "gained": gained,
             "flash": p.flash,
+            "answer": q.word,
             "tiles": [{"letter": r.letter, "state": r.state.value} for r in evaluate_guess(g, q.word)] if len(g) == q.length else [],
         }
 
