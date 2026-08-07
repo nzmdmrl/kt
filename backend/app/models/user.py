@@ -68,6 +68,12 @@ class User(Base):
     xp: Mapped[int] = mapped_column(Integer, default=0)   # toplam XP (seviye buradan hesaplanır)
     custom_arena_played: Mapped[int] = mapped_column(Integer, default=0)  # özel arena tamamlama (rozet için)
 
+    # Arena istatistikleri (normal arena — kupa/madalya/rozet için)
+    arena_played: Mapped[int] = mapped_column(Integer, default=0)   # toplam arena katılımı
+    arena_first: Mapped[int] = mapped_column(Integer, default=0)    # 1.lik (Arena Şampiyonu)
+    arena_second: Mapped[int] = mapped_column(Integer, default=0)   # 2.lik (Arena 2.si)
+    arena_third: Mapped[int] = mapped_column(Integer, default=0)    # 3.lük
+
     # Solo istatistikleri (lige yazılmaz — ayrı tutulur)
     solo_matches: Mapped[int] = mapped_column(Integer, default=0)
     solo_best_score: Mapped[int] = mapped_column(Integer, default=0)
@@ -99,6 +105,10 @@ class User(Base):
             "draws": self.draws,
             "words_solved": self.words_solved,
             "solo_best_score": self.solo_best_score,
+            "arena_played": self.arena_played or 0,
+            "arena_first": self.arena_first or 0,
+            "arena_second": self.arena_second or 0,
+            "arena_third": self.arena_third or 0,
             "xp": self.xp or 0,
             "level": _level_from_xp(self.xp or 0),
         }

@@ -114,6 +114,38 @@ async def on_startup():
     except Exception as e:
         print(f"[startup] Unvan seed/cache hatası: {e}")
 
+    # Rozetleri seed et (yoksa) ve cache'e yükle.
+    try:
+        from app.core.database import AsyncSessionLocal as _ASL2
+        from app.models.badge_def import BadgeDef, DEFAULT_BADGES
+        from app.game.badges import set_badges_cache
+        from sqlalchemy import select as _sel2
+        async with _ASL2() as db:
+            rows = (await db.execute(_sel2(BadgeDef))).scalars().all()
+            if not rows:
+                for idx, (code, name, desc, icon, tier, sk, th) in enumerate(DEFAULT_BADGES):
+                    db.add(BadgeDef(code=code, name=name, description=desc, icon=icon,
+                                    tier=tier, stat_key=sk, threshold=th, sort_order=idx))
+                await db.commit()
+                rows = (await db.execute(_sel2(BadgeDef))).scalars().all()
+                print(f"[startup] {len(rows)} rozet seed edildi.")
+            else:
+                # Yeni eklenen varsayılan rozetleri (kodda olup DB'de olmayan) ekle.
+                existing = {r.code for r in rows}
+                added = 0
+                for idx, (code, name, desc, icon, tier, sk, th) in enumerate(DEFAULT_BADGES):
+                    if code not in existing:
+                        db.add(BadgeDef(code=code, name=name, description=desc, icon=icon,
+                                        tier=tier, stat_key=sk, threshold=th, sort_order=idx))
+                        added += 1
+                if added:
+                    await db.commit()
+                    rows = (await db.execute(_sel2(BadgeDef))).scalars().all()
+                    print(f"[startup] {added} yeni rozet eklendi.")
+            set_badges_cache([(r.code, r.name, r.description, r.icon, r.tier, r.stat_key, r.threshold, r.sort_order) for r in rows])
+    except Exception as e:
+        print(f"[startup] Rozet seed/cache hatası: {e}")
+
     # İlk kez ise botları seed et (100 Türkçe bot).
     try:
         from app.core.database import AsyncSessionLocal

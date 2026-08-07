@@ -66,6 +66,10 @@ async def apply_match_result(
             "matches_played": u.matches_played, "wins": u.wins, "losses": u.losses,
             "draws": u.draws, "words_solved": u.words_solved, "total_score": u.total_score,
             "elo": u.elo, "custom_arena_played": getattr(u, "custom_arena_played", 0) or 0,
+            "arena_played": getattr(u, "arena_played", 0) or 0,
+            "arena_first": getattr(u, "arena_first", 0) or 0,
+            "arena_second": getattr(u, "arena_second", 0) or 0,
+            "arena_third": getattr(u, "arena_third", 0) or 0,
         }
         return {b["code"]: b for b in earned_badges(stats) if b["earned"]}
 

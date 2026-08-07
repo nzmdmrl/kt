@@ -102,6 +102,10 @@ async def _build_profile(db: AsyncSession, user: User) -> dict:
         "trophies": trophies,
         "medals": medals,
         "custom_arena_played": user.custom_arena_played or 0,
+        "arena_played": user.arena_played or 0,
+        "arena_first": user.arena_first or 0,
+        "arena_second": user.arena_second or 0,
+        "arena_third": user.arena_third or 0,
     }
 
     # Kazanım oranı
@@ -120,6 +124,27 @@ async def _build_profile(db: AsyncSession, user: User) -> dict:
         "stars": solo.total_stars if solo else 0,
     }
 
+    achievements = _group_achievements(awards)
+    # Arena kupaları/madalyaları (Kupalar & Madalyalar bölümüne)
+    if (user.arena_first or 0) > 0:
+        achievements.append({
+            "title": "Arena Şampiyonu", "icon": "🏆",
+            "count": user.arena_first, "period_type": "arena", "rank": 1,
+        })
+    if (user.arena_second or 0) > 0:
+        achievements.append({
+            "title": "Arena 2.si", "icon": "🥈",
+            "count": user.arena_second, "period_type": "arena", "rank": 2,
+        })
+    if (user.arena_third or 0) > 0:
+        achievements.append({
+            "title": "Arena 3.sü", "icon": "🥉",
+            "count": user.arena_third, "period_type": "arena", "rank": 3,
+        })
+    # Toplam kupa/madalya sayısına arena dahil (kupa=1.lik, madalya=2.+3.lük)
+    trophies_total = trophies + (user.arena_first or 0)
+    medals_total = medals + (user.arena_second or 0) + (user.arena_third or 0)
+
     return {
         "id": user.id,
         "username": user.username,
@@ -137,9 +162,9 @@ async def _build_profile(db: AsyncSession, user: User) -> dict:
         },
         "badges": earned_badges(stats),
         "awards": [a.to_public() for a in awards],
-        "achievements": _group_achievements(awards),
-        "trophies": trophies,
-        "medals": medals,
+        "achievements": achievements,
+        "trophies": trophies_total,
+        "medals": medals_total,
         "xp": user.xp or 0,
         "level_info": _level_info(user.xp or 0),
         "title_info": _title_info(user.xp or 0),

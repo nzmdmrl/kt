@@ -17,6 +17,7 @@ const TABS = [
   { key: "words", label: "📚 Kelimeler" },
   { key: "sounds", label: "🔊 Sesler" },
   { key: "titles", label: "🏅 Unvanlar" },
+  { key: "badges", label: "🎖️ Rozetler" },
 ];
 
 export default function AdminPage() {
@@ -48,6 +49,7 @@ export default function AdminPage() {
       {tab === "words" && <Words />}
       {tab === "sounds" && <Sounds />}
       {tab === "titles" && <Titles />}
+      {tab === "badges" && <Badges />}
     </Wrap>
   );
 }
@@ -501,6 +503,102 @@ function Titles() {
           ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+const STAT_LABELS: Record<string, string> = {
+  matches_played: "1v1 maç sayısı", wins: "1v1 galibiyet", losses: "1v1 mağlubiyet",
+  draws: "1v1 beraberlik", words_solved: "Çözülen kelime", total_score: "Toplam puan",
+  elo: "ELO", custom_arena_played: "Özel arena tamamlama",
+  arena_played: "Arena katılımı", arena_first: "Arena şampiyonluğu (1.)",
+  arena_second: "Arena 2.lik", arena_third: "Arena 3.lük",
+  trophies: "Toplam kupa", medals: "Toplam madalya",
+};
+
+function Badges() {
+  type B = { id: number; code: string; name: string; description: string; icon: string; tier: string; stat_key: string; threshold: number };
+  const [badges, setBadges] = useState<B[]>([]);
+  const [statKeys, setStatKeys] = useState<string[]>([]);
+  const [saved, setSaved] = useState<number | null>(null);
+
+  function load() {
+    fetch(apiUrl("/api/admin/badges"), { headers: authHeaders() })
+      .then((r) => r.json())
+      .then((d) => { setBadges(d.badges || []); setStatKeys(d.stat_keys || []); })
+      .catch(() => {});
+  }
+  useEffect(() => { load(); }, []);
+
+  function upd(id: number, patch: Partial<B>) {
+    setBadges((bs) => bs.map((b) => b.id === id ? { ...b, ...patch } : b));
+  }
+
+  async function save(b: B) {
+    await fetch(apiUrl(`/api/admin/badges/${b.id}`), {
+      method: "PUT", headers: authHeaders(),
+      body: JSON.stringify({ name: b.name, description: b.description, icon: b.icon, tier: b.tier, stat_key: b.stat_key, threshold: Number(b.threshold) || 1 }),
+    }).catch(() => {});
+    setSaved(b.id); setTimeout(() => setSaved(null), 1500);
+    load();
+  }
+
+  async function del(id: number) {
+    await fetch(apiUrl(`/api/admin/badges/${id}`), { method: "DELETE", headers: authHeaders() }).catch(() => {});
+    load();
+  }
+
+  async function add() {
+    await fetch(apiUrl("/api/admin/badges"), {
+      method: "POST", headers: authHeaders(),
+      body: JSON.stringify({ name: "Yeni Rozet", icon: "🎖️", tier: "bronze", stat_key: "arena_played", threshold: 1 }),
+    }).catch(() => {});
+    load();
+  }
+
+  return (
+    <div>
+      <h3 style={{ fontSize: 16, marginBottom: 4 }}>🎖️ Rozetler</h3>
+      <p style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 12 }}>
+        Her rozet bir istatistik eşiğinde kazanılır. İkon, isim, tür, koşul ve eşiği düzenle.
+      </p>
+      <div style={{ display: "grid", gap: 8 }}>
+        {badges.map((b) => (
+          <div key={b.id} style={{ padding: "10px 12px", background: "var(--bg-panel)", borderRadius: 10, display: "grid", gap: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <input value={b.icon} onChange={(e) => upd(b.id, { icon: e.target.value })}
+                style={{ width: 44, padding: "6px", borderRadius: 8, textAlign: "center", fontSize: 18, border: "1px solid var(--border-soft)", background: "var(--bg-elevated)" }} />
+              <input value={b.name} onChange={(e) => upd(b.id, { name: e.target.value })}
+                style={{ flex: "1 1 120px", minWidth: 100, padding: "6px 10px", borderRadius: 8, border: "1px solid var(--border-soft)", background: "var(--bg-elevated)", color: "var(--text-strong)", fontWeight: 600 }} />
+              <select value={b.tier} onChange={(e) => upd(b.id, { tier: e.target.value })}
+                style={{ padding: "6px 8px", borderRadius: 8, border: "1px solid var(--border-soft)", background: "var(--bg-elevated)", color: "var(--text-soft)" }}>
+                <option value="bronze">Bronz</option>
+                <option value="silver">Gümüş</option>
+                <option value="gold">Altın</option>
+              </select>
+            </div>
+            <input value={b.description} onChange={(e) => upd(b.id, { description: e.target.value })}
+              placeholder="Açıklama (nasıl kazanılır)"
+              style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid var(--border-soft)", background: "var(--bg-elevated)", color: "var(--text-soft)", fontSize: 13 }} />
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <select value={b.stat_key} onChange={(e) => upd(b.id, { stat_key: e.target.value })}
+                style={{ flex: "1 1 160px", padding: "6px 8px", borderRadius: 8, border: "1px solid var(--border-soft)", background: "var(--bg-elevated)", color: "var(--text-strong)" }}>
+                {statKeys.map((k) => <option key={k} value={k}>{STAT_LABELS[k] || k}</option>)}
+              </select>
+              <span style={{ color: "var(--text-dim)", fontSize: 13 }}>≥</span>
+              <input type="number" value={b.threshold} onChange={(e) => upd(b.id, { threshold: Number(e.target.value) })}
+                style={{ width: 80, padding: "6px 8px", borderRadius: 8, textAlign: "center", border: "1px solid var(--border-soft)", background: "var(--bg-elevated)", color: "var(--accent)", fontFamily: "var(--font-display)" }} />
+              <button onClick={() => save(b)} style={{ padding: "6px 12px", borderRadius: 8, border: "none", background: saved === b.id ? "var(--tile-correct)" : "var(--accent)", color: saved === b.id ? "#fff" : "#1a1330", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+                {saved === b.id ? "✓" : "Kaydet"}
+              </button>
+              <button onClick={() => del(b.id)} title="Sil" style={{ padding: "6px 8px", borderRadius: 8, border: "none", background: "none", color: "var(--text-dim)", cursor: "pointer", fontSize: 15 }}>🗑️</button>
+            </div>
+          </div>
+        ))}
+      </div>
+      <button onClick={add} style={{ marginTop: 10, padding: "9px 16px", borderRadius: 9, border: "1px dashed var(--border-soft)", background: "transparent", color: "var(--accent)", fontWeight: 600, cursor: "pointer" }}>
+        + Yeni Rozet Ekle
+      </button>
     </div>
   );
 }

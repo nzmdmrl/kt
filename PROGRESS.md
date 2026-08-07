@@ -1909,3 +1909,25 @@ tahmin ederken bakılan konumla eşleşmiyordu.
 Fix (ArenaGame.tsx): FlipReveal artık gizlenen TAHMİN kutularının TAM YERİNDE (marginBottom:16, kutu
 52px/gap6 tahminle aynı). "Doğru/Yanlış" + puan yazısı kutuların ALTINA taşındı. Kutular hiç yer
 değiştirmiyor. Build ok.
+
+## Arena kupa/madalya profilde + arena rozetleri + admin rozet yönetimi (Nazım)
+User modeli: arena_played, arena_first, arena_second, arena_third sayaçları (migration otomatik).
+to_public'e eklendi.
+arena.py _persist_results: rank'a göre arena_played++ ve arena_first/second/third++.
+profile.py:
+- Kupalar & Madalyalar (achievements): arena_first -> "Arena Şampiyonu 🏆", arena_second -> "Arena 2.si
+  🥈", arena_third -> "Arena 3.sü 🥉" (count ile).
+- trophies_total = lig kupa + arena_first. medals_total = lig madalya + arena_second + arena_third.
+- badge stats'a arena alanları eklendi.
+Rozetler DB'ye taşındı (admin düzenlenebilir):
+- models/badge_def.py: BadgeDef (code,name,description,icon,tier,stat_key,threshold,sort_order) +
+  DEFAULT_BADGES (19 rozet: mevcutlar + arena_1/5/10/50/100 + Gladyatör(arena_first>=10) +
+  Spartaküs(arena_first>=50)). database.py'ye eklendi.
+- badges.py: BADGES sabit -> _badges_cache. earned_badges DB'den (stat_key>=threshold). set_badges_cache.
+- main.py startup: badge_defs boşsa DEFAULT seed; kodda olup DB'de olmayanları ekler; cache yükler.
+- admin.py: GET/POST/PUT/DELETE /admin/badges (BadgeIn). BADGE_STAT_KEYS (14 istatistik). _reload_badges_cache.
+- yonetim/page.tsx: 🎖️ Rozetler sekmesi + Badges bileşeni (ikon/isim/tür/açıklama/stat_key/threshold
+  düzenle + sil + ekle). STAT_LABELS Türkçe.
+Test: 10 şampiyonluk -> Gladyatör ✓, kupa=10 madalya=4, Arena Şampiyonu/2.si/3.sü achievements ✓,
+admin rozet ekle ✓. Build ok.
+NOT: arena_played sayacı bundan sonraki maçlardan dolar (geriye dönük değil).

@@ -389,6 +389,14 @@ async def _persist_results(match: ArenaMatch) -> dict:
                 if not user:
                     continue
                 rank = rank_by_pid.get(pid, 0)
+                # Arena istatistik sayaçları (kupa/madalya/rozet için)
+                user.arena_played = (user.arena_played or 0) + 1
+                if rank == 1:
+                    user.arena_first = (user.arena_first or 0) + 1
+                elif rank == 2:
+                    user.arena_second = (user.arena_second or 0) + 1
+                elif rank == 3:
+                    user.arena_third = (user.arena_third or 0) + 1
                 # Geçmişe kaydet
                 db.add(ArenaHistory(
                     user_id=uid, rank=rank, score=p.score,

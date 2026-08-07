@@ -156,6 +156,97 @@ async def delete_title(title_id: int, admin: User = Depends(get_admin_user), db:
     return {"ok": True}
 
 
+# ---- ROZETLER ----
+class BadgeIn(BaseModel):
+    code: str = ""
+    name: str
+    description: str = ""
+    icon: str = "🏅"
+    tier: str = "bronze"
+    stat_key: str = "matches_played"
+    threshold: int = 1
+
+
+async def _reload_badges_cache(db):
+    from app.models.badge_def import BadgeDef
+    from app.game.badges import set_badges_cache
+    from sqlalchemy import select as _sel
+    rows = (await db.execute(_sel(BadgeDef))).scalars().all()
+    set_badges_cache([(r.code, r.name, r.description, r.icon, r.tier, r.stat_key, r.threshold, r.sort_order) for r in rows])
+
+
+# İzin verilen istatistik anahtarları (rozet koşulu için)
+BADGE_STAT_KEYS = [
+    "matches_played", "wins", "losses", "draws", "words_solved", "total_score", "elo",
+    "custom_arena_played", "arena_played", "arena_first", "arena_second", "arena_third",
+    "trophies", "medals",
+]
+
+
+@router.get("/badges")
+async def get_badges(admin: User = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+    from app.models.badge_def import BadgeDef
+    from sqlalchemy import select as _sel
+    rows = (await db.execute(_sel(BadgeDef).order_by(BadgeDef.sort_order))).scalars().all()
+    return {"badges": [b.to_public() for b in rows], "stat_keys": BADGE_STAT_KEYS}
+
+
+@router.post("/badges")
+async def create_badge(data: BadgeIn, admin: User = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+    from app.models.badge_def import BadgeDef
+    from sqlalchemy import select as _sel, func as _func
+    import re
+    code = (data.code or "").strip() or re.sub(r"[^a-z0-9]+", "_", data.name.lower())[:40] or "rozet"
+    # kod benzersiz olsun
+    exists = (await db.execute(_sel(BadgeDef).where(BadgeDef.code == code))).scalar_one_or_none()
+    if exists:
+        code = f"{code}_{__import__('uuid').uuid4().hex[:4]}"
+    maxo = (await db.execute(_sel(_func.max(BadgeDef.sort_order)))).scalar() or 0
+    b = BadgeDef(
+        code=code, name=data.name.strip()[:64] or "Rozet", description=data.description[:160],
+        icon=(data.icon or "🏅")[:8], tier=data.tier if data.tier in ("bronze", "silver", "gold") else "bronze",
+        stat_key=data.stat_key if data.stat_key in BADGE_STAT_KEYS else "matches_played",
+        threshold=max(1, data.threshold), sort_order=maxo + 1,
+    )
+    db.add(b)
+    await db.commit()
+    await _reload_badges_cache(db)
+    return {"ok": True, "id": b.id}
+
+
+@router.put("/badges/{badge_id}")
+async def update_badge(badge_id: int, data: BadgeIn, admin: User = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+    from app.models.badge_def import BadgeDef
+    from sqlalchemy import select as _sel
+    b = (await db.execute(_sel(BadgeDef).where(BadgeDef.id == badge_id))).scalar_one_or_none()
+    if not b:
+        raise HTTPException(404, "Rozet bulunamadı.")
+    b.name = data.name.strip()[:64] or b.name
+    b.description = data.description[:160]
+    b.icon = (data.icon or b.icon)[:8]
+    if data.tier in ("bronze", "silver", "gold"):
+        b.tier = data.tier
+    if data.stat_key in BADGE_STAT_KEYS:
+        b.stat_key = data.stat_key
+    b.threshold = max(1, data.threshold)
+    await db.commit()
+    await _reload_badges_cache(db)
+    return {"ok": True}
+
+
+@router.delete("/badges/{badge_id}")
+async def delete_badge(badge_id: int, admin: User = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+    from app.models.badge_def import BadgeDef
+    from sqlalchemy import select as _sel
+    b = (await db.execute(_sel(BadgeDef).where(BadgeDef.id == badge_id))).scalar_one_or_none()
+    if not b:
+        raise HTTPException(404, "Rozet bulunamadı.")
+    await db.delete(b)
+    await db.commit()
+    await _reload_badges_cache(db)
+    return {"ok": True}
+
+
 @router.get("/settings")
 async def get_settings_list(admin: User = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
     return {"settings": await settings_service.all_settings(db)}
