@@ -1943,3 +1943,10 @@ NOT: Sadece NORMAL arena (özel arenada kupa/madalya/XP yok - Nazım kararı).
 ## Bildirimler sayfası çift logo fix (Nazım)
 Desktopta bildirimler sayfasında 2 logo (TopBar + sayfa içi). app/bildirimler/page.tsx logo div'i
 .kt-mobile-only oldu (mobilde görünür, desktopta gizli; TopBar logosu kalır). Build ok.
+
+## Lig logo fix + arena bekleme sabit genişlik (Nazım)
+Lig: app/lig/page.tsx logo .kt-mobile-only (desktopta TopBar logosu kalır). "Oyna →" marginLeft:auto
+ile sağda kalır.
+Arena bekleme genişlik: ArenaShell'e fillTo prop. Alt oyuncu barı bekleme (lobby/connecting) fazında
+fillTo=5 -> boş slotlar dashed daire "?/bekleniyor" placeholder ile 5'e tamamlanır, justifyContent
+center. Rakip geldikçe genişleme yerine baştan sabit 5 kişilik genişlik. Build ok.

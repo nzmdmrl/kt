@@ -166,7 +166,7 @@ export default function ArenaGame({ onExit, customCode }: { onExit: () => void; 
   // Eşleşme / lobi
   if (state.phase === "connecting" || state.phase === "lobby") {
     return (
-      <ArenaShell onExit={onExit} players={state.players}>
+      <ArenaShell onExit={onExit} players={state.players} fillTo={5}>
         {leftToastEl}
         <div style={{ textAlign: "center", paddingTop: 40 }}>
           <h2 className="brand-mono" style={{ fontSize: 26, marginBottom: 8 }}>Arena</h2>
@@ -429,11 +429,13 @@ export default function ArenaGame({ onExit, customCode }: { onExit: () => void; 
 
 
 // Alt barlı kabuk (her fazda oyuncular altta)
-function ArenaShell({ children, onExit, players, answers, showResults }: {
+function ArenaShell({ children, onExit, players, answers, showResults, fillTo }: {
   children: React.ReactNode; onExit: () => void;
   players: ArenaPlayer[]; answers?: Record<string, { correct: boolean; flash: boolean }>;
-  showResults?: boolean;
+  showResults?: boolean; fillTo?: number;
 }) {
+  // Bekleme ekranında bar sabit genişlikte kalsın diye boş slotları placeholder ile doldur.
+  const emptyCount = fillTo ? Math.max(0, fillTo - players.length) : 0;
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", maxWidth: 520, margin: "0 auto" }}>
       <div style={{ padding: "12px 16px" }}>
@@ -441,7 +443,7 @@ function ArenaShell({ children, onExit, players, answers, showResults }: {
       </div>
       <div style={{ flex: 1, padding: "0 18px" }}>{children}</div>
       {/* Alt oyuncu barı */}
-      <div style={{ display: "flex", gap: 10, overflowX: "auto", padding: "12px 16px", borderTop: "1px solid var(--border-soft)", background: "var(--bg-panel)" }}>
+      <div style={{ display: "flex", gap: 10, overflowX: "auto", padding: "12px 16px", borderTop: "1px solid var(--border-soft)", background: "var(--bg-panel)", justifyContent: fillTo ? "center" : "flex-start" }}>
         {players.map((p) => {
           const a = answers?.[p.pid];
           const answered = !!a;
@@ -471,6 +473,17 @@ function ArenaShell({ children, onExit, players, answers, showResults }: {
             </div>
           );
         })}
+        {/* Boş slotlar (bekleme ekranı için sabit genişlik) */}
+        {Array.from({ length: emptyCount }).map((_, i) => (
+          <div key={`empty-${i}`} style={{ textAlign: "center", flexShrink: 0, width: 62 }}>
+            <div style={{
+              width: 48, height: 48, margin: "0 auto", borderRadius: "50%",
+              border: "3px dashed var(--border-soft)", background: "var(--tile-empty)",
+              display: "grid", placeItems: "center", color: "var(--text-dim)", fontSize: 18,
+            }}>?</div>
+            <div style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 3 }}>bekleniyor</div>
+          </div>
+        ))}
       </div>
     </div>
   );
