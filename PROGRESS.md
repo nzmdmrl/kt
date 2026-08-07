@@ -1996,3 +1996,9 @@ Frontend:
 Lig gündüz flash fix: NightBackground isDay useState initializer (document data-theme okur) -> gündüz
 modunda gece BG flash etmez.
 Test: müzik havuzu upload/list/file/volume/delete ✓. Build ok.
+
+## Admin özet: bugünkü arena sayısı (Nazım)
+admin.py dashboard: arena_today eklendi. ArenaHistory match_id tutmadığı için (her oyuncu 1 kayıt),
+yaklaşık maç sayısı = sum(1/player_count) bugünkü kayıtlar üzerinden -> round(). live sözlüğüne
+"arena_today". Frontend yonetim Dashboard: "Bugünkü arena" Stat kartı (matches_today yanına).
+Test: 5+3 oyunculu 2 maç -> arena_today=2 ✓. Build ok.

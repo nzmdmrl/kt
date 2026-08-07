@@ -70,6 +70,14 @@ async def dashboard(admin: User = Depends(get_admin_user), db: AsyncSession = De
         select(func.count(MatchHistory.id)).where(MatchHistory.created_at >= month_start)
     )).scalar_one() or 0
 
+    # Bugünkü arena maçı sayısı: ArenaHistory her oyuncu için 1 kayıt tutar; bir maçtaki
+    # oyuncu sayısına bölerek yaklaşık maç sayısı bulunur (sum(1/player_count)).
+    from app.models.arena_history import ArenaHistory
+    arena_today = (await db.execute(
+        select(func.coalesce(func.sum(1.0 / func.nullif(ArenaHistory.player_count, 0)), 0.0))
+        .where(ArenaHistory.created_at >= day_start)
+    )).scalar_one() or 0
+
     return {
         "total_users": total_users,
         "total_matches": int(total_matches),
@@ -82,6 +90,7 @@ async def dashboard(admin: User = Depends(get_admin_user), db: AsyncSession = De
             "live_matches": live_matches,
             "matches_today": int(matches_today),
             "matches_month": int(matches_month),
+            "arena_today": round(float(arena_today)),
         },
     }
 

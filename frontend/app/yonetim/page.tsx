@@ -82,6 +82,7 @@ function Dashboard({ onDenied }: { onDenied: () => void }) {
           <Stat label="Online kişi" value={live.online ?? 0} accent />
           <Stat label="Anlık maç" value={live.live_matches ?? 0} accent />
           <Stat label="Bugünkü maç" value={live.matches_today ?? 0} />
+          <Stat label="Bugünkü arena" value={live.arena_today ?? 0} />
           <Stat label="Bu ay maç" value={live.matches_month ?? 0} />
         </div>
       </div>
