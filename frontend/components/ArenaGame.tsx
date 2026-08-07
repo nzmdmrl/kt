@@ -290,6 +290,13 @@ export default function ArenaGame({ onExit, customCode }: { onExit: () => void; 
           </div>
           )}
 
+          {/* Cevap sonucu: harf kutuları TAHMİN KUTULARIYLA AYNI KONUMDA (yer değişmesin) */}
+          {alreadyAnswered && state.myResult && !isReveal && (
+            <div style={{ marginBottom: 16 }}>
+              <FlipReveal word={state.myResult.answer || ""} correct={state.myResult.correct} />
+            </div>
+          )}
+
           {isReveal ? (
             <div style={{ textAlign: "center", padding: 16 }}>
               <p className="brand-mono" style={{ fontSize: 18, color: "var(--tile-correct)" }}>Doğru cevap: {state.revealAnswer}</p>
@@ -300,22 +307,18 @@ export default function ArenaGame({ onExit, customCode }: { onExit: () => void; 
               )}
             </div>
           ) : alreadyAnswered ? (
-            <div style={{ textAlign: "center", padding: "12px 8px" }}>
+            <div style={{ textAlign: "center", padding: "4px 8px" }}>
               {state.myResult ? (
                 <>
+                  {/* Doğru/Yanlış yazısı kutuların ALTINDA (kutular yukarıda, tahminle aynı yerde) */}
                   <p className="brand-mono" style={{
-                    fontSize: 20, fontWeight: 700, marginBottom: 12,
+                    fontSize: 20, fontWeight: 700, marginBottom: 6,
                     color: state.myResult.correct ? "var(--tile-correct)" : "var(--accent-hot)",
                   }}>
-                    {state.myResult.correct ? "Doğru! 🎉" : "Yanlış — Doğrusu:"}
+                    {state.myResult.correct ? "Doğru! 🎉" : "Yanlış — Doğrusu yukarıda"}
                   </p>
-                  {/* Harf kutuları: sırayla dönerek renk alır (yeşil/kırmızı) + her harfte ses */}
-                  <FlipReveal
-                    word={state.myResult.answer || ""}
-                    correct={state.myResult.correct}
-                  />
                   {state.myResult.correct && (
-                    <p style={{ color: "var(--accent)", fontWeight: 600, marginTop: 12 }}>
+                    <p style={{ color: "var(--accent)", fontWeight: 600 }}>
                       +{state.myResult.gained} puan {state.myResult.flash ? "⚡" : ""}
                     </p>
                   )}
@@ -323,7 +326,7 @@ export default function ArenaGame({ onExit, customCode }: { onExit: () => void; 
               ) : (
                 <p style={{ color: "var(--text-soft)" }}>Cevabın gönderiliyor…</p>
               )}
-              <p style={{ color: "var(--text-dim)", fontSize: 13, marginTop: 14 }}>
+              <p style={{ color: "var(--text-dim)", fontSize: 13, marginTop: 12 }}>
                 Diğer oyuncular bekleniyor… ⏳
               </p>
             </div>
@@ -740,8 +743,8 @@ function FlipReveal({ word, correct }: { word: string; correct: boolean }) {
         const on = j < revealed;
         return (
           <div key={j} style={{
-            width: 46, height: 46, display: "grid", placeItems: "center", borderRadius: 10,
-            fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 22,
+            width: 52, height: 52, display: "grid", placeItems: "center", borderRadius: 10,
+            fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 24,
             color: on ? "#fff" : "var(--text-dim)",
             background: on ? (correct ? okColor : badColor) : "var(--tile-empty)",
             border: on ? "none" : "2px solid var(--tile-border)",

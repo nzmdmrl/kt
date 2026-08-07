@@ -1902,3 +1902,10 @@ Test: submit answer içeriyor ✓. Build ok.
 ## Arena flip hızlandırma (Nazım)
 FlipReveal (ArenaGame.tsx): harf arası 260->150ms, başlangıç 200->100ms, flipIn .35s->.22s.
 Doğru ve yanlışta daha hızlı açılış. Build ok.
+
+## Arena cevap kutuları konum sabitleme (Nazım)
+Sorun: cevap verince "Doğru/Yanlış" yazısı FlipReveal ÜSTünde -> harf kutuları aşağı kayıyordu,
+tahmin ederken bakılan konumla eşleşmiyordu.
+Fix (ArenaGame.tsx): FlipReveal artık gizlenen TAHMİN kutularının TAM YERİNDE (marginBottom:16, kutu
+52px/gap6 tahminle aynı). "Doğru/Yanlış" + puan yazısı kutuların ALTINA taşındı. Kutular hiç yer
+değiştirmiyor. Build ok.
