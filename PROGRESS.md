@@ -1939,3 +1939,7 @@ arena.py _persist_results: rank 1/2/3'e göre Notification(kind="arena_medal"): 
 Frontend bildirimler: /profil linki zaten "Profile git →" gösteriyor.
 Test: 1.->Arena Şampiyonu bildirimi, 2.->Arena 2.si bildirimi ✓. Build gerekmez (backend).
 NOT: Sadece NORMAL arena (özel arenada kupa/madalya/XP yok - Nazım kararı).
+
+## Bildirimler sayfası çift logo fix (Nazım)
+Desktopta bildirimler sayfasında 2 logo (TopBar + sayfa içi). app/bildirimler/page.tsx logo div'i
+.kt-mobile-only oldu (mobilde görünür, desktopta gizli; TopBar logosu kalır). Build ok.
