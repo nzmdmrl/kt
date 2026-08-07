@@ -11,7 +11,10 @@ import { effectiveTheme } from "@/lib/theme";
 export default function NightBackground() {
   const [enabled, setEnabled] = useState(false);
   const [theme, setTheme] = useState("night");
-  const [isDay, setIsDay] = useState(false);
+  const [isDay, setIsDay] = useState(() => {
+    if (typeof document === "undefined") return false;
+    return document.documentElement.getAttribute("data-theme") === "light";
+  });
 
   useEffect(() => {
     let alive = true;

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useArena, ArenaPlayer, RevealPlayer } from "@/lib/useArena";
+import { useSectionMusic } from "@/lib/useSectionMusic";
 import { toUpperTr } from "@/lib/turkish";
 import { playSound, initSound, stopTicking } from "@/lib/sound";
 import TitleCelebration from "./TitleCelebration";
@@ -17,6 +18,10 @@ export default function ArenaGame({ onExit, customCode }: { onExit: () => void; 
   const submittedRef = useRef<number>(-1);               // hangi soruya cevap gönderildi
 
   useEffect(() => { initSound(true, 70); }, []);
+
+  // Arena rakip aranırken (bekleme fazı) müzik çal; maç başlayınca dur.
+  const isWaiting = state.phase === "connecting" || state.phase === "lobby";
+  useSectionMusic("arena_wait", isWaiting);
 
   // "xxx arenadan çıktı" popup — leftNotice değişince göster, 3.5sn sonra gizle.
   const [leftToast, setLeftToast] = useState<string | null>(null);

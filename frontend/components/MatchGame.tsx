@@ -8,6 +8,7 @@ import { playSound, initSound, startTicking, stopTicking } from "@/lib/sound";
 import Grid from "./Grid";
 import MatchRewards from "./MatchRewards";
 import TitleCelebration from "./TitleCelebration";
+import { useSectionMusic } from "@/lib/useSectionMusic";
 import ScoreBar from "./ScoreBar";
 import SoundToggle from "./SoundToggle";
 import ThemeToggle from "./ThemeToggle";
@@ -141,6 +142,10 @@ export default function MatchGame({
   const myTurn = round?.turn_player_id === playerId;
   const turnFree = round?.turn_player_id == null;
   const phase = state?.phase;
+
+  // 1v1 rakip aranırken/beklenirken müzik çal; maç başlayınca dur.
+  const matchWaiting = !state || phase === "waiting" || (state?.players?.length ?? 0) < 2;
+  useSectionMusic("match_wait", matchWaiting);
   // Joker şimdi kullanılabilir mi: sıra boş (turun başı) ya da zaten bende, tur aktif.
   const canUseJokerNow = phase === "round_active" && !round?.finished && (turnFree || myTurn);
 

@@ -18,6 +18,7 @@ const TABS = [
   { key: "sounds", label: "🔊 Sesler" },
   { key: "titles", label: "🏅 Unvanlar" },
   { key: "badges", label: "🎖️ Rozetler" },
+  { key: "music", label: "🎵 Müzik" },
 ];
 
 export default function AdminPage() {
@@ -50,6 +51,7 @@ export default function AdminPage() {
       {tab === "sounds" && <Sounds />}
       {tab === "titles" && <Titles />}
       {tab === "badges" && <Badges />}
+      {tab === "music" && <MusicPools />}
     </Wrap>
   );
 }
@@ -610,6 +612,122 @@ function Badges() {
       <button onClick={add} style={{ marginTop: 10, padding: "9px 16px", borderRadius: 9, border: "1px dashed var(--border-soft)", background: "transparent", color: "var(--accent)", fontWeight: 600, cursor: "pointer" }}>
         + Yeni Rozet Ekle
       </button>
+    </div>
+  );
+}
+
+const MUSIC_SECTIONS = [
+  { key: "home", label: "🏠 Ana sayfa müziği" },
+  { key: "arena_wait", label: "⚔️ Arena rakip aranırken" },
+  { key: "match_wait", label: "🎯 1v1 rakip aranırken" },
+  { key: "solo", label: "🧩 Solo mod müziği" },
+  { key: "daily", label: "📅 Günün kelimesi müziği" },
+];
+
+function MusicPools() {
+  return (
+    <div style={{ display: "grid", gap: 20 }}>
+      <p style={{ fontSize: 13, color: "var(--text-dim)" }}>
+        Her bölüm için birden fazla mp3 ekleyebilirsin; oyun sırasında rastgele çalar ve
+        geçişlerde sesi kısarak diğerine geçer. Dosyaları sürükle-bırak ile ekle.
+      </p>
+      {MUSIC_SECTIONS.map((s) => <MusicSection key={s.key} sectionKey={s.key} label={s.label} />)}
+    </div>
+  );
+}
+
+function MusicSection({ sectionKey, label }: { sectionKey: string; label: string }) {
+  const [tracks, setTracks] = useState<{ id: number; name: string }[]>([]);
+  const [volume, setVolume] = useState(50);
+  const [drag, setDrag] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  function rawToken() { return typeof window !== "undefined" ? localStorage.getItem("kt_token") : null; }
+
+  function load() {
+    fetch(apiUrl(`/api/music/${sectionKey}`))
+      .then((r) => r.json())
+      .then((d) => { setTracks(d.tracks || []); setVolume(d.volume ?? 50); })
+      .catch(() => {});
+  }
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
+
+  async function uploadFiles(files: FileList | File[]) {
+    setBusy(true);
+    for (const f of Array.from(files)) {
+      if (!f.type.startsWith("audio")) continue;
+      const fd = new FormData();
+      fd.append("file", f);
+      try {
+        await fetch(apiUrl(`/api/music/${sectionKey}`), {
+          method: "POST",
+          headers: { Authorization: `Bearer ${rawToken()}` },
+          body: fd,
+        });
+      } catch {}
+    }
+    setBusy(false);
+    load();
+  }
+
+  async function del(id: number) {
+    await fetch(apiUrl(`/api/music/${id}`), { method: "DELETE", headers: { Authorization: `Bearer ${rawToken()}` } }).catch(() => {});
+    load();
+  }
+
+  async function saveVolume(v: number) {
+    setVolume(v);
+    await fetch(apiUrl(`/api/music/volume/${sectionKey}?value=${v}`), {
+      method: "POST", headers: { Authorization: `Bearer ${rawToken()}` },
+    }).catch(() => {});
+  }
+
+  return (
+    <div style={{ background: "var(--bg-panel)", borderRadius: 12, padding: "14px 16px" }}>
+      <div style={{ fontWeight: 700, color: "var(--text-strong)", marginBottom: 10 }}>{label}</div>
+
+      {/* Parça listesi */}
+      <div style={{ display: "grid", gap: 6, marginBottom: 12 }}>
+        {tracks.length === 0 && <div style={{ color: "var(--text-dim)", fontSize: 13 }}>Henüz parça yok.</div>}
+        {tracks.map((t) => (
+          <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", background: "var(--bg-elevated)", borderRadius: 8 }}>
+            <span style={{ fontSize: 16 }}>🎵</span>
+            <span style={{ flex: 1, fontSize: 13, color: "var(--text-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</span>
+            <audio src={apiUrl(`/api/music/file/${t.id}`)} controls style={{ height: 30, maxWidth: 160 }} />
+            <button onClick={() => del(t.id)} title="Sil" style={{ background: "none", border: "none", cursor: "pointer", fontSize: 15, color: "var(--text-dim)" }}>🗑️</button>
+          </div>
+        ))}
+      </div>
+
+      {/* Sürükle-bırak yükleme */}
+      <div
+        onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
+        onDragLeave={() => setDrag(false)}
+        onDrop={(e) => { e.preventDefault(); setDrag(false); if (e.dataTransfer.files) uploadFiles(e.dataTransfer.files); }}
+        style={{
+          border: `2px dashed ${drag ? "var(--accent)" : "var(--border-soft)"}`,
+          borderRadius: 10, padding: "16px", textAlign: "center", cursor: "pointer",
+          background: drag ? "rgba(224,148,10,.08)" : "transparent", marginBottom: 12,
+        }}
+        onClick={() => document.getElementById(`file-${sectionKey}`)?.click()}
+      >
+        <input id={`file-${sectionKey}`} type="file" accept="audio/*" multiple style={{ display: "none" }}
+          onChange={(e) => e.target.files && uploadFiles(e.target.files)} />
+        <div style={{ color: "var(--text-soft)", fontSize: 13 }}>
+          {busy ? "Yükleniyor…" : "🎵 mp3 sürükle-bırak veya tıkla (birden fazla seçebilirsin)"}
+        </div>
+      </div>
+
+      {/* Ses seviyesi */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <span style={{ fontSize: 13, color: "var(--text-dim)" }}>🔉 Ses</span>
+        <input type="range" min={0} max={100} value={volume}
+          onChange={(e) => setVolume(Number(e.target.value))}
+          onMouseUp={(e) => saveVolume(Number((e.target as HTMLInputElement).value))}
+          onTouchEnd={(e) => saveVolume(Number((e.target as HTMLInputElement).value))}
+          style={{ flex: 1, accentColor: "var(--accent)" }} />
+        <span className="brand-mono" style={{ width: 36, textAlign: "right", color: "var(--accent)" }}>{volume}</span>
+      </div>
     </div>
   );
 }

@@ -1976,3 +1976,23 @@ NightBackground.tsx:
   Yıldız yok.
 - GECE (dark): mevcut seçili tema (night/aurora/nebula/snow) + yıldızlar + bulutlar.
 Build ok (önceki hata: gece dalında return eksikti, düzeltildi).
+
+## Müzik havuzu sistemi (her bölüm ayrı) + lig gündüz flash fix (Nazım)
+Backend:
+- models/music_track.py: MusicTrack (section, name, mime, data_b64). MUSIC_SECTIONS: home, arena_wait,
+  match_wait, solo, daily. database.py'ye eklendi.
+- api/routes/music.py: GET /music/sections, GET /music/{section} (public: tracks meta + volume),
+  GET /music/file/{id} (mp3 servis), POST /music/{section} (admin upload, max 8MB), DELETE /music/{id},
+  POST /music/volume/{section}?value=. Ses seviyesi game_setting music_volume_{section} (default 50).
+- main.py router eklendi.
+Frontend:
+- lib/useSectionMusic.ts(section, enabled): havuzdan rastgele mp3, fade-in, bitmeden 2.5sn önce fade-out
+  -> sıradaki rastgele parça (aynı üst üste değil). isSoundEnabled kontrolü.
+- ArenaGame: useSectionMusic("arena_wait", bekleme fazı). MatchGame: "match_wait" (waiting/<2 oyuncu).
+  Solo: "solo" (playing). Günün kelimesi: "daily" (status playing). HomeMusic: "home" (ilk etkileşimde).
+  Rakip bulundu sesi: mevcut opponent_found SoundAsset slotu (admin mp3).
+- yonetim: 🎵 Müzik sekmesi + MusicPools -> her bölüm MusicSection: parça listesi (audio önizleme + sil),
+  sürükle-bırak çoklu mp3 upload, ses seviyesi slider (0-100). Eski music1-6 HomeMusic havuza taşındı.
+Lig gündüz flash fix: NightBackground isDay useState initializer (document data-theme okur) -> gündüz
+modunda gece BG flash etmez.
+Test: müzik havuzu upload/list/file/volume/delete ✓. Build ok.
