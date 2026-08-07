@@ -2,13 +2,16 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { apiUrl } from "@/lib/api";
+import { effectiveTheme } from "@/lib/theme";
 
-// Tüm ekranların arkasında sabit (fixed) gece animasyonu: parlayan yıldızlar,
-// kayan yıldızlar, ağır hareket eden bulutlar. Admin panelden açılıp kapatılır,
-// tema seçilebilir (night / aurora / nebula / snow).
+// Tüm ekranların arkasında sabit (fixed) gökyüzü animasyonu.
+// GECE modu: seçili tema (night/aurora/nebula/snow) — parlayan yıldızlar + ağır bulutlar.
+// GÜNDÜZ modu: mavi gökyüzü + güneş + beyaz bulutlar (yıldız yok).
+// Admin panelden açılıp kapatılır, gece teması seçilebilir.
 export default function NightBackground() {
   const [enabled, setEnabled] = useState(false);
   const [theme, setTheme] = useState("night");
+  const [isDay, setIsDay] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -25,6 +28,15 @@ export default function NightBackground() {
     return () => { alive = false; };
   }, []);
 
+  // Gündüz/gece modunu izle (data-theme değişimini dinle).
+  useEffect(() => {
+    const update = () => { try { setIsDay(effectiveTheme() === "light"); } catch {} };
+    update();
+    const obs = new MutationObserver(update);
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    return () => obs.disconnect();
+  }, []);
+
   // Yıldızları bir kez üret (rastgele konum/boyut/parlama gecikmesi).
   const stars = useMemo(() => Array.from({ length: 70 }).map(() => ({
     left: Math.random() * 100,
@@ -32,14 +44,6 @@ export default function NightBackground() {
     size: Math.random() * 2 + 1,
     delay: Math.random() * 4,
     dur: 2.5 + Math.random() * 3,
-  })), []);
-
-  // Kayan yıldızlar (birkaç tane, farklı zamanlarda).
-  const shooting = useMemo(() => Array.from({ length: 3 }).map((_, i) => ({
-    top: Math.random() * 40,
-    left: 40 + Math.random() * 50,
-    delay: i * 6 + Math.random() * 4,
-    dur: 1.2 + Math.random() * 0.8,
   })), []);
 
   if (!enabled) return null;
@@ -52,6 +56,38 @@ export default function NightBackground() {
   };
   const t = themes[theme] || themes.night;
 
+  // ---- GÜNDÜZ MODU: mavi gökyüzü + güneş + beyaz bulutlar ----
+  if (isDay) {
+    return (
+      <div aria-hidden style={{
+        position: "fixed", inset: 0, zIndex: -1, overflow: "hidden", pointerEvents: "none",
+        background: "linear-gradient(180deg, #7fc4f5 0%, #aed9f7 45%, #dceffb 100%)",
+      }}>
+        {/* Güneş (sağ üstte, hafif parıldar) */}
+        <div style={{
+          position: "absolute", top: "8%", right: "12%", width: 90, height: 90, borderRadius: "50%",
+          background: "radial-gradient(circle, #fff6c8 0%, #ffe375 55%, rgba(255,220,90,0) 72%)",
+          boxShadow: "0 0 60px rgba(255,225,120,.7)",
+          animation: "sunGlow 6s ease-in-out infinite",
+        }} />
+        {/* Beyaz bulutlar (ağır hareket) */}
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} style={{
+            position: "absolute", top: `${10 + i * 20}%`, left: "-45%",
+            width: "55%", height: "22%", borderRadius: "50%",
+            background: "rgba(255,255,255,.75)", filter: "blur(30px)",
+            animation: `cloudDrift ${80 + i * 35}s linear ${i * -18}s infinite`,
+          }} />
+        ))}
+        <style>{`
+          @keyframes cloudDrift { from { transform: translateX(0); } to { transform: translateX(240%); } }
+          @keyframes sunGlow { 0%,100% { transform: scale(1); opacity: .95; } 50% { transform: scale(1.06); opacity: 1; } }
+        `}</style>
+      </div>
+    );
+  }
+
+  // ---- GECE MODU: seçili tema ----
   return (
     <div aria-hidden style={{
       position: "fixed", inset: 0, zIndex: -1, overflow: "hidden",
@@ -88,17 +124,6 @@ export default function NightBackground() {
         }} />
       ))}
 
-      {/* Kayan yıldızlar */}
-      {shooting.map((s, i) => (
-        <span key={`sh-${i}`} style={{
-          position: "absolute", top: `${s.top}%`, left: `${s.left}%`,
-          width: 2, height: 2, borderRadius: "50%", background: t.star,
-          boxShadow: `0 0 6px ${t.star}`,
-          animation: `shootingStar ${s.dur}s ease-in ${s.delay}s infinite`,
-          opacity: 0,
-        }} />
-      ))}
-
       {/* Snow teması için kar taneleri */}
       {theme === "snow" && Array.from({ length: 30 }).map((_, i) => (
         <span key={`snow-${i}`} style={{
@@ -113,13 +138,6 @@ export default function NightBackground() {
         @keyframes starTwinkle {
           0%, 100% { opacity: .2; transform: scale(.8); }
           50% { opacity: 1; transform: scale(1.15); }
-        }
-        @keyframes shootingStar {
-          0% { opacity: 0; transform: translate(0, 0) scaleX(1); }
-          2% { opacity: 1; }
-          12% { opacity: 1; transform: translate(-260px, 160px) scaleX(30); }
-          16% { opacity: 0; transform: translate(-320px, 200px) scaleX(1); }
-          100% { opacity: 0; }
         }
         @keyframes cloudDrift {
           from { transform: translateX(0); }

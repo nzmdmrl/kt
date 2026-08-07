@@ -1967,3 +1967,12 @@ Frontend:
   toggle. Değişiklik anında (cache) appearance'a yansır.
 Test: appearance endpoint ✓, admin tema+aç/kapa değişimi yansıyor ✓. Build ok.
 NOT: Panel/kart arka planları opak kalır (okunabilirlik); sadece body zemini şeffaf.
+
+## Gökyüzü teması: kayan yıldız iptal + gündüz modu (Nazım)
+NightBackground.tsx:
+- Kayan yıldız (shooting) tamamen kaldırıldı (useMemo + render + shootingStar keyframe).
+- effectiveTheme() ile gündüz/gece izlenir (MutationObserver data-theme). 
+- GÜNDÜZ (light): mavi gökyüzü gradient + güneş (sağ üst, sunGlow parıltı) + 4 beyaz bulut (cloudDrift).
+  Yıldız yok.
+- GECE (dark): mevcut seçili tema (night/aurora/nebula/snow) + yıldızlar + bulutlar.
+Build ok (önceki hata: gece dalında return eksikti, düzeltildi).
