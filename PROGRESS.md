@@ -1931,3 +1931,11 @@ Rozetler DB'ye taşındı (admin düzenlenebilir):
 Test: 10 şampiyonluk -> Gladyatör ✓, kupa=10 madalya=4, Arena Şampiyonu/2.si/3.sü achievements ✓,
 admin rozet ekle ✓. Build ok.
 NOT: arena_played sayacı bundan sonraki maçlardan dolar (geriye dönük değil).
+
+## Arena madalya/kupa bildirimi (Nazım "2. bitirdim madalya bildirimi çıkmadı")
+Sorun: arena kupa/madalya sayaçları artıyordu ama bildirim yoktu.
+arena.py _persist_results: rank 1/2/3'e göre Notification(kind="arena_medal"): 1.->"🏆 Arena
+Şampiyonu!", 2.->"🥈 Arena 2.si!", 3.->"🥉 Arena 3.sü!". link=/profil/{username} (tıklayınca profile).
+Frontend bildirimler: /profil linki zaten "Profile git →" gösteriyor.
+Test: 1.->Arena Şampiyonu bildirimi, 2.->Arena 2.si bildirimi ✓. Build gerekmez (backend).
+NOT: Sadece NORMAL arena (özel arenada kupa/madalya/XP yok - Nazım kararı).

@@ -391,12 +391,27 @@ async def _persist_results(match: ArenaMatch) -> dict:
                 rank = rank_by_pid.get(pid, 0)
                 # Arena istatistik sayaçları (kupa/madalya/rozet için)
                 user.arena_played = (user.arena_played or 0) + 1
+                medal_notif = None
                 if rank == 1:
                     user.arena_first = (user.arena_first or 0) + 1
+                    medal_notif = ("🏆", "Arena Şampiyonu!", "Arenada 1. oldun, Arena Şampiyonu kupası kazandın!")
                 elif rank == 2:
                     user.arena_second = (user.arena_second or 0) + 1
+                    medal_notif = ("🥈", "Arena 2.si!", "Arenada 2. oldun, gümüş madalya kazandın!")
                 elif rank == 3:
                     user.arena_third = (user.arena_third or 0) + 1
+                    medal_notif = ("🥉", "Arena 3.sü!", "Arenada 3. oldun, bronz madalya kazandın!")
+                if medal_notif:
+                    try:
+                        from app.models.notification import Notification as _Notif
+                        _icon, _title, _body = medal_notif
+                        db.add(_Notif(
+                            user_id=uid, kind="arena_medal",
+                            title=_title, body=_body, icon=_icon,
+                            link=f"/profil/{user.username}" if user.username else "/profil/me",
+                        ))
+                    except Exception as e:
+                        print(f"[arena madalya bildirim] HATA: {e}")
                 # Geçmişe kaydet
                 db.add(ArenaHistory(
                     user_id=uid, rank=rank, score=p.score,
