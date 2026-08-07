@@ -1950,3 +1950,20 @@ ile sağda kalır.
 Arena bekleme genişlik: ArenaShell'e fillTo prop. Alt oyuncu barı bekleme (lobby/connecting) fazında
 fillTo=5 -> boş slotlar dashed daire "?/bekleniyor" placeholder ile 5'e tamamlanır, justifyContent
 center. Rakip geldikçe genişleme yerine baştan sabit 5 kişilik genişlik. Build ok.
+
+## Gece arka plan animasyonu (tüm ekranlar) + admin kontrol (Nazım)
+Backend:
+- game_setting.py DEFAULT_SETTINGS: night_bg_enabled (bool, "true"), night_bg_theme (str, "night").
+- settings_service.py: cached_str eklendi.
+- home.py: GET /home/appearance (public) -> {night_bg_enabled, night_bg_theme}.
+Frontend:
+- components/NightBackground.tsx: fixed inset zIndex:-1. /home/appearance okur. enabled ise html'e
+  data-nightbg="1". 70 parlayan yıldız (starTwinkle), 3 kayan yıldız (shootingStar), 3 ağır bulut
+  (cloudDrift 90-170s), tema: night/aurora(auroraWave ışık)/nebula/snow(snowFall kar). Rastgele üretim
+  useMemo (bir kez).
+- globals.css: html[data-nightbg] body -> background transparent (animasyon görünsün).
+- layout.tsx: <NightBackground/> body başında.
+- yonetim Settings: night_bg_theme için dropdown (🌙Gece 🌌Aurora 🪐Nebula ❄️Kar). night_bg_enabled
+  toggle. Değişiklik anında (cache) appearance'a yansır.
+Test: appearance endpoint ✓, admin tema+aç/kapa değişimi yansıyor ✓. Build ok.
+NOT: Panel/kart arka planları opak kalır (okunabilirlik); sadece body zemini şeffaf.

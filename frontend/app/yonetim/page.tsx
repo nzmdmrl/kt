@@ -130,7 +130,18 @@ function Settings() {
             <div style={{ fontSize: 14, color: "var(--text-strong)" }}>{s.label}</div>
             <div style={{ fontSize: 11, color: "var(--text-dim)" }}>{s.key} · varsayılan: {s.default}</div>
           </div>
-          {s.type === "bool" ? (
+          {s.key === "night_bg_theme" ? (
+            <select
+              defaultValue={s.value}
+              onChange={(e) => save(s.key, e.target.value)}
+              style={{ padding: "8px", borderRadius: 8, border: "1px solid var(--tile-border)", background: "var(--bg-elevated)", color: "var(--text-strong)" }}
+            >
+              <option value="night">🌙 Gece</option>
+              <option value="aurora">🌌 Kutup Işıkları</option>
+              <option value="nebula">🪐 Nebula</option>
+              <option value="snow">❄️ Kar</option>
+            </select>
+          ) : s.type === "bool" ? (
             <button
               onClick={() => save(s.key, s.value === "true" ? "false" : "true")}
               style={{

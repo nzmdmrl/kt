@@ -81,6 +81,12 @@ body {
   flex-direction: column;
 }
 
+/* Gece arka plan animasyonu aktifken body opak zeminini kaldır (animasyon görünsün) */
+html[data-nightbg] body,
+html[data-nightbg] {
+  background: transparent !important;
+}
+
 a { color: inherit; text-decoration: none; }
 
 /* Erişilebilirlik: klavye odağı görünür kalsın */

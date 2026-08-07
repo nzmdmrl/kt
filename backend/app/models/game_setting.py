@@ -52,6 +52,8 @@ DEFAULT_SETTINGS = {
     "arena_wait_seconds": {"value": "15", "label": "Arena rakip arama süresi (sn)", "type": "int"},
     "arena_bot_interval": {"value": "2", "label": "Arena bot katılım aralığı (sn)", "type": "int"},
     "arena_reveal_seconds": {"value": "4", "label": "Arena sonuç tablosu gösterim süresi (sn)", "type": "int"},
+    "night_bg_enabled": {"value": "true", "label": "Gece arka plan animasyonu açık", "type": "bool"},
+    "night_bg_theme": {"value": "night", "label": "Arka plan teması (night/aurora/nebula/snow)", "type": "str"},
     "xp_match_win": {"value": "50", "label": "XP: 1v1 galibiyet", "type": "int"},
     "xp_match_loss": {"value": "15", "label": "XP: 1v1 mağlubiyet", "type": "int"},
     "xp_match_draw": {"value": "25", "label": "XP: 1v1 beraberlik", "type": "int"},
