@@ -1898,3 +1898,7 @@ Frontend:
   Üstteki statik cevap kutuları cevap gönderilince gizlenir (sadece flip görünür). Tek seferlik
   myResult sesi kaldırıldı (flip her harfte çalıyor).
 Test: submit answer içeriyor ✓. Build ok.
+
+## Arena flip hızlandırma (Nazım)
+FlipReveal (ArenaGame.tsx): harf arası 260->150ms, başlangıç 200->100ms, flipIn .35s->.22s.
+Doğru ve yanlışta daha hızlı açılış. Build ok.

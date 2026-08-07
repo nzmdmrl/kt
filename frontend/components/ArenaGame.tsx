@@ -726,9 +726,9 @@ function FlipReveal({ word, correct }: { word: string; correct: boolean }) {
       i += 1;
       setRevealed(i);
       try { playSound(correct ? "tile_correct" : "tile_absent"); } catch {}
-      if (i < letters.length) setTimeout(step, 260);
+      if (i < letters.length) setTimeout(step, 150);
     };
-    const t = setTimeout(step, 200);
+    const t = setTimeout(step, 100);
     return () => clearTimeout(t);
   }, [word, correct]);
 
@@ -746,7 +746,7 @@ function FlipReveal({ word, correct }: { word: string; correct: boolean }) {
             background: on ? (correct ? okColor : badColor) : "var(--tile-empty)",
             border: on ? "none" : "2px solid var(--tile-border)",
             transition: "background .15s ease, color .15s ease",
-            animation: on ? "flipIn .35s ease both" : undefined,
+            animation: on ? "flipIn .22s ease both" : undefined,
           }}>{ch}</div>
         );
       })}
