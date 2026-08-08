@@ -2026,3 +2026,16 @@ HomeModes.tsx:
 - CSS: .hm-stats (4 sütun sayaç), .hm-stat-num (büyük accent), .hm-top-modes.
 Profil sayfası: üye gelişimi (XP progress bar) arka planı beyaz (#ffffff + border).
 tsc temiz, build ok.
+
+## Ana sayfa gelişim çubuğu = profildeki + gündüzde beyaz zemin (Nazım)
+globals.css: yeni `--xp-track` değişkeni (gece: var(--bg-elevated), gündüz `[data-theme="light"]`:
+#ffffff). Ortak sınıflar eklendi: `.xp-progress`, `.xp-row`, `.xp-now` (💎 XP, accent),
+`.xp-next` (sonraki unvan için kalan XP, text-dim), `.xp-track` (--xp-track zemin + border-soft
+çerçeve), `.xp-fill` (tile-correct→accent gradient). Eski `.hm-xpbar/.hm-xpfill` kaldırıldı.
+HomeModes.tsx: profil kartındaki sade bar yerine profil sayfasının birebir aynısı (üstte 💎 XP +
+"{sonraki unvan} için X XP", altta çubuk). TitleInfo tipine next_title/xp_to_next/xp eklendi.
+BUG FIX: bar genişliği `Math.round(pct*100)%` idi; backend title_progress zaten 0-100 döndüğü için
+bar her zaman dolu görünüyordu -> `${pct}%`.
+Profil sayfası: inline stiller ortak sınıflara taşındı; hardcoded beyaz zemin gitti, artık gece
+modunda koyu (--bg-elevated), gündüz modunda beyaz.
+tsc temiz, build ok.

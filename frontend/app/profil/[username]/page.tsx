@@ -192,20 +192,17 @@ export default function ProfilePage({ params }: { params: { username: string } }
           </p>
           {/* XP çizgisi + unvan ilerlemesi */}
           {profile.title_info && profile.level_info && (
-            <div style={{ margin: "8px 0" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}>
-                <span style={{ color: "var(--accent)" }}>💎 {(profile.xp || 0).toLocaleString("tr")} XP</span>
+            <div className="xp-progress" style={{ margin: "8px 0" }}>
+              <div className="xp-row">
+                <span className="xp-now">💎 {(profile.xp || 0).toLocaleString("tr")} XP</span>
                 {profile.title_info.next_title && (
-                  <span style={{ color: "var(--text-dim)" }}>
+                  <span className="xp-next">
                     {profile.title_info.next_title} için {profile.title_info.xp_to_next.toLocaleString("tr")} XP
                   </span>
                 )}
               </div>
-              <div style={{ height: 8, background: "#ffffff", borderRadius: 4, overflow: "hidden", border: "1px solid var(--border-soft)" }}>
-                <div style={{
-                  width: `${profile.title_info.title_progress}%`, height: "100%",
-                  background: "linear-gradient(90deg,var(--tile-correct),var(--accent))", transition: "width .4s",
-                }} />
+              <div className="xp-track">
+                <div className="xp-fill" style={{ width: `${profile.title_info.title_progress}%` }} />
               </div>
             </div>
           )}

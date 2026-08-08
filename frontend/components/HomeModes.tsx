@@ -6,7 +6,10 @@ import { apiUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
 type LevelInfo = { level: number; xp: number; level_xp: number; level_need: number };
-type TitleInfo = { title: string; title_icon?: string; title_progress: number };
+type TitleInfo = {
+  title: string; title_icon?: string; title_progress: number;
+  next_title: string | null; xp_to_next: number; xp?: number;
+};
 type Stats = { trophies: number; medals: number; badges: number; score: number };
 
 // Ana sayfa mod ekranı — desktop + mobil ortak. Sıralama: Arena/Özel Arena üstte,
@@ -45,7 +48,8 @@ export default function HomeModes() {
 
   const avatar = user?.avatar_url || `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(user?.username || "guest")}`;
   const level = lvl?.level ?? user?.level ?? 1;
-  const pct = title?.title_progress ?? 0;
+  const pct = title?.title_progress ?? 0;   // backend 0-100 döner
+  const xp = title?.xp ?? lvl?.xp ?? 0;
 
   function joinRoom() {
     const c = joinCode.trim().toUpperCase();
@@ -78,7 +82,20 @@ export default function HomeModes() {
                 <span className="hm-badge">Lv {level}</span>
               </div>
               {title?.title && <div className="hm-title">{title.title_icon || "🏅"} {title.title}</div>}
-              <div className="hm-xpbar"><div className="hm-xpfill" style={{ width: `${Math.round(pct * 100)}%` }} /></div>
+              {/* Unvan gelişimi — profil sayfasındakiyle aynı görünüm */}
+              {title && (
+                <div className="xp-progress">
+                  <div className="xp-row">
+                    <span className="xp-now">💎 {xp.toLocaleString("tr")} XP</span>
+                    {title.next_title && (
+                      <span className="xp-next">
+                        {title.next_title} için {(title.xp_to_next ?? 0).toLocaleString("tr")} XP
+                      </span>
+                    )}
+                  </div>
+                  <div className="xp-track"><div className="xp-fill" style={{ width: `${pct}%` }} /></div>
+                </div>
+              )}
             </div>
           </div>
           {/* İstatistik sayaçları (profildeki gibi) */}
