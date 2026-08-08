@@ -142,13 +142,17 @@ export default function ProfilePage({ params }: { params: { username: string } }
       </div>
 
       {/* Üst kart */}
-      <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 16, marginBottom: 24 }}>
+      <div style={{
+        position: "relative", display: "flex", alignItems: "center", gap: 16, marginBottom: 24,
+        padding: "18px 20px", background: "var(--bg-panel)",
+        border: "1px solid var(--border-soft)", borderRadius: 18,
+      }}>
         {isMe && (
           <button
             onClick={() => setEditOpen(true)}
             className="kt-desktop-only"
             style={{
-              position: "absolute", top: 0, right: 0, zIndex: 2,
+              position: "absolute", top: 12, right: 12, zIndex: 2,
               padding: "7px 14px", fontSize: 13, fontWeight: 600,
               background: "var(--bg-elevated)", color: "var(--text-strong)",
               border: "1px solid var(--border-soft)", borderRadius: 9, cursor: "pointer",
