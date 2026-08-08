@@ -2039,3 +2039,12 @@ bar her zaman dolu görünüyordu -> `${pct}%`.
 Profil sayfası: inline stiller ortak sınıflara taşındı; hardcoded beyaz zemin gitti, artık gece
 modunda koyu (--bg-elevated), gündüz modunda beyaz.
 tsc temiz, build ok.
+
+## Ana sayfa profil kartı: XP çubuğu sıkışıklığı fix (Nazım)
+KÖK SEBEP: `.hm-profile` hâlâ `display:flex; align-items:center` satır düzenindeydi; bir önceki
+commit'te eklenen `.hm-profile-top` ve `.hm-stats` bu yüzden YAN YANA diziliyordu -> XP çubuğuna
+kartın ancak yarısı kalıyordu. `.hm-profile` -> `display:block` (dikey akış).
+HomeModes: XP gelişim bloğu avatarın yanındaki iç sütundan çıkarılıp kartın tam genişliğine taşındı
+(.hm-xp). Çubuk 8->10px, üst yazı 12->13px, boşluklar ferahlatıldı.
+Sıra artık: [avatar + isim/Lv + unvan] -> [tam genişlik XP çubuğu] -> [4 sayaç].
+tsc temiz, build ok.

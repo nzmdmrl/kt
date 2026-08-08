@@ -82,22 +82,22 @@ export default function HomeModes() {
                 <span className="hm-badge">Lv {level}</span>
               </div>
               {title?.title && <div className="hm-title">{title.title_icon || "🏅"} {title.title}</div>}
-              {/* Unvan gelişimi — profil sayfasındakiyle aynı görünüm */}
-              {title && (
-                <div className="xp-progress">
-                  <div className="xp-row">
-                    <span className="xp-now">💎 {xp.toLocaleString("tr")} XP</span>
-                    {title.next_title && (
-                      <span className="xp-next">
-                        {title.next_title} için {(title.xp_to_next ?? 0).toLocaleString("tr")} XP
-                      </span>
-                    )}
-                  </div>
-                  <div className="xp-track"><div className="xp-fill" style={{ width: `${pct}%` }} /></div>
-                </div>
-              )}
             </div>
           </div>
+          {/* Unvan gelişimi — kartın tam genişliğinde, profil sayfasındakiyle aynı görünüm */}
+          {title && (
+            <div className="xp-progress hm-xp">
+              <div className="xp-row">
+                <span className="xp-now">💎 {xp.toLocaleString("tr")} XP</span>
+                {title.next_title && (
+                  <span className="xp-next">
+                    {title.next_title} için {(title.xp_to_next ?? 0).toLocaleString("tr")} XP
+                  </span>
+                )}
+              </div>
+              <div className="xp-track"><div className="xp-fill" style={{ width: `${pct}%` }} /></div>
+            </div>
+          )}
           {/* İstatistik sayaçları (profildeki gibi) */}
           <div className="hm-stats">
             <div className="hm-stat"><span className="hm-stat-num">{(stats?.score ?? 0).toLocaleString("tr")}</span><span className="hm-stat-lbl">⭐ Puan</span></div>
