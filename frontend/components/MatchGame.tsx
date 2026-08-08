@@ -6,6 +6,9 @@ import { toUpperTr } from "@/lib/turkish";
 import { useSpeech } from "@/lib/useSpeech";
 import { playSound, initSound, startTicking, stopTicking } from "@/lib/sound";
 import Grid from "./Grid";
+import MatchRewards from "./MatchRewards";
+import TitleCelebration from "./TitleCelebration";
+import { useSectionMusic } from "@/lib/useSectionMusic";
 import ScoreBar from "./ScoreBar";
 import SoundToggle from "./SoundToggle";
 import ThemeToggle from "./ThemeToggle";
@@ -17,6 +20,7 @@ export default function MatchGame({
   bot,
   botElo,
   onRematch,
+  isGuest,
 }: {
   code: string;
   playerId: string;
@@ -24,6 +28,7 @@ export default function MatchGame({
   bot?: boolean;
   botElo?: number;
   onRematch?: () => void;
+  isGuest?: boolean;
 }) {
   const { connected, state, lastEvent, error, flash, buzzer, guess, emote, useJoker, jokers, rematchRequest, rematchAccept, rematchDecline } = useMatch(
     code,
@@ -34,15 +39,24 @@ export default function MatchGame({
   );
   // Maç bitti durumu — lastEvent'e bağlı DEĞİL (rematch_request gelince kaybolmasın).
   const [matchOverData, setMatchOverData] = useState<any>(null);
+  const [rewards, setRewards] = useState<any>(null);
+  const [celebrateTitle, setCelebrateTitle] = useState<{ name: string; icon: string } | null>(null);
   useEffect(() => {
     if (lastEvent?.type === "match_over") {
       const res = lastEvent.result;
       setMatchOverData(res ?? { winner: null });
+      setRewards(lastEvent.rewards ?? null);
+      // Yeni unvan kazanıldıysa kutlama modalını biraz gecikmeyle aç (skor animasyonu görünsün).
+      const nt = lastEvent.rewards?.new_title;
+      if (nt) {
+        setTimeout(() => setCelebrateTitle(nt), 1500);
+      }
       // Kazanma/kaybetme sesi.
       if (res?.winner === playerId) playSound("win");
       else if (res?.winner && res.winner !== playerId) playSound("lose");
     } else if (lastEvent?.type === "match_start" || lastEvent?.type === "rematch_accepted") {
       setMatchOverData(null);
+      setRewards(null);
     }
   }, [lastEvent, playerId]);
 
@@ -128,6 +142,10 @@ export default function MatchGame({
   const myTurn = round?.turn_player_id === playerId;
   const turnFree = round?.turn_player_id == null;
   const phase = state?.phase;
+
+  // 1v1 rakip aranırken/beklenirken müzik çal; maç başlayınca dur.
+  const matchWaiting = !state || phase === "waiting" || (state?.players?.length ?? 0) < 2;
+  useSectionMusic("match_wait", matchWaiting);
   // Joker şimdi kullanılabilir mi: sıra boş (turun başı) ya da zaten bende, tur aktif.
   const canUseJokerNow = phase === "round_active" && !round?.finished && (turnFree || myTurn);
 
@@ -137,6 +155,25 @@ export default function MatchGame({
   const myTurnActive = myTurn && !round?.finished && phase === "round_active";
   const answerLeftRef = useRef(answerLeft);
   answerLeftRef.current = answerLeft;
+
+  // Input ref — sıra bize geçince (desktop) otomatik odaklanmak için.
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  // DESKTOP: sıra bana geçtiği anda input'a otomatik focus ver — böylece turun ilk
+  // sorusu dışında da her sıramda tekrar tıklamadan/buzzer'a basmadan yazabilirim.
+  // Mobilde YAPMA (otomatik klavye açılmasın; kullanıcı mobil değişiklik istemedi).
+  useEffect(() => {
+    if (!myTurnActive) return;
+    const isDesktop = typeof window !== "undefined"
+      && window.matchMedia && window.matchMedia("(min-width: 721px)").matches;
+    if (!isDesktop) return;
+    const el = inputRef.current;
+    if (el) {
+      // küçük gecikme: state güncellemesi otursun
+      const t = setTimeout(() => { try { el.focus(); } catch {} }, 40);
+      return () => clearTimeout(t);
+    }
+  }, [myTurnActive]);
   useEffect(() => {
     if (myTurnActive && answerLeftRef.current > 0) {
       startTicking(() => answerLeftRef.current);
@@ -359,6 +396,32 @@ export default function MatchGame({
           <div style={{ fontSize: 12, color: "var(--text-dim)" }}>kelimetahmin.com</div>
         </div>
 
+        {/* Kazanımlar: ELO / XP / rozet — sırayla, sayaç + seslerle (sadece üyeler) */}
+        {!isGuest && <MatchRewards rewards={rewards} />}
+        <TitleCelebration title={celebrateTitle} onClose={() => setCelebrateTitle(null)} />
+
+        {/* Misafir teşviki: üye olursa kazanımları profilinde toplar */}
+        {isGuest && (
+          <div style={{
+            marginTop: 6, padding: "18px 18px", borderRadius: 14,
+            background: "linear-gradient(135deg, rgba(224,148,10,.15), rgba(196,74,126,.12))",
+            border: "1px solid var(--accent)", textAlign: "center",
+          }}>
+            <div style={{ fontSize: 28, marginBottom: 6 }}>🎁</div>
+            <div style={{ fontWeight: 800, color: "var(--text-strong)", fontSize: 16, marginBottom: 4 }}>
+              Kazanımların kaybolmasın!
+            </div>
+            <div style={{ color: "var(--text-soft)", fontSize: 14, lineHeight: 1.5, marginBottom: 14 }}>
+              Üye olarak ELO, XP, rozet ve unvanlarını profilinde topla; sıralamalarda yer al ve arkadaşlarınla oyna.
+            </div>
+            <a href="/giris" style={{
+              display: "inline-block", padding: "12px 28px", borderRadius: 11, border: "none",
+              background: "var(--accent)", color: "#1a1330", fontWeight: 800, fontSize: 15,
+              textDecoration: "none",
+            }}>Ücretsiz Üye Ol →</a>
+          </div>
+        )}
+
         {/* Butonlar: Rövanş + Yeni Rakip */}
         <div style={{ display: "grid", gap: 10 }}>
           {bot ? (
@@ -552,6 +615,7 @@ export default function MatchGame({
         <div style={{ display: "grid", gap: 10, justifyItems: "center" }}>
           <div style={{ display: "flex", gap: 8, justifyContent: "center", alignItems: "stretch", flexWrap: "wrap", width: "100%" }}>
             <input
+              ref={inputRef}
               value={draft}
               onChange={(e) => onType(e.target.value)}
               onFocus={onFocus}

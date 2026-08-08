@@ -88,6 +88,16 @@ export default function OynaPage() {
       setOppInfo({ name: "Rakip", elo: 1000 });
       setBot(false);
       setMode("vs");
+      return;
+    }
+    // Ana sayfadan direkt mod seçimi: ?mode=bot|create|search  veya ?join=KOD
+    if (mode === "menu") {
+      const jc = params.get("join");
+      if (jc) { setBot(false); joinRoomWith(jc); return; }
+      const m = params.get("mode");
+      if (m === "bot") { setBot(true); setBotElo(elo); createBotSolo(); }
+      else if (m === "create") { createRoom(); }
+      else if (m === "search") { startSearch(); }
     }
   }, [playerId]);
 
@@ -170,6 +180,15 @@ export default function OynaPage() {
     setBot(false);
     setMode("match");
   }
+  // Ana sayfadan ?join=KOD ile gelince: kodu doğrudan kullan.
+  function joinRoomWith(rawCode: string) {
+    const c = (rawCode || "").trim().toUpperCase();
+    if (c.length < 4) { setMode("menu"); return; }
+    setJoinCode(c);
+    setCode(c);
+    setBot(false);
+    setMode("match");
+  }
 
   // --- render ---
   // Öğretici demo: her şeyin üstünde, maçtan bağımsız.
@@ -187,6 +206,7 @@ export default function OynaPage() {
           name={name || "Oyuncu"}
           bot={bot}
           botElo={botElo}
+          isGuest={!user}
           onRematch={() => {
             // Rövanş: aynı rakip tipiyle (bot/insan) yeni oda + yeni maç.
             // Yeni oda kodu + VS ekranı; key={code} sayesinde MatchGame sıfırdan kurulur.

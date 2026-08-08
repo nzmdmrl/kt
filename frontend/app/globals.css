@@ -81,6 +81,12 @@ body {
   flex-direction: column;
 }
 
+/* Gece arka plan animasyonu aktifken body opak zeminini kaldır (animasyon görünsün) */
+html[data-nightbg] body,
+html[data-nightbg] {
+  background: transparent !important;
+}
+
 a { color: inherit; text-decoration: none; }
 
 /* Erişilebilirlik: klavye odağı görünür kalsın */
@@ -145,4 +151,139 @@ a { color: inherit; text-decoration: none; }
   .home-boards {
     grid-template-columns: 1fr;
   }
+}
+
+/* Ana sayfa mobil/masaüstü ayrımı */
+.home-mobile { display: block; }
+.home-desktop { display: none; }
+@media (min-width: 721px) {
+  .home-mobile { display: none; }
+  .home-desktop { display: block; }
+}
+
+/* Alt navigasyon: sadece mobilde (masaüstünde gizli) */
+@media (min-width: 721px) {
+  .kt-bottom-nav { display: none !important; }
+}
+
+/* Masaüstü top menü + footer: sadece masaüstünde (mobilde gizli) */
+.kt-desktop-chrome { display: none; }
+@media (min-width: 721px) {
+  .kt-desktop-chrome { display: block; }
+}
+
+/* Sadece mobilde görünür (masaüstünde TopBar logosu var, çift olmasın) */
+@media (min-width: 721px) {
+  .kt-mobile-only { display: none !important; }
+}
+
+/* Sadece masaüstünde görünür (mobilde gizli) */
+.kt-desktop-only { display: none; }
+@media (min-width: 721px) {
+  .kt-desktop-only { display: block; }
+}
+
+/* ===== Ana sayfa mod ekranı (HomeModes) — desktop + mobil ===== */
+.home-modes-wrap {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 20px 18px 48px;
+}
+
+/* Profil kartı */
+.hm-profile {
+  display: flex; align-items: center; gap: 16px;
+  padding: 16px 18px; margin-bottom: 24px;
+  background: var(--bg-panel); border: 1px solid var(--border-soft);
+  border-radius: 18px;
+}
+.hm-avatar { width: 60px; height: 60px; border-radius: 50%; background: var(--bg-elevated); border: 2px solid var(--accent); flex-shrink: 0; }
+.hm-name { font-size: 20px; font-weight: 800; color: var(--text-strong); }
+.hm-badge { font-size: 13px; font-weight: 700; color: #1a1330; background: var(--accent); padding: 2px 10px; border-radius: 20px; }
+.hm-title { font-size: 13px; color: var(--accent); font-weight: 600; }
+.hm-xpbar { height: 8px; background: var(--bg-elevated); border-radius: 6px; margin-top: 10px; overflow: hidden; }
+.hm-xpfill { height: 100%; background: linear-gradient(90deg, var(--accent), #ffcb52); border-radius: 6px; transition: width .5s ease; }
+
+.hm-guest { text-align: center; margin-bottom: 24px; }
+.hm-guest-title { font-size: 32px; margin-bottom: 6px; }
+.hm-guest-cta { color: var(--accent); font-weight: 700; font-size: 16px; }
+
+/* Bölümler */
+.hm-section { margin-bottom: 30px; }
+.hm-h2 { font-size: 20px; font-weight: 800; color: var(--text-strong); margin: 0 0 14px; }
+
+/* Büyük ana 1v1 butonu */
+.hm-hero-btn {
+  width: 100%; display: flex; align-items: center; gap: 16px;
+  padding: 22px 26px; margin-bottom: 14px; cursor: pointer;
+  border: none; border-radius: 20px;
+  background: linear-gradient(145deg, #3fb950, #2ea043);
+  color: #fff; box-shadow: 0 8px 24px rgba(46,160,67,.35);
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.hm-hero-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(46,160,67,.45); }
+.hm-hero-btn:active { transform: translateY(0); }
+.hm-hero-icon { font-size: 40px; }
+.hm-hero-text { display: flex; flex-direction: column; align-items: flex-start; flex: 1; }
+.hm-hero-title { font-size: 30px; font-weight: 900; line-height: 1.1; }
+.hm-hero-sub { font-size: 15px; opacity: .92; margin-top: 2px; }
+.hm-hero-arrow { font-size: 32px; font-weight: 800; opacity: .9; }
+
+/* 1v1 alt ikili grid (bot + oda kur) */
+.hm-1v1-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+.hm-tile {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
+  padding: 18px 18px; cursor: pointer; border: 1px solid var(--border-soft);
+  border-radius: 18px; background: var(--bg-panel); color: var(--text-strong);
+  transition: transform .12s ease, border-color .12s ease;
+}
+.hm-tile:hover { transform: translateY(-2px); border-color: var(--accent); }
+.hm-tile-icon { font-size: 32px; }
+.hm-tile-label { font-size: 19px; font-weight: 800; }
+.hm-tile-desc { font-size: 13px; color: var(--text-dim); }
+
+/* Oda koduyla katıl */
+.hm-join {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; background: var(--bg-panel);
+  border: 1px solid var(--border-soft); border-radius: 16px;
+}
+.hm-join-icon { font-size: 22px; }
+.hm-join-input {
+  flex: 1; padding: 12px 14px; font-size: 17px; font-weight: 700;
+  letter-spacing: .12em; text-transform: uppercase;
+  background: var(--bg-elevated); border: 1px solid var(--border-soft);
+  border-radius: 12px; color: var(--text-strong); min-width: 0;
+}
+.hm-join-btn {
+  padding: 12px 26px; font-size: 17px; font-weight: 800; cursor: pointer;
+  border: none; border-radius: 12px; background: var(--accent); color: #1a1330;
+}
+
+/* Diğer modlar grid */
+.hm-modes-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.hm-mode {
+  display: flex; align-items: center; gap: 14px;
+  padding: 20px 18px; cursor: pointer; border: none;
+  border-radius: 18px; color: #fff; text-align: left;
+  box-shadow: 0 6px 18px rgba(0,0,0,.18);
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.hm-mode:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(0,0,0,.28); }
+.hm-mode-icon { font-size: 34px; }
+.hm-mode-text { display: flex; flex-direction: column; }
+.hm-mode-label { font-size: 20px; font-weight: 800; line-height: 1.15; }
+.hm-mode-desc { font-size: 13px; opacity: .9; margin-top: 1px; }
+
+/* Masaüstünde daha geniş yerleşim */
+@media (min-width: 721px) {
+  .home-modes-wrap { padding-top: 28px; }
+  .hm-modes-grid { grid-template-columns: 1fr 1fr 1fr; }
+  .hm-hero-title { font-size: 34px; }
+  .hm-hero-icon { font-size: 46px; }
+}
+
+/* Çok dar ekranlarda tek sütun */
+@media (max-width: 380px) {
+  .hm-1v1-grid, .hm-modes-grid { grid-template-columns: 1fr; }
 }

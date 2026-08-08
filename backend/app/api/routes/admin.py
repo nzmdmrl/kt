@@ -17,7 +17,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -70,6 +70,14 @@ async def dashboard(admin: User = Depends(get_admin_user), db: AsyncSession = De
         select(func.count(MatchHistory.id)).where(MatchHistory.created_at >= month_start)
     )).scalar_one() or 0
 
+    # Bugünkü arena maçı sayısı: ArenaHistory her oyuncu için 1 kayıt tutar; bir maçtaki
+    # oyuncu sayısına bölerek yaklaşık maç sayısı bulunur (sum(1/player_count)).
+    from app.models.arena_history import ArenaHistory
+    arena_today = (await db.execute(
+        select(func.coalesce(func.sum(1.0 / func.nullif(ArenaHistory.player_count, 0)), 0.0))
+        .where(ArenaHistory.created_at >= day_start)
+    )).scalar_one() or 0
+
     return {
         "total_users": total_users,
         "total_matches": int(total_matches),
@@ -82,8 +90,170 @@ async def dashboard(admin: User = Depends(get_admin_user), db: AsyncSession = De
             "live_matches": live_matches,
             "matches_today": int(matches_today),
             "matches_month": int(matches_month),
+            "arena_today": round(float(arena_today)),
         },
     }
+
+
+@router.get("/titles")
+async def get_titles(admin: User = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+    """XP unvanları — DB'den (admin düzenleyebilir) + XP kazanç ayarları."""
+    from app.models.title import Title
+    from app.game.xp_service import XP_EVENTS
+    from app.game.settings_service import cached_int
+    from sqlalchemy import select as _sel
+    rows = (await db.execute(_sel(Title).order_by(Title.xp_required))).scalars().all()
+    titles = [t.to_public() for t in rows]
+    events = []
+    for event, (key, default) in XP_EVENTS.items():
+        events.append({"event": event, "key": key, "xp": cached_int(key, default)})
+    return {"titles": titles, "xp_events": events}
+
+
+class TitleIn(BaseModel):
+    name: str
+    icon: str = "🌱"
+    xp_required: int = 0
+
+
+async def _reload_titles_cache(db):
+    from app.models.title import Title
+    from app.game.xp_service import set_titles_cache
+    from sqlalchemy import select as _sel
+    rows = (await db.execute(_sel(Title))).scalars().all()
+    set_titles_cache([(t.name, t.xp_required, t.icon) for t in rows])
+
+
+@router.post("/titles")
+async def create_title(data: TitleIn, admin: User = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+    """Yeni unvan ekle."""
+    from app.models.title import Title
+    t = Title(name=data.name.strip()[:48] or "Unvan", icon=(data.icon or "🌱")[:8], xp_required=max(0, data.xp_required))
+    db.add(t)
+    await db.commit()
+    await _reload_titles_cache(db)
+    return {"ok": True, "id": t.id}
+
+
+@router.put("/titles/{title_id}")
+async def update_title(title_id: int, data: TitleIn, admin: User = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+    """Unvanı düzenle (isim/ikon/XP eşiği)."""
+    from app.models.title import Title
+    from sqlalchemy import select as _sel
+    t = (await db.execute(_sel(Title).where(Title.id == title_id))).scalar_one_or_none()
+    if not t:
+        raise HTTPException(404, "Unvan bulunamadı.")
+    t.name = data.name.strip()[:48] or t.name
+    t.icon = (data.icon or t.icon)[:8]
+    t.xp_required = max(0, data.xp_required)
+    await db.commit()
+    await _reload_titles_cache(db)
+    return {"ok": True}
+
+
+@router.delete("/titles/{title_id}")
+async def delete_title(title_id: int, admin: User = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+    """Unvanı sil."""
+    from app.models.title import Title
+    from sqlalchemy import select as _sel
+    t = (await db.execute(_sel(Title).where(Title.id == title_id))).scalar_one_or_none()
+    if not t:
+        raise HTTPException(404, "Unvan bulunamadı.")
+    await db.delete(t)
+    await db.commit()
+    await _reload_titles_cache(db)
+    return {"ok": True}
+
+
+# ---- ROZETLER ----
+class BadgeIn(BaseModel):
+    code: str = ""
+    name: str
+    description: str = ""
+    icon: str = "🏅"
+    tier: str = "bronze"
+    stat_key: str = "matches_played"
+    threshold: int = 1
+
+
+async def _reload_badges_cache(db):
+    from app.models.badge_def import BadgeDef
+    from app.game.badges import set_badges_cache
+    from sqlalchemy import select as _sel
+    rows = (await db.execute(_sel(BadgeDef))).scalars().all()
+    set_badges_cache([(r.code, r.name, r.description, r.icon, r.tier, r.stat_key, r.threshold, r.sort_order) for r in rows])
+
+
+# İzin verilen istatistik anahtarları (rozet koşulu için)
+BADGE_STAT_KEYS = [
+    "matches_played", "wins", "losses", "draws", "words_solved", "total_score", "elo",
+    "custom_arena_played", "arena_played", "arena_first", "arena_second", "arena_third",
+    "trophies", "medals",
+]
+
+
+@router.get("/badges")
+async def get_badges(admin: User = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+    from app.models.badge_def import BadgeDef
+    from sqlalchemy import select as _sel
+    rows = (await db.execute(_sel(BadgeDef).order_by(BadgeDef.sort_order))).scalars().all()
+    return {"badges": [b.to_public() for b in rows], "stat_keys": BADGE_STAT_KEYS}
+
+
+@router.post("/badges")
+async def create_badge(data: BadgeIn, admin: User = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+    from app.models.badge_def import BadgeDef
+    from sqlalchemy import select as _sel, func as _func
+    import re
+    code = (data.code or "").strip() or re.sub(r"[^a-z0-9]+", "_", data.name.lower())[:40] or "rozet"
+    # kod benzersiz olsun
+    exists = (await db.execute(_sel(BadgeDef).where(BadgeDef.code == code))).scalar_one_or_none()
+    if exists:
+        code = f"{code}_{__import__('uuid').uuid4().hex[:4]}"
+    maxo = (await db.execute(_sel(_func.max(BadgeDef.sort_order)))).scalar() or 0
+    b = BadgeDef(
+        code=code, name=data.name.strip()[:64] or "Rozet", description=data.description[:160],
+        icon=(data.icon or "🏅")[:8], tier=data.tier if data.tier in ("bronze", "silver", "gold") else "bronze",
+        stat_key=data.stat_key if data.stat_key in BADGE_STAT_KEYS else "matches_played",
+        threshold=max(1, data.threshold), sort_order=maxo + 1,
+    )
+    db.add(b)
+    await db.commit()
+    await _reload_badges_cache(db)
+    return {"ok": True, "id": b.id}
+
+
+@router.put("/badges/{badge_id}")
+async def update_badge(badge_id: int, data: BadgeIn, admin: User = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+    from app.models.badge_def import BadgeDef
+    from sqlalchemy import select as _sel
+    b = (await db.execute(_sel(BadgeDef).where(BadgeDef.id == badge_id))).scalar_one_or_none()
+    if not b:
+        raise HTTPException(404, "Rozet bulunamadı.")
+    b.name = data.name.strip()[:64] or b.name
+    b.description = data.description[:160]
+    b.icon = (data.icon or b.icon)[:8]
+    if data.tier in ("bronze", "silver", "gold"):
+        b.tier = data.tier
+    if data.stat_key in BADGE_STAT_KEYS:
+        b.stat_key = data.stat_key
+    b.threshold = max(1, data.threshold)
+    await db.commit()
+    await _reload_badges_cache(db)
+    return {"ok": True}
+
+
+@router.delete("/badges/{badge_id}")
+async def delete_badge(badge_id: int, admin: User = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+    from app.models.badge_def import BadgeDef
+    from sqlalchemy import select as _sel
+    b = (await db.execute(_sel(BadgeDef).where(BadgeDef.id == badge_id))).scalar_one_or_none()
+    if not b:
+        raise HTTPException(404, "Rozet bulunamadı.")
+    await db.delete(b)
+    await db.commit()
+    await _reload_badges_cache(db)
+    return {"ok": True}
 
 
 @router.get("/settings")

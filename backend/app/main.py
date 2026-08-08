@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
 from app.core.database import init_models
-from app.api.routes import health, words, room, match, auth, matchmaking, league, profile, daily, admin, sounds, notifications, home, account, presence, challenge, solo, arena
+from app.api.routes import health, words, room, match, auth, matchmaking, league, profile, daily, admin, sounds, notifications, home, account, presence, challenge, solo, arena, friends, music
 
 settings = get_settings()
 
@@ -65,6 +65,8 @@ app.include_router(presence.router, prefix="/api")
 app.include_router(challenge.router, prefix="/api")
 app.include_router(solo.router, prefix="/api")
 app.include_router(arena.router, prefix="/api")  # WebSocket: /api/ws/arena
+app.include_router(friends.router, prefix="/api")
+app.include_router(music.router, prefix="/api")
 
 
 @app.on_event("startup")
@@ -81,6 +83,70 @@ async def on_startup():
                 print(f"[startup] DB init başarısız (devam ediliyor): {e}")
             else:
                 await asyncio.sleep(3)
+    # notifications.link sütununu garantile (davet bildirimleri için kritik).
+    try:
+        from app.core.database import engine
+        from sqlalchemy import text as _text
+        async with engine.begin() as conn:
+            try:
+                await conn.execute(_text("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS link VARCHAR(128) DEFAULT ''"))
+                print("[startup] notifications.link garantilendi.")
+            except Exception as _e:
+                # SQLite gibi IF NOT EXISTS desteklemeyen dialektler için sessiz geç.
+                print(f"[startup] link ALTER atlandı: {_e}")
+    except Exception as e:
+        print(f"[startup] link garantileme hatası: {e}")
+
+    # Unvanları seed et (yoksa) ve cache'e yükle.
+    try:
+        from app.core.database import AsyncSessionLocal as _ASL
+        from app.models.title import Title, DEFAULT_TITLES
+        from app.game.xp_service import set_titles_cache
+        from sqlalchemy import select as _sel
+        async with _ASL() as db:
+            rows = (await db.execute(_sel(Title))).scalars().all()
+            if not rows:
+                for (name, icon, xp) in DEFAULT_TITLES:
+                    db.add(Title(name=name, icon=icon, xp_required=xp))
+                await db.commit()
+                rows = (await db.execute(_sel(Title))).scalars().all()
+                print(f"[startup] {len(rows)} unvan seed edildi.")
+            set_titles_cache([(t.name, t.xp_required, t.icon) for t in rows])
+    except Exception as e:
+        print(f"[startup] Unvan seed/cache hatası: {e}")
+
+    # Rozetleri seed et (yoksa) ve cache'e yükle.
+    try:
+        from app.core.database import AsyncSessionLocal as _ASL2
+        from app.models.badge_def import BadgeDef, DEFAULT_BADGES
+        from app.game.badges import set_badges_cache
+        from sqlalchemy import select as _sel2
+        async with _ASL2() as db:
+            rows = (await db.execute(_sel2(BadgeDef))).scalars().all()
+            if not rows:
+                for idx, (code, name, desc, icon, tier, sk, th) in enumerate(DEFAULT_BADGES):
+                    db.add(BadgeDef(code=code, name=name, description=desc, icon=icon,
+                                    tier=tier, stat_key=sk, threshold=th, sort_order=idx))
+                await db.commit()
+                rows = (await db.execute(_sel2(BadgeDef))).scalars().all()
+                print(f"[startup] {len(rows)} rozet seed edildi.")
+            else:
+                # Yeni eklenen varsayılan rozetleri (kodda olup DB'de olmayan) ekle.
+                existing = {r.code for r in rows}
+                added = 0
+                for idx, (code, name, desc, icon, tier, sk, th) in enumerate(DEFAULT_BADGES):
+                    if code not in existing:
+                        db.add(BadgeDef(code=code, name=name, description=desc, icon=icon,
+                                        tier=tier, stat_key=sk, threshold=th, sort_order=idx))
+                        added += 1
+                if added:
+                    await db.commit()
+                    rows = (await db.execute(_sel2(BadgeDef))).scalars().all()
+                    print(f"[startup] {added} yeni rozet eklendi.")
+            set_badges_cache([(r.code, r.name, r.description, r.icon, r.tier, r.stat_key, r.threshold, r.sort_order) for r in rows])
+    except Exception as e:
+        print(f"[startup] Rozet seed/cache hatası: {e}")
+
     # İlk kez ise botları seed et (100 Türkçe bot).
     try:
         from app.core.database import AsyncSessionLocal

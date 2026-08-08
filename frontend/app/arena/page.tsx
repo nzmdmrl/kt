@@ -22,5 +22,6 @@ export default function ArenaPage() {
     );
   }
 
+  // Doğrudan eşleşme başlar (rakip arar).
   return <ArenaGame onExit={() => router.push("/")} />;
 }

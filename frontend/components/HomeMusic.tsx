@@ -1,34 +1,25 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { initSound, startMusic, stopMusic, isSoundEnabled, onSoundChange } from "@/lib/sound";
+import { useEffect, useState } from "react";
+import { initSound } from "@/lib/sound";
+import { useSectionMusic } from "@/lib/useSectionMusic";
 
-// Ana sayfa müzik başlatıcı (görünmez). Tarayıcı autoplay politikası gereği
-// müzik ancak kullanıcı etkileşiminden sonra başlar; ilk tıklamada başlatırız.
-// Ses aç/kapa kontrolü TopBar'daki SoundToggle'da. Burada ses açılınca (ana
-// sayfadayken) müziği yeniden başlatır, kapanınca durdururuz.
+// Ana sayfa müziği — "home" havuzundan rastgele çalar (fade geçişli).
+// Tarayıcı autoplay politikası gereği ilk kullanıcı etkileşiminden sonra başlar.
 export default function HomeMusic() {
-  const started = useRef(false);
-  const interacted = useRef(false);
+  const [interacted, setInteracted] = useState(false);
 
   useEffect(() => {
     initSound(true, 70);
-    const kick = () => {
-      interacted.current = true;
-      if (started.current) return;
-      started.current = true;
-      if (isSoundEnabled()) startMusic();
+    const kick = () => setInteracted(true);
+    window.addEventListener("pointerdown", kick, { once: true });
+    window.addEventListener("keydown", kick, { once: true });
+    return () => {
+      window.removeEventListener("pointerdown", kick);
+      window.removeEventListener("keydown", kick);
     };
-    window.addEventListener("pointerdown", kick);
-
-    // Ses toggle değişince: açıldıysa müziği başlat (etkileşim olmuşsa), kapandıysa durdur.
-    const off = onSoundChange((on) => {
-      if (on && interacted.current) startMusic();
-      else if (!on) stopMusic();
-    });
-
-    return () => { window.removeEventListener("pointerdown", kick); off(); stopMusic(); };
   }, []);
 
+  useSectionMusic("home", interacted);
   return null;
 }

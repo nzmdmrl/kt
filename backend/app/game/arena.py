@@ -60,9 +60,10 @@ class ArenaQuestion:
 class ArenaMatch:
     """Tek bir Arena maçının durumu."""
 
-    def __init__(self, code: str, words: list[str]):
+    def __init__(self, code: str, words: list[str], word_plan: list[int] | None = None):
         self.code = code
         self.players: dict[str, ArenaPlayer] = {}
+        self.word_plan = word_plan or QUESTION_PLAN
         self.questions: list[ArenaQuestion] = self._build_questions(words)
         self.current_index: int = -1     # aktif soru (henüz başlamadı)
         self.state: str = "waiting"      # waiting | countdown | question | reveal | finished
@@ -71,7 +72,9 @@ class ArenaMatch:
     def _build_questions(self, words: list[str]) -> list[ArenaQuestion]:
         import random
         qs = []
-        for i, length in enumerate(QUESTION_PLAN):
+        for i, length in enumerate(self.word_plan):
+            if i >= len(words):
+                break
             w = normalize(words[i])
             letters = list(w)
             random.shuffle(letters)
@@ -142,6 +145,7 @@ class ArenaMatch:
             "correct": p.correct,
             "gained": gained,
             "flash": p.flash,
+            "answer": q.word,
             "tiles": [{"letter": r.letter, "state": r.state.value} for r in evaluate_guess(g, q.word)] if len(g) == q.length else [],
         }
 
@@ -187,8 +191,10 @@ class ArenaMatch:
             if p.score != prev_score:
                 rank = i + 1
                 prev_score = p.score
+            flash_count = sum(1 for h in p.history if h.get("flash"))
             out.append({
                 "pid": p.pid, "name": p.name, "avatar_url": p.avatar_url,
                 "is_bot": p.is_bot, "score": p.score, "rank": rank,
+                "correct_count": p.correct_count, "flash_count": flash_count,
             })
         return out

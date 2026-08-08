@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useSectionMusic } from "@/lib/useSectionMusic";
 import { apiUrl, getJSON } from "@/lib/api";
 import { toUpperTr } from "@/lib/turkish";
 import { playSound, initSound } from "@/lib/sound";
@@ -24,6 +25,9 @@ export default function DailyPage() {
   const [draft, setDraft] = useState("");
   const [status, setStatus] = useState<"playing" | "won" | "lost">("playing");
   const [err, setErr] = useState("");
+
+  // Günün kelimesi müziği (oynarken).
+  useSectionMusic("daily", status === "playing");
 
   useEffect(() => {
     initSound(true, 70);

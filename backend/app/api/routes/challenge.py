@@ -31,6 +31,11 @@ async def send_challenge(to_user_id: int, user: User = Depends(get_current_user)
         raise HTTPException(404, "Kullanıcı bulunamadı.")
     if not target.allow_challenges:
         raise HTTPException(403, "Bu kullanıcı maç tekliflerine kapalı.")
+    # Sadece arkadaşlar maç teklifi gönderebilir.
+    from app.api.routes.friends import friend_status as _fstatus
+    fs = await _fstatus(db, user.id, to_user_id)
+    if fs != "friends":
+        raise HTTPException(403, "Sadece arkadaşlarına maç teklifi gönderebilirsin.")
     # Hedef online ve maçta değil mi?
     status = presence_service.get_status(to_user_id)
     if status == "offline":

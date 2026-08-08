@@ -49,8 +49,8 @@ export default function LigPage() {
   return (
     <main style={{ flex: 1, maxWidth: 640, width: "100%", margin: "0 auto", padding: "28px 18px 60px" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-        <a href="/"><Logo size={38} /></a>
-        <a href="/oyna" style={{ color: "var(--accent)", fontWeight: 600 }}>Oyna →</a>
+        <a href="/" className="kt-mobile-only"><Logo size={38} /></a>
+        <a href="/oyna" style={{ color: "var(--accent)", fontWeight: 600, marginLeft: "auto" }}>Oyna →</a>
       </div>
 
       <h1 className="brand-mono" style={{ fontSize: 28, marginBottom: 4 }}>Lig</h1>

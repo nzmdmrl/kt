@@ -1480,3 +1480,538 @@ Parça 3 geçmiş + Arena sonuç kaydı (ArenaHistory: kaçıncı oldun).
   korundu) + HomeMusic. TopBar/Footer kaldırıldı (üst bar HomeHero'da, alt nav layout'ta).
 Build ok, level endpoint test ✓.
 SONRAKİ: Parça 3 geçmiş + Arena sonuç kaydı (ArenaHistory: kaçıncı oldun) + Arena/günün XP bağlantısı.
+
+## ARENA XP + desktop/mobil ana sayfa ayrımı (Nazım)
+1) Arena XP: _persist_results dolduruldu. Gerçek oyunculara arena_played (20) XP, 1. olana ek
+   arena_win (60) XP. Test: 1. olan 80 XP ✓. (Günün kelimesi XP: check_daily_guess auth'suz
+   olduğu için ertelendi.)
+2) Desktop/mobil ana sayfa: 
+   - components/HomeDesktop.tsx: eski geniş tasarım (TopBar + logo + açıklama + mod butonları).
+   - page.tsx: .home-mobile (HomeHero+HomeBoards) + .home-desktop (HomeDesktop+HomeBoards).
+   - globals.css: @media min-width 721px -> mobil gizle/desktop göster. Alt nav .kt-bottom-nav
+     class -> masaüstünde display:none. Mobilde QuizzLand tarzı + alt nav, masaüstünde eski
+     TopBar üst menü, alt menü YOK.
+Build ok.
+
+## QuizzLand tarzı — PARÇA 3: Arena sonuç kaydı + geçmişte "kaçıncı oldun"
+- models/arena_history.py: ArenaHistory (user_id, rank, score, correct_count, total_words,
+  player_count, created_at). database.py model listesine eklendi (otomatik migration).
+- arena.py _persist_results: her gerçek oyuncu için ArenaHistory kaydı + XP (zaten vardı). rank
+  final_ranking'ten.
+- arena.py GET /api/arena/history?limit: kullanıcının arena geçmişi (get_current_user + get_db
+  dependency). r.to_public() listesi.
+- app/gecmis/page.tsx: "⚔️ Arena maçların" bölümü. Her satır: 🏆/🥈/🥉/N. madalya + "N oyuncu
+  arasında X." + doğru sayısı + skor⭐.
+Test: kayıt+geçmiş (rank/correct_count) ✓, boş geçmiş ✓, tablo migration ✓. Build ok.
+NOT: Günün kelimesi XP hâlâ bağlı değil (check_daily_guess auth'suz). Görevler/Arkadaşlar
+sekmeleri henüz yok.
+
+## Unvan sistemi + Arkadaşlık sistemi (Nazım)
+UNVAN (10 unvan + XP barajı):
+- xp_service.py TITLES: Çırak(0)/Acemi(150)/Öğrenci(400)/Bilgili(800)/Yetenekli(1400)/Uzman(2200)/
+  Usta(3200)/Bilgin(5000)/Üstat(7500)/Efsane(11000). title_for_xp(xp) -> title, next_title,
+  xp_to_next, title_progress.
+- profile.py: _title_info/_level_info -> profile'a title_info, level_info, xp eklendi.
+- profil frontend: isim yanına unvan rozeti (yeşil), altına XP çizgisi ("💎 N XP" + "X için Y XP" +
+  bar %title_progress).
+ARKADAŞLIK:
+- models/friendship.py: Friendship(requester_id, addressee_id, status pending|accepted). database.py
+  listesine eklendi. UniqueConstraint.
+- api/routes/friends.py: request/accept/reject/remove/{id}, GET /friends (liste), /friends/requests
+  (gelen bekleyenler), /friends/status/{id}. friend_status() -> none|friends|request_sent|
+  request_received|self. friend_count(). Her aksiyon karşı tarafa Notification (friend_request/
+  accept/reject). main.py router /api.
+- profile.py: friend_count profile'a; public_profile opsiyonel auth (_optional_user) -> friend_status.
+- profil frontend: friend_status'a göre buton — Arkadaş Ekle / ⏳İstek gönderildi / Kabul et+Reddet /
+  🤝Arkadaşın. profil load token gönderiyor (friend_status için).
+- bildirimler frontend: gelen istekler listesi (avatar+isim+✅/❌ kabul/reddet), respondRequest.
+- profil: @user · 🤝 N arkadaş.
+Test: unvan (10 kademe, ilerleme) ✓, arkadaşlık tam akış (istek->bildirim->kabul->bildirim->arkadaş)
+✓, migration (friendships/arena_history) ✓. Build ok.
+NOT: Arkadaş listesi sayfası (ana sayfadaki Arkadaşlar sekmesi) henüz ayrı sayfa değil; /friends
+endpoint hazır. Görevler sekmesi hâlâ yok.
+
+## Unvan ikonları + admin unvan paneli + solo level üst bar + desktop özet (Nazım)
+1) Unvan ikonları: xp_service.TITLES artık (isim, xp, ikon) — 🌱🔰📘🧠⭐🎯🏅🎓👑🔥. title_for_xp
+   title_icon + next_title_icon döndürür.
+2) Admin panel: GET /api/admin/titles (titles + xp_events). Frontend yonetim/page.tsx: "🏅 Unvanlar"
+   sekmesi (Titles bileşeni) — 10 unvan listesi (ikon+isim+XP eşiği) + XP kazanç ayarları
+   (düzenlenebilir input, /admin/settings'e kaydeder).
+3) Ana sayfa üst bar (HomeHero): solo level çekiliyor (/api/solo/progress). "💎 Seviye N" +
+   "🗺️ Solo Level N" rozetleri.
+4) Desktop özet: components/DesktopUserSummary.tsx (client) — giriş yapınca avatar+level rozeti+
+   unvan(ikonlu)+solo level+XP çubuğu+"Profilim". HomeDesktop TopBar altına eklendi.
+Test: admin titles (10 unvan ikonlu + 7 XP), solo progress, profil unvan ikonu ✓. Build ok.
+
+## ÖZEL ARENA — Parça 1: Backend (Nazım, BÜYÜK özellik)
+Kararlar: kişi 2-5, bekleme max120/default60, bot default kapalı (açıksa son 10sn'de katılır),
+kelime max6, uzunluklar kullanıcı seçer (4/5/6), bot kapalı+süre dolunca gelen kişilerle başla (min2),
+kupa/madalya YOK ama tek seferlik "Özel Arena" rozeti, önceki arenalarım (tekrar aç), isim verilir.
+- models/custom_arena.py: CustomArena (owner_id, name, size, wait_seconds, bots_enabled,
+  word_plan_json). "önceki arenalarım" için. database.py listesine eklendi.
+- arena.py ArenaMatch: word_plan parametresi (esnek, sabit QUESTION_PLAN yerine). _build_questions
+  plan'a göre.
+- arena_manager.py: CustomArenaLobby (code ca-xxx, owner_pid, size 2-5, wait 10-120, bots_enabled,
+  word_plan max6, seconds_left). ArenaManager.create_custom/custom_lobby.
+- badges.py: "custom_arena" rozeti (🎪 Arena Kurucusu, custom_arena_played>=1). User.custom_arena_played
+  sayacı. profile stats'a eklendi.
+- notification.py: link alanı (otomatik migration) + to_public. Davet bildirimi link=/arena/ozel/{code}.
+- arena.py endpoints: POST /arena/custom/create (lobi+kayıt), GET /arena/custom/mine (önceki),
+  GET /arena/custom/{code} (lobi bilgisi), POST /arena/custom/invite (arkadaşlara bildirim, arkadaşlık
+  doğrulanır). _sanitize_plan (max6, 4/5/6).
+Test: oluştur/lobi/davet+link/önceki/rozet ✓. Build henüz (frontend Parça 2'de).
+SONRAKİ: Parça 2 frontend (oluşturma ekranı ayarlar + lobi davet/link + önceki arenalarım),
+Parça 3 davet akışı (bildirimden kabul->arena) + özel arena WS entegrasyonu + bitişte
+custom_arena_played++ & rozet.
+
+## ÖZEL ARENA — Parça 2: Frontend (oluşturma + lobi + davet + önceki arenalarım)
+- app/arena/page.tsx: menü eklendi -> "🎯 Rakip Bul" (normal ArenaGame) veya "🎪 Özel Arena"
+  (/arena/ozel'e gider).
+- app/arena/ozel/page.tsx: oluşturma ekranı — isim, kişi 2-5 (pill), bekleme slider 10-120,
+  bot açık/kapalı, kelime sayacı (4/5/6 harf, toplam max6, +/− Counter). Oluştur -> lobi görünümü
+  (link kopyala + Arenaya Gir + arkadaş davet listesi). "Önceki arenalarım" (kayıtlı ayarlarla
+  tekrar oluştur, tek tık).
+- app/arena/ozel/[code]/page.tsx: davet linkiyle girince lobi (isim, ayarlar, katılanlar, kalan
+  süre, 3sn'de bir yenilenir). "Arenaya Katıl" butonu [WS bağlantısı Parça 3'te].
+- bildirimler: link'li bildirimler tıklanabilir (arena_invite -> /arena/ozel/{code}), "Arenaya git →".
+  Notif tipine link+icon.
+Test: migration (custom_arenas, notifications.link, users.custom_arena_played) ✓, oluşturma ✓.
+Build ok.
+SONRAKİ (Parça 3): özel arena WS entegrasyonu (custom_lobby -> ArenaMatch word_plan ile, bot son
+10sn, botsuz min2 başla), "Arenaya Katıl" -> WS bağlan, bitişte custom_arena_played++ & rozet,
+kupa/madalya YOK (özel arenada _persist farklı).
+
+## Ana sayfa/menü düzenlemeleri (Nazım)
+- app/arena/page.tsx: menü kaldırıldı, DOĞRUDAN ArenaGame (rakip arar). Özel arena ayrı /arena/ozel.
+- HomeHero (mobil): profil barı gelişmiş KART oldu (avatar+level rozeti+unvan ikonlu+solo level+XP
+  çubuğu, DesktopUserSummary tarzı). Mod kartları: Arena + Özel Arena AYRI (5 kart: Arena/Özel
+  Arena/Solo/Günün/Lig). title_info profilden çekiliyor.
+- HomeDesktop: ortadaki büyük Logo KALDIRILDI, gap 40->20 (başlık profil barına yakın). Mod
+  butonlarına Özel Arena eklendi (Arena ayrı).
+- TopBar: sol'a Logo eklendi (justify space-between), sağ grup div'e sarıldı. Desktop logo artık
+  üst menüde solda.
+- app/menu/page.tsx: YENİDEN yazıldı. Mod butonları KALDIRILDI (ana sayfada var). Ayar odaklı:
+  gündüz/gece toggle, ses toggle, Profilim, Bildirimler, Geçmiş, Nasıl Oynanır, Gizlilik, Şartlar,
+  Çıkış. Buton genişlikleri width:100% düzgün. theme (getThemeMode/setThemeMode/effectiveTheme) +
+  sound (isSoundEnabled/setSoundEnabled) doğru API.
+Build ok.
+
+## Bildirim sesi + bildirimler sadeleştirme + menü güzelleştirme (Nazım)
+1) Bildirim sesi: BottomNav'a poller (20sn) — /api/notifications unread. prevUnread ref, artış
+   olunca playSound("opponent_found"). Bildirim ikonuna kırmızı badge (unread, 9+). Her sayfada
+   (mobil alt nav) çalışır.
+2) Bildirimler sayfası: kupalar/madalya/kazanımlar özeti KALDIRILDI. Sadece arkadaşlık istekleri
+   (✅/❌) + son bildirimler (link'li tıklanabilir). Boşsa "Henüz bildirim yok".
+3) Menü güzelleştirme: satırlar border+shadow+ikon arka planlı kutu (40x40 radius), font 16,
+   renkler görünür (text-strong). Başlık 30px. Bölüm başlıkları ("AYARLAR", "HESAP & BİLGİ").
+   Toggle 48x28 gölgeli. Çıkış kırmızı ikon kutulu. Çizgiler artık görünür (border-soft).
+Build ok.
+
+## Menü 2 sütun + desktop footer geri (Nazım)
+- app/menu/page.tsx: Hesap&Bilgi butonları 2 sütun grid (gridTemplateColumns 1fr 1fr). NavRow dikey
+  kart oldu (ikon 52px kutu üstte, label altta, minHeight 100). Çıkış gridColumn 1/-1 tam genişlik.
+  Toggle'lar (gece/ses) tam genişlik kaldı. "Şartlar ve Koşullar"->"Şartlar" (dar sütun).
+- HomeDesktop: Footer geri eklendi (main sonrası). Footer zaten Nasıl Oynanır/Gizlilik/Kullanım
+  Koşulları linklerini içeriyor. Sadece .home-desktop içinde -> masaüstünde görünür, mobilde alt nav.
+Build ok.
+
+## Saatlik arkadaşlık isteği limiti (Nazım)
+- game_setting.py: friend_request_hourly_limit (varsayılan 5) admin ayarı.
+- friends.py send_request: son 1 saatte requester=user olan Friendship kayıtlarını say
+  (created_at >= now-1h). limit>0 ve recent>=limit ise HTTP 429. cached_int ile ayardan okur.
+  (Reddedilen istekler silindiği için sayılmaz — kullanıcı lehine, kötüye kullanımı yine engeller.)
+- Frontend profil: friendAction hata yakalar (r.ok değilse j.detail) -> friendErr state, buton
+  altında kırmızı mesaj gösterilir.
+Test: 5 istek geçti, 6. 429 ✓, admin ayarı görünür ✓. Build ok.
+
+## Desktop chrome + maç teklifi arkadaş + toplanan kelime + profil düzenle sağ üst + bottomnav + menü başlık (Nazım)
+1) Desktop top menü + footer her sayfada (maç ekranları HARİÇ): components/DesktopChrome.tsx
+   (usePathname; HIDE_ON=/oyna,/arena,/solo,/gunun-kelimesi,/giris,/yonetim; ana sayfa / hariç çünkü
+   HomeDesktop kendi TopBar+Footer'ını render ediyor). layout.tsx'e sarıldı. CSS .kt-desktop-chrome
+   (mobilde display:none, min-width721px'de block).
+2) Maç teklifi sadece arkadaşlar: challenge.py send_challenge -> friend_status != friends ise 403.
+3) Toplanan kelimeler: models/collected_word.py (CollectedWord user_id+word UniqueConstraint,
+   migration). match.py MatchState.solved_words (pid->set), çözümde ekle. match.py route on_over:
+   apply_match_result sonrası her gerçek oyuncunun solved_words'ünü CollectedWord'e kaydet (mevcut
+   olmayanları). profile.py _collected_words_count -> profile "collected_words". Frontend profil:
+   "Toplanan Kelime" Stat kartı (accent).
+4) Profili düzenle butonu SAĞ ÜST: profil üst kartı position relative, buton absolute top:0 right:0
+   ("⚙️ Düzenle"). Eski alt buton kaldırıldı. Mobil+desktop aynı.
+5) BottomNav güzelleştirme: üst köşeler radius 22, boxShadow -6px 24px, orta buton gradient+58px+
+   gölge, font renkleri text-soft (daha açık), ikonlar 24px opacity .85 (grayscale kaldırıldı),
+   badge border'lı.
+6) Mobil menü başlık "☰ Menü" KALDIRILDI.
+Test: arkadaş kontrolü 403 ✓, collected_words ✓, migration ✓. Build ok.
+
+## Desktop ana sayfa footer sırası düzeltme (Nazım)
+Sorun: HomeDesktop içinde Footer vardı ama HomeBoards (Bugünün Ligi/Son Maçlar) HomeDesktop'tan
+SONRA render ediliyordu -> footer araya giriyordu (içerik->footer->boards).
+Düzeltme: Footer HomeDesktop'tan kaldırıldı. page.tsx .home-desktop içinde HomeBoards'DAN SONRA
+Footer eklendi (en son). Artık: TopBar->içerik->HomeBoards->Footer. Mobilde .home-desktop gizli
+olduğu için footer sadece masaüstünde. Ana sayfa DesktopChrome'dan zaten hariç (isHome).
+Build ok.
+
+## Profil çift logo + bottomnav menü ikonu + mobil düzenle konumu + menü sıkışıklık (Nazım)
+1) Desktop profil çift logo: profildeki Logo .kt-mobile-only oldu (desktopta TopBar/DesktopChrome
+   logosu var). CSS: .kt-mobile-only (min721px gizli), .kt-desktop-only (mobilde gizli, min721px
+   block).
+2) BottomNav "Menü" ikonu (☰ metin karakteri, emoji değil -> renk alır, koyu zeminde kayboluyordu):
+   ikon span'ine color verildi (active accent, değilse text-soft). Artık görünür. Emoji ikonlar
+   renkten etkilenmez.
+3) Mobil profil düzenle: return başına .kt-mobile-only logo+düzenle satırı (justify space-between,
+   KT logosu hizasında sağda). Üst karttaki absolute düzenle butonu .kt-desktop-only (mobilde gizli).
+   Wrap'tan logo satırı çıkarıldı (isMe/setEditOpen erişimi için ProfilePage içine taşındı).
+4) Menü sıkışıklık: NavRow kompakt (padding 16/8, ikon 46px, font 14, minHeight 92, wordBreak
+   break-word, lineHeight 1.2). main padding 20/14. 2 sütun sığıyor.
+Build ok.
+
+## ÖZEL ARENA — Parça 3: WS entegrasyonu (TAMAMLANDI) (Nazım)
+Sorun: "Arenaya Katıl" butonu maç motoruna bağlı değildi (sadece lobi vardı).
+Backend:
+- arena_manager.py: join_custom(code,pid,...) özel lobiye ekler. build_custom_match(code,words)
+  -> ArenaMatch(word_plan=lobby.word_plan). add_one_bot_custom(code,max_size).
+- arena.py WS /ws/arena: custom=<code> query param. custom varsa özel lobiye katıl + _custom_matchmaker.
+  _arena_receive_loop (answer) normal+özel ortak (refactor).
+- _custom_matchmaker: bekleme döngüsü (dolunca veya süre bitince). Bot açıksa son 10sn'de +
+  maç kurulunca size'a kadar botla doldur. Bot kapalı + <2 gerçek -> iptal (error mesajı).
+  build_custom_match -> _run_match(custom=True).
+- _run_match(custom=False): custom ise _persist_custom_results (kupa/madalya/XP YOK, sadece
+  user.custom_arena_played++ rozet için). Normal ise _persist_results (eskisi).
+- _pick_words(plan) plan alır.
+Frontend:
+- useArena(enabled, customCode?): WS url'e &custom=code ekler. dep array customCode.
+- ArenaGame({onExit, customCode?}) -> useArena'ya geçirir.
+- app/arena/ozel/[code]/page.tsx: joined state. "Arenaya Katıl" -> setJoined(true) ->
+  <ArenaGame customCode={code}>. Katılınca WS özel koda bağlanır.
+Test: 2 kişi WS özel koda bağlandı, match_start (2 oyuncu), sorular, finished ✓. persist ->
+custom_arena_played=1 iki oyuncuda, rozet earned ✓. Build ok.
+
+## Maç sonu kazanım animasyonu (ELO/XP/rozet sırayla + sayaç + ses) (Nazım)
+Backend:
+- match_result.py apply_match_result: artık dict döndürür {user, elo_before, elo_after, elo_delta,
+  xp_gained, new_badges}. badges_before istatistik DEĞİŞMEDEN önce hesaplanır (yoksa yeni rozet
+  farkı çıkmaz). grant_xp'den gained alınır. new_badges = sonrası - öncesi.
+- match.py on_over: rewards_by_pid[pid] toplar, sonunda return eder.
+- room.py: _end_match ve handle_opponent_left artık ÖNCE on_match_over callback'i çağırır
+  (rewards_by_pid alır), SONRA _broadcast_match_over ile her sokete kendi rewards'ıyla match_over
+  gönderir. (Eskiden broadcast önce, callback sonraydı -> rewards eklenemiyordu.)
+Frontend:
+- components/MatchRewards.tsx: rewards'tan satırlar (elo/xp/badge) -> sırayla 1.1sn arayla belirir.
+  CountUp: sayarken "tick" sesi (2 adımda bir, dırdırdır), bitince "tile_correct" (çlink). ELO
+  before->after +delta, XP 0->amount, rozet vurgulu kart.
+- MatchGame.tsx: rewards state (match_over event'inden lastEvent.rewards). Skor kartından sonra
+  <MatchRewards rewards={rewards}/>.
+Test: apply_match_result rewards (elo delta, xp, ilk galibiyet rozetleri) ✓, room _broadcast_match_over
+metodu ✓. Build ok.
+NOT: Sadece 1v1 maçlar (MatchGame). Arena maç sonu ayrı ekran (ArenaResult) - oraya eklenmedi.
+
+## Bildirimler tıklama fix (desktop) (Nazım)
+Sorun: desktopta link'li bildirimlere (arena daveti) tıklanmıyordu. <div onClick window.location.href>
+güvenilir değildi.
+Fix: app/bildirimler/page.tsx — link'li bildirim artık native <a href={n.link}> (block, textDecoration
+none). Link'siz olanlar <div>. Native link her yerde çalışır.
+Doğrulama: backend davet bildirimi link='/arena/ozel/{code}' içeriyor ✓ (arkadaşlık isteği link'siz,
+o zaten requests bölümünde ✅/❌ butonlu). Build ok.
+
+## Bildirim link migration + önceki arena silme (Nazım)
+Sorun: desktopta arena daveti bildirimine tıklanmıyor, imleç el olmuyor -> n.link BOŞ geliyor
+(clickable false). Kök neden: canlı PostgreSQL'de notifications.link sütunu migration ile
+eklenmemiş olabilir -> to_public link hep "".
+Fix backend:
+- main.py startup: init_models sonrası hedefli "ALTER TABLE notifications ADD COLUMN IF NOT EXISTS
+  link VARCHAR(128) DEFAULT ''" (PostgreSQL). try/except (SQLite'ta IF NOT EXISTS yok -> atlar).
+- notification.py to_public: getattr(self,"link","") güvenli erişim (sütun yoksa crash yok).
+Fix frontend: bildirim kartına position relative + zIndex 1 (üste binen katman ihtimaline karşı).
+Önceki arena silme:
+- arena.py: DELETE /arena/custom/mine/{arena_id} (sadece sahibi).
+- app/arena/ozel/page.tsx: her önceki arena satırında 🗑️ sil butonu, deleteArena(id) -> DELETE ->
+  listeden çıkar. Satır: tekrar-aç butonu + ayrı sil butonu (iç içe button değil).
+Test: arena silme ✓. Build ok. (link fix canlıda deploy sonrası startup'ta sütunu garantiler.)
+
+## Desktop bildirim = mobil sistem (Nazım "mobildekini al")
+Kök neden netleşti: desktop TopBar'daki NotificationBell bir DROPDOWN açıyordu ve o dropdown'daki
+bildirimler tıklanabilir DEĞİLDİ (link yok, sadece görüntü). Mobildeki /bildirimler sayfası ise
+çalışıyor.
+Çözüm: NotificationBell dropdown'ı KALDIRILDI. Artık 🔔 -> router.push("/bildirimler") (mobildeki
+çalışan sayfanın aynısı). unread rozeti korundu (30sn poll). Tek tutarlı bildirim ekranı; hem mobil
+hem desktop aynı /bildirimler sayfasını kullanıyor (arena daveti <a href> tıklanabilir, arkadaşlık
+✅/❌ butonlu).
+Build ok.
+
+## Özel arena çıkış popup'ı (Nazım)
+Backend arena.py:
+- _arena_receive_loop(ws, code, pid, name, is_custom): WebSocketDisconnect VE genel Exception'da
+  _handle_arena_leave çağrılır. WS bağlanınca name+is_custom geçirilir (özel: is_custom=True).
+- _handle_arena_leave: çıkanın adını bulur (param/lobi/maç), özel lobiden çıkarır (başlamadıysa),
+  _broadcast player_left {pid, name, message:"X arenadan çıktı"}.
+Frontend:
+- useArena ArenaState.leftNotice {name, at}. case "player_left" -> leftNotice set + players'tan düşür.
+- ArenaGame: leftToast state, leftNotice.at değişince toast göster 3.5sn + playSound("wrong").
+  leftToastEl (fixed top-center, kırmızı border, 🚪 + mesaj). Lobi ve ana oyun return'lerine eklendi.
+Test: Veli çıkınca Ali "Veli arenadan çıktı" aldı ✓. Build ok. (Normal arenada da çalışır ama
+odak özel arena.)
+
+## Desktop 1v1: sıra bize geçince otomatik input focus (Nazım)
+Sorun: 1v1'de turun ilk sorusunda buzzer'a basıp/tıklayıp aktifleşiyor ama sıra rakibe geçip TEKRAR
+bize gelince yine tıklamak gerekiyordu (input focus kaybı). İstenen: sıra bende oldu mu direkt yaz.
+Fix (SADECE DESKTOP): MatchGame.tsx inputRef eklendi. myTurnActive true olunca window.matchMedia
+("(min-width:721px)") ise 40ms sonra inputRef.focus(). Mobilde YAPILMADI (otomatik klavye açılmasın;
+kullanıcı mobil değişiklik istemedi). myTurn iken writeBlocked zaten false, focus -> onFocus ->
+hasFocus true. Tur/sıra değişince (dep myTurnActive) tekrar tetiklenir.
+Build ok.
+
+## Yasal sayfalar çift logo fix (Nazım)
+Sorun: desktopta bilgi sayfalarında (nasil-oynanir, gizlilik, kosullar) 2 logo — DesktopChrome TopBar
++ LegalPage kendi logosu.
+Fix: components/LegalPage.tsx logo div'i .kt-mobile-only oldu (mobilde görünür, desktopta gizli;
+desktopta TopBar logosu kalır). Sınıf globals.css'te mevcut.
+Build ok.
+
+## Arena maç sonu XP kazanım animasyonu (Nazım)
+Sorun: arena maç sonunda XP/kazanımlar görünmüyordu.
+Backend arena.py:
+- _persist_results artık rewards_by_pid döndürür {pid: {xp_gained, rank, won}}. grant_xp'lerden
+  gained toplanır (arena_played + 1.ise arena_win).
+- _run_match bitiş: ÖNCE persist (rewards al), SONRA her bağlı sokete kendi rewards'ıyla finished
+  gönder (eskiden _broadcast tek mesaj + persist sonra). Özel arena rewards None (XP yok).
+Frontend:
+- useArena ArenaState.rewards {xp_gained, rank, won}. finished case rewards set.
+- ArenaGame ArenaResult(rewards): showXp -> <ArenaXpReward xp won/>. ArenaXpReward: 0->xp sayar,
+  sayarken "tick" (2 adımda bir, dırdırdır), bitince "tile_correct" (çlink). 💎 kart, +xp, vurgulu.
+  500ms gecikmeyle başlar.
+Test: normal arena rewards (1.->80xp won, 2.->20xp) ✓, özel arena rewards None ✓. Build ok.
+
+## Arena reveal + countdown sesleri (Nazım)
+- ArenaGame.tsx: phase "reveal" olunca playSound("round_start") (ara durum tablosu sesi).
+- phase "countdown" + countdownN>0 değişince playSound("tick") — backend for n in (3,2,1) ayrı mesaj
+  gönderdiği için 3'te/2'de/1'de birer tık sesi.
+Build ok. (Tamamen frontend ses efekti.)
+
+## Maç sonu sayaç sesi iyileştirme (Nazım "dırdırdır + çlink yok")
+Sorun: tick sesi (120ms yumuşak) hızlı sayaç için uygun değildi, üst üste binip bulanıklaşıyordu;
+bitiş sesi (tile_correct) çlink gibi değildi.
+lib/sound.ts: 2 yeni slot:
+- count_tick: 35ms, square dalga, 1050Hz, keskin -> hızlı ardışıkta "dırdırdır".
+- count_done: parlak çlink (880->1318 triangle + 1760 sine parıltı).
+CountUp (MatchRewards.tsx) + ArenaXpReward (ArenaGame.tsx): interval 55->45ms, her adımda
+count_tick (n%2 değil), bitişte count_done. steps==0 -> count_done. mp3 fallback: yeni slotlar
+uploadedSlots'ta yok -> doğrudan playSynth.
+Build ok.
+
+## "Kelime" istatistiği düzeltme (Nazım)
+Sorun: profilde "Kelime" (words_solved) hep 0 — match.py apply_match_result'a words_solved=0 sabit
+geçiliyordu.
+Fix: match.py on_over -> solved_this_match = len(match.solved_words.get(pid, set())) (o maçta çözülen
+kelime sayısı) apply_match_result'a geçilir. apply_match_result zaten user.words_solved += words_solved
+yapıyor -> kümülatif TEKRARLI toplam (aynı kelime farklı maçlarda tekrar sayılır). "Toplanan Kelime"
+(collected_words) benzersiz kalır. İkisi farklı: Kelime=toplam çözüm, Toplanan Kelime=farklı kelime.
+Test: 3+2=5 ✓. Build gerekmez (frontend zaten words_solved gösteriyor).
+
+## 20 unvan + DB'de düzenlenebilir (admin) (Nazım)
+Yeni 20 unvan, başta hızlı (0/20/50/100), sonra kademeli artan eşikler:
+Çaylak0 Meraklı20 Kaşif50 Bilgin100 Düşünür180 Araştırmacı300 Usta480 Uzman720 Âlim1050 Deha1500
+Üstat2100 Fenomen2900 Şampiyon3900 Titan5200 Efsane6800 İkon8800 Zirve11300 Öncü14400 Mit18200
+Ölümsüz22800.
+- models/title.py: Title (name, icon, xp_required) + DEFAULT_TITLES. database.py listesine eklendi.
+- xp_service.py: TITLES sabit KALDIRILDI. _titles_cache (bellek), set_titles_cache(rows), _titles()
+  (cache yoksa DEFAULT fallback). title_for_xp cache'ten okur (senkron).
+- main.py startup: titles tablosu boşsa DEFAULT_TITLES seed + set_titles_cache. Her açılışta cache
+  yüklenir.
+- admin.py: GET /admin/titles DB'den. POST/PUT/DELETE /admin/titles[/{id}] (TitleIn name/icon/
+  xp_required). _reload_titles_cache her değişiklikte cache'i tazeler. HTTPException import eklendi.
+- yonetim/page.tsx Titles: her unvan düzenlenebilir (ikon/isim/xp input + Kaydet + 🗑️ sil) +
+  "Yeni Unvan Ekle". Kaydedince cache anında güncel.
+Test: 20 unvan seed, eşikler (0/20/50/100 hızlı), admin PUT -> cache anında, profil unvan ✓. Build ok.
+
+## Yeni unvan kutlama modalı (konfeti + müzik) (Nazım)
+Backend:
+- sound_asset.py SOUND_SLOTS: "title_up" (Yeni unvan kutlaması müziği) — admin ses sekmesinden mp3
+  yüklenebilir.
+- match_result.py apply_match_result: grant_xp öncesi/sonrası title_for_xp karşılaştırır, değiştiyse
+  new_title {name, icon} döndürür. match.py rewards_by_pid'e new_title.
+- arena.py _persist_results: aynı unvan öncesi/sonrası kontrolü -> rewards new_title.
+Frontend:
+- components/TitleCelebration.tsx: fixed karartma (.82 siyah), 60 konfeti (confettiFall anim), unvan
+  kartı (YENİ UNVAN! + büyük ikon titlePop + isim), müzik (/api/sounds/file/title_up, isSoundEnabled),
+  5sn sonra kapanır (tıklayınca da). 
+- MatchGame: rewards.new_title -> 1.5sn gecikmeyle celebrateTitle -> <TitleCelebration>.
+- ArenaGame: finished + rewards.new_title -> 1.2sn gecikmeyle modal. finished return <>ArenaResult +
+  TitleCelebration</>.
+Test: 15+50=65 XP -> Kaşif unvanı, new_title döndü ✓, title_up slot ✓. Build ok.
+
+## Unvan bildirimi + profile link (Nazım)
+Backend:
+- match_result.py apply_match_result: new_title tespit edilince Notification(kind="title_up",
+  title="Yeni unvan kazandın!", body="🧭 Kaşif unvanına yükseldin.", icon, link=/profil/{username}).
+  await db.commit().
+- arena.py _persist_results: aynı unvan bildirimi (döngü sonrası ortak commit).
+Frontend:
+- bildirimler/page.tsx: link etiketi dinamik — /profil ile başlıyorsa "Profile git →", değilse
+  "Arenaya git →". (Link'li bildirim zaten <a href> tıklanabilir.)
+- Link gerçek username ile (/profil/{username}) — /profil/me sayfası yok, dinamik [username] rotası
+  "me"yi kullanıcı sanır.
+Test: unvan atlayınca title_up bildirimi 1 adet, link=/profil/Ali ✓. Build ok.
+
+## Arena bitiş ekranı yenileme + radar/countdown sesleri (Nazım, bilgimaratonu resmi örnek)
+Sesler (ArenaGame.tsx):
+- radar sesi playSynth'te TANIMLI DEĞİLDİ -> eklendi (sonar bip 760->1140Hz). Lobi/connecting
+  fazında setInterval 1600ms ile aralıklı radar çalar (rakip aranıyor).
+- countdown: playSound("tick") -> playSound("count_tick",{intensity:1}) (keskin, belirgin).
+Backend arena.py final_ranking: correct_count (✓) + flash_count (⚡ = history'de flash sayısı) eklendi.
+Frontend ArenaResult tümden yenilendi (bilgimaratonu podyum düzeni):
+- Başlık "🏆 Kazandın!" (kendi 1.isem) / "Sonuçlar". "Doğru + hız + ⚡ bonusu".
+- Podyum: 2-1-3 kürsü (avatar+isim+puan+madalya, 1. büyük+altın parıltı).
+- Tablo: # / Oyuncu / ✓(correct) / ⚡(flash) / Puan. Kendi satırım vurgulu (myPid=u{kt_uid}).
+- Altta ArenaXpReward (XP sayaç) + butonlar.
+- auth.tsx: kt_uid localStorage'a yazılır (me fetch + applyAuth) -> kendi satır vurgusu için.
+Test: final_ranking doğru=7 hız=4 puan=385 (resimdeki nazim gibi) ✓. Build ok.
+
+## Misafir maçı: sonuç ekranı + üye ol teşviki + kayıtta gizleme (Nazım)
+Sonuç ekranı: teknik olarak zaten geliyordu (match_over _end_match'te callback'ten bağımsız broadcast,
+callback hatası try/except). Olası hata kaynağı MatchRewards misafirde kaldırıldı (!isGuest).
+- MatchGame prop isGuest (oyna/page.tsx isGuest={!user}). Üyeler MatchRewards görür; misafir görmez.
+- Misafir sonuç ekranına teşvik kutusu: 🎁 "Kazanımların kaybolmasın!" + "Ücretsiz Üye Ol →" (/giris).
+Backend match.py maç geçmişi:
+- Misafir (u ile başlamayan, bot değil) oyuncunun uydurduğu adı GİZLE -> "Misafir" (_disp). winner_name
+  de misafirse "Misafir". Kayıt SİLİNMEDİ (Nazım: kaydedilsin ama misafir gizli).
+- Üye + misafir maçında üye ELO/XP alır (apply_match_result u{id} için çalışır, misafiri atlar) — zaten
+  böyleydi, korundu.
+Test: misafir gizleme kodu ✓, üye kazanımı (elo+16 xp+50) ✓. Build ok.
+
+## Arena sonuç ekranı kompaktlaştırma (Nazım, ekrana sığmıyordu)
+ArenaResult (ArenaGame.tsx): XP kutusu podyum ile tablo ARASINA taşındı (en altta kalıp görünmüyordu).
+Dikey sıkılaştırma: minHeight:100vh kaldırıldı, padding 24->16, başlık 34->28 font + margin 20->12,
+podyum yükseklikleri (104/70/52 -> 72/48/36) + avatar (78/60 -> 64/50), tablo satır padding 11->7px +
+font/avatar küçültme, buton margin 24->16. Böylece "Tekrar Arena" + "Ana Sayfa" butonları görünür.
+Sadece frontend layout. Build ok.
+
+## Arena cevap flip animasyonu (gri->dönerek yeşil/kırmızı + her harfte ses) (Nazım)
+Sorun: arena doğru cevapta "Doğru" yazıyor ama harfler gri. İstenen: harf kutuları önce gri, sonra
+tek tek DÖNEREK (flipIn rotateX) renk alsın (doğru=yeşil, yanlış=kırmızı doğru cevap), her harfte ses.
+Backend arena.py submit: dönüşe "answer": q.word eklendi (yanlışta doğru cevabı göstermek için).
+Frontend:
+- useArena myResult.answer eklendi (answer_result msg.answer).
+- ArenaGame FlipReveal bileşeni: harfler önce gri (tile_empty), 200ms sonra 260ms arayla tek tek
+  flipIn + renk (yeşil #tile-correct / kırmızı #d13a3a), her harfte playSound (doğru=tile_correct tiz,
+  yanlış=tile_absent boğuk).
+- alreadyAnswered bloğu: "Doğru! 🎉" / "Yanlış — Doğrusu:" + <FlipReveal word={answer} correct>.
+  Üstteki statik cevap kutuları cevap gönderilince gizlenir (sadece flip görünür). Tek seferlik
+  myResult sesi kaldırıldı (flip her harfte çalıyor).
+Test: submit answer içeriyor ✓. Build ok.
+
+## Arena flip hızlandırma (Nazım)
+FlipReveal (ArenaGame.tsx): harf arası 260->150ms, başlangıç 200->100ms, flipIn .35s->.22s.
+Doğru ve yanlışta daha hızlı açılış. Build ok.
+
+## Arena cevap kutuları konum sabitleme (Nazım)
+Sorun: cevap verince "Doğru/Yanlış" yazısı FlipReveal ÜSTünde -> harf kutuları aşağı kayıyordu,
+tahmin ederken bakılan konumla eşleşmiyordu.
+Fix (ArenaGame.tsx): FlipReveal artık gizlenen TAHMİN kutularının TAM YERİNDE (marginBottom:16, kutu
+52px/gap6 tahminle aynı). "Doğru/Yanlış" + puan yazısı kutuların ALTINA taşındı. Kutular hiç yer
+değiştirmiyor. Build ok.
+
+## Arena kupa/madalya profilde + arena rozetleri + admin rozet yönetimi (Nazım)
+User modeli: arena_played, arena_first, arena_second, arena_third sayaçları (migration otomatik).
+to_public'e eklendi.
+arena.py _persist_results: rank'a göre arena_played++ ve arena_first/second/third++.
+profile.py:
+- Kupalar & Madalyalar (achievements): arena_first -> "Arena Şampiyonu 🏆", arena_second -> "Arena 2.si
+  🥈", arena_third -> "Arena 3.sü 🥉" (count ile).
+- trophies_total = lig kupa + arena_first. medals_total = lig madalya + arena_second + arena_third.
+- badge stats'a arena alanları eklendi.
+Rozetler DB'ye taşındı (admin düzenlenebilir):
+- models/badge_def.py: BadgeDef (code,name,description,icon,tier,stat_key,threshold,sort_order) +
+  DEFAULT_BADGES (19 rozet: mevcutlar + arena_1/5/10/50/100 + Gladyatör(arena_first>=10) +
+  Spartaküs(arena_first>=50)). database.py'ye eklendi.
+- badges.py: BADGES sabit -> _badges_cache. earned_badges DB'den (stat_key>=threshold). set_badges_cache.
+- main.py startup: badge_defs boşsa DEFAULT seed; kodda olup DB'de olmayanları ekler; cache yükler.
+- admin.py: GET/POST/PUT/DELETE /admin/badges (BadgeIn). BADGE_STAT_KEYS (14 istatistik). _reload_badges_cache.
+- yonetim/page.tsx: 🎖️ Rozetler sekmesi + Badges bileşeni (ikon/isim/tür/açıklama/stat_key/threshold
+  düzenle + sil + ekle). STAT_LABELS Türkçe.
+Test: 10 şampiyonluk -> Gladyatör ✓, kupa=10 madalya=4, Arena Şampiyonu/2.si/3.sü achievements ✓,
+admin rozet ekle ✓. Build ok.
+NOT: arena_played sayacı bundan sonraki maçlardan dolar (geriye dönük değil).
+
+## Arena madalya/kupa bildirimi (Nazım "2. bitirdim madalya bildirimi çıkmadı")
+Sorun: arena kupa/madalya sayaçları artıyordu ama bildirim yoktu.
+arena.py _persist_results: rank 1/2/3'e göre Notification(kind="arena_medal"): 1.->"🏆 Arena
+Şampiyonu!", 2.->"🥈 Arena 2.si!", 3.->"🥉 Arena 3.sü!". link=/profil/{username} (tıklayınca profile).
+Frontend bildirimler: /profil linki zaten "Profile git →" gösteriyor.
+Test: 1.->Arena Şampiyonu bildirimi, 2.->Arena 2.si bildirimi ✓. Build gerekmez (backend).
+NOT: Sadece NORMAL arena (özel arenada kupa/madalya/XP yok - Nazım kararı).
+
+## Bildirimler sayfası çift logo fix (Nazım)
+Desktopta bildirimler sayfasında 2 logo (TopBar + sayfa içi). app/bildirimler/page.tsx logo div'i
+.kt-mobile-only oldu (mobilde görünür, desktopta gizli; TopBar logosu kalır). Build ok.
+
+## Lig logo fix + arena bekleme sabit genişlik (Nazım)
+Lig: app/lig/page.tsx logo .kt-mobile-only (desktopta TopBar logosu kalır). "Oyna →" marginLeft:auto
+ile sağda kalır.
+Arena bekleme genişlik: ArenaShell'e fillTo prop. Alt oyuncu barı bekleme (lobby/connecting) fazında
+fillTo=5 -> boş slotlar dashed daire "?/bekleniyor" placeholder ile 5'e tamamlanır, justifyContent
+center. Rakip geldikçe genişleme yerine baştan sabit 5 kişilik genişlik. Build ok.
+
+## Gece arka plan animasyonu (tüm ekranlar) + admin kontrol (Nazım)
+Backend:
+- game_setting.py DEFAULT_SETTINGS: night_bg_enabled (bool, "true"), night_bg_theme (str, "night").
+- settings_service.py: cached_str eklendi.
+- home.py: GET /home/appearance (public) -> {night_bg_enabled, night_bg_theme}.
+Frontend:
+- components/NightBackground.tsx: fixed inset zIndex:-1. /home/appearance okur. enabled ise html'e
+  data-nightbg="1". 70 parlayan yıldız (starTwinkle), 3 kayan yıldız (shootingStar), 3 ağır bulut
+  (cloudDrift 90-170s), tema: night/aurora(auroraWave ışık)/nebula/snow(snowFall kar). Rastgele üretim
+  useMemo (bir kez).
+- globals.css: html[data-nightbg] body -> background transparent (animasyon görünsün).
+- layout.tsx: <NightBackground/> body başında.
+- yonetim Settings: night_bg_theme için dropdown (🌙Gece 🌌Aurora 🪐Nebula ❄️Kar). night_bg_enabled
+  toggle. Değişiklik anında (cache) appearance'a yansır.
+Test: appearance endpoint ✓, admin tema+aç/kapa değişimi yansıyor ✓. Build ok.
+NOT: Panel/kart arka planları opak kalır (okunabilirlik); sadece body zemini şeffaf.
+
+## Gökyüzü teması: kayan yıldız iptal + gündüz modu (Nazım)
+NightBackground.tsx:
+- Kayan yıldız (shooting) tamamen kaldırıldı (useMemo + render + shootingStar keyframe).
+- effectiveTheme() ile gündüz/gece izlenir (MutationObserver data-theme). 
+- GÜNDÜZ (light): mavi gökyüzü gradient + güneş (sağ üst, sunGlow parıltı) + 4 beyaz bulut (cloudDrift).
+  Yıldız yok.
+- GECE (dark): mevcut seçili tema (night/aurora/nebula/snow) + yıldızlar + bulutlar.
+Build ok (önceki hata: gece dalında return eksikti, düzeltildi).
+
+## Müzik havuzu sistemi (her bölüm ayrı) + lig gündüz flash fix (Nazım)
+Backend:
+- models/music_track.py: MusicTrack (section, name, mime, data_b64). MUSIC_SECTIONS: home, arena_wait,
+  match_wait, solo, daily. database.py'ye eklendi.
+- api/routes/music.py: GET /music/sections, GET /music/{section} (public: tracks meta + volume),
+  GET /music/file/{id} (mp3 servis), POST /music/{section} (admin upload, max 8MB), DELETE /music/{id},
+  POST /music/volume/{section}?value=. Ses seviyesi game_setting music_volume_{section} (default 50).
+- main.py router eklendi.
+Frontend:
+- lib/useSectionMusic.ts(section, enabled): havuzdan rastgele mp3, fade-in, bitmeden 2.5sn önce fade-out
+  -> sıradaki rastgele parça (aynı üst üste değil). isSoundEnabled kontrolü.
+- ArenaGame: useSectionMusic("arena_wait", bekleme fazı). MatchGame: "match_wait" (waiting/<2 oyuncu).
+  Solo: "solo" (playing). Günün kelimesi: "daily" (status playing). HomeMusic: "home" (ilk etkileşimde).
+  Rakip bulundu sesi: mevcut opponent_found SoundAsset slotu (admin mp3).
+- yonetim: 🎵 Müzik sekmesi + MusicPools -> her bölüm MusicSection: parça listesi (audio önizleme + sil),
+  sürükle-bırak çoklu mp3 upload, ses seviyesi slider (0-100). Eski music1-6 HomeMusic havuza taşındı.
+Lig gündüz flash fix: NightBackground isDay useState initializer (document data-theme okur) -> gündüz
+modunda gece BG flash etmez.
+Test: müzik havuzu upload/list/file/volume/delete ✓. Build ok.
+
+## Admin özet: bugünkü arena sayısı (Nazım)
+admin.py dashboard: arena_today eklendi. ArenaHistory match_id tutmadığı için (her oyuncu 1 kayıt),
+yaklaşık maç sayısı = sum(1/player_count) bugünkü kayıtlar üzerinden -> round(). live sözlüğüne
+"arena_today". Frontend yonetim Dashboard: "Bugünkü arena" Stat kartı (matches_today yanına).
+Test: 5+3 oyunculu 2 maç -> arena_today=2 ✓. Build ok.
+
+## Ana sayfa yeniden tasarım: 1v1 modları gruplu + mod adları (Nazım)
+Yeni components/HomeModes.tsx (desktop+mobil ortak, büyük fontlu, responsive CSS globals.css .hm-*):
+- Profil/karşılama kartı (avatar, seviye, unvan, XP bar).
+- "🎮 1v1 Düello" bölümü: büyük Oyna butonu (→/oyna?mode=search) + ikili grid [🤖 1vB Pratik
+  →?mode=bot, 🚪 Özel Oda Kur →?mode=create] + oda koduyla katıl input (→?join=KOD).
+- "🎯 Diğer Modlar": Arena, Özel Arena, 🏃 Maraton (eski Solo, →/solo), Günün Kelimesi, Lig.
+Ad değişiklikleri: Bota Karşı Oyna->1vB Pratik, Oda Kur->Özel Oda Kur, Solo Mod->Maraton.
+app/page.tsx: mobil+desktop HomeModes (desktopta üstte TopBar + altta HomeBoards + Footer).
+app/oyna/page.tsx: useEffect'e ?mode=bot|create|search ve ?join=KOD query desteği (ana sayfadan direkt
+tetikleme). joinRoomWith(code) yardımcısı. Eski HomeHero/HomeDesktop artık kullanılmıyor (silinmedi).
+CSS: .hm-* responsive; 721px+ diğer modlar 3 sütun, <380px tek sütun. Büyük buton fontları
+(hero-title 30-34px, tile-label 19px, mode-label 20px). Build ok.

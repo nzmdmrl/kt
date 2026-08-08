@@ -74,6 +74,56 @@ def xp_amount(event: str) -> int:
     return cached_int(key, default)
 
 
+# Unvan cache — (isim, xp, ikon) tuple listesi, xp'ye göre sıralı.
+# DB'den yüklenir (models.title.Title). Fallback: DEFAULT_TITLES.
+_titles_cache: list[tuple] = []
+
+
+def _fallback_titles() -> list[tuple]:
+    from app.models.title import DEFAULT_TITLES
+    return [(name, xp, icon) for (name, icon, xp) in DEFAULT_TITLES]
+
+
+def set_titles_cache(rows: list[tuple]) -> None:
+    """rows: [(name, xp, icon), ...] — admin/startup çağırır."""
+    global _titles_cache
+    _titles_cache = sorted(rows, key=lambda t: t[1]) if rows else []
+
+
+def _titles() -> list[tuple]:
+    return _titles_cache if _titles_cache else _fallback_titles()
+
+
+def title_for_xp(xp: int) -> dict:
+    """XP'ye göre mevcut unvan + sonraki unvan bilgisi (bar/etiket için)."""
+    titles = _titles()
+    current = titles[0]
+    nxt = None
+    for i, item in enumerate(titles):
+        if xp >= item[1]:
+            current = item
+            nxt = titles[i + 1] if i + 1 < len(titles) else None
+        else:
+            break
+    result = {
+        "title": current[0],
+        "title_xp": current[1],
+        "title_icon": current[2],
+        "next_title": nxt[0] if nxt else None,
+        "next_title_xp": nxt[1] if nxt else None,
+        "next_title_icon": nxt[2] if nxt else None,
+        "xp": xp,
+    }
+    if nxt:
+        span = max(1, nxt[1] - current[1])
+        result["title_progress"] = min(100, int((xp - current[1]) / span * 100))
+        result["xp_to_next"] = max(0, nxt[1] - xp)
+    else:
+        result["title_progress"] = 100
+        result["xp_to_next"] = 0
+    return result
+
+
 async def grant_xp(db, user, event: str) -> dict:
     """Kullanıcıya bir olay için XP ver. {gained, level, leveled_up, ...} döner."""
     amount = xp_amount(event)
