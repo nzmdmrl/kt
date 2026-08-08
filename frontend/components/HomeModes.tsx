@@ -77,9 +77,16 @@ export default function HomeModes() {
           <div className="hm-profile-top">
             <img src={avatar} alt="" className="hm-avatar" />
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <div className="hm-name-row">
                 <span className="hm-name">{user.display_name || user.username}</span>
                 <span className="hm-badge">Lv {level}</span>
+                {/* Sayaçlar — isim/level yanında kompakt rozetler */}
+                <span className="hm-chips">
+                  <span className="hm-chip" title="Puan">⭐ {(stats?.score ?? 0).toLocaleString("tr")}</span>
+                  <span className="hm-chip" title="Kupa">🏆 {stats?.trophies ?? 0}</span>
+                  <span className="hm-chip" title="Madalya">🥈 {stats?.medals ?? 0}</span>
+                  <span className="hm-chip" title="Rozet">🎖️ {stats?.badges ?? 0}</span>
+                </span>
               </div>
               {title?.title && <div className="hm-title">{title.title_icon || "🏅"} {title.title}</div>}
             </div>
@@ -98,13 +105,6 @@ export default function HomeModes() {
               <div className="xp-track"><div className="xp-fill" style={{ width: `${pct}%` }} /></div>
             </div>
           )}
-          {/* İstatistik sayaçları (profildeki gibi) */}
-          <div className="hm-stats">
-            <div className="hm-stat"><span className="hm-stat-num">{(stats?.score ?? 0).toLocaleString("tr")}</span><span className="hm-stat-lbl">⭐ Puan</span></div>
-            <div className="hm-stat"><span className="hm-stat-num">{stats?.trophies ?? 0}</span><span className="hm-stat-lbl">🏆 Kupa</span></div>
-            <div className="hm-stat"><span className="hm-stat-num">{stats?.medals ?? 0}</span><span className="hm-stat-lbl">🥈 Madalya</span></div>
-            <div className="hm-stat"><span className="hm-stat-num">{stats?.badges ?? 0}</span><span className="hm-stat-lbl">🎖️ Rozet</span></div>
-          </div>
         </div>
       ) : (
         <div className="hm-guest">

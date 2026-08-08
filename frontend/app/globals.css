@@ -307,25 +307,31 @@ a { color: inherit; text-decoration: none; }
   .hm-1v1-grid, .hm-modes-grid { grid-template-columns: 1fr; }
 }
 
-/* Profil kartı üst kısmı + istatistik sayaçları */
-.hm-profile-top { display: flex; align-items: center; gap: 16px; }
-.hm-stats {
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 14px;
-  padding-top: 14px; border-top: 1px solid var(--border-soft);
+/* Profil kartı üst kısmı + isim satırındaki kompakt sayaçlar */
+.hm-profile-top { display: flex; align-items: center; gap: 14px; }
+.hm-name-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; row-gap: 6px; }
+.hm-chips { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.hm-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: 9px; line-height: 1.6;
+  background: var(--bg-elevated); border: 1px solid var(--border-soft);
+  font-family: var(--font-display); font-size: 13px; font-weight: 700;
+  color: var(--text-strong); white-space: nowrap;
 }
-.hm-stat { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-.hm-stat-num { font-family: var(--font-display); font-size: 20px; font-weight: 800; color: var(--accent); line-height: 1; }
-.hm-stat-lbl { font-size: 11px; color: var(--text-dim); white-space: nowrap; }
 .hm-profile .hm-title { display: inline-block; margin-top: 4px; }
 /* Ana sayfadaki gelişim çubuğu: kartın tam genişliği, biraz daha ferah */
-.hm-xp { margin-top: 14px; }
+.hm-xp { margin-top: 10px; }
 .hm-xp .xp-row { font-size: 13px; margin-bottom: 6px; }
 .hm-xp .xp-track { height: 10px; border-radius: 5px; }
 
 /* Üst modlar (Arena + Özel Arena) — 1v1'in üstünde, 2 sütun */
 .hm-top-modes { margin-bottom: 24px; }
 
-@media (max-width: 400px) {
-  .hm-stat-num { font-size: 17px; }
-  .hm-stat-lbl { font-size: 10px; }
+/* Mobilde sayaçlar biraz daha küçük — isim satırının altına tek satır olarak sığar */
+@media (max-width: 460px) {
+  .hm-profile { padding: 14px 14px; }
+  .hm-avatar { width: 52px; height: 52px; }
+  .hm-name { font-size: 18px; }
+  .hm-chips { gap: 5px; }
+  .hm-chip { font-size: 12px; padding: 1px 6px; gap: 3px; }
 }
