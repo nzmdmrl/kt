@@ -19,16 +19,6 @@ from app.models.match_history import MatchHistory
 router = APIRouter(prefix="/home", tags=["home"])
 
 
-@router.get("/appearance")
-async def appearance():
-    """Public: gece arka plan animasyonu ayarları (herkese açık)."""
-    from app.game.settings_service import cached_bool, cached_str
-    return {
-        "night_bg_enabled": cached_bool("night_bg_enabled", True),
-        "night_bg_theme": cached_str("night_bg_theme", "night"),
-    }
-
-
 @router.get("/recent-matches")
 async def recent_matches(db: AsyncSession = Depends(get_db), limit: int = 10):
     res = await db.execute(

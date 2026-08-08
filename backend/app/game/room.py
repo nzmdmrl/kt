@@ -168,29 +168,12 @@ class Room:
         # Bot kontrolcülerini durdur.
         for bc in self._bot_controllers:
             bc.stop()
-        # Önce istatistik/ELO/XP/rozet callback'i — rewards_by_pid döner.
-        rewards_by_pid = {}
+        await self.broadcast({"type": "match_over", "result": result,
+                              "players": [p.to_public() for p in self.match.players.values()]})
+        # İstatistik/ELO güncelleme callback'i (match_ws bağlar).
         if self.on_match_over:
             try:
-                rewards_by_pid = await self.on_match_over(self.match, result) or {}
-            except Exception:
-                rewards_by_pid = {}
-        # Her oyuncuya kendi kazanımlarıyla (ELO/XP/rozet) maç sonu mesajı.
-        await self._broadcast_match_over(result, rewards_by_pid)
-
-    async def _broadcast_match_over(self, result: dict, rewards_by_pid: dict, extra: dict | None = None):
-        """Her bağlı oyuncuya kendi rewards'ıyla match_over gönder."""
-        players_public = [p.to_public() for p in self.match.players.values()]
-        for pid, ws in list(self.sockets.items()):
-            msg = {
-                "type": "match_over", "result": result,
-                "players": players_public,
-                "rewards": rewards_by_pid.get(pid),
-            }
-            if extra:
-                msg.update(extra)
-            try:
-                await ws.send_json(msg)
+                await self.on_match_over(self.match, result)
             except Exception:
                 pass
 
@@ -224,14 +207,19 @@ class Room:
             result["winner"] = winner
             result["opponent_left"] = True
 
-        # Önce istatistik callback (rewards), sonra oyuncu bazlı match_over.
-        rewards_by_pid = {}
+        await self.broadcast({
+            "type": "match_over",
+            "result": result,
+            "opponent_left": True,
+            "players": [p.to_public() for p in self.match.players.values()],
+        })
+
+        # İstatistik/lig callback'i — kalan kazanan, ayrılan kaybeden olarak işlenir.
         if self.on_match_over:
             try:
-                rewards_by_pid = await self.on_match_over(self.match, result) or {}
+                await self.on_match_over(self.match, result)
             except Exception:
-                rewards_by_pid = {}
-        await self._broadcast_match_over(result, rewards_by_pid, extra={"opponent_left": True})
+                pass
 
         # Ayrılan oyuncu için terk kaydı (ceza sistemi).
         try:

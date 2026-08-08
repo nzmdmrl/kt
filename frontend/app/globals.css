@@ -81,12 +81,6 @@ body {
   flex-direction: column;
 }
 
-/* Gece arka plan animasyonu aktifken body opak zeminini kaldır (animasyon görünsün) */
-html[data-nightbg] body,
-html[data-nightbg] {
-  background: transparent !important;
-}
-
 a { color: inherit; text-decoration: none; }
 
 /* Erişilebilirlik: klavye odağı görünür kalsın */
@@ -151,34 +145,4 @@ a { color: inherit; text-decoration: none; }
   .home-boards {
     grid-template-columns: 1fr;
   }
-}
-
-/* Ana sayfa mobil/masaüstü ayrımı */
-.home-mobile { display: block; }
-.home-desktop { display: none; }
-@media (min-width: 721px) {
-  .home-mobile { display: none; }
-  .home-desktop { display: block; }
-}
-
-/* Alt navigasyon: sadece mobilde (masaüstünde gizli) */
-@media (min-width: 721px) {
-  .kt-bottom-nav { display: none !important; }
-}
-
-/* Masaüstü top menü + footer: sadece masaüstünde (mobilde gizli) */
-.kt-desktop-chrome { display: none; }
-@media (min-width: 721px) {
-  .kt-desktop-chrome { display: block; }
-}
-
-/* Sadece mobilde görünür (masaüstünde TopBar logosu var, çift olmasın) */
-@media (min-width: 721px) {
-  .kt-mobile-only { display: none !important; }
-}
-
-/* Sadece masaüstünde görünür (mobilde gizli) */
-.kt-desktop-only { display: none; }
-@media (min-width: 721px) {
-  .kt-desktop-only { display: block; }
 }

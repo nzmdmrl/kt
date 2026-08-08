@@ -14,7 +14,7 @@ export default function LegalPage({
 }) {
   return (
     <main style={{ flex: 1, maxWidth: 720, width: "100%", margin: "0 auto", padding: "24px 20px 64px" }}>
-      <div className="kt-mobile-only" style={{ marginBottom: 24 }}>
+      <div style={{ marginBottom: 24 }}>
         <a href="/"><Logo size={36} /></a>
       </div>
       <h1 className="brand-mono" style={{ fontSize: 28, marginBottom: 6 }}>{title}</h1>

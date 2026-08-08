@@ -57,56 +57,24 @@ BADGES: list[Badge] = [
           lambda s: s.get("trophies", 0) >= 1),
     Badge("score_1000", "Puan Canavarı", "Toplam 1000 puan topla", "⭐", "silver",
           lambda s: s["total_score"] >= 1000),
-    Badge("custom_arena", "Arena Kurucusu", "Bir özel arena tamamla", "🎪", "gold",
-          lambda s: s.get("custom_arena_played", 0) >= 1),
-    # Arena katılım rozetleri
-    Badge("arena_1", "Arena Acemisi", "İlk arena maçını oyna", "🎫", "bronze",
-          lambda s: s.get("arena_played", 0) >= 1),
-    Badge("arena_5", "Arena Sever", "5 arena maçı oyna", "🎟️", "bronze",
-          lambda s: s.get("arena_played", 0) >= 5),
-    Badge("arena_10", "Arena Savaşçısı", "10 arena maçı oyna", "🛡️", "silver",
-          lambda s: s.get("arena_played", 0) >= 10),
-    Badge("arena_50", "Arena Veteranı", "50 arena maçı oyna", "⚔️", "gold",
-          lambda s: s.get("arena_played", 0) >= 50),
-    Badge("arena_100", "Arena Efsanesi", "100 arena maçı oyna", "🔱", "gold",
-          lambda s: s.get("arena_played", 0) >= 100),
-    # Arena şampiyonluk rozetleri
-    Badge("arena_champ_10", "Gladyatör", "10 arena şampiyonluğu kazan", "🦁", "gold",
-          lambda s: s.get("arena_first", 0) >= 10),
-    Badge("arena_champ_50", "Spartaküs", "50 arena şampiyonluğu kazan", "🏛️", "gold",
-          lambda s: s.get("arena_first", 0) >= 50),
 ]
 
 
-# DB rozet cache — [(code, name, desc, icon, tier, stat_key, threshold, sort_order), ...]
-_badges_cache: list[tuple] = []
-
-
-def _fallback_badges() -> list[tuple]:
-    from app.models.badge_def import DEFAULT_BADGES
-    return [(c, n, d, i, t, sk, th, idx) for idx, (c, n, d, i, t, sk, th) in enumerate(DEFAULT_BADGES)]
-
-
-def set_badges_cache(rows: list[tuple]) -> None:
-    """rows: [(code,name,desc,icon,tier,stat_key,threshold,sort_order), ...]"""
-    global _badges_cache
-    _badges_cache = sorted(rows, key=lambda b: b[7]) if rows else []
-
-
-def _badge_defs() -> list[tuple]:
-    return _badges_cache if _badges_cache else _fallback_badges()
-
-
 def earned_badges(stats: dict) -> list[dict]:
-    """Kullanıcının kazandığı rozetleri döner (kazanılmamışlar 'locked' olarak)."""
+    """Kullanıcının kazandığı rozetleri döner (kazanılmamışlar da 'locked' olarak)."""
     out = []
-    for (code, name, desc, icon, tier, stat_key, threshold, _order) in _badge_defs():
+    for b in BADGES:
+        earned = False
         try:
-            earned = (stats.get(stat_key, 0) or 0) >= threshold
+            earned = b.check(stats)
         except Exception:
             earned = False
         out.append({
-            "code": code, "name": name, "desc": desc, "icon": icon,
-            "tier": tier, "earned": earned,
+            "code": b.code,
+            "name": b.name,
+            "desc": b.desc,
+            "icon": b.icon,
+            "tier": b.tier,
+            "earned": earned,
         })
     return out

@@ -80,7 +80,6 @@ def _attach_stats_callback(room):
         order = match.player_order
         scores = result["scores"]
         winner = result["winner"]
-        rewards_by_pid: dict = {}
         try:
             async with AsyncSessionLocal() as db:
                 for pid in order:
@@ -95,41 +94,12 @@ def _attach_stats_callback(room):
                     opp_elo = getattr(opp_player, "elo", 1000) or 1000
                     won = (winner == pid)
                     draw = (winner is None)
-                    # Bu maçta bu oyuncunun çözdüğü kelime sayısı (tekrarlı toplama eklenir).
-                    solved_this_match = len(match.solved_words.get(pid, set()))
-                    outcome = await apply_match_result(
+                    await apply_match_result(
                         db, uid, opp_elo,
                         won=won, draw=draw,
                         score=scores.get(pid, 0),
-                        words_solved=solved_this_match,
+                        words_solved=0,
                     )
-                    if isinstance(outcome, dict):
-                        rewards_by_pid[pid] = {
-                            "elo_before": outcome.get("elo_before"),
-                            "elo_after": outcome.get("elo_after"),
-                            "elo_delta": outcome.get("elo_delta", 0),
-                            "xp_gained": outcome.get("xp_gained", 0),
-                            "new_badges": outcome.get("new_badges", []),
-                            "new_title": outcome.get("new_title"),
-                        }
-                    # Toplanan kelimeler: bu oyuncunun bu maçta doğru bildiği kelimeler.
-                    try:
-                        from app.models.collected_word import CollectedWord
-                        from sqlalchemy import select as _sel
-                        words = match.solved_words.get(pid, set())
-                        if words:
-                            existing = set((await db.execute(
-                                _sel(CollectedWord.word).where(
-                                    CollectedWord.user_id == uid,
-                                    CollectedWord.word.in_(list(words)),
-                                )
-                            )).scalars().all())
-                            for w in words:
-                                if w not in existing:
-                                    db.add(CollectedWord(user_id=uid, word=w))
-                            await db.commit()
-                    except Exception as _e:
-                        print(f"[collected] HATA uid={uid}: {_e}")
         except Exception as e:
             import traceback
             print(f"[stats] HATA: {e}")
@@ -163,26 +133,18 @@ def _attach_stats_callback(room):
             async with AsyncSessionLocal() as db:
                 u1 = await _uname(db, p1, pl1)
                 u2 = await _uname(db, p2, pl2)
-                # Misafir (u ile başlamayan, bot olmayan) oyuncunun uydurduğu adı GİZLE -> "Misafir".
-                def _disp(pid, pl):
-                    if pl and pl.is_bot:
-                        return (pl.name or "Bot")[:48]
-                    if not pid.startswith("u"):
-                        return "Misafir"
-                    return (pl.name if pl else "?")[:48]
                 db.add(MatchHistory(
-                    p1_name=_disp(p1, pl1),
-                    p2_name=_disp(p2, pl2),
+                    p1_name=(pl1.name if pl1 else "?")[:48],
+                    p2_name=(pl2.name if pl2 else "?")[:48],
                     p1_username=u1, p2_username=u2,
                     p1_score=scores.get(p1, 0),
                     p2_score=scores.get(p2, 0),
-                    winner_name=(("Misafir" if (winner and not winner.startswith("u") and not (match.players.get(winner) and match.players[winner].is_bot)) else winner_name))[:48],
+                    winner_name=winner_name[:48],
                     has_bot=bool((pl1 and pl1.is_bot) or (pl2 and pl2.is_bot)),
                 ))
                 await db.commit()
         except Exception as e:
             print(f"[match_history] HATA: {e}")
-        return rewards_by_pid
     room.on_match_over = on_over
 
 

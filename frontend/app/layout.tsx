@@ -2,8 +2,6 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import Providers from "@/components/Providers";
 import BottomNav from "@/components/BottomNav";
-import DesktopChrome from "@/components/DesktopChrome";
-import NightBackground from "@/components/NightBackground";
 
 export const metadata: Metadata = {
   title: "Kelime Tahmin Oyunu — Online Kelime Tahmin Maçları | kelimetahmin.com",
@@ -52,8 +50,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
-        <NightBackground />
-        <Providers><DesktopChrome>{children}</DesktopChrome><BottomNav /></Providers>
+        <Providers>{children}<BottomNav /></Providers>
       </body>
     </html>
   );

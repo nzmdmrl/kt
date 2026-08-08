@@ -187,7 +187,6 @@ export default function OynaPage() {
           name={name || "Oyuncu"}
           bot={bot}
           botElo={botElo}
-          isGuest={!user}
           onRematch={() => {
             // Rövanş: aynı rakip tipiyle (bot/insan) yeni oda + yeni maç.
             // Yeni oda kodu + VS ekranı; key={code} sayesinde MatchGame sıfırdan kurulur.

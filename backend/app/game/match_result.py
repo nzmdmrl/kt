@@ -59,22 +59,6 @@ async def apply_match_result(
     if not user:
         return None
 
-    # Rozet durumu (öncesi) — istatistik değişmeden ÖNCE hesapla
-    def _earned_codes(u) -> set:
-        from app.game.badges import earned_badges
-        stats = {
-            "matches_played": u.matches_played, "wins": u.wins, "losses": u.losses,
-            "draws": u.draws, "words_solved": u.words_solved, "total_score": u.total_score,
-            "elo": u.elo, "custom_arena_played": getattr(u, "custom_arena_played", 0) or 0,
-            "arena_played": getattr(u, "arena_played", 0) or 0,
-            "arena_first": getattr(u, "arena_first", 0) or 0,
-            "arena_second": getattr(u, "arena_second", 0) or 0,
-            "arena_third": getattr(u, "arena_third", 0) or 0,
-        }
-        return {b["code"]: b for b in earned_badges(stats) if b["earned"]}
-
-    badges_before = _earned_codes(user)
-
     user.matches_played += 1
     user.total_score += score
     user.words_solved += words_solved
@@ -88,42 +72,15 @@ async def apply_match_result(
         user.losses += 1
         result_val = 0.0
 
-    elo_before = user.elo
     user.elo = max(100, elo_change(user.elo, opp_elo, result_val))
-    elo_after = user.elo
-
     await db.commit()
     await db.refresh(user)
 
-    # XP ver (galibiyet/beraberlik/mağlubiyet). Öncesi/sonrası unvanı karşılaştır.
-    xp_gained = 0
-    new_title = None
+    # XP ver (galibiyet/beraberlik/mağlubiyet).
     try:
-        from app.game.xp_service import grant_xp, title_for_xp
-        xp_before = user.xp or 0
-        title_before = title_for_xp(xp_before)["title"]
+        from app.game.xp_service import grant_xp
         event = "match_draw" if draw else ("match_win" if won else "match_loss")
-        res = await grant_xp(db, user, event)
-        xp_gained = res.get("gained", 0) if isinstance(res, dict) else 0
-        title_after_info = title_for_xp(user.xp or 0)
-        if title_after_info["title"] != title_before:
-            new_title = {
-                "name": title_after_info["title"],
-                "icon": title_after_info["title_icon"],
-            }
-            # Bildirim: yeni unvan (profile götürür)
-            try:
-                from app.models.notification import Notification
-                db.add(Notification(
-                    user_id=user_id, kind="title_up",
-                    title="Yeni unvan kazandın!",
-                    body=f"{title_after_info['title_icon']} {title_after_info['title']} unvanına yükseldin.",
-                    icon=title_after_info["title_icon"],
-                    link=f"/profil/{user.username}" if user.username else "/profil/me",
-                ))
-                await db.commit()
-            except Exception as e:
-                print(f"[unvan bildirim] HATA user={user_id}: {e}")
+        await grant_xp(db, user, event)
     except Exception as e:
         print(f"[xp] HATA user={user_id}: {e}")
 
@@ -134,16 +91,4 @@ async def apply_match_result(
     except Exception as e:
         print(f"[lig] HATA user={user_id}: {e}")
 
-    # Yeni açılan rozetler
-    badges_after = _earned_codes(user)
-    new_badges = [badges_after[c] for c in badges_after.keys() - badges_before.keys()]
-
-    return {
-        "user": user,
-        "elo_before": elo_before,
-        "elo_after": elo_after,
-        "elo_delta": elo_after - elo_before,
-        "xp_gained": xp_gained,
-        "new_badges": new_badges,
-        "new_title": new_title,
-    }
+    return user

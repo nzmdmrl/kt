@@ -42,15 +42,6 @@ def cached_bool(key: str, default: bool = False) -> bool:
     return val in ("1", "true", "True", "yes")
 
 
-def cached_str(key: str, default: str = "") -> str:
-    val = _cache.get(key)
-    if val is None:
-        from app.models.game_setting import DEFAULT_SETTINGS
-        d = DEFAULT_SETTINGS.get(key)
-        val = d["value"] if d else None
-    return val if val is not None else default
-
-
 async def load_settings(db: AsyncSession) -> None:
     global _cache, _loaded
     res = await db.execute(select(GameSetting))

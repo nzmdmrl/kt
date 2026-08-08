@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useSectionMusic } from "@/lib/useSectionMusic";
 import { apiUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import SoloGame from "@/components/SoloGame";
@@ -20,9 +19,6 @@ export default function SoloPage() {
   const [playing, setPlaying] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const currentRef = useRef<HTMLDivElement>(null);
-
-  // Solo modunda arka plan müziği (oyun oynanırken).
-  useSectionMusic("solo", playing !== null);
 
   function token() { return typeof window !== "undefined" ? localStorage.getItem("kt_token") : null; }
 

@@ -1,7 +1,6 @@
 "use client";
 
 import { useAuth } from "@/lib/auth";
-import Logo from "./Logo";
 import SoundToggle from "./SoundToggle";
 import ThemeToggle from "./ThemeToggle";
 import NotificationBell from "./NotificationBell";
@@ -17,15 +16,11 @@ export default function TopBar() {
         margin: "0 auto",
         padding: "14px 20px 0",
         display: "flex",
-        justifyContent: "space-between",
+        justifyContent: "flex-end",
         alignItems: "center",
         gap: 12,
       }}
     >
-      <a href="/" style={{ display: "flex", alignItems: "center", textDecoration: "none", flexShrink: 0 }}>
-        <Logo size={34} />
-      </a>
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
       <ThemeToggle />
       <SoundToggle />
       {loading ? null : user ? (
@@ -66,7 +61,6 @@ export default function TopBar() {
           Giriş / Kayıt
         </a>
       )}
-      </div>
     </div>
   );
 }

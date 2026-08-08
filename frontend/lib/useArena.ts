@@ -12,7 +12,7 @@ function wsBase(): string {
   return "";
 }
 
-export type ArenaPlayer = { pid: string; name: string; avatar_url: string; is_bot?: boolean; score?: number; rank?: number; correct_count?: number; flash_count?: number };
+export type ArenaPlayer = { pid: string; name: string; avatar_url: string; is_bot?: boolean; score?: number };
 export type ArenaQuestion = {
   index: number; total: number; length: number;
   first_letter: string; scrambled: string[]; duration: number;
@@ -33,14 +33,12 @@ export type ArenaState = {
   question: ArenaQuestion | null;
   questionStartedAt: number;      // client tarafı, süre çubuğu için
   answers: Record<string, AnswerState>;  // pid -> durum (o soru)
-  myResult: { correct: boolean; gained: number; flash: boolean; answer?: string } | null;
+  myResult: { correct: boolean; gained: number; flash: boolean } | null;
   revealAnswer: string;
   revealPlayers: RevealPlayer[];  // tablo için (geçmiş dahil)
   revealTotal: number;            // toplam soru
   scores: Record<string, number>;
   ranking: ArenaPlayer[];
-  leftNotice: { name: string; at: number } | null;   // "xxx arenadan çıktı" popup
-  rewards: { xp_gained: number; rank: number; won: boolean; new_title?: { name: string; icon: string } | null } | null;
 };
 
 const initialState: ArenaState = {
@@ -57,11 +55,9 @@ const initialState: ArenaState = {
   revealTotal: 6,
   scores: {},
   ranking: [],
-  leftNotice: null,
-  rewards: null,
 };
 
-export function useArena(enabled: boolean, customCode?: string) {
+export function useArena(enabled: boolean) {
   const [state, setState] = useState<ArenaState>(initialState);
   const [connected, setConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
@@ -71,8 +67,7 @@ export function useArena(enabled: boolean, customCode?: string) {
     const token = typeof window !== "undefined" ? localStorage.getItem("kt_token") : null;
     if (!token) return;
 
-    let url = `${wsBase()}/api/ws/arena?token=${encodeURIComponent(token)}`;
-    if (customCode) url += `&custom=${encodeURIComponent(customCode)}`;
+    const url = `${wsBase()}/api/ws/arena?token=${encodeURIComponent(token)}`;
     const ws = new WebSocket(url);
     wsRef.current = ws;
 
@@ -109,7 +104,7 @@ export function useArena(enabled: boolean, customCode?: string) {
           }));
           break;
         case "answer_result":
-          setState((s) => ({ ...s, myResult: { correct: msg.correct, gained: msg.gained, flash: msg.flash, answer: msg.answer } }));
+          setState((s) => ({ ...s, myResult: { correct: msg.correct, gained: msg.gained, flash: msg.flash } }));
           break;
         case "reveal": {
           const revAnswers: Record<string, AnswerState> = {};
@@ -127,21 +122,13 @@ export function useArena(enabled: boolean, customCode?: string) {
           break;
         }
         case "finished":
-          setState((s) => ({ ...s, phase: "finished", ranking: msg.ranking || [], rewards: msg.rewards || null }));
-          break;
-        case "player_left":
-          setState((s) => ({
-            ...s,
-            leftNotice: { name: msg.name || "Bir oyuncu", at: Date.now() },
-            // lobideyse oyuncu listesinden de düşür
-            players: s.players.filter((p) => p.pid !== msg.pid),
-          }));
+          setState((s) => ({ ...s, phase: "finished", ranking: msg.ranking || [] }));
           break;
       }
     };
 
     return () => { try { ws.close(); } catch {} wsRef.current = null; };
-  }, [enabled, customCode]);
+  }, [enabled]);
 
   const answer = useCallback((guess: string) => {
     const ws = wsRef.current;

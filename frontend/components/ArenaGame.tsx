@@ -2,15 +2,13 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useArena, ArenaPlayer, RevealPlayer } from "@/lib/useArena";
-import { useSectionMusic } from "@/lib/useSectionMusic";
 import { toUpperTr } from "@/lib/turkish";
 import { playSound, initSound, stopTicking } from "@/lib/sound";
-import TitleCelebration from "./TitleCelebration";
 import { useSpeech } from "@/lib/useSpeech";
 
 // Arena maç ekranı — eşleşme, senkron sorular (anagram), sonuç.
-export default function ArenaGame({ onExit, customCode }: { onExit: () => void; customCode?: string }) {
-  const { state, connected, answer } = useArena(true, customCode);
+export default function ArenaGame({ onExit }: { onExit: () => void }) {
+  const { state, connected, answer } = useArena(true);
   const [picked, setPicked] = useState<number[]>([]);   // seçilen karışık harf indexleri (sırayla)
   const [typed, setTyped] = useState("");                // klavye/ses ile yazılan
   const [useKeyboard, setUseKeyboard] = useState(false);
@@ -18,24 +16,6 @@ export default function ArenaGame({ onExit, customCode }: { onExit: () => void; 
   const submittedRef = useRef<number>(-1);               // hangi soruya cevap gönderildi
 
   useEffect(() => { initSound(true, 70); }, []);
-
-  // Arena rakip aranırken (bekleme fazı) müzik çal; maç başlayınca dur.
-  const isWaiting = state.phase === "connecting" || state.phase === "lobby";
-  useSectionMusic("arena_wait", isWaiting);
-
-  // "xxx arenadan çıktı" popup — leftNotice değişince göster, 3.5sn sonra gizle.
-  const [leftToast, setLeftToast] = useState<string | null>(null);
-  const lastNoticeRef = useRef<number>(0);
-  useEffect(() => {
-    const n = state.leftNotice;
-    if (n && n.at !== lastNoticeRef.current) {
-      lastNoticeRef.current = n.at;
-      setLeftToast(`${n.name} arenadan çıktı`);
-      try { playSound("wrong"); } catch {}
-      const t = setTimeout(() => setLeftToast(null), 3500);
-      return () => clearTimeout(t);
-    }
-  }, [state.leftNotice]);
 
   // Lobide oyuncu sayısı artınca katılım sesi çal.
   const prevCountRef = useRef(0);
@@ -47,17 +27,6 @@ export default function ArenaGame({ onExit, customCode }: { onExit: () => void; 
     }
     prevCountRef.current = state.players.length;
   }, [state.players.length, state.phase]);
-
-  // Rakip aranırken (lobi/connecting) aralıklı radar sesi.
-  useEffect(() => {
-    if (state.phase === "lobby" || state.phase === "connecting") {
-      let alive = true;
-      const beep = () => { if (alive) { try { playSound("radar"); } catch {} } };
-      beep(); // hemen bir kez
-      const iv = setInterval(beep, 1600);
-      return () => { alive = false; clearInterval(iv); };
-    }
-  }, [state.phase]);
 
   const q = state.question;
 
@@ -126,53 +95,18 @@ export default function ArenaGame({ onExit, customCode }: { onExit: () => void; 
     micTimer.current = setTimeout(() => micStop(), 1000);
   }, [micStop]);
 
-  // Ses efektleri: kendi sonucun — flip animasyonu her harfte ses çaldığı için burada tek ses YOK.
+  // Ses efektleri: kendi sonucun
+  useEffect(() => {
+    if (state.myResult) playSound(state.myResult.correct ? "tile_correct" : "wrong");
+  }, [state.myResult]);
   useEffect(() => { if (state.phase === "finished") stopTicking(); }, [state.phase]);
 
-  // Ara durum (reveal) sahnesi açılınca bir ses çal.
-  useEffect(() => {
-    if (state.phase === "reveal") {
-      try { playSound("round_start"); } catch {}
-    }
-  }, [state.phase]);
-
-  // Geri sayım (3-2-1) — her sayıda belirgin bir bip.
-  useEffect(() => {
-    if (state.phase === "countdown" && state.countdownN > 0) {
-      try { playSound("count_tick", { intensity: 1 }); } catch {}
-    }
-  }, [state.phase, state.countdownN]);
-
-  // Yeni unvan kazanıldıysa (finished) kutlama modalını aç.
-  const [celebrateTitle, setCelebrateTitle] = useState<{ name: string; icon: string } | null>(null);
-  useEffect(() => {
-    if (state.phase === "finished" && state.rewards?.new_title) {
-      const t = setTimeout(() => setCelebrateTitle(state.rewards!.new_title!), 1200);
-      return () => clearTimeout(t);
-    }
-  }, [state.phase, state.rewards]);
-
   // ---- RENDER ----
-
-  const leftToastEl = leftToast ? (
-    <div style={{
-      position: "fixed", top: 16, left: "50%", transform: "translateX(-50%)",
-      zIndex: 500, background: "var(--bg-panel)", border: "1px solid var(--accent-hot)",
-      color: "var(--text-strong)", padding: "12px 20px", borderRadius: 12,
-      boxShadow: "0 6px 24px rgba(0,0,0,.35)", fontWeight: 600, fontSize: 14,
-      display: "flex", alignItems: "center", gap: 8, animation: "toastIn .3s ease",
-      maxWidth: "calc(100vw - 32px)",
-    }}>
-      🚪 {leftToast}
-      <style>{`@keyframes toastIn{from{opacity:0;transform:translate(-50%,-12px)}to{opacity:1;transform:translate(-50%,0)}}`}</style>
-    </div>
-  ) : null;
 
   // Eşleşme / lobi
   if (state.phase === "connecting" || state.phase === "lobby") {
     return (
-      <ArenaShell onExit={onExit} players={state.players} fillTo={5}>
-        {leftToastEl}
+      <ArenaShell onExit={onExit} players={state.players}>
         <div style={{ textAlign: "center", paddingTop: 40 }}>
           <h2 className="brand-mono" style={{ fontSize: 26, marginBottom: 8 }}>Arena</h2>
           <p style={{ color: "var(--text-soft)", marginBottom: 4 }}>Kelimeler: 6</p>
@@ -231,12 +165,7 @@ export default function ArenaGame({ onExit, customCode }: { onExit: () => void; 
 
   // Sonuç
   if (state.phase === "finished") {
-    return (
-      <>
-        <ArenaResult ranking={state.ranking} rewards={state.rewards} onExit={onExit} />
-        <TitleCelebration title={celebrateTitle} onClose={() => setCelebrateTitle(null)} />
-      </>
-    );
+    return <ArenaResult ranking={state.ranking} onExit={onExit} />;
   }
 
   // Soru / reveal
@@ -253,7 +182,6 @@ export default function ArenaGame({ onExit, customCode }: { onExit: () => void; 
 
   return (
     <ArenaShell onExit={onExit} players={state.players} answers={state.answers} showResults={isReveal}>
-      {leftToastEl}
       {q && (
         <div>
           {/* Üst: soru no + süre (1v1 tarzı) */}
@@ -266,8 +194,8 @@ export default function ArenaGame({ onExit, customCode }: { onExit: () => void; 
             <div style={{ width: `${timePct}%`, height: "100%", background: timeColor, transition: "width 1s linear" }} />
           </div>
 
-          {/* Cevap kutuları — cevap gönderilip sonuç geldiyse GİZLE (aşağıda FlipReveal gösterilir) */}
-          {!(alreadyAnswered && state.myResult && !isReveal) && (
+          {/* Cevap kutuları (1v1 Grid tarzı — büyük kareler). Anagram modunda dolu kutuya
+              tıklanınca o pozisyondan itibaren harfler geri alınır. */}
           <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 16 }}>
             {Array.from({ length: q.length }).map((_, j) => {
               let letter = "";
@@ -293,14 +221,6 @@ export default function ArenaGame({ onExit, customCode }: { onExit: () => void; 
               );
             })}
           </div>
-          )}
-
-          {/* Cevap sonucu: harf kutuları TAHMİN KUTULARIYLA AYNI KONUMDA (yer değişmesin) */}
-          {alreadyAnswered && state.myResult && !isReveal && (
-            <div style={{ marginBottom: 16 }}>
-              <FlipReveal word={state.myResult.answer || ""} correct={state.myResult.correct} />
-            </div>
-          )}
 
           {isReveal ? (
             <div style={{ textAlign: "center", padding: 16 }}>
@@ -312,15 +232,17 @@ export default function ArenaGame({ onExit, customCode }: { onExit: () => void; 
               )}
             </div>
           ) : alreadyAnswered ? (
-            <div style={{ textAlign: "center", padding: "4px 8px" }}>
+            <div style={{ textAlign: "center", padding: 20 }}>
               {state.myResult ? (
                 <>
-                  {/* Doğru/Yanlış yazısı kutuların ALTINDA (kutular yukarıda, tahminle aynı yerde) */}
+                  <div style={{ fontSize: 40, marginBottom: 8 }}>
+                    {state.myResult.correct ? "✅" : "❌"}
+                  </div>
                   <p className="brand-mono" style={{
                     fontSize: 20, fontWeight: 700, marginBottom: 6,
                     color: state.myResult.correct ? "var(--tile-correct)" : "var(--accent-hot)",
                   }}>
-                    {state.myResult.correct ? "Doğru! 🎉" : "Yanlış — Doğrusu yukarıda"}
+                    {state.myResult.correct ? "Doğru!" : "Yanlış"}
                   </p>
                   {state.myResult.correct && (
                     <p style={{ color: "var(--accent)", fontWeight: 600 }}>
@@ -331,7 +253,7 @@ export default function ArenaGame({ onExit, customCode }: { onExit: () => void; 
               ) : (
                 <p style={{ color: "var(--text-soft)" }}>Cevabın gönderiliyor…</p>
               )}
-              <p style={{ color: "var(--text-dim)", fontSize: 13, marginTop: 12 }}>
+              <p style={{ color: "var(--text-dim)", fontSize: 13, marginTop: 14 }}>
                 Diğer oyuncular bekleniyor… ⏳
               </p>
             </div>
@@ -434,13 +356,11 @@ export default function ArenaGame({ onExit, customCode }: { onExit: () => void; 
 
 
 // Alt barlı kabuk (her fazda oyuncular altta)
-function ArenaShell({ children, onExit, players, answers, showResults, fillTo }: {
+function ArenaShell({ children, onExit, players, answers, showResults }: {
   children: React.ReactNode; onExit: () => void;
   players: ArenaPlayer[]; answers?: Record<string, { correct: boolean; flash: boolean }>;
-  showResults?: boolean; fillTo?: number;
+  showResults?: boolean;
 }) {
-  // Bekleme ekranında bar sabit genişlikte kalsın diye boş slotları placeholder ile doldur.
-  const emptyCount = fillTo ? Math.max(0, fillTo - players.length) : 0;
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", maxWidth: 520, margin: "0 auto" }}>
       <div style={{ padding: "12px 16px" }}>
@@ -448,7 +368,7 @@ function ArenaShell({ children, onExit, players, answers, showResults, fillTo }:
       </div>
       <div style={{ flex: 1, padding: "0 18px" }}>{children}</div>
       {/* Alt oyuncu barı */}
-      <div style={{ display: "flex", gap: 10, overflowX: "auto", padding: "12px 16px", borderTop: "1px solid var(--border-soft)", background: "var(--bg-panel)", justifyContent: fillTo ? "center" : "flex-start" }}>
+      <div style={{ display: "flex", gap: 10, overflowX: "auto", padding: "12px 16px", borderTop: "1px solid var(--border-soft)", background: "var(--bg-panel)" }}>
         {players.map((p) => {
           const a = answers?.[p.pid];
           const answered = !!a;
@@ -478,174 +398,38 @@ function ArenaShell({ children, onExit, players, answers, showResults, fillTo }:
             </div>
           );
         })}
-        {/* Boş slotlar (bekleme ekranı için sabit genişlik) */}
-        {Array.from({ length: emptyCount }).map((_, i) => (
-          <div key={`empty-${i}`} style={{ textAlign: "center", flexShrink: 0, width: 62 }}>
-            <div style={{
-              width: 48, height: 48, margin: "0 auto", borderRadius: "50%",
-              border: "3px dashed var(--border-soft)", background: "var(--tile-empty)",
-              display: "grid", placeItems: "center", color: "var(--text-dim)", fontSize: 18,
-            }}>?</div>
-            <div style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 3 }}>bekleniyor</div>
+      </div>
+    </div>
+  );
+}
+
+// Sonuç ekranı — kupa/madalya sıralaması
+function ArenaResult({ ranking, onExit }: { ranking: ArenaPlayer[]; onExit: () => void }) {
+  const me = typeof window !== "undefined" ? localStorage.getItem("kt_uid") : null;
+  useEffect(() => { playSound("win"); }, []);
+  const medal = (rank: number) => rank === 1 ? "🏆" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : `${rank}.`;
+  return (
+    <div style={{ minHeight: "100vh", maxWidth: 520, margin: "0 auto", padding: "30px 18px" }}>
+      <h1 className="brand-mono" style={{ textAlign: "center", fontSize: 30, marginBottom: 24 }}>Sonuçlar</h1>
+      <div style={{ display: "grid", gap: 8 }}>
+        {ranking.map((p) => (
+          <div key={p.pid} style={{
+            display: "flex", alignItems: "center", gap: 12, padding: "12px 16px",
+            background: "var(--bg-panel)", borderRadius: 12,
+            border: (p as any).rank === 1 ? "2px solid var(--accent)" : "1px solid var(--border-soft)",
+          }}>
+            <span className="brand-mono" style={{ fontSize: 20, width: 36, textAlign: "center" }}>{medal((p as any).rank)}</span>
+            <img src={p.avatar_url || `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(p.name)}`}
+              alt={p.name} style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--bg-elevated)" }} />
+            <span style={{ flex: 1, fontWeight: 600, color: "var(--text-strong)" }}>{p.name}{p.is_bot ? " 🤖" : ""}</span>
+            <span className="brand-mono" style={{ fontSize: 16, color: "var(--accent)" }}>{p.score} ⭐</span>
           </div>
         ))}
       </div>
-    </div>
-  );
-}
-
-// Sonuç ekranı — podyum (ilk 3 kürsü) + detaylı sıralama tablosu (✓ doğru / ⚡ hız / puan).
-function ArenaResult({ ranking, rewards, onExit }: { ranking: ArenaPlayer[]; rewards: { xp_gained: number; rank: number; won: boolean } | null; onExit: () => void }) {
-  useEffect(() => { playSound("win"); }, []);
-  const showXp = !!rewards && rewards.xp_gained > 0;
-
-  const myUid = typeof window !== "undefined" ? localStorage.getItem("kt_uid") : null;
-  const myPid = myUid ? `u${myUid}` : null;
-  const iWon = rewards?.won || (ranking[0]?.rank === 1 && ranking[0]?.pid === myPid);
-
-  const first = ranking.find((p) => p.rank === 1);
-  const second = ranking.find((p) => p.rank === 2);
-  const third = ranking.find((p) => p.rank === 3);
-
-  const avatar = (p?: ArenaPlayer) => p?.avatar_url || `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(p?.name || "?")}`;
-
-  // Podyum sütunu (kürsü)
-  const Podium = ({ p, place, h }: { p?: ArenaPlayer; place: 1 | 2 | 3; h: number }) => {
-    if (!p) return <div style={{ flex: 1 }} />;
-    const medal = place === 1 ? "🥇" : place === 2 ? "🥈" : "🥉";
-    const size = place === 1 ? 64 : 50;
-    return (
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-        <img src={avatar(p)} alt={p.name} style={{
-          width: size, height: size, borderRadius: "50%", background: "var(--bg-elevated)",
-          border: place === 1 ? "3px solid var(--accent)" : "2px solid var(--border-soft)",
-          boxShadow: place === 1 ? "0 0 20px rgba(224,148,10,.5)" : "none",
-        }} />
-        <div style={{ fontWeight: 700, color: "var(--text-strong)", fontSize: 13, textAlign: "center", maxWidth: 100, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {p.name}{p.is_bot ? " 🤖" : ""}
-        </div>
-        <div className="brand-mono" style={{ color: "var(--accent)", fontWeight: 800, fontSize: 15 }}>{p.score}</div>
-        <div style={{
-          width: "100%", height: h, borderRadius: "10px 10px 0 0", marginTop: 2,
-          background: place === 1 ? "rgba(224,148,10,.18)" : "var(--bg-panel)",
-          border: place === 1 ? "1px solid var(--accent)" : "1px solid var(--border-soft)",
-          borderBottom: "none", display: "grid", placeItems: "center", fontSize: 26,
-        }}>{medal}</div>
-      </div>
-    );
-  };
-
-  return (
-    <div style={{ maxWidth: 560, margin: "0 auto", padding: "16px 14px 28px" }}>
-      {/* Başlık */}
-      <div style={{ textAlign: "center", marginBottom: 12 }}>
-        <div style={{ fontSize: 28, fontWeight: 800, color: iWon ? "var(--accent)" : "var(--text-strong)" }}>
-          {iWon ? "🏆 Kazandın!" : "Sonuçlar"}
-        </div>
-        <div style={{ color: "var(--text-dim)", fontSize: 13, marginTop: 1 }}>Doğru + hız + ⚡ bonusu</div>
-      </div>
-
-      {/* Podyum: 2 - 1 - 3 */}
-      <div style={{ display: "flex", alignItems: "flex-end", gap: 8, marginBottom: 14 }}>
-        <Podium p={second} place={2} h={48} />
-        <Podium p={first} place={1} h={72} />
-        <Podium p={third} place={3} h={36} />
-      </div>
-
-      {/* Kazanılan XP — podyumun hemen altında (görünür kalsın) */}
-      {showXp && (
-        <div style={{ marginBottom: 14 }}>
-          <ArenaXpReward xp={rewards!.xp_gained} won={rewards!.won} />
-        </div>
-      )}
-
-      {/* Tablo */}
-      <div style={{ background: "var(--bg-panel)", borderRadius: 14, overflow: "hidden", border: "1px solid var(--border-soft)" }}>
-        {/* başlık satırı */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 14px", color: "var(--text-dim)", fontSize: 13, fontWeight: 600, borderBottom: "1px solid var(--border-soft)" }}>
-          <span style={{ width: 22 }}>#</span>
-          <span style={{ flex: 1 }}>Oyuncu</span>
-          <span style={{ width: 32, textAlign: "center", color: "var(--tile-correct)" }}>✓</span>
-          <span style={{ width: 32, textAlign: "center", color: "var(--accent)" }}>⚡</span>
-          <span style={{ width: 58, textAlign: "right" }}>Puan</span>
-        </div>
-        {ranking.map((p) => {
-          const isMe = p.pid === myPid;
-          const medalIcon = p.rank === 1 ? "🥇" : p.rank === 2 ? "🥈" : p.rank === 3 ? "🥉" : null;
-          return (
-            <div key={p.pid} style={{
-              display: "flex", alignItems: "center", gap: 10, padding: "7px 14px",
-              borderBottom: "1px solid var(--border-soft)",
-              background: isMe ? "rgba(224,148,10,.10)" : "transparent",
-            }}>
-              <span style={{ width: 22, textAlign: "center", fontSize: medalIcon ? 15 : 13, color: "var(--text-dim)", fontWeight: 700 }}>
-                {medalIcon || p.rank}
-              </span>
-              <img src={avatar(p)} alt={p.name} style={{ width: 30, height: 30, borderRadius: "50%", background: "var(--bg-elevated)" }} />
-              <span style={{ flex: 1, fontWeight: isMe ? 800 : 600, fontSize: 14, color: isMe ? "var(--accent)" : "var(--text-strong)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {p.name}{p.is_bot ? " 🤖" : ""}
-              </span>
-              <span className="brand-mono" style={{ width: 32, textAlign: "center", color: "var(--tile-correct)", fontWeight: 700, fontSize: 14 }}>{p.correct_count ?? 0}</span>
-              <span className="brand-mono" style={{ width: 32, textAlign: "center", color: "var(--accent)", fontWeight: 700, fontSize: 14 }}>{p.flash_count ?? 0}</span>
-              <span className="brand-mono" style={{ width: 58, textAlign: "right", color: "var(--accent)", fontWeight: 800, fontSize: 16 }}>{p.score}</span>
-            </div>
-          );
-        })}
-      </div>
-
-      <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 16, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 28, flexWrap: "wrap" }}>
         <button onClick={() => window.location.reload()} style={{ padding: "12px 22px", borderRadius: 11, border: "none", background: "var(--accent)", color: "#1a1330", fontWeight: 700, fontSize: 15, cursor: "pointer" }}>Tekrar Arena'ya Gir</button>
-        <button onClick={onExit} style={{ padding: "12px 20px", borderRadius: 11, border: "1px solid var(--border-soft)", background: "transparent", color: "var(--text-soft)", fontWeight: 600, fontSize: 15, cursor: "pointer" }}>Ana Sayfa</button>
+        <button onClick={onExit} style={{ padding: "12px 18px", borderRadius: 11, border: "1px solid var(--border-soft)", background: "transparent", color: "var(--text-soft)", fontWeight: 600, fontSize: 15, cursor: "pointer" }}>Ana Sayfa</button>
       </div>
-    </div>
-  );
-}
-
-// Arena XP kazanım kartı — 0'dan kazanılan XP'ye sayar; sayarken "tick", bitince "çlink".
-function ArenaXpReward({ xp, won }: { xp: number; won: boolean }) {
-  const [val, setVal] = useState(0);
-  const done = useRef(false);
-  const [show, setShow] = useState(false);
-
-  useEffect(() => {
-    // Kısa gecikmeyle başlat (sonuç ekranı otursun).
-    const startT = setTimeout(() => setShow(true), 500);
-    return () => clearTimeout(startT);
-  }, []);
-
-  useEffect(() => {
-    if (!show) return;
-    const steps = Math.min(xp, 30);
-    if (steps === 0) { setVal(xp); return; }
-    const stepSize = xp / steps;
-    let cur = 0, n = 0;
-    const iv = setInterval(() => {
-      n += 1;
-      cur += stepSize;
-      setVal(n >= steps ? xp : Math.round(cur));
-      if (n < steps) { try { playSound("count_tick"); } catch {} }
-      if (n >= steps) {
-        clearInterval(iv);
-        if (!done.current) { done.current = true; try { playSound("count_done"); } catch {} }
-      }
-    }, 45);
-    return () => clearInterval(iv);
-  }, [show, xp]);
-
-  if (!show) return null;
-  return (
-    <div style={{
-      display: "flex", alignItems: "center", gap: 14, padding: "14px 16px",
-      background: "var(--bg-panel)", borderRadius: 12, border: "1px solid var(--accent)",
-      boxShadow: "0 0 16px rgba(224,148,10,.25)", animation: "rewardIn .35s ease",
-    }}>
-      <span style={{ fontSize: 26 }}>💎</span>
-      <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{won ? "Birincilik + katılım" : "Katılım"}</div>
-        <div style={{ fontWeight: 600, color: "var(--text-strong)" }}>Kazanılan XP</div>
-      </div>
-      <span className="brand-mono" style={{ fontSize: 22, fontWeight: 800, color: "var(--accent)" }}>+{val}</span>
-      <style>{`@keyframes rewardIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}`}</style>
     </div>
   );
 }
@@ -730,47 +514,6 @@ function ArenaScoreGrid({ players, total, answer, onExit }: {
           </div>
         ))}
       </div>
-    </div>
-  );
-}
-
-// Cevap sonucu harf kutuları: önce gri, sonra tek tek dönerek (flip) renk alır.
-// correct=true -> yeşil, false -> kırmızı (doğru cevabı gösterir). Her harfte bir ses.
-function FlipReveal({ word, correct }: { word: string; correct: boolean }) {
-  const letters = (word || "").toUpperCase().split("");
-  const [revealed, setRevealed] = useState(0);
-
-  useEffect(() => {
-    setRevealed(0);
-    let i = 0;
-    const step = () => {
-      i += 1;
-      setRevealed(i);
-      try { playSound(correct ? "tile_correct" : "tile_absent"); } catch {}
-      if (i < letters.length) setTimeout(step, 150);
-    };
-    const t = setTimeout(step, 100);
-    return () => clearTimeout(t);
-  }, [word, correct]);
-
-  const okColor = "var(--tile-correct)";
-  const badColor = "#d13a3a"; // net kırmızı (yanlış cevabın doğrusu)
-  return (
-    <div style={{ display: "flex", gap: 6, justifyContent: "center", flexWrap: "wrap" }}>
-      {letters.map((ch, j) => {
-        const on = j < revealed;
-        return (
-          <div key={j} style={{
-            width: 52, height: 52, display: "grid", placeItems: "center", borderRadius: 10,
-            fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 24,
-            color: on ? "#fff" : "var(--text-dim)",
-            background: on ? (correct ? okColor : badColor) : "var(--tile-empty)",
-            border: on ? "none" : "2px solid var(--tile-border)",
-            transition: "background .15s ease, color .15s ease",
-            animation: on ? "flipIn .22s ease both" : undefined,
-          }}>{ch}</div>
-        );
-      })}
     </div>
   );
 }
