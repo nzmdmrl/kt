@@ -194,11 +194,12 @@ a { color: inherit; text-decoration: none; }
   padding: 20px 18px 48px;
 }
 
-/* Profil kartı */
+/* Profil kartı — avatar kartın dışında solda */
+.hm-profile-wrap { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; }
 .hm-profile {
-  /* dikey akış: üstte avatar+isim, sonra tam genişlik XP çubuğu, en altta sayaçlar */
-  display: block;
-  padding: 16px 18px; margin-bottom: 24px;
+  /* dikey akış: üstte isim+sayaçlar, altta XP çubuğu (yanında unvan) */
+  display: block; flex: 1; min-width: 0;
+  padding: 14px 18px;
   background: var(--bg-panel); border: 1px solid var(--border-soft);
   border-radius: 18px;
 }
@@ -307,8 +308,7 @@ a { color: inherit; text-decoration: none; }
   .hm-1v1-grid, .hm-modes-grid { grid-template-columns: 1fr; }
 }
 
-/* Profil kartı üst kısmı + isim satırındaki kompakt sayaçlar */
-.hm-profile-top { display: flex; align-items: center; gap: 14px; }
+/* İsim satırındaki kompakt sayaçlar */
 .hm-name-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; row-gap: 6px; }
 .hm-chips { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .hm-chip {
@@ -318,7 +318,9 @@ a { color: inherit; text-decoration: none; }
   font-family: var(--font-display); font-size: 13px; font-weight: 700;
   color: var(--text-strong); white-space: nowrap;
 }
-.hm-profile .hm-title { display: inline-block; margin-top: 4px; }
+/* XP satırı: solda 💎 XP + unvan yan yana, sağda sonraki unvan bilgisi */
+.hm-xp-left { display: inline-flex; align-items: baseline; gap: 10px; min-width: 0; flex-wrap: wrap; row-gap: 2px; }
+.hm-profile .hm-title { display: inline-block; margin-top: 0; white-space: nowrap; }
 /* Ana sayfadaki gelişim çubuğu: kartın tam genişliği, biraz daha ferah */
 .hm-xp { margin-top: 10px; }
 .hm-xp .xp-row { font-size: 13px; margin-bottom: 6px; }
@@ -329,7 +331,8 @@ a { color: inherit; text-decoration: none; }
 
 /* Mobilde sayaçlar biraz daha küçük — isim satırının altına tek satır olarak sığar */
 @media (max-width: 460px) {
-  .hm-profile { padding: 14px 14px; }
+  .hm-profile { padding: 12px 14px; }
+  .hm-profile-wrap { gap: 10px; }
   .hm-avatar { width: 52px; height: 52px; }
   .hm-name { font-size: 18px; }
   .hm-chips { gap: 5px; }

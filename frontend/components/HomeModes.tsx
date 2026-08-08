@@ -73,38 +73,39 @@ export default function HomeModes() {
     <div className="home-modes-wrap">
       {/* Profil / karşılama kartı — puan, madalya, rozet sayılarıyla */}
       {user ? (
-        <div className="hm-profile">
-          <div className="hm-profile-top">
-            <img src={avatar} alt="" className="hm-avatar" />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div className="hm-name-row">
-                <span className="hm-name">{user.display_name || user.username}</span>
-                <span className="hm-badge">Lv {level}</span>
-                {/* Sayaçlar — isim/level yanında kompakt rozetler */}
-                <span className="hm-chips">
-                  <span className="hm-chip" title="Puan">⭐ {(stats?.score ?? 0).toLocaleString("tr")}</span>
-                  <span className="hm-chip" title="Kupa">🏆 {stats?.trophies ?? 0}</span>
-                  <span className="hm-chip" title="Madalya">🥈 {stats?.medals ?? 0}</span>
-                  <span className="hm-chip" title="Rozet">🎖️ {stats?.badges ?? 0}</span>
-                </span>
-              </div>
-              {title?.title && <div className="hm-title">{title.title_icon || "🏅"} {title.title}</div>}
+        <div className="hm-profile-wrap">
+          {/* Avatar kartın dışında, solda */}
+          <img src={avatar} alt="" className="hm-avatar" />
+          <div className="hm-profile">
+            <div className="hm-name-row">
+              <span className="hm-name">{user.display_name || user.username}</span>
+              <span className="hm-badge">Lv {level}</span>
+              {/* Sayaçlar — isim/level yanında kompakt rozetler */}
+              <span className="hm-chips">
+                <span className="hm-chip" title="Puan">⭐ {(stats?.score ?? 0).toLocaleString("tr")}</span>
+                <span className="hm-chip" title="Kupa">🏆 {stats?.trophies ?? 0}</span>
+                <span className="hm-chip" title="Madalya">🥈 {stats?.medals ?? 0}</span>
+                <span className="hm-chip" title="Rozet">🎖️ {stats?.badges ?? 0}</span>
+              </span>
             </div>
-          </div>
-          {/* Unvan gelişimi — kartın tam genişliğinde, profil sayfasındakiyle aynı görünüm */}
-          {title && (
-            <div className="xp-progress hm-xp">
-              <div className="xp-row">
-                <span className="xp-now">💎 {xp.toLocaleString("tr")} XP</span>
-                {title.next_title && (
-                  <span className="xp-next">
-                    {title.next_title} için {(title.xp_to_next ?? 0).toLocaleString("tr")} XP
+            {/* Unvan gelişimi — XP'nin yanında unvan */}
+            {title && (
+              <div className="xp-progress hm-xp">
+                <div className="xp-row">
+                  <span className="hm-xp-left">
+                    <span className="xp-now">💎 {xp.toLocaleString("tr")} XP</span>
+                    {title.title && <span className="hm-title">{title.title_icon || "🏅"} {title.title}</span>}
                   </span>
-                )}
+                  {title.next_title && (
+                    <span className="xp-next">
+                      {title.next_title} için {(title.xp_to_next ?? 0).toLocaleString("tr")} XP
+                    </span>
+                  )}
+                </div>
+                <div className="xp-track"><div className="xp-fill" style={{ width: `${pct}%` }} /></div>
               </div>
-              <div className="xp-track"><div className="xp-fill" style={{ width: `${pct}%` }} /></div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       ) : (
         <div className="hm-guest">
