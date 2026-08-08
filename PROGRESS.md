@@ -2015,3 +2015,14 @@ app/oyna/page.tsx: useEffect'e ?mode=bot|create|search ve ?join=KOD query deste�
 tetikleme). joinRoomWith(code) yardımcısı. Eski HomeHero/HomeDesktop artık kullanılmıyor (silinmedi).
 CSS: .hm-* responsive; 721px+ diğer modlar 3 sütun, <380px tek sütun. Büyük buton fontları
 (hero-title 30-34px, tile-label 19px, mode-label 20px). Build ok.
+
+## Ana sayfa profil zenginleştirme + mod sıralama (Nazım)
+HomeModes.tsx:
+- Profil kartına istatistik sayaçları eklendi (profildeki gibi): ⭐ Puan (total_score), 🏆 Kupa
+  (trophies, arena dahil), 🥈 Madalya (medals), 🎖️ Rozet (kazanılan badge sayısı). /api/profile/{username}
+  fetch genişletildi.
+- Sıralama değişti: ARENA + ÖZEL ARENA en üstte (hm-top-modes) -> 1v1 Düello bölümü -> Maraton/Günün
+  Kelimesi/Lig (başlıksız, "Diğer Modlar" h2 kaldırıldı).
+- CSS: .hm-stats (4 sütun sayaç), .hm-stat-num (büyük accent), .hm-top-modes.
+Profil sayfası: üye gelişimi (XP progress bar) arka planı beyaz (#ffffff + border).
+tsc temiz, build ok.

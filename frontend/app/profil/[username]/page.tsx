@@ -201,7 +201,7 @@ export default function ProfilePage({ params }: { params: { username: string } }
                   </span>
                 )}
               </div>
-              <div style={{ height: 8, background: "var(--bg-panel)", borderRadius: 4, overflow: "hidden" }}>
+              <div style={{ height: 8, background: "#ffffff", borderRadius: 4, overflow: "hidden", border: "1px solid var(--border-soft)" }}>
                 <div style={{
                   width: `${profile.title_info.title_progress}%`, height: "100%",
                   background: "linear-gradient(90deg,var(--tile-correct),var(--accent))", transition: "width .4s",
