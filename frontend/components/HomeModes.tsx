@@ -80,10 +80,11 @@ export default function HomeModes() {
             <div className="hm-name-row">
               <span className="hm-name">{user.display_name || user.username}</span>
               <span className="hm-badge">Lv {level}</span>
-              {/* Sayaçlar — isim/level yanında kompakt rozetler */}
+              {/* ELO — mobilde de isim/level ile aynı satırda kalsın diye chips dışında */}
+              <span className="hm-chip hm-chip-elo" title="ELO">📈 ELO {(user.elo ?? 0).toLocaleString("tr")}</span>
+              {/* Diğer sayaçlar — kompakt rozetler */}
               <span className="hm-chips">
                 <span className="hm-chip" title="Puan">⭐ {(stats?.score ?? 0).toLocaleString("tr")}</span>
-                <span className="hm-chip" title="ELO">📈 ELO {(user.elo ?? 0).toLocaleString("tr")}</span>
                 <span className="hm-chip" title="Kupa">🏆 {stats?.trophies ?? 0}</span>
                 <span className="hm-chip" title="Madalya">🥈 {stats?.medals ?? 0}</span>
                 <span className="hm-chip" title="Rozet">🎖️ {stats?.badges ?? 0}</span>
