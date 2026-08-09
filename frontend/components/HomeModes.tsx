@@ -38,6 +38,7 @@ export default function HomeModes() {
   const avatar = user?.avatar_url || `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(user?.username || "guest")}`;
   const level = lvl?.level ?? user?.level ?? 1;
   const pct = title?.title_progress ?? 0;   // backend 0-100 döner
+  const profileHref = `/profil/${encodeURIComponent(user?.username || "")}`;
   const xp = title?.xp ?? lvl?.xp ?? 0;
 
   function joinRoom() {
@@ -63,11 +64,13 @@ export default function HomeModes() {
       {/* Profil / karşılama kartı — puan, madalya, rozet sayılarıyla */}
       {user ? (
         <div className="hm-profile-wrap">
-          {/* Avatar kartın dışında, solda */}
-          <img src={avatar} alt="" className="hm-avatar" />
+          {/* Avatar kartın dışında, solda — profile linkli */}
+          <a href={profileHref} className="hm-avatar-link" aria-label="Profilim">
+            <img src={avatar} alt="" className="hm-avatar" />
+          </a>
           <div className="hm-profile">
             <div className="hm-name-row">
-              <span className="hm-name">{user.display_name || user.username}</span>
+              <a href={profileHref} className="hm-name hm-name-link">{user.display_name || user.username}</a>
               <span className="hm-badge">Lv {level}</span>
             </div>
             {/* Unvan gelişimi — XP'nin yanında unvan */}

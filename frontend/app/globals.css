@@ -323,6 +323,11 @@ a { color: inherit; text-decoration: none; }
 .hm-profile-wrap .kt-stat-strip { grid-column: 1 / -1; margin-top: 2px; }
 .kt-stat-strip .hm-chip { flex: 1 1 auto; justify-content: center; padding: 5px 8px; }
 
+/* Ana sayfa: avatar + isim profile linkli */
+.hm-avatar-link { display: block; line-height: 0; flex-shrink: 0; border-radius: 50%; }
+.hm-name-link { text-decoration: none; color: var(--text-strong); cursor: pointer; }
+.hm-avatar-link:hover .hm-avatar, .hm-name-link:hover { opacity: .85; }
+
 /* Profil sayfası — ana sayfadaki profil kartının aynısı, ufak eklerle */
 .prof-card { position: relative; }
 .hm-avatar.prof-avatar-fallback { display: grid; place-items: center; }
