@@ -48,6 +48,7 @@ export type MatchState = {
   match_id: string;
   phase: "waiting" | "round_active" | "round_over" | "finished";
   round_index: number;
+  total_rounds?: number;      // maçtaki toplam tur (mod 2'de 1)
   players: PublicPlayer[];
   round: RoundPublic | null;
 };

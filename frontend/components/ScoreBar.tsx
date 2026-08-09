@@ -15,6 +15,8 @@ export default function ScoreBar({
   const turnId = round?.turn_player_id ?? null;
   const timeLeft = round?.time_left ?? 0;
   const answerLeft = round?.answer_time_left ?? 0;
+  // Tek turluk modda (mod 2) "Tur 1/1" yazmak anlamsız — sadece harf sayısı gösterilir.
+  const totalRounds = state.total_rounds ?? 3;
 
   return (
     <div className="scorebar" style={{ display: "grid", gap: 10, background: "var(--bg-panel)", border: "1px solid var(--border-soft)", borderRadius: "var(--radius)", padding: 14, width: "100%", maxWidth: "100%", boxSizing: "border-box", overflow: "hidden" }}>
@@ -24,7 +26,7 @@ export default function ScoreBar({
         <PlayerChip player={p2} myId={myId} active={turnId === p2?.id} right />
       </div>
 
-      {/* Satır 2: [tur saniyesi] — [Tur X/3 · N harf] — [cevap süresi] üç SABİT blok.
+      {/* Satır 2: [tur saniyesi] — [Tur X/N · N harf] — [cevap süresi] üç SABİT blok.
           Yan bloklar eşit sabit genişlikte (saniye basamağı değişince kaymaz),
           orta blok kalan alanı doldurur ve hep ortada durur. */}
       <div style={{ display: "flex", alignItems: "center", gap: 6, width: "100%" }}>
@@ -34,9 +36,9 @@ export default function ScoreBar({
           <span style={{ fontSize: 10, color: "var(--text-dim)" }}>sn</span>
         </div>
 
-        {/* Orta: Tur X/3 · N harf — kalan alan, ortalı */}
+        {/* Orta: Tur X/N · N harf (tek turluk modda sadece "N harf") — kalan alan, ortalı */}
         <div style={{ flex: 1, minWidth: 0, textAlign: "center", fontSize: 13, color: "var(--text-soft)", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-          {round ? `Tur ${round.index + 1}/3 · ${round.length} harf` : ""}
+          {round ? (totalRounds > 1 ? `Tur ${round.index + 1}/${totalRounds} · ${round.length} harf` : `${round.length} harf`) : ""}
         </div>
 
         {/* Sağ: cevap süresi — sabit genişlik, sağa hizalı */}

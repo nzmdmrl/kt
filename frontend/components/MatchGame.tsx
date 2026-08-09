@@ -191,6 +191,9 @@ export default function MatchGame({
     phase !== "round_active" ||
     (!myTurn && !turnFree && !hasFocus);
 
+  // Son tur mu? (mod 2'de tek tur var — "sonraki tur" yerine "sonuç" yazılır)
+  const isLastRound = (state?.round_index ?? 0) + 1 >= (state?.total_rounds ?? 3);
+
   // Tur bitince (round_over) geri sayımı başlat (backend REVEAL_SECONDS ile uyumlu).
   const REVEAL_SECONDS = 5;
   useEffect(() => {
@@ -558,7 +561,7 @@ export default function MatchGame({
             />
           </div>
           <div style={{ textAlign: "center", fontSize: 13, color: "var(--text-soft)" }}>
-            sonraki tur: <strong style={{ color: "var(--accent)" }}>{nextRoundIn}s</strong>
+            {isLastRound ? "sonuç" : "sonraki tur"}: <strong style={{ color: "var(--accent)" }}>{nextRoundIn}s</strong>
           </div>
         </div>
       )}

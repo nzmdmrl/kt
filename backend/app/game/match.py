@@ -367,6 +367,7 @@ class Match:
             "match_id": self.id,
             "phase": self.phase.value,
             "round_index": self.round_index,
+            "total_rounds": len(self.round_plan),
             "players": [self.players[pid].to_public() for pid in self.player_order],
             "round": self.round.to_public() if self.round else None,
         }
