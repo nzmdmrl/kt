@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { apiUrl } from "./api";
+import { useIsoLayoutEffect } from "./useIsoLayoutEffect";
 
 export type AuthUser = {
   id: number;
@@ -35,34 +36,65 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 const TOKEN_KEY = "kt_token";
+// Son bilinen kullanıcı — sayfa açılışında /auth/me beklenmeden anında gösterilir.
+const USER_CACHE_KEY = "kt_user";
+
+function readCachedUser(): AuthUser | null {
+  try {
+    const raw = localStorage.getItem(USER_CACHE_KEY);
+    return raw ? (JSON.parse(raw) as AuthUser) : null;
+  } catch { return null; }
+}
+function writeCachedUser(u: AuthUser | null) {
+  try {
+    if (u) localStorage.setItem(USER_CACHE_KEY, JSON.stringify(u));
+    else localStorage.removeItem(USER_CACHE_KEY);
+  } catch {}
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // İlk yüklemede token'ı geri yükle ve kullanıcıyı çek
-  useEffect(() => {
+  // İlk yüklemede token'ı geri yükle ve kullanıcıyı çek.
+  // Önbellekte son kullanıcı varsa ekran BOYANMADAN önce gösterilir; /auth/me
+  // arka planda tazeler. Böylece "önce misafir ekranı, sonra pat diye profil"
+  // sıçraması olmaz.
+  useIsoLayoutEffect(() => {
     const saved = localStorage.getItem(TOKEN_KEY);
     if (!saved) {
+      writeCachedUser(null);
       setLoading(false);
       return;
     }
     setToken(saved);
+    const cached = readCachedUser();
+    if (cached) {
+      setUser(cached);
+      setLoading(false);   // içerik hazır — iskelet gösterme
+    }
     fetch(apiUrl("/api/auth/me"), {
       headers: { Authorization: `Bearer ${saved}` },
     })
       .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((data) => { setUser(data.user); try { if (data.user?.id) localStorage.setItem("kt_uid", String(data.user.id)); } catch {} })
+      .then((data) => {
+        setUser(data.user);
+        writeCachedUser(data.user);
+        try { if (data.user?.id) localStorage.setItem("kt_uid", String(data.user.id)); } catch {}
+      })
       .catch(() => {
         localStorage.removeItem(TOKEN_KEY);
+        writeCachedUser(null);
         setToken(null);
+        setUser(null);
       })
       .finally(() => setLoading(false));
   }, []);
 
   const applyAuth = useCallback((data: { token: string; user: AuthUser }) => {
     localStorage.setItem(TOKEN_KEY, data.token);
+    writeCachedUser(data.user);
     try { if (data.user?.id) localStorage.setItem("kt_uid", String(data.user.id)); } catch {}
     setToken(data.token);
     setUser(data.user);
@@ -112,6 +144,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
+    writeCachedUser(null);
     setToken(null);
     setUser(null);
   }, []);

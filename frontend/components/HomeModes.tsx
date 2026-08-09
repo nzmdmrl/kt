@@ -4,12 +4,26 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { apiUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { useIsoLayoutEffect } from "@/lib/useIsoLayoutEffect";
 
 type LevelInfo = { level: number; xp: number; level_xp: number; level_need: number };
 type TitleInfo = {
   title: string; title_icon?: string; title_progress: number;
   next_title: string | null; xp_to_next: number; xp?: number;
 };
+
+// Profil kartı verilerinin (seviye/unvan/maraton bölümü) yerel önbelleği.
+// Sayfa açılışında ağ beklenmeden aynı içerik gösterilir, arka planda tazelenir.
+function homeCacheKey(uid: number) { return `kt_home_${uid}`; }
+function readHomeCache(uid: number): any {
+  try { const raw = localStorage.getItem(homeCacheKey(uid)); return raw ? JSON.parse(raw) : null; } catch { return null; }
+}
+function saveHomeCache(uid: number, patch: any) {
+  try {
+    const cur = readHomeCache(uid) || {};
+    localStorage.setItem(homeCacheKey(uid), JSON.stringify({ ...cur, ...patch }));
+  } catch {}
+}
 
 // Ana sayfa mod ekranı — desktop + mobil ortak. Sıralama: Arena/Özel Arena üstte,
 // sonra 1v1 Düello bölümü, sonra Maraton/Günün Kelimesi/Lig.
@@ -23,15 +37,33 @@ export default function HomeModes() {
 
   function token() { return typeof window !== "undefined" ? localStorage.getItem("kt_token") : null; }
 
+  // 1) Önbellekten anında doldur (ekran boyanmadan önce) — sıçrama olmaz.
+  useIsoLayoutEffect(() => {
+    if (!user) return;
+    const c = readHomeCache(user.id);
+    if (!c) return;
+    if (c.lvl) setLvl(c.lvl);
+    if (c.title) setTitle(c.title);
+    if (c.soloLevel != null) setSoloLevel(c.soloLevel);
+  }, [user?.id]);
+
+  // 2) Arka planda tazele + önbelleği güncelle.
   useEffect(() => {
     if (!user) return;
+    const uid = user.id;
     fetch(apiUrl("/api/account/level"), { headers: { Authorization: `Bearer ${token()}` } })
-      .then((r) => r.json()).then(setLvl).catch(() => {});
+      .then((r) => r.json()).then((d) => { setLvl(d); saveHomeCache(uid, { lvl: d }); }).catch(() => {});
     fetch(apiUrl("/api/solo/progress"), { headers: { Authorization: `Bearer ${token()}` } })
-      .then((r) => r.json()).then((d) => setSoloLevel(d.current_level ?? null)).catch(() => {});
+      .then((r) => r.json()).then((d) => {
+        const sl = d.current_level ?? null;
+        setSoloLevel(sl); saveHomeCache(uid, { soloLevel: sl });
+      }).catch(() => {});
     if (user.username) {
       fetch(apiUrl(`/api/profile/${user.username}`), { headers: { Authorization: `Bearer ${token()}` } })
-        .then((r) => r.json()).then((d) => setTitle(d.title_info || null)).catch(() => {});
+        .then((r) => r.json()).then((d) => {
+          const t = d.title_info || null;
+          setTitle(t); saveHomeCache(uid, { title: t });
+        }).catch(() => {});
     }
   }, [user]);
 
@@ -74,7 +106,13 @@ export default function HomeModes() {
               <span className="hm-badge">Lv {level}</span>
             </div>
             {/* Unvan gelişimi — XP'nin yanında unvan */}
-            {title && (
+            {!title ? (
+              /* Unvan/XP verisi ilk kez yükleniyor — kart yüksekliği sabit kalsın */
+              <div className="xp-progress hm-xp" aria-hidden="true">
+                <div className="xp-row"><span className="hm-skel hm-skel-line" style={{ width: 200, height: 12 }} /></div>
+                <div className="xp-track" />
+              </div>
+            ) : (
               <div className="xp-progress hm-xp">
                 <div className="xp-row">
                   <span className="hm-xp-left">
@@ -92,10 +130,26 @@ export default function HomeModes() {
             )}
           </div>
         </div>
+      ) : loading ? (
+        /* Kullanıcı henüz bilinmiyor: misafir yazısı yerine profil kartı iskeleti
+           (aynı yükseklik) — içerik gelince zıplama/flaş olmaz. */
+        <div className="hm-profile-wrap" aria-hidden="true">
+          <div className="hm-avatar hm-skel" />
+          <div className="hm-profile">
+            <div className="hm-name-row">
+              <span className="hm-skel hm-skel-line" style={{ width: 150, height: 20 }} />
+              <span className="hm-skel hm-skel-line" style={{ width: 46, height: 18, borderRadius: 20 }} />
+            </div>
+            <div className="xp-progress hm-xp">
+              <div className="xp-row"><span className="hm-skel hm-skel-line" style={{ width: 200, height: 12 }} /></div>
+              <div className="xp-track" />
+            </div>
+          </div>
+        </div>
       ) : (
         <div className="hm-guest">
           <div className="brand-mono hm-guest-title">Kelime Tahmin</div>
-          {!loading && <a href="/giris" className="hm-guest-cta">Giriş yap / Kayıt ol →</a>}
+          <a href="/giris" className="hm-guest-cta">Giriş yap / Kayıt ol →</a>
         </div>
       )}
 
