@@ -175,8 +175,8 @@ export default function ArenaGame({ onExit, customCode }: { onExit: () => void; 
         {leftToastEl}
         <div style={{ textAlign: "center", paddingTop: 40 }}>
           <h2 className="brand-mono" style={{ fontSize: 26, marginBottom: 8 }}>Arena</h2>
-          <p style={{ color: "var(--text-soft)", marginBottom: 4 }}>Kelimeler: 6</p>
-          <p style={{ color: "var(--accent)", marginBottom: 4, fontSize: 14 }}>Sıradaki kelime: 4 harf</p>
+          <p style={{ color: "var(--text-soft)", marginBottom: 4 }}>Kelimeler: {state.totalQuestions}</p>
+          <p style={{ color: "var(--accent)", marginBottom: 4, fontSize: 14 }}>Sıradaki kelime: {state.firstLength} harf</p>
           <p style={{ color: "var(--text-soft)", marginBottom: 30 }}>👤 {state.players.length}/5</p>
           <div style={{ borderTop: "1px solid var(--border-soft)", paddingTop: 30 }}>
             <p className="brand-mono" style={{ fontSize: 20, marginBottom: 16 }}>Rakip aranıyor…</p>
@@ -664,14 +664,14 @@ function ArenaScoreGrid({ players, total, answer, onExit }: {
   // Kaç soru cevaplandı (en uzun history)
   const answered = Math.max(...players.map((p) => p.history.length), 0);
   return (
-    <div style={{ minHeight: "100vh", maxWidth: 560, margin: "0 auto", display: "flex", flexDirection: "column" }}>
+    <div style={{ maxWidth: 560, margin: "0 auto", display: "flex", flexDirection: "column" }}>
       <div style={{ padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <button onClick={onExit} style={{ background: "var(--bg-panel)", border: "1px solid var(--border-soft)", borderRadius: "50%", width: 36, height: 36, cursor: "pointer", fontSize: 18, color: "var(--text-strong)" }}>←</button>
         <span className="brand-mono" style={{ fontSize: 16, color: "var(--tile-correct)" }}>Doğru: {answer}</span>
         <span style={{ width: 36 }} />
       </div>
 
-      <div style={{ flex: 1, padding: "10px 16px", overflowY: "auto" }}>
+      <div style={{ padding: "10px 16px" }}>
         {/* Izgara: her sütun oyuncu */}
         <div style={{ display: "flex", gap: 8, justifyContent: "center", alignItems: "flex-start" }}>
           {players.map((p) => (
@@ -714,21 +714,14 @@ function ArenaScoreGrid({ players, total, answer, onExit }: {
               <div className="brand-mono" style={{ fontSize: 15, color: "var(--text-soft)", marginTop: 2 }}>
                 {p.correct_count}/{total}
               </div>
+              {/* Oyuncu — tablonun hemen altında, sütunla hizalı */}
+              <img src={p.avatar_url || `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(p.name)}`}
+                alt={p.name}
+                style={{ width: 44, height: 44, borderRadius: "50%", border: "2px solid var(--border-soft)", background: "var(--bg-elevated)", objectFit: "cover" }} />
+              <div style={{ width: 52, fontSize: 10, color: "var(--text-dim)", textAlign: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
             </div>
           ))}
         </div>
-      </div>
-
-      {/* Alt oyuncu barı (avatarlar) */}
-      <div style={{ display: "flex", gap: 10, overflowX: "auto", padding: "12px 16px", borderTop: "1px solid var(--border-soft)", background: "var(--bg-panel)" }}>
-        {players.map((p) => (
-          <div key={p.pid} style={{ textAlign: "center", flexShrink: 0, width: 62 }}>
-            <img src={p.avatar_url || `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(p.name)}`}
-              alt={p.name}
-              style={{ width: 44, height: 44, borderRadius: "50%", border: "2px solid var(--border-soft)", background: "var(--bg-elevated)", objectFit: "cover" }} />
-            <div style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
-          </div>
-        ))}
       </div>
     </div>
   );

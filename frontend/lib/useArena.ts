@@ -37,6 +37,8 @@ export type ArenaState = {
   revealAnswer: string;
   revealPlayers: RevealPlayer[];  // tablo için (geçmiş dahil)
   revealTotal: number;            // toplam soru
+  totalQuestions: number;         // maçtaki kelime sayısı (oyun moduna göre; lobide de bilinir)
+  firstLength: number;            // ilk kelimenin harf sayısı
   scores: Record<string, number>;
   ranking: ArenaPlayer[];
   leftNotice: { name: string; at: number } | null;   // "xxx arenadan çıktı" popup
@@ -55,6 +57,8 @@ const initialState: ArenaState = {
   revealAnswer: "",
   revealPlayers: [],
   revealTotal: 6,
+  totalQuestions: 6,
+  firstLength: 4,
   scores: {},
   ranking: [],
   leftNotice: null,
@@ -83,7 +87,11 @@ export function useArena(enabled: boolean, customCode?: string) {
       try { msg = JSON.parse(ev.data); } catch { return; }
       switch (msg.type) {
         case "lobby":
-          setState((s) => ({ ...s, phase: "lobby", players: msg.players || [] }));
+          setState((s) => ({
+            ...s, phase: "lobby", players: msg.players || [],
+            totalQuestions: msg.total || s.totalQuestions,
+            firstLength: msg.first_length || s.firstLength,
+          }));
           break;
         case "match_start":
           setState((s) => ({ ...s, phase: "starting", players: msg.players || [], scores: {} }));
@@ -98,6 +106,7 @@ export function useArena(enabled: boolean, customCode?: string) {
               index: msg.index, total: msg.total, length: msg.length,
               first_letter: msg.first_letter, scrambled: msg.scrambled, duration: msg.duration,
             },
+            totalQuestions: msg.total || s.totalQuestions,
             questionStartedAt: Date.now(),
             answers: {}, myResult: null, revealAnswer: "",
           }));

@@ -258,6 +258,19 @@ async def _run_match(code: str, custom: bool = False):
             if match.all_answered():
                 break
 
+        # Son cevaptan sonra kısa bir pay bırak: oyuncu kendi doğru/yanlış
+        # animasyonunu (FlipReveal) görmeden tabloya geçmesin.
+        feedback = cached_int("arena_feedback_seconds", 2)
+        if feedback > 0:
+            last_answer = max(
+                (p.answer_time for p in match.players.values() if p.answered and p.answer_time),
+                default=0.0,
+            )
+            if last_answer:
+                wait_left = feedback - (time.time() - last_answer)
+                if wait_left > 0:
+                    await asyncio.sleep(min(wait_left, feedback))
+
         # Reveal — tablo (her oyuncunun tüm soru geçmişi) + skorlar
         rev = match.reveal()
         await _broadcast(code, {
@@ -492,11 +505,13 @@ async def arena_ws(websocket: WebSocket, token: str = Query(default=""), custom:
             await _send(websocket, {"type": "error", "message": "Arenaya katılınamadı (dolu veya başladı)."})
         clobby = arena_manager.custom_lobby(custom)
         if clobby:
+            cplan = clobby.word_plan or default_question_plan()
             await _broadcast(code, {
                 "type": "lobby", "code": code,
                 "players": [{"pid": k, "name": v["name"], "avatar_url": v.get("avatar_url", "")} for k, v in clobby.members.items()],
                 "size": clobby.size, "wait_seconds": clobby.wait_seconds,
                 "seconds_left": clobby.seconds_left(),
+                "total": len(cplan), "first_length": cplan[0],
             })
             asyncio.create_task(_custom_matchmaker(code))
         await _arena_receive_loop(websocket, code, pid, name=name, is_custom=True)
@@ -510,12 +525,14 @@ async def arena_ws(websocket: WebSocket, token: str = Query(default=""), custom:
     # Lobi durumunu yayınla
     lobby = arena_manager.lobby_for(code)
     if lobby:
+        plan = default_question_plan()   # oyun moduna göre (mod 1: 6, mod 2: 5 kelime)
         await _broadcast(code, {
             "type": "lobby",
             "code": code,
             "players": [{"pid": k, "name": v["name"], "avatar_url": v.get("avatar_url", "")} for k, v in lobby.members.items()],
             "size": ARENA_SIZE,
             "wait_seconds": WAIT_SECONDS,
+            "total": len(plan), "first_length": plan[0],
         })
         # Eşleşme başlatıcı: ilk giren tetikler (dolunca veya süre dolunca)
         asyncio.create_task(_matchmaker(code))
