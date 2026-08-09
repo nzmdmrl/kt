@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useMatch } from "@/lib/useMatch";
 import { toUpperTr } from "@/lib/turkish";
 import { useSpeech } from "@/lib/useSpeech";
-import { playSound, initSound, startTicking, stopTicking } from "@/lib/sound";
+import { playSound, initSound, startTicking, stopTicking, suppressUiClick } from "@/lib/sound";
 import Grid from "./Grid";
 import MatchRewards from "./MatchRewards";
 import TitleCelebration from "./TitleCelebration";
@@ -69,9 +69,10 @@ export default function MatchGame({
     else if (lastEvent.type === "rematch_accepted") setRematchState("idle");
     else if (lastEvent.type === "match_start") setRematchState("idle");
   }, [lastEvent]);
-  // Ses sistemini başlat.
+  // Ses sistemini başlat + maç boyunca global arayüz tıklama sesini sustur.
   useEffect(() => {
     initSound(true, 70);
+    return suppressUiClick();
   }, []);
 
   // Joker kullanıldığında: ses çal + (rakip kullandıysa) popup bildirim göster.

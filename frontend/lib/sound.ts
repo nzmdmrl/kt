@@ -7,7 +7,7 @@
 import { apiUrl } from "./api";
 
 type Slot =
-  | "button" | "tile_correct" | "tile_present" | "tile_absent"
+  | "ui_click" | "button" | "tile_correct" | "tile_present" | "tile_absent"
   | "correct" | "wrong" | "win" | "lose" | "round_start" | "match_start"
   | "radar" | "opponent_found" | "tick" | "count_tick" | "count_done"
   | "joker_yellow" | "joker_green" | "joker_time"
@@ -74,6 +74,17 @@ export function setSoundEnabled(v: boolean) {
 export function setVolume(v: number) { volume = Math.max(0, Math.min(1, v / 100)); }
 export function isUploaded(slot: string) { return uploadedSlots.has(slot); }
 
+// --- Global arayüz tıklama sesi bastırma ---
+// Oyun ekranları (1v1 maç, arena, maraton) mount olurken bunu açar; böylece
+// maç içindeki tıklamalarda genel "ui_click" sesi çalmaz (oyunun kendi sesleri var).
+let uiClickSuppressed = 0;
+export function suppressUiClick(): () => void {
+  uiClickSuppressed++;
+  let released = false;
+  return () => { if (!released) { released = true; uiClickSuppressed = Math.max(0, uiClickSuppressed - 1); } };
+}
+export function isUiClickSuppressed() { return uiClickSuppressed > 0; }
+
 // --- Sentetik ses tonları ---
 function tone(freq: number, dur: number, type: OscillatorType = "sine", delay = 0, vol = 1) {
   const c = ctx();
@@ -94,6 +105,12 @@ function tone(freq: number, dur: number, type: OscillatorType = "sine", delay = 
 
 function playSynth(slot: Slot, opts?: { intensity?: number }) {
   switch (slot) {
+    case "ui_click": {
+      // Arayüz tıklaması — kısa, yumuşak ve hoş bir "tink" (iki nota, hafif).
+      tone(1046, 0.045, "sine", 0, 0.55);      // do (yüksek)
+      tone(1568, 0.07, "sine", 0.03, 0.3);     // sol (parıltı)
+      break;
+    }
     case "button": tone(600, 0.08, "triangle"); break;
     case "tile_correct": tone(700, 0.12, "sine"); break;       // yeşil — net, tiz
     case "tile_present": tone(480, 0.12, "triangle"); break;   // sarı — orta

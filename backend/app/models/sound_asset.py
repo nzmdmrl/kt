@@ -18,7 +18,8 @@ from app.core.database import Base
 
 # Geçerli ses slotları ve açıklamaları.
 SOUND_SLOTS = {
-    "button": "Buton tıklama",
+    "ui_click": "Arayüz tıklama (ana sayfa/menü butonları)",
+    "button": "Buton tıklama (oyun içi)",
     "tile_correct": "Harf yerleşme — yeşil (doğru yer)",
     "tile_present": "Harf yerleşme — sarı (yanlış yer)",
     "tile_absent": "Harf yerleşme — gri (yok)",

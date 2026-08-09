@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { apiUrl } from "@/lib/api";
 import { toUpperTr } from "@/lib/turkish";
-import { playSound, initSound, startTicking, stopTicking } from "@/lib/sound";
+import { playSound, initSound, startTicking, stopTicking, suppressUiClick } from "@/lib/sound";
 import { useSpeech } from "@/lib/useSpeech";
 
 type Tile = { letter: string; state: "correct" | "present" | "absent" };
@@ -31,6 +31,9 @@ export default function SoloGame({ level, onExit, onComplete }: {
 
   function token() { return typeof window !== "undefined" ? localStorage.getItem("kt_token") : null; }
   function headers() { return { "Content-Type": "application/json", Authorization: `Bearer ${token()}` }; }
+
+  // Oyun ekranı boyunca global arayüz tıklama sesini sustur.
+  useEffect(() => suppressUiClick(), []);
 
   // Level başlat.
   useEffect(() => {

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useArena, ArenaPlayer, RevealPlayer } from "@/lib/useArena";
 import { useSectionMusic } from "@/lib/useSectionMusic";
 import { toUpperTr } from "@/lib/turkish";
-import { playSound, initSound, stopTicking } from "@/lib/sound";
+import { playSound, initSound, stopTicking, suppressUiClick } from "@/lib/sound";
 import TitleCelebration from "./TitleCelebration";
 import { useSpeech } from "@/lib/useSpeech";
 
@@ -17,7 +17,8 @@ export default function ArenaGame({ onExit, customCode }: { onExit: () => void; 
   const [secondsLeft, setSecondsLeft] = useState(0);
   const submittedRef = useRef<number>(-1);               // hangi soruya cevap gönderildi
 
-  useEffect(() => { initSound(true, 70); }, []);
+  // Ses sistemi + arena boyunca global arayüz tıklama sesini sustur.
+  useEffect(() => { initSound(true, 70); return suppressUiClick(); }, []);
 
   // Arena rakip aranırken (bekleme fazı) müzik çal; maç başlayınca dur.
   const isWaiting = state.phase === "connecting" || state.phase === "lobby";
