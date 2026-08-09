@@ -210,6 +210,14 @@ export default function ProfilePage({ params }: { params: { username: string } }
               </div>
             </div>
           )}
+          {/* Sayaç şeridi — ELO ile başlar, bloğun tamamına yayılır (ana sayfayla aynı stil) */}
+          <div className="kt-stat-strip" style={{ margin: "8px 0" }}>
+            <span className="hm-chip" title="ELO">📈 {profile.elo.toLocaleString("tr")}</span>
+            <span className="hm-chip" title="Puan">⭐ {(profile.stats?.total_score ?? 0).toLocaleString("tr")}</span>
+            <span className="hm-chip" title="Kupa">🏆 {profile.trophies ?? 0}</span>
+            <span className="hm-chip" title="Madalya">🥈 {profile.medals ?? 0}</span>
+            <span className="hm-chip" title="Rozet">🎖️ {(profile.badges || []).filter((b) => b.earned).length}</span>
+          </div>
           {!isMe && <PresenceBadge userId={profile.id} onStatus={(s, allow) => { setOppStatus(s); setOppAllow(allow); }} />}
           {/* Arkadaşlık butonu / durumu */}
           {!isMe && (
@@ -262,9 +270,6 @@ export default function ProfilePage({ params }: { params: { username: string } }
             </button>
           )}
           {challengeErr && <div style={{ marginTop: 8, fontSize: 13, color: "var(--accent-hot)" }}>{challengeErr}</div>}
-          <div className="brand-mono" style={{ fontSize: 20, color: "var(--accent)" }}>
-            {profile.elo} <span style={{ fontSize: 13, color: "var(--text-dim)" }}>ELO</span>
-          </div>
         </div>
       </div>
 
