@@ -29,7 +29,7 @@ type Profile = {
   medals: number;
   xp?: number;
   level_info?: { level: number; level_xp: number; level_need: number };
-  title_info?: { title: string; next_title: string | null; xp_to_next: number; title_progress: number };
+  title_info?: { title: string; title_icon?: string; next_title: string | null; xp_to_next: number; title_progress: number };
   friend_count?: number;
   friend_status?: string;
   collected_words?: number;
@@ -141,12 +141,8 @@ export default function ProfilePage({ params }: { params: { username: string } }
         )}
       </div>
 
-      {/* Üst kart */}
-      <div style={{
-        position: "relative", display: "flex", alignItems: "center", gap: 16, marginBottom: 24,
-        padding: "18px 20px", background: "var(--bg-panel)",
-        border: "1px solid var(--border-soft)", borderRadius: 18,
-      }}>
+      {/* Üst kart — ana sayfadaki profil kartının aynısı (avatar kart dışında solda) */}
+      <div className="hm-profile-wrap prof-card">
         {isMe && (
           <button
             onClick={() => setEditOpen(true)}
@@ -161,44 +157,33 @@ export default function ProfilePage({ params }: { params: { username: string } }
             ⚙️ Düzenle
           </button>
         )}
-        <div
-          style={{
-            width: 76, height: 76, borderRadius: 18, overflow: "hidden",
-            background: "var(--bg-elevated)", display: "grid", placeItems: "center",
-            border: "2px solid var(--accent)", flexShrink: 0,
-          }}
-        >
-          {profile.avatar_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={profile.avatar_url} alt="" width={76} height={76} />
-          ) : (
-            <span className="brand-mono" style={{ fontSize: 34, color: "var(--accent)" }}>
-              {profile.display_name.charAt(0).toUpperCase()}
-            </span>
-          )}
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            <h1 className="brand-mono" style={{ fontSize: 24, margin: 0 }}>{profile.display_name}</h1>
-            {profile.title_info && (
-              <span style={{
-                padding: "3px 12px", borderRadius: 12, fontSize: 13, fontWeight: 700,
-                background: "rgba(63,185,80,.15)", color: "var(--tile-correct)",
-                border: "1px solid rgba(63,185,80,.3)",
-              }}>{profile.title_info.title}</span>
+        {profile.avatar_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={profile.avatar_url} alt="" className="hm-avatar" />
+        ) : (
+          <div className="hm-avatar prof-avatar-fallback">
+            <span className="brand-mono">{profile.display_name.charAt(0).toUpperCase()}</span>
+          </div>
+        )}
+        <div className="hm-profile">
+          <div className={`hm-name-row${isMe ? " prof-has-edit" : ""}`}>
+            <span className="hm-name">{profile.display_name}</span>
+            {profile.level_info && <span className="hm-badge">Lv {profile.level_info.level}</span>}
+            <span className="prof-username">@{profile.username}</span>
+            {typeof profile.friend_count === "number" && (
+              <span className="hm-chip prof-friends" title="Arkadaş">🤝 {profile.friend_count} arkadaş</span>
             )}
           </div>
-          <p style={{ color: "var(--text-dim)", margin: "2px 0" }}>
-            @{profile.username}
-            {typeof profile.friend_count === "number" && (
-              <span> · 🤝 {profile.friend_count} arkadaş</span>
-            )}
-          </p>
-          {/* XP çizgisi + unvan ilerlemesi */}
-          {profile.title_info && profile.level_info && (
-            <div className="xp-progress" style={{ margin: "8px 0" }}>
+          {/* Unvan gelişimi — XP'nin yanında unvan (ana sayfayla aynı) */}
+          {profile.title_info && (
+            <div className="xp-progress hm-xp">
               <div className="xp-row">
-                <span className="xp-now">💎 {(profile.xp || 0).toLocaleString("tr")} XP</span>
+                <span className="hm-xp-left">
+                  <span className="xp-now">💎 {(profile.xp || 0).toLocaleString("tr")} XP</span>
+                  {profile.title_info.title && (
+                    <span className="hm-title">{profile.title_info.title_icon || "🏅"} {profile.title_info.title}</span>
+                  )}
+                </span>
                 {profile.title_info.next_title && (
                   <span className="xp-next">
                     {profile.title_info.next_title} için {profile.title_info.xp_to_next.toLocaleString("tr")} XP
@@ -210,18 +195,23 @@ export default function ProfilePage({ params }: { params: { username: string } }
               </div>
             </div>
           )}
-          {/* Sayaç şeridi — ELO ile başlar, bloğun tamamına yayılır (ana sayfayla aynı stil) */}
-          <div className="kt-stat-strip" style={{ margin: "8px 0" }}>
-            <span className="hm-chip" title="ELO">📈 {profile.elo.toLocaleString("tr")}</span>
-            <span className="hm-chip" title="Puan">⭐ {(profile.stats?.total_score ?? 0).toLocaleString("tr")}</span>
-            <span className="hm-chip" title="Kupa">🏆 {profile.trophies ?? 0}</span>
-            <span className="hm-chip" title="Madalya">🥈 {profile.medals ?? 0}</span>
-            <span className="hm-chip" title="Rozet">🎖️ {(profile.badges || []).filter((b) => b.earned).length}</span>
-          </div>
-          {!isMe && <PresenceBadge userId={profile.id} onStatus={(s, allow) => { setOppStatus(s); setOppAllow(allow); }} />}
+        </div>
+        {/* Sayaç şeridi — avatarın altından başlar, bloğun tamamına yayılır */}
+        <div className="kt-stat-strip">
+          <span className="hm-chip" title="ELO">📈 {profile.elo.toLocaleString("tr")}</span>
+          <span className="hm-chip" title="Puan">⭐ {(profile.stats?.total_score ?? 0).toLocaleString("tr")}</span>
+          <span className="hm-chip" title="Kupa">🏆 {profile.trophies ?? 0}</span>
+          <span className="hm-chip" title="Madalya">🥈 {profile.medals ?? 0}</span>
+          <span className="hm-chip" title="Rozet">🎖️ {(profile.badges || []).filter((b) => b.earned).length}</span>
+        </div>
+      </div>
+
+      {/* Durum + arkadaşlık / maç teklifi aksiyonları */}
+      {!isMe && (
+        <div style={{ marginTop: -8, marginBottom: 24 }}>
+          <PresenceBadge userId={profile.id} onStatus={(s, allow) => { setOppStatus(s); setOppAllow(allow); }} />
           {/* Arkadaşlık butonu / durumu */}
-          {!isMe && (
-            <div style={{ marginTop: 10 }}>
+          <div style={{ marginTop: 10 }}>
               {friendStatus === "friends" && (
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 10, background: "rgba(63,185,80,.15)", color: "var(--tile-correct)", fontWeight: 700, fontSize: 14, border: "1px solid rgba(63,185,80,.3)" }}>
                   🤝 Arkadaşın
@@ -253,9 +243,8 @@ export default function ProfilePage({ params }: { params: { username: string } }
               {friendErr && (
                 <div style={{ marginTop: 8, fontSize: 13, color: "var(--accent-hot)" }}>{friendErr}</div>
               )}
-            </div>
-          )}
-          {!isMe && oppStatus === "online" && oppAllow && (
+          </div>
+          {oppStatus === "online" && oppAllow && (
             <button
               onClick={sendChallenge}
               disabled={challengeSent}
@@ -271,7 +260,7 @@ export default function ProfilePage({ params }: { params: { username: string } }
           )}
           {challengeErr && <div style={{ marginTop: 8, fontSize: 13, color: "var(--accent-hot)" }}>{challengeErr}</div>}
         </div>
-      </div>
+      )}
 
       {isMe && editOpen && (
         <ProfileEditModal onClose={() => setEditOpen(false)} onSaved={() => { setEditOpen(false); load(); }} />

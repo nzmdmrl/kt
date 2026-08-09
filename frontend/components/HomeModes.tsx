@@ -10,7 +10,6 @@ type TitleInfo = {
   title: string; title_icon?: string; title_progress: number;
   next_title: string | null; xp_to_next: number; xp?: number;
 };
-type Stats = { trophies: number; medals: number; badges: number; score: number };
 
 // Ana sayfa mod ekranı — desktop + mobil ortak. Sıralama: Arena/Özel Arena üstte,
 // sonra 1v1 Düello bölümü, sonra Maraton/Günün Kelimesi/Lig.
@@ -19,7 +18,6 @@ export default function HomeModes() {
   const router = useRouter();
   const [lvl, setLvl] = useState<LevelInfo | null>(null);
   const [title, setTitle] = useState<TitleInfo | null>(null);
-  const [stats, setStats] = useState<Stats | null>(null);
   const [soloLevel, setSoloLevel] = useState<number | null>(null);
   const [joinCode, setJoinCode] = useState("");
 
@@ -33,16 +31,7 @@ export default function HomeModes() {
       .then((r) => r.json()).then((d) => setSoloLevel(d.current_level ?? null)).catch(() => {});
     if (user.username) {
       fetch(apiUrl(`/api/profile/${user.username}`), { headers: { Authorization: `Bearer ${token()}` } })
-        .then((r) => r.json()).then((d) => {
-          setTitle(d.title_info || null);
-          const earned = Array.isArray(d.badges) ? d.badges.filter((b: any) => b.earned).length : 0;
-          setStats({
-            trophies: d.trophies ?? 0,
-            medals: d.medals ?? 0,
-            badges: earned,
-            score: d.stats?.total_score ?? 0,
-          });
-        }).catch(() => {});
+        .then((r) => r.json()).then((d) => setTitle(d.title_info || null)).catch(() => {});
     }
   }, [user]);
 
@@ -98,14 +87,6 @@ export default function HomeModes() {
                 <div className="xp-track"><div className="xp-fill" style={{ width: `${pct}%` }} /></div>
               </div>
             )}
-          </div>
-          {/* Sayaç şeridi — avatarın altından başlar, kartın tüm genişliği boyunca uzanır */}
-          <div className="kt-stat-strip">
-            <span className="hm-chip" title="ELO">📈 {(user.elo ?? 0).toLocaleString("tr")}</span>
-            <span className="hm-chip" title="Puan">⭐ {(stats?.score ?? 0).toLocaleString("tr")}</span>
-            <span className="hm-chip" title="Kupa">🏆 {stats?.trophies ?? 0}</span>
-            <span className="hm-chip" title="Madalya">🥈 {stats?.medals ?? 0}</span>
-            <span className="hm-chip" title="Rozet">🎖️ {stats?.badges ?? 0}</span>
           </div>
         </div>
       ) : (
