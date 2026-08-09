@@ -25,6 +25,22 @@ ROUND_CONFIG = [
     {"length": 6, "rows": 5},
 ]
 
+# Mod 2 (hızlı mod): tek turluk maç — kelime uzunluğu 5 veya 6 arasından rastgele.
+MODE2_ROUND_LENGTHS = [5, 6]
+
+
+def round_plan() -> list[dict]:
+    """
+    Maçın tur planı — admin'deki `game_mode` ayarına göre.
+      mod 1 (varsayılan): ROUND_CONFIG (4-5-6 harf, 3 tur)
+      mod 2 (hızlı):      tek tur, 5 veya 6 harfli rastgele kelime
+    """
+    import random
+    from app.game.settings_service import cached_int
+    if cached_int("game_mode", 1) == 2:
+        return [{"length": random.choice(MODE2_ROUND_LENGTHS), "rows": 5}]
+    return [dict(c) for c in ROUND_CONFIG]
+
 # Süreler (saniye). Admin panelde değişebilir.
 ROUND_TOTAL_SECONDS = 90      # tur başına toplam geri sayım
 BUZZER_ANSWER_SECONDS = 20    # buzzer alındıktan sonra cevap penceresi

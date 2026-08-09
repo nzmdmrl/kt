@@ -23,6 +23,8 @@ class GameSetting(Base):
 
 # Varsayılan ayarlar ve açıklamaları (admin panelde gösterilir).
 DEFAULT_SETTINGS = {
+    # Oyun modu — 1: klasik (1v1 3 tur, arena 6 kelime), 2: hızlı (1v1 tek tur 5/6 harf, arena 5 kelime)
+    "game_mode": {"value": "1", "label": "Oyun modu (1: Klasik · 2: Hızlı)", "type": "int"},
     "round_total_seconds": {"value": "90", "label": "Tur süresi (saniye)", "type": "int"},
     "buzzer_answer_seconds": {"value": "20", "label": "Cevap süresi (saniye)", "type": "int"},
     "reveal_seconds": {"value": "5", "label": "Doğru cevabı gösterme süresi (saniye)", "type": "int"},

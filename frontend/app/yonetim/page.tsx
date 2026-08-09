@@ -133,7 +133,16 @@ function Settings() {
             <div style={{ fontSize: 14, color: "var(--text-strong)" }}>{s.label}</div>
             <div style={{ fontSize: 11, color: "var(--text-dim)" }}>{s.key} · varsayılan: {s.default}</div>
           </div>
-          {s.key === "night_bg_theme" ? (
+          {s.key === "game_mode" ? (
+            <select
+              value={s.value}
+              onChange={(e) => save(s.key, e.target.value)}
+              style={{ padding: "8px", borderRadius: 8, border: "1px solid var(--tile-border)", background: "var(--bg-elevated)", color: "var(--text-strong)" }}
+            >
+              <option value="1">1 · Klasik (1v1: 3 tur · Arena: 6 kelime)</option>
+              <option value="2">2 · Hızlı (1v1: tek tur 5/6 harf · Arena: 5 kelime)</option>
+            </select>
+          ) : s.key === "night_bg_theme" ? (
             <select
               defaultValue={s.value}
               onChange={(e) => save(s.key, e.target.value)}

@@ -142,7 +142,7 @@ class ArenaManager:
             return self._lobby
         return None
 
-    async def build_match(self, code: str, words: list[str]) -> ArenaMatch:
+    async def build_match(self, code: str, words: list[str], word_plan: list[int] | None = None) -> ArenaMatch:
         """Lobiyi maça çevir (SADECE gerçek oyuncular). Botlar sonra kademeli eklenir."""
         async with self._lock:
             lobby = self.lobby_for(code)
@@ -152,7 +152,7 @@ class ArenaManager:
                 raise RuntimeError("Lobi bulunamadı")
             lobby.started = True
 
-            match = ArenaMatch(code, words)
+            match = ArenaMatch(code, words, word_plan=word_plan)
             for pid, info in lobby.members.items():
                 match.add_player(pid, info["name"], info.get("avatar_url", ""), is_bot=False)
 

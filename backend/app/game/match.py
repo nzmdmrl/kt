@@ -22,7 +22,7 @@ from typing import Optional
 
 from app.game.models import (
     MatchPhase, RoundState, GuessRow, GuessTile, TileState, Player,
-    ROUND_CONFIG, ROUND_TOTAL_SECONDS, BUZZER_ANSWER_SECONDS, SPEED_BONUS,
+    ROUND_TOTAL_SECONDS, BUZZER_ANSWER_SECONDS, SPEED_BONUS, round_plan,
 )
 from app.game.word_engine import evaluate_guess, is_correct, normalize
 from app.words.word_service import get_pool
@@ -43,6 +43,8 @@ class Match:
         self.phase: MatchPhase = MatchPhase.WAITING
         self.round: Optional[RoundState] = None
         self.round_index: int = -1
+        # Tur planı maç kurulurken sabitlenir (mod 1: 3 tur, mod 2: tek tur 5/6 harf).
+        self.round_plan: list[dict] = round_plan()
         # Doğru bilinen kelimeler: pid -> set(word) (toplanan kelime istatistiği için).
         self.solved_words: dict[str, set] = {p.id: set() for p in players}
         # Joker hakları (maç boyunca, oyuncu başına). Admin panelden ayarlanır.
@@ -69,12 +71,12 @@ class Match:
     def start_next_round(self) -> RoundState:
         """Sonraki turu başlatır. Tüm turlar bitmişse maçı bitirir."""
         self.round_index += 1
-        if self.round_index >= len(ROUND_CONFIG):
+        if self.round_index >= len(self.round_plan):
             self.phase = MatchPhase.FINISHED
             self.round = None
             return None  # type: ignore[return-value]
 
-        cfg = ROUND_CONFIG[self.round_index]
+        cfg = self.round_plan[self.round_index]
         target = self._pick_word(cfg["length"])
         # Ayarları cache'ten oku (admin panelden değiştirilebilir); yoksa varsayılan.
         from app.game.settings_service import cached_int

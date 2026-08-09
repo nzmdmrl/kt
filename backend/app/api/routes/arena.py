@@ -31,7 +31,7 @@ from app.core.deps import get_current_user
 from app.core.security import decode_token
 from app.core.config import get_settings
 from app.models.user import User
-from app.game.arena import ArenaMatch, QUESTION_PLAN, FLASH_SECONDS
+from app.game.arena import ArenaMatch, FLASH_SECONDS, default_question_plan
 from app.game.arena_manager import arena_manager, ARENA_SIZE, WAIT_SECONDS
 from app.game.settings_service import cached_int
 from app.words.word_service import get_pool
@@ -209,10 +209,10 @@ async def _send(ws: WebSocket, message: dict):
 
 
 def _pick_words(plan: list[int] | None = None) -> list[str]:
-    """Plana göre kelime seç (varsayılan QUESTION_PLAN: 2x4,2x5,2x6), member havuzundan."""
+    """Plana göre kelime seç (varsayılan: oyun moduna göre plan), member havuzundan."""
     lang = get_settings().GAME_LANG
     words = []
-    for length in (plan or QUESTION_PLAN):
+    for length in (plan or default_question_plan()):
         words.append(get_pool(length, lang).random_word())
     return words
 
@@ -664,8 +664,9 @@ async def _matchmaker(code: str):
         return
     _runners[code] = True
 
-    words = _pick_words()
-    match = await arena_manager.build_match(code, words)  # sadece gerçek oyuncular
+    plan = default_question_plan()          # mod 1: 6 kelime · mod 2: 5 kelime
+    words = _pick_words(plan)
+    match = await arena_manager.build_match(code, words, word_plan=plan)  # sadece gerçek oyuncular
 
     # Botları 2sn (admin: arena_bot_interval) arayla tek tek ekle + yayınla
     interval = cached_int("arena_bot_interval", 2)

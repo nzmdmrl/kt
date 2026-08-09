@@ -26,9 +26,17 @@ from app.game.word_engine import evaluate_guess, is_correct, normalize
 
 # Varsayılan süreler (admin ayarıyla değişebilir).
 DURATION_BY_LEN = {4: 10, 5: 15, 6: 20}
-QUESTION_PLAN = [4, 4, 5, 5, 6, 6]   # 6 soru: 2x4, 2x5, 2x6
+QUESTION_PLAN = [4, 4, 5, 5, 6, 6]        # mod 1 — 6 soru: 2x4, 2x5, 2x6
+QUESTION_PLAN_FAST = [4, 5, 5, 6, 6]      # mod 2 (hızlı) — 5 soru: 1x4, 2x5, 2x6
 MAX_POINTS = 1000                     # bir soruda erken doğru cevabın taban puanı
 FLASH_SECONDS = 5                     # bu süre içinde cevaplayana flash ikonu
+
+
+def default_question_plan() -> list[int]:
+    """Admin'deki `game_mode` ayarına göre arena soru planı (özel arena hariç)."""
+    if cached_int("game_mode", 1) == 2:
+        return list(QUESTION_PLAN_FAST)
+    return list(QUESTION_PLAN)
 
 
 @dataclass
@@ -63,7 +71,7 @@ class ArenaMatch:
     def __init__(self, code: str, words: list[str], word_plan: list[int] | None = None):
         self.code = code
         self.players: dict[str, ArenaPlayer] = {}
-        self.word_plan = word_plan or QUESTION_PLAN
+        self.word_plan = word_plan or default_question_plan()
         self.questions: list[ArenaQuestion] = self._build_questions(words)
         self.current_index: int = -1     # aktif soru (henüz başlamadı)
         self.state: str = "waiting"      # waiting | countdown | question | reveal | finished
