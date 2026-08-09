@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { apiUrl } from "@/lib/api";
 import { startRadar, stopRadar, playSound, initSound } from "@/lib/sound";
 import { useAuth } from "@/lib/auth";
@@ -23,6 +24,7 @@ type Mode = "menu" | "searching" | "vs" | "match";
 
 export default function OynaPage() {
   const { user } = useAuth();
+  const router = useRouter();
   const [playerId, setPlayerId] = useState("");
   const [name, setName] = useState("");
   const [elo, setElo] = useState(1000);
@@ -37,6 +39,10 @@ export default function OynaPage() {
   const [err, setErr] = useState("");
   const [searchSeconds, setSearchSeconds] = useState(0);
   const pollRef = useRef<any>(null);
+  // Sayfaya ana sayfadan (?mode=create / ?join= / ?duel=) mı gelindi? "Geri" hedefini belirler.
+  const fromHomeRef = useRef(false);
+  // Özel oda akışı mı (oda kur / kodla katıl)? Sadece burada "Geri" butonu gösterilir.
+  const [roomFlow, setRoomFlow] = useState(false);
 
   // Ses: rakip aranırken radar çal; VS/maç moduna geçince rakip bulundu sesi.
   useEffect(() => {
@@ -84,6 +90,7 @@ export default function OynaPage() {
     }
     const duel = params.get("duel");
     if (duel && mode === "menu") {
+      fromHomeRef.current = true;
       setCode(duel);
       setOppInfo({ name: "Rakip", elo: 1000 });
       setBot(false);
@@ -93,11 +100,11 @@ export default function OynaPage() {
     // Ana sayfadan direkt mod seçimi: ?mode=bot|create|search  veya ?join=KOD
     if (mode === "menu") {
       const jc = params.get("join");
-      if (jc) { setBot(false); joinRoomWith(jc); return; }
+      if (jc) { fromHomeRef.current = true; setBot(false); joinRoomWith(jc); return; }
       const m = params.get("mode");
-      if (m === "bot") { setBot(true); setBotElo(elo); createBotSolo(); }
-      else if (m === "create") { createRoom(); }
-      else if (m === "search") { startSearch(); }
+      if (m === "bot") { fromHomeRef.current = true; setBot(true); setBotElo(elo); createBotSolo(); }
+      else if (m === "create") { fromHomeRef.current = true; createRoom(); }
+      else if (m === "search") { fromHomeRef.current = true; startSearch(); }
     }
   }, [playerId]);
 
@@ -158,6 +165,17 @@ export default function OynaPage() {
 
   useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current); }, []);
 
+  // Özel odada rakip beklerken "Geri": odadan çık.
+  // Ana sayfadan (?mode=create / ?join=) gelindiyse ana sayfaya, yoksa Oyna menüsüne döner.
+  const leaveRoom = useCallback(() => {
+    setCode(null);
+    setOppInfo(null);
+    setBot(false);
+    setRoomFlow(false);
+    if (fromHomeRef.current) { router.push("/"); return; }
+    setMode("menu");
+  }, [router]);
+
   // --- Oda kur / katıl ---
   async function createRoom() {
     if (!name.trim()) return setErr("Önce bir isim gir");
@@ -167,6 +185,7 @@ export default function OynaPage() {
       const data = await res.json();
       setCode(data.code);
       setBot(false);
+      setRoomFlow(true);
       setMode("match");
     } catch {
       setErr("Oda oluşturulamadı");
@@ -178,6 +197,7 @@ export default function OynaPage() {
     if (c.length < 4) return setErr("Geçerli bir oda kodu gir");
     setCode(c);
     setBot(false);
+    setRoomFlow(true);
     setMode("match");
   }
   // Ana sayfadan ?join=KOD ile gelince: kodu doğrudan kullan.
@@ -187,6 +207,7 @@ export default function OynaPage() {
     setJoinCode(c);
     setCode(c);
     setBot(false);
+    setRoomFlow(true);
     setMode("match");
   }
 
@@ -207,6 +228,7 @@ export default function OynaPage() {
           bot={bot}
           botElo={botElo}
           isGuest={!user}
+          onLeave={roomFlow ? leaveRoom : undefined}
           onRematch={() => {
             // Rövanş: aynı rakip tipiyle (bot/insan) yeni oda + yeni maç.
             // Yeni oda kodu + VS ekranı; key={code} sayesinde MatchGame sıfırdan kurulur.

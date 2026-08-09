@@ -20,6 +20,7 @@ export default function MatchGame({
   bot,
   botElo,
   onRematch,
+  onLeave,
   isGuest,
 }: {
   code: string;
@@ -28,6 +29,7 @@ export default function MatchGame({
   bot?: boolean;
   botElo?: number;
   onRematch?: () => void;
+  onLeave?: () => void;   // rakip beklerken "Geri" (oda kur/katıl akışı)
   isGuest?: boolean;
 }) {
   const { connected, state, lastEvent, error, flash, buzzer, guess, emote, useJoker, jokers, rematchRequest, rematchAccept, rematchDecline } = useMatch(
@@ -300,7 +302,12 @@ export default function MatchGame({
   }, [micStop]);
 
   if (!connected && !state) {
-    return <Centered>Bağlanılıyor…</Centered>;
+    return (
+      <div style={{ display: "grid", gap: 18, justifyItems: "center" }}>
+        <Centered>Bağlanılıyor…</Centered>
+        {onLeave && <BackButton onClick={onLeave} />}
+      </div>
+    );
   }
 
   // Bekleme
@@ -339,6 +346,7 @@ export default function MatchGame({
             </>
           )}
         </Centered>
+        {onLeave && <BackButton onClick={onLeave} />}
       </div>
     );
   }
@@ -770,6 +778,22 @@ function shareResult(won: boolean, draw: boolean, myScore: number, oppScore: num
   } else if (navigator.clipboard) {
     navigator.clipboard.writeText(text).then(() => alert("Sonuç panoya kopyalandı!")).catch(() => {});
   }
+}
+
+// Rakip beklenirken görünen "Geri" butonu (odadan çık).
+function BackButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        padding: "12px 28px", borderRadius: 10, border: "1px solid var(--border-soft)",
+        background: "transparent", color: "var(--text-soft)", fontWeight: 600, fontSize: 15,
+        cursor: "pointer", fontFamily: "var(--font-body)",
+      }}
+    >
+      ← Geri
+    </button>
+  );
 }
 
 function Centered({ children }: { children: React.ReactNode }) {
