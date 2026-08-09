@@ -57,14 +57,14 @@ export default function HomeModes() {
     router.push(`/oyna?join=${encodeURIComponent(c)}`);
   }
 
-  // Üst modlar: Arena + Özel Arena (1v1'in üstünde)
+  // Üst modlar: Arena + Özel Arena + Maraton (1v1'in üstünde)
   const topModes = [
     { icon: "⚔️", label: "Arena", href: "/arena", desc: "Çok kişili yarış", bg: "linear-gradient(145deg,#e0940a,#c47a00)" },
     { icon: "🎪", label: "Özel Arena", href: "/arena/ozel", desc: "Arkadaşlarınla", bg: "linear-gradient(145deg,#7b52c4,#5e3a9e)" },
-  ];
-  // Alt modlar: Maraton, Günün Kelimesi, Lig (başlıksız)
-  const bottomModes = [
     { icon: "🏃", label: "Maraton", href: "/solo", desc: soloLevel != null ? `Bölüm ${soloLevel}` : "Bölüm bölüm ilerle", bg: "linear-gradient(145deg,#4a8fc4,#2e6da8)" },
+  ];
+  // Alt modlar: Günün Kelimesi, Lig (başlıksız)
+  const bottomModes = [
     { icon: "📅", label: "Günün Kelimesi", href: "/gunun-kelimesi", desc: "Günlük bulmaca", bg: "linear-gradient(145deg,#c44a7e,#a23763)" },
     { icon: "🏆", label: "Lig", href: "/lig", desc: "Sıralamalar", bg: "linear-gradient(145deg,#3a7fc4,#2868a8)" },
   ];
@@ -168,8 +168,8 @@ export default function HomeModes() {
         </div>
       </section>
 
-      {/* MARATON / GÜNÜN KELİMESİ / LİG (başlıksız) */}
-      <div className="hm-modes-grid">
+      {/* GÜNÜN KELİMESİ / LİG (başlıksız) */}
+      <div className="hm-modes-grid hm-bottom-modes">
         {bottomModes.map((m) => (
           <button key={m.href} className="hm-mode" onClick={() => router.push(m.href)} style={{ background: m.bg }}>
             <span className="hm-mode-icon">{m.icon}</span>
