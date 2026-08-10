@@ -10,8 +10,6 @@ import MatchRewards from "./MatchRewards";
 import TitleCelebration from "./TitleCelebration";
 import { useSectionMusic } from "@/lib/useSectionMusic";
 import ScoreBar from "./ScoreBar";
-import SoundToggle from "./SoundToggle";
-import ThemeToggle from "./ThemeToggle";
 
 export default function MatchGame({
   code,
@@ -507,14 +505,19 @@ export default function MatchGame({
 
   return (
     <div style={{ display: "grid", gap: 14, position: "relative", width: "100%", maxWidth: "100%", overflowX: "hidden", minWidth: 0 }}>
-      {/* Üst aksiyon satırı: ana sayfa ikonu + ses/tema düğmeleri */}
-      <div style={{ display: "flex", alignItems: "center", gap: 6, width: "100%" }}>
-        <a href="/" title="Ana sayfa" style={{ fontSize: 20, lineHeight: 1, textDecoration: "none", flexShrink: 0, display: "grid", placeItems: "center", width: 34, height: 34, borderRadius: "50%", border: "1px solid var(--border-soft)", background: "var(--bg-panel)" }}>
-          🏠
+      {/* Üst satır: arenadaki gibi tek "geri" butonu (ana sayfaya döner) */}
+      <div style={{ display: "flex", alignItems: "center", width: "100%" }}>
+        <a
+          href="/"
+          title="Ana sayfa"
+          style={{
+            display: "grid", placeItems: "center", width: 36, height: 36, borderRadius: "50%",
+            border: "1px solid var(--border-soft)", background: "var(--bg-panel)",
+            color: "var(--text-strong)", fontSize: 18, textDecoration: "none", flexShrink: 0,
+          }}
+        >
+          ←
         </a>
-        <div style={{ flex: 1 }} />
-        <ThemeToggle />
-        <SoundToggle />
       </div>
 
       {/* Uçan emote animasyonu */}
