@@ -527,8 +527,8 @@ export default function MatchGame({
       <a
         href="/"
         title="Ana sayfa"
+        className="match-back"
         style={{
-          position: "fixed", top: 8, left: 8, zIndex: 40,
           display: "grid", placeItems: "center", width: 34, height: 34, borderRadius: "50%",
           border: "1px solid var(--border-soft)", background: "var(--bg-panel)",
           color: "var(--text-strong)", fontSize: 17, textDecoration: "none",

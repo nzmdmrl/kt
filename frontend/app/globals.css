@@ -391,3 +391,19 @@ a { color: inherit; text-decoration: none; }
   .kt-stat-strip { gap: 6px; }
   .kt-stat-strip .hm-chip { font-size: 13px; padding: 5px 4px; }
 }
+
+/* Maç ekranı geri butonu — akışta yer kaplamaz, yüzer.
+   Mobilde ekranın sol üst köşesi; masaüstünde 560px'lik oyun kolonunun
+   hemen solunda (profil/skor kartının yanında) durur, kenarda kaybolmaz. */
+.match-back {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 40;
+}
+@media (min-width: 721px) {
+  .match-back {
+    top: 26px;
+    left: calc(50vw - 296px);
+  }
+}
