@@ -523,7 +523,22 @@ export default function MatchGame({
         </div>
       )}
 
-      <ScoreBar state={state} myId={playerId} backHref="/" />
+      {/* Geri (ana sayfa) — akışta yer kaplamaz, ekranın sol üstünde yüzer */}
+      <a
+        href="/"
+        title="Ana sayfa"
+        style={{
+          position: "fixed", top: 8, left: 8, zIndex: 40,
+          display: "grid", placeItems: "center", width: 34, height: 34, borderRadius: "50%",
+          border: "1px solid var(--border-soft)", background: "var(--bg-panel)",
+          color: "var(--text-strong)", fontSize: 17, textDecoration: "none",
+          boxShadow: "0 2px 10px rgba(0,0,0,.25)",
+        }}
+      >
+        ←
+      </a>
+
+      <ScoreBar state={state} myId={playerId} />
 
       {/* Büyük, net sıra göstergesi */}
       <div

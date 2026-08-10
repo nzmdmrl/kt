@@ -6,11 +6,9 @@ import { toUpperTr } from "@/lib/turkish";
 export default function ScoreBar({
   state,
   myId,
-  backHref,
 }: {
   state: MatchState;
   myId: string;
-  backHref?: string;   // verilirse süre satırının soluna "←" (ana sayfa) butonu konur
 }) {
   const [p1, p2] = state.players;
   const round = state.round;
@@ -32,21 +30,6 @@ export default function ScoreBar({
           Yan bloklar eşit sabit genişlikte (saniye basamağı değişince kaymaz),
           orta blok kalan alanı doldurur ve hep ortada durur. */}
       <div style={{ display: "flex", alignItems: "center", gap: 6, width: "100%" }}>
-        {/* En sol: geri (ana sayfa) — ayrı satır açmamak için bu satırın içinde durur */}
-        {backHref && (
-          <a
-            href={backHref}
-            title="Ana sayfa"
-            style={{
-              display: "grid", placeItems: "center", width: 30, height: 30, borderRadius: "50%",
-              border: "1px solid var(--border-soft)", background: "var(--bg-elevated)",
-              color: "var(--text-strong)", fontSize: 16, textDecoration: "none", flexShrink: 0,
-            }}
-          >
-            ←
-          </a>
-        )}
-
         {/* Sol: tur saniyesi — sabit genişlik, sola hizalı */}
         <div style={{ width: 60, flexShrink: 0, display: "flex", alignItems: "baseline", gap: 3 }}>
           <span className="brand-mono" style={{ fontSize: 26, lineHeight: 1, fontWeight: 700, color: timeLeft <= 10 ? "var(--accent-hot)" : "var(--accent)" }}>{timeLeft}</span>
@@ -66,9 +49,6 @@ export default function ScoreBar({
             </span>
           ) : null}
         </div>
-
-        {/* Geri butonunun genişlik dengesi — orta yazı ortada kalsın */}
-        {backHref && <span style={{ width: 30, flexShrink: 0 }} />}
       </div>
 
       {/* Satır 3: zaman çizgisi (cevap penceresi) */}
