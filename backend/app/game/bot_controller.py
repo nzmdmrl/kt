@@ -28,18 +28,33 @@ class BotController:
         self.lang = lang
         self._task: asyncio.Task | None = None
         self._busy = False  # bot şu an bir hamle yürütüyor mu (paralel hamleyi önler)
+        self._stopped = False
 
     def start(self) -> None:
+        # Rövanşta aynı kontrolcü yeniden başlatılır — eski döngü ortalıkta kalmasın.
+        prev = self._task
+        if prev and not prev.done() and prev is not asyncio.current_task():
+            prev.cancel()
+        self._stopped = False
         self._task = asyncio.create_task(self._run())
 
     def stop(self) -> None:
-        if self._task and not self._task.done():
-            self._task.cancel()
+        self._stopped = True
+        task = self._task
+        # DİKKAT: Maçı bitiren hamleyi bot yaptıysa (insan yenildiyse) bu çağrı
+        # botun KENDİ görevi içinden gelir. Kendimizi iptal edersek maç sonu
+        # akışı (istatistik callback'i + match_over yayını) yarıda kalır ve
+        # oyuncunun ekranında maç hiç bitmez. Kendi görevimizi iptal etmiyoruz;
+        # _stopped bayrağı sayesinde döngü ilk fırsatta zaten çıkar.
+        if task and not task.done() and task is not asyncio.current_task():
+            task.cancel()
 
     async def _run(self) -> None:
         try:
             while True:
                 await asyncio.sleep(0.4)
+                if self._stopped:
+                    return
                 match = self.room.match
                 if not match:
                     continue
