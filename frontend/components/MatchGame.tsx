@@ -505,21 +505,6 @@ export default function MatchGame({
 
   return (
     <div style={{ display: "grid", gap: 14, position: "relative", width: "100%", maxWidth: "100%", overflowX: "hidden", minWidth: 0 }}>
-      {/* Üst satır: arenadaki gibi tek "geri" butonu (ana sayfaya döner) */}
-      <div style={{ display: "flex", alignItems: "center", width: "100%" }}>
-        <a
-          href="/"
-          title="Ana sayfa"
-          style={{
-            display: "grid", placeItems: "center", width: 36, height: 36, borderRadius: "50%",
-            border: "1px solid var(--border-soft)", background: "var(--bg-panel)",
-            color: "var(--text-strong)", fontSize: 18, textDecoration: "none", flexShrink: 0,
-          }}
-        >
-          ←
-        </a>
-      </div>
-
       {/* Uçan emote animasyonu */}
       {flyingEmote && (
         <div
@@ -538,7 +523,7 @@ export default function MatchGame({
         </div>
       )}
 
-      <ScoreBar state={state} myId={playerId} />
+      <ScoreBar state={state} myId={playerId} backHref="/" />
 
       {/* Büyük, net sıra göstergesi */}
       <div
