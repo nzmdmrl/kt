@@ -140,7 +140,7 @@ function fallbackMeta(key: string): SeoMeta {
 /** Tek sayfanın SEO verisi (backend + varsayılan). */
 export async function fetchSeo(key: string): Promise<SeoMeta> {
   try {
-    const r = await fetch(serverApiUrl(`/api/seo/meta/${key}`), { next: { revalidate: 300 } });
+    const r = await fetch(serverApiUrl(`/api/seo/meta/${key}`), { next: { revalidate: 60 } });
     if (r.ok) {
       const d = (await r.json()) as SeoMeta;
       if (d && d.title) return d;
@@ -152,7 +152,7 @@ export async function fetchSeo(key: string): Promise<SeoMeta> {
 /** Tüm sayfalar (sitemap + favicon için). */
 export async function fetchSeoAll(): Promise<{ pages: SeoMeta[]; favicon_path: string | null }> {
   try {
-    const r = await fetch(serverApiUrl("/api/seo/meta"), { next: { revalidate: 300 } });
+    const r = await fetch(serverApiUrl("/api/seo/meta"), { next: { revalidate: 60 } });
     if (r.ok) return await r.json();
   } catch {}
   return { pages: Object.keys(FALLBACK).map(fallbackMeta), favicon_path: null };

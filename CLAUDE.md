@@ -169,7 +169,13 @@ Sekmeler: 📊 Özet (bugünkü maç/arena, online, canlı maç), ⚙️ Ayarlar
 - Özel anahtarlar: `default` (görseli olmayan tüm sayfaların og görseli), `favicon` (sekme ikonu).
 - Frontend: her sayfanın `layout.tsx`'inde `pageMetadata("<key>")` (`frontend/lib/seo.ts`).
   Yeni sayfa eklerken: SEO_PAGES'e kayıt + sayfaya layout.tsx ekle.
-- Yayına yansıma: ISR `revalidate = 300` (kök layout) — değişiklik en geç 5 dk sonra görünür.
+- Yayına yansıma: ISR `revalidate = 60` (kök layout + `lib/seo.ts` fetch'leri). Next
+  "stale-while-revalidate" kullanır: süre dolduktan sonraki **ilk** ziyaret hâlâ eski sayfayı
+  görür, yeni hâli arka planda üretilir → **ikinci ziyarette** görünür. "Görsel yükledim ama
+  çıkmıyor" şikâyetinin sebebi budur; sayfayı 2 kez yenilemek yeter.
+- Tarayıcı favicon'u agresif cache'ler — değişikliği görmek için sekmeyi kapatıp Ctrl+F5.
+- `/favicon.ico` (www alan adı) `next.config.js` içindeki rewrite ile backend'e yönlendirilir
+  (bazı botlar `<link rel="icon">` etiketine bakmadan doğrudan bu adresi ister).
 - `/robots.txt` (`app/robots.ts`) ve `/sitemap.xml` (`app/sitemap.ts`) SEO_PAGES'ten üretilir.
 
 ### Ana sayfa (son tasarım)

@@ -10,9 +10,11 @@ import NightBackground from "@/components/NightBackground";
 import { SITE_URL } from "@/lib/site";
 import { SITE_NAME, absoluteImage, fetchSeo, fetchSeoAll } from "@/lib/seo";
 
-// SEO verisi 5 dakikada bir tazelenir — admin panelinden yapılan başlık/açıklama/
-// görsel değişikliği en geç 5 dk içinde yayına yansır.
-export const revalidate = 300;
+// SEO verisi 1 dakikada bir tazelenir — admin panelinden yapılan başlık/açıklama/
+// görsel değişikliği kısa sürede yayına yansır. (Next "stale-while-revalidate"
+// kullandığı için süre dolduktan sonraki İLK ziyaret eski sayfayı görür,
+// yenisi arka planda üretilir; ikinci ziyarette yeni hâli gelir.)
+export const revalidate = 60;
 
 // Site geneli metadata. Başlık/açıklama/paylaşım görselleri admin panelindeki
 // "🔍 SEO" sekmesinden yönetilir (backend /api/seo/meta).
