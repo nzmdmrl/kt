@@ -1,4 +1,5 @@
 import LegalPage from "@/components/LegalPage";
+import CookiePreferenceButton from "@/components/CookiePreferenceButton";
 import { COMPANY, LEGAL_UPDATED } from "@/lib/legal";
 
 export const metadata = {
@@ -18,15 +19,23 @@ export default function CerezPage() {
       <p>
         Kısaca: <strong>reklam veya takip amaçlı çerez kullanmıyoruz.</strong> Sizi siteler arasında
         izlemiyor, profilinizi çıkarmıyor ve verilerinizi reklam ağlarına satmıyoruz. Sakladığımız
-        şeyler oyunun çalışması ve tercihlerinizin hatırlanması içindir.
+        şeyler oyunun çalışması, tercihlerinizin hatırlanması ve siteyi geliştirmemize yardımcı olan
+        anonim ziyaret istatistikleri içindir.
+      </p>
+      <p>
+        Ziyaret istatistikleri için <strong>Google Analytics</strong> kullanıyoruz ve bunu{" "}
+        <strong>istediğiniz zaman kapatabilirsiniz</strong> — aşağıdaki{" "}
+        <a href="#tercih">çerez tercihiniz</a> bölümünden.
       </p>
 
       <nav className="legal-toc">
         <ol>
           <li><a href="#nedir">Çerez ve yerel depolama nedir?</a></li>
           <li><a href="#neler">Tarayıcınızda ne saklıyoruz?</a></li>
-          <li><a href="#ucuncu">Üçüncü taraf çerezleri</a></li>
+          <li><a href="#analitik">Ziyaret istatistikleri (Google Analytics)</a></li>
+          <li><a href="#ucuncu">Diğer üçüncü taraf hizmetler</a></li>
           <li><a href="#kullanmadiklarimiz">Kullanmadıklarımız</a></li>
+          <li><a href="#tercih">Çerez tercihiniz</a></li>
           <li><a href="#yonetim">Nasıl temizler veya engellersiniz?</a></li>
           <li><a href="#degisiklik">Değişiklikler</a></li>
           <li><a href="#iletisim">İletişim</a></li>
@@ -81,10 +90,49 @@ export default function CerezPage() {
         Bunlar silinirse oyun yine çalışır; yalnızca tercihleriniz varsayılana döner.
       </p>
 
-      <h2 id="ucuncu">3. Üçüncü taraf çerezleri</h2>
+      <h3>2.3 İstatistik — kapatılabilir</h3>
+      <ul>
+        <li>
+          <strong>kt_cookie_consent</strong> — çerez bandında verdiğiniz kararı (kabul/ret) saklar.
+          Bandın her ziyarette yeniden çıkmaması için gereklidir.
+        </li>
+        <li>
+          <strong>Google Analytics çerezleri</strong> (<code>_ga</code>, <code>_ga_*</code>) —
+          ziyaretinizi ölçmek için Google tarafından yerleştirilir. Ayrıntılar bir sonraki bölümde.
+        </li>
+      </ul>
+
+      <h2 id="analitik">3. Ziyaret istatistikleri (Google Analytics)</h2>
       <p>
-        Kendi analitik veya reklam çerezimiz yoktur. Ancak aşağıdaki hizmetleri kullandığınızda ilgili
-        sağlayıcı kendi çerezlerini yerleştirebilir:
+        Sitenin hangi bölümlerinin kullanıldığını, hangi cihazlarda sorun yaşandığını ve
+        ziyaretçi sayısını anlamak için <strong>Google Analytics 4</strong> kullanıyoruz. Amaç
+        oyunu geliştirmektir; kimseyi kişisel olarak tanımlamaya çalışmayız.
+      </p>
+      <ul>
+        <li>
+          Ölçüm <strong>anonim</strong> yapılır: IP adresiniz kısaltılarak işlenir
+          (<em>anonymize_ip</em>) ve adınız, e-postanız gibi kimlik bilgileriniz Google&apos;a
+          gönderilmez.
+        </li>
+        <li>
+          Toplanan tipik veriler: ziyaret ettiğiniz sayfalar, sitede geçirdiğiniz süre, yaklaşık
+          konum (şehir düzeyinde), cihaz ve tarayıcı türü, siteye nereden geldiğiniz.
+        </li>
+        <li>
+          Bu ölçümü <strong>reddedebilirsiniz</strong>; reddettiğinizde Google Analytics anında
+          durur ve sonraki ziyaretlerinizde hiç yüklenmez. Oyun tüm özellikleriyle çalışmaya devam
+          eder.
+        </li>
+      </ul>
+      <p>
+        Google Analytics, Google Ireland Limited tarafından sağlanır ve veriler Google&apos;ın
+        sunucularında işlenebilir. Google&apos;ın bu verileri nasıl kullandığı kendi gizlilik
+        politikasına tabidir.
+      </p>
+
+      <h2 id="ucuncu">4. Diğer üçüncü taraf hizmetler</h2>
+      <p>
+        Aşağıdaki hizmetleri kullandığınızda ilgili sağlayıcı kendi çerezlerini yerleştirebilir:
       </p>
       <ul>
         <li>
@@ -105,15 +153,27 @@ export default function CerezPage() {
         bizim kontrolümüz dışındadır.
       </p>
 
-      <h2 id="kullanmadiklarimiz">4. Kullanmadıklarımız</h2>
+      <h2 id="kullanmadiklarimiz">5. Kullanmadıklarımız</h2>
       <ul>
         <li>Reklam veya yeniden hedefleme (retargeting) çerezleri.</li>
-        <li>Sizi başka sitelerde takip eden üçüncü taraf izleyiciler.</li>
         <li>Kişisel verilerinizi reklam ağlarına aktaran araçlar.</li>
         <li>Sosyal medya takip pikselleri.</li>
+        <li>Google Analytics verilerinin reklam amacıyla kullanılmasına yönelik özellikler.</li>
       </ul>
 
-      <h2 id="yonetim">5. Nasıl temizler veya engellersiniz?</h2>
+      <h2 id="tercih">6. Çerez tercihiniz</h2>
+      <p>
+        Siteye ilk girdiğinizde alt kısımda bir bilgilendirme bandı çıkar. Karar verene kadar
+        istatistik ölçümü çalışır; <strong>&quot;Reddet&quot;</strong> derseniz anında durur.
+        Kararınızı sonradan değiştirmek isterseniz aşağıdaki butonu kullanabilirsiniz:
+      </p>
+      <CookiePreferenceButton />
+      <p style={{ fontSize: 13, color: "var(--text-dim)" }}>
+        Not: Zorunlu ve tercih kayıtları (oturum, tema, ses) oyunun çalışması için gereklidir ve
+        kapatılamaz; bunlar için üçüncü taraflara veri gönderilmez.
+      </p>
+
+      <h2 id="yonetim">7. Nasıl temizler veya engellersiniz?</h2>
       <p>
         Platform&apos;dan <strong>Çıkış Yap</strong> demeniz giriş jetonunuzu ve profil özetinizi
         siler. Tümünü temizlemek isterseniz tarayıcınızın site verilerini silme özelliğini
@@ -140,13 +200,13 @@ export default function CerezPage() {
         giriş yapmanız mümkün olmayabilir.
       </p>
 
-      <h2 id="degisiklik">6. Değişiklikler</h2>
+      <h2 id="degisiklik">8. Değişiklikler</h2>
       <p>
         Platform&apos;a yeni bir özellik eklediğimizde bu politikayı güncelleyebiliriz. Güncel sürüm
         her zaman bu sayfada yayımlanır ve yukarıdaki &quot;son güncelleme&quot; tarihi değiştirilir.
       </p>
 
-      <h2 id="iletisim">7. İletişim</h2>
+      <h2 id="iletisim">9. İletişim</h2>
       <p>
         Çerezler ve saklanan veriler hakkındaki sorularınız için:
         <br />

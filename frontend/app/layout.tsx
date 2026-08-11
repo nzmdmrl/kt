@@ -1,5 +1,8 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
 import "./globals.css";
+import Analytics from "@/components/Analytics";
+import CookieConsent from "@/components/CookieConsent";
 import Providers from "@/components/Providers";
 import BottomNav from "@/components/BottomNav";
 import DesktopChrome from "@/components/DesktopChrome";
@@ -55,7 +58,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <NightBackground />
+        {/* useSearchParams kullandığı için Suspense şart — yoksa tüm sayfalar CSR'a düşer */}
+        <Suspense fallback={null}>
+          <Analytics />
+        </Suspense>
         <Providers><DesktopChrome>{children}</DesktopChrome><BottomNav /></Providers>
+        <CookieConsent />
       </body>
     </html>
   );

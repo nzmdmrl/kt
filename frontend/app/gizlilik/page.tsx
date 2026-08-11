@@ -161,7 +161,11 @@ export default function GizlilikPage() {
       <p>
         Platform, reklam veya profilleme amaçlı çerez kullanmaz. Oturumunuzu ve tercihlerinizi
         (tema, ses) hatırlamak için tarayıcınızın yerel depolaması (localStorage) kullanılır.
-        Ayrıntılar için <a href="/cerez">Çerez Politikası</a> sayfamıza bakabilirsiniz.
+        Ayrıca siteyi geliştirmek amacıyla <strong>Google Analytics</strong> ile anonim ziyaret
+        istatistikleri ölçülür; bu ölçümü sitedeki bilgilendirme bandından veya{" "}
+        <a href="/cerez#tercih">Çerez Politikası</a> sayfasındaki anahtardan istediğiniz zaman
+        kapatabilirsiniz. Ayrıntılar için <a href="/cerez">Çerez Politikası</a> sayfamıza
+        bakabilirsiniz.
       </p>
 
       <h2 id="ucuncu-taraf">7. Üçüncü taraf hizmetler ve paylaşım</h2>
@@ -183,6 +187,12 @@ export default function GizlilikPage() {
           <strong>Google reCAPTCHA:</strong> e-posta ile kayıt sırasında bot kayıtlarını engellemek
           için kullanılır. Bu doğrulama sırasında Google, IP adresiniz ve tarayıcı etkileşimleriniz
           gibi verileri kendi politikaları kapsamında işler.
+        </li>
+        <li>
+          <strong>Google Analytics:</strong> hangi sayfaların kullanıldığını ve ziyaretçi sayısını
+          anlamak için. Ölçüm anonimdir — IP adresiniz kısaltılarak işlenir, adınız ve e-postanız
+          gibi kimlik bilgileriniz Google&apos;a gönderilmez. Bu ölçümü{" "}
+          <a href="/cerez#tercih">tek tıkla kapatabilirsiniz</a>.
         </li>
       </ul>
       <p>

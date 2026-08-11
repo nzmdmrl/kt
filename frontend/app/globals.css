@@ -190,6 +190,11 @@ a { color: inherit; text-decoration: none; }
   .kt-bottom-nav { display: none !important; }
 }
 
+/* Çerez bandı: mobilde alt navigasyonun (76px) üstünde dursun */
+@media (max-width: 720px) {
+  .kt-cookie-bar { bottom: calc(88px + env(safe-area-inset-bottom, 0px)) !important; }
+}
+
 /* Masaüstü top menü + footer: sadece masaüstünde (mobilde gizli) */
 .kt-desktop-chrome { display: none; }
 @media (min-width: 721px) {

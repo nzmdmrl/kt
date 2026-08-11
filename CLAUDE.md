@@ -187,6 +187,10 @@ Sekmeler: 📊 Özet (bugünkü maç/arena, online, canlı maç), ⚙️ Ayarlar
 - 2v2 takım maçı (ertelendi).
 - Google ile giriş kodda hazır (`/giris` sayfası, `GoogleSignIn.tsx`, `/api/auth/google`).
   Çalışması için Coolify'da `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` girilmeli.
+- Google Analytics 4 kodda hazır (`lib/analytics.ts`, `Analytics.tsx`, `CookieConsent.tsx`).
+  Çalışması için **build-time** `NEXT_PUBLIC_GA_ID` (Coolify build arg) girilmeli — runtime env
+  yetmez, Next.js NEXT_PUBLIC_* değişkenlerini build sırasında gömer.
+  Model: opt-out — bant çıkar, reddedilene kadar ölçüm çalışır (`kt_cookie_consent`).
 - Kayıtta "Ben robot değilim" (reCAPTCHA v2) kodda hazır (`Recaptcha.tsx`, `app/core/captcha.py`).
   Çalışması için `RECAPTCHA_SITE_KEY` + `RECAPTCHA_SECRET` girilmeli; boşsa kayıt captcha'sız çalışır.
   Durum kontrolü: `/api/health` → `google_oauth_configured`, `recaptcha_configured`.
