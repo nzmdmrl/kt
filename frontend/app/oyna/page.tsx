@@ -181,7 +181,12 @@ export default function OynaPage() {
     if (!name.trim()) return setErr("Önce bir isim gir");
     setErr("");
     try {
-      const res = await fetch(apiUrl("/api/room/create"), { method: "POST" });
+      const res = await fetch(apiUrl("/api/room/create"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        // Host adı: davet linki önizlemesinde "X ile kelime tahmin oyna" başlığı için.
+        body: JSON.stringify({ host: (user?.display_name || name || "").trim() }),
+      });
       const data = await res.json();
       setCode(data.code);
       setBot(false);
@@ -228,6 +233,7 @@ export default function OynaPage() {
           bot={bot}
           botElo={botElo}
           isGuest={!user}
+          invitable={roomFlow && !bot}
           onLeave={roomFlow ? leaveRoom : undefined}
           onRematch={() => {
             // Rövanş: aynı rakip tipiyle (bot/insan) yeni oda + yeni maç.

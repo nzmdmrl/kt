@@ -4,8 +4,10 @@ import Providers from "@/components/Providers";
 import BottomNav from "@/components/BottomNav";
 import DesktopChrome from "@/components/DesktopChrome";
 import NightBackground from "@/components/NightBackground";
+import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: "Kelime Tahmin Oyunu — Online Kelime Tahmin Maçları | kelimetahmin.com",
   description:
     "Karşılıklı kelime tahmin oyunu oyna! Gerçek rakiplerle online kelime tahmin maçları yap, ligde yarış, kupalar kazan. Hemen ücretsiz oyna.",

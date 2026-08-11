@@ -32,6 +32,7 @@ from app.game.models import Player, MatchPhase
 class Room:
     def __init__(self, code: str):
         self.code = code
+        self.host_name: str = ""           # Odayı kuranın adı (davet linki OG başlığı için)
         self.match: Optional[Match] = None
         self.sockets: dict[str, WebSocket] = {}   # player_id -> ws
         self.players: dict[str, Player] = {}

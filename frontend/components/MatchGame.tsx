@@ -10,6 +10,7 @@ import MatchRewards from "./MatchRewards";
 import TitleCelebration from "./TitleCelebration";
 import { useSectionMusic } from "@/lib/useSectionMusic";
 import ScoreBar from "./ScoreBar";
+import RoomInvite from "./RoomInvite";
 
 export default function MatchGame({
   code,
@@ -20,6 +21,7 @@ export default function MatchGame({
   onRematch,
   onLeave,
   isGuest,
+  invitable,
 }: {
   code: string;
   playerId: string;
@@ -29,6 +31,7 @@ export default function MatchGame({
   onRematch?: () => void;
   onLeave?: () => void;   // rakip beklerken "Geri" (oda kur/katıl akışı)
   isGuest?: boolean;
+  invitable?: boolean;    // özel oda: beklerken davet paneli (link + sosyal + arkadaşlar)
 }) {
   const { connected, state, lastEvent, error, flash, buzzer, guess, emote, useJoker, jokers, rematchRequest, rematchAccept, rematchDecline } = useMatch(
     code,
@@ -344,6 +347,7 @@ export default function MatchGame({
             </>
           )}
         </Centered>
+        {!isDuel && invitable && <RoomInvite code={code} />}
         {onLeave && <BackButton onClick={onLeave} />}
       </div>
     );

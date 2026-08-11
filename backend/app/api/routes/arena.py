@@ -111,6 +111,22 @@ async def delete_custom_arena(arena_id: int, user=Depends(get_current_user), db=
     return {"ok": True}
 
 
+@router.get("/arena/custom/{code}/public")
+async def custom_arena_public(code: str):
+    """Özel arenanın paylaşım bilgisi (auth'suz — link önizlemesi/OG için)."""
+    lobby = arena_manager.custom_lobby(code)
+    if not lobby:
+        raise HTTPException(404, "Arena bulunamadı veya süresi doldu.")
+    owner = lobby.members.get(lobby.owner_pid) or {}
+    return {
+        "code": lobby.code,
+        "name": lobby.name,
+        "host": owner.get("name", ""),
+        "size": lobby.size,
+        "players": len(lobby.members),
+    }
+
+
 @router.get("/arena/custom/{code}")
 async def custom_arena_info(code: str, user=Depends(get_current_user)):
     """Bir özel arena lobisinin bilgisi (davet linkiyle girince)."""

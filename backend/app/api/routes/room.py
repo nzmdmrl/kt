@@ -2,20 +2,73 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from typing import Optional
 
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
+from sqlalchemy import and_, or_, select
+
+from app.core.database import get_db
+from app.core.deps import get_current_user
 from app.game.room import room_manager
 
 router = APIRouter(prefix="/room", tags=["room"])
 
 
+class CreateRoomIn(BaseModel):
+    host: str = ""   # Odayı kuranın görünen adı (davet linki başlığı için)
+
+
 @router.post("/create")
-def create_room():
+def create_room(data: Optional[CreateRoomIn] = None):
     """Yeni bir oda kodu üretir. İki oyuncu bu kodla WebSocket'e bağlanır."""
     code = room_manager.new_code()
     # Odayı önden oluştur (ilk katılan beklemede kalır).
-    room_manager.get_or_create(code)
-    return {"code": code}
+    room = room_manager.get_or_create(code)
+    if data and data.host:
+        room.host_name = data.host.strip()[:24]
+    return {"code": code, "host_name": room.host_name}
+
+
+class RoomInviteIn(BaseModel):
+    code: str
+    friend_ids: list[int]
+
+
+@router.post("/invite")
+async def invite_to_room(data: RoomInviteIn, user=Depends(get_current_user), db=Depends(get_db)):
+    """Arkadaşları özel 1v1 odasına davet et — her birine bildirim gönder."""
+    from app.models.friendship import Friendship
+    from app.models.notification import Notification
+
+    code = (data.code or "").strip().upper()
+    room = room_manager.rooms.get(code)
+    if not room:
+        raise HTTPException(404, "Oda bulunamadı.")
+
+    inviter = user.display_name or user.username
+    sent = 0
+    for fid in data.friend_ids[:20]:
+        # Gerçekten arkadaş mı doğrula
+        f = (await db.execute(select(Friendship).where(and_(
+            Friendship.status == "accepted",
+            or_(
+                and_(Friendship.requester_id == user.id, Friendship.addressee_id == fid),
+                and_(Friendship.requester_id == fid, Friendship.addressee_id == user.id),
+            ),
+        )))).scalar_one_or_none()
+        if not f:
+            continue
+        db.add(Notification(
+            user_id=fid, kind="room_invite",
+            title="Düello daveti",
+            body=f"{inviter} seni özel odada 1v1 düelloya davet etti.",
+            icon="🎮",
+            link=f"/oyna?join={code}",
+        ))
+        sent += 1
+    await db.commit()
+    return {"ok": True, "sent": sent}
 
 
 @router.get("/{code}")
@@ -26,6 +79,7 @@ def room_status(code: str):
         raise HTTPException(status_code=404, detail="Oda bulunamadı")
     return {
         "code": room.code,
+        "host_name": room.host_name,
         "player_count": len(room.players),
         "is_full": room.is_full,
         "match_started": room.match is not None,

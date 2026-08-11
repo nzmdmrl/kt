@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { apiUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import Logo from "@/components/Logo";
+import ShareButtons from "@/components/ShareButtons";
+import { SITE_URL } from "@/lib/site";
 
 type Friend = { id: number; username: string; display_name: string; avatar_url: string | null };
 type SavedArena = { id: number; name: string; size: number; wait_seconds: number; bots_enabled: boolean; word_plan: number[] };
@@ -96,19 +98,27 @@ export default function OzelArenaPage() {
 
   // Lobi görünümü (oluşturulduktan sonra)
   if (created) {
+    const origin = typeof window !== "undefined" ? window.location.origin : SITE_URL;
+    const link = `${origin}/arena/ozel/${created.code}`;
+    const shareTitle = `${user.display_name} ile arenada kelime tahmini oyna`;
     return (
       <Wrap>
         <h1 className="brand-mono" style={{ fontSize: 24, marginBottom: 6 }}>🎪 {created.name}</h1>
         <p style={{ color: "var(--text-soft)", marginBottom: 20 }}>Arena hazır! Arkadaşlarını davet et.</p>
 
         {/* Link */}
-        <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
+        <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
           <button onClick={copyLink} style={{ flex: 1, padding: "12px", borderRadius: 10, border: "none", background: "var(--accent)", color: "#1a1330", fontWeight: 700, cursor: "pointer" }}>
             {copied ? "✓ Kopyalandı" : "🔗 Arena linkini kopyala"}
           </button>
           <button onClick={() => router.push(`/arena/ozel/${created.code}`)} style={{ padding: "12px 18px", borderRadius: 10, border: "none", background: "var(--tile-correct)", color: "#fff", fontWeight: 700, cursor: "pointer" }}>
             Arenaya Gir →
           </button>
+        </div>
+
+        {/* Sosyal medyada davet */}
+        <div style={{ marginBottom: 24 }}>
+          <ShareButtons url={link} title={shareTitle} label="Davet et" />
         </div>
 
         {/* Arkadaş davet */}
