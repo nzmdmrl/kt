@@ -1,11 +1,14 @@
 "use client";
 
+import { COMPANY } from "@/lib/legal";
+
 // Site altbilgisi — tüm sayfalarda görünür, yasal ve tanıtım linkleri.
 export default function Footer() {
   const links = [
     { href: "/nasil-oynanir", label: "Nasıl Oynanır" },
     { href: "/gizlilik", label: "Gizlilik & KVKK" },
     { href: "/kosullar", label: "Kullanım Koşulları" },
+    { href: "/cerez", label: "Çerez Politikası" },
   ];
   return (
     <footer
@@ -24,7 +27,9 @@ export default function Footer() {
         ))}
       </div>
       <div style={{ color: "var(--text-dim)", fontSize: 13 }}>
-        © {new Date().getFullYear()} Kelime Tahmin · kelimetahmin.com
+        © {new Date().getFullYear()} {COMPANY.product} · {COMPANY.domain}
+        <br />
+        <span style={{ fontSize: 12 }}>Bir {COMPANY.name} projesidir.</span>
       </div>
     </footer>
   );

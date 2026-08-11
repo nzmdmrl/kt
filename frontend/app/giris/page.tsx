@@ -124,6 +124,15 @@ export default function GirisPage() {
             {busy ? "..." : mode === "login" ? "Giriş Yap" : "Hesap Oluştur"}
           </button>
 
+          {mode === "register" && (
+            <p style={{ fontSize: 12, color: "var(--text-dim)", textAlign: "center", lineHeight: 1.5 }}>
+              Hesap oluşturarak{" "}
+              <a href="/kosullar" style={{ color: "var(--accent)" }}>Kullanım Koşulları</a> ve{" "}
+              <a href="/gizlilik" style={{ color: "var(--accent)" }}>Gizlilik Politikası</a>&apos;nı
+              kabul etmiş olursunuz.
+            </p>
+          )}
+
           {googleConfigured && (
             <>
               <Divider />
