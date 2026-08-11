@@ -37,6 +37,11 @@ class Settings:
     GOOGLE_CLIENT_ID: str = os.getenv("GOOGLE_CLIENT_ID", "")
     GOOGLE_CLIENT_SECRET: str = os.getenv("GOOGLE_CLIENT_SECRET", "")
 
+    # --- reCAPTCHA v2 ("Ben robot değilim") — e-posta ile kayıtta bot koruması ---
+    # İkisi de doluysa devreye girer; boşsa kayıt eskisi gibi captcha'sız çalışır.
+    RECAPTCHA_SITE_KEY: str = os.getenv("RECAPTCHA_SITE_KEY", "")
+    RECAPTCHA_SECRET: str = os.getenv("RECAPTCHA_SECRET", "")
+
     # --- JWT (Faz 3) ---
     JWT_SECRET: str = os.getenv("JWT_SECRET", "degistir-beni-guclu-bir-secret-ile")
     JWT_ALGORITHM: str = "HS256"
@@ -44,6 +49,10 @@ class Settings:
     @property
     def google_oauth_configured(self) -> bool:
         return bool(self.GOOGLE_CLIENT_ID and self.GOOGLE_CLIENT_SECRET)
+
+    @property
+    def recaptcha_configured(self) -> bool:
+        return bool(self.RECAPTCHA_SITE_KEY and self.RECAPTCHA_SECRET)
 
 
 @lru_cache

@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { getJSON } from "@/lib/api";
 import Logo from "@/components/Logo";
 import GoogleSignIn from "@/components/GoogleSignIn";
+import Recaptcha from "@/components/Recaptcha";
 
 export default function GirisPage() {
   const { user, login, register, loading } = useAuth();
@@ -17,6 +18,11 @@ export default function GirisPage() {
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   const [googleConfigured, setGoogleConfigured] = useState(false);
+  // "Ben robot değilim" — sadece e-posta ile kayıtta. captchaRequired backend'den gelir.
+  const [captchaRequired, setCaptchaRequired] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  // Artınca kutu sıfırdan kurulur — token tek kullanımlık, hatalı denemeden sonra tazelenmeli.
+  const [captchaKey, setCaptchaKey] = useState(0);
 
   // Zaten girişliyse ana sayfaya
   useEffect(() => {
@@ -36,13 +42,20 @@ export default function GirisPage() {
     try {
       if (mode === "register") {
         if (!displayName.trim()) throw new Error("Bir görünen ad gir");
-        await register(email, password, displayName);
+        if (captchaRequired && !captchaToken)
+          throw new Error("Lütfen 'Ben robot değilim' kutusunu işaretle");
+        await register(email, password, displayName, captchaToken);
       } else {
         await login(email, password);
       }
       router.push("/");
     } catch (e: any) {
       setErr(e.message || "Bir hata oluştu");
+      // Kullanılan captcha token'ı yanar; kutuyu tazele.
+      if (mode === "register" && captchaRequired) {
+        setCaptchaToken(null);
+        setCaptchaKey((k) => k + 1);
+      }
     } finally {
       setBusy(false);
     }
@@ -60,7 +73,7 @@ export default function GirisPage() {
           {(["login", "register"] as const).map((m) => (
             <button
               key={m}
-              onClick={() => { setMode(m); setErr(""); }}
+              onClick={() => { setMode(m); setErr(""); setCaptchaToken(null); }}
               style={{
                 padding: "8px 20px",
                 borderRadius: 9,
@@ -96,6 +109,14 @@ export default function GirisPage() {
             placeholder="••••••"
             onEnter={submit}
           />
+
+          {mode === "register" && (
+            <Recaptcha
+              key={captchaKey}
+              onToken={setCaptchaToken}
+              onReady={setCaptchaRequired}
+            />
+          )}
 
           {err && <p style={{ color: "var(--accent-hot)", fontSize: 14 }}>{err}</p>}
 

@@ -27,7 +27,12 @@ type AuthContextType = {
   user: AuthUser | null;
   token: string | null;
   loading: boolean;
-  register: (email: string, password: string, displayName: string) => Promise<void>;
+  register: (
+    email: string,
+    password: string,
+    displayName: string,
+    captchaToken?: string | null
+  ) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   loginGoogle: (idToken: string) => Promise<void>;
   logout: () => void;
@@ -101,11 +106,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const register = useCallback(
-    async (email: string, password: string, displayName: string) => {
+    async (email: string, password: string, displayName: string, captchaToken?: string | null) => {
       const res = await fetch(apiUrl("/api/auth/register"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, display_name: displayName }),
+        body: JSON.stringify({
+          email,
+          password,
+          display_name: displayName,
+          captcha_token: captchaToken || null,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Kayıt başarısız");

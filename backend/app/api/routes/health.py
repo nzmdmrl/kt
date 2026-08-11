@@ -20,4 +20,5 @@ def health():
         "game_lang": settings.GAME_LANG,
         "word_pools": pool_stats(),
         "google_oauth_configured": settings.google_oauth_configured,
+        "recaptcha_configured": settings.recaptcha_configured,
     }

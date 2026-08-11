@@ -185,7 +185,11 @@ Sekmeler: 📊 Özet (bugünkü maç/arena, online, canlı maç), ⚙️ Ayarlar
 ## 6. AÇIK / BEKLEYEN İŞLER
 
 - 2v2 takım maçı (ertelendi).
-- Google OAuth bağlı değil (altyapı var, aktif değil).
+- Google ile giriş kodda hazır (`/giris` sayfası, `GoogleSignIn.tsx`, `/api/auth/google`).
+  Çalışması için Coolify'da `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` girilmeli.
+- Kayıtta "Ben robot değilim" (reCAPTCHA v2) kodda hazır (`Recaptcha.tsx`, `app/core/captcha.py`).
+  Çalışması için `RECAPTCHA_SITE_KEY` + `RECAPTCHA_SECRET` girilmeli; boşsa kayıt captcha'sız çalışır.
+  Durum kontrolü: `/api/health` → `google_oauth_configured`, `recaptcha_configured`.
 - Whisper (sesli tahmin) fallback.
 - Günün kelimesi XP'ye bağlı değil (check_daily_guess auth'suz).
 - Arena rozet kazanımında bildirim yok (sadece kupa/madalya bildirimi var).

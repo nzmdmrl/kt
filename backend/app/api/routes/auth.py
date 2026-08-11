@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.config import get_settings
+from app.core import captcha
 from app.core.security import create_access_token
 from app.core.deps import get_current_user
 from app.core import auth_service
@@ -23,6 +24,8 @@ class RegisterIn(BaseModel):
     email: str
     password: str
     display_name: str
+    # reCAPTCHA v2 token'ı — özellik yapılandırılmışsa zorunlu.
+    captcha_token: str | None = None
 
 
 class LoginIn(BaseModel):
@@ -41,8 +44,21 @@ def _auth_response(user: User) -> dict:
 
 
 # ---- e-posta/şifre ----
+@router.get("/captcha/status")
+def captcha_status():
+    """Frontend 'Ben robot değilim' kutusunu gösterecek mi, buradan öğrenir."""
+    return {
+        "configured": settings.recaptcha_configured,
+        "site_key": settings.RECAPTCHA_SITE_KEY or None,
+    }
+
+
 @router.post("/register")
-async def register(data: RegisterIn, db: AsyncSession = Depends(get_db)):
+async def register(data: RegisterIn, request: Request, db: AsyncSession = Depends(get_db)):
+    try:
+        await captcha.verify_captcha(data.captcha_token, captcha.client_ip(request))
+    except captcha.CaptchaError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     try:
         user = await auth_service.register_email(
             db, data.email, data.password, data.display_name
