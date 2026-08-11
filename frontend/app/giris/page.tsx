@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { getJSON } from "@/lib/api";
 import Logo from "@/components/Logo";
+import GoogleSignIn from "@/components/GoogleSignIn";
 
 export default function GirisPage() {
   const { user, login, register, loading } = useAuth();
@@ -105,9 +106,10 @@ export default function GirisPage() {
           {googleConfigured && (
             <>
               <Divider />
-              <div id="google-login-hint" style={{ textAlign: "center", color: "var(--text-dim)", fontSize: 13 }}>
-                Google ile giriş yakında bu ekranda.
-              </div>
+              <GoogleSignIn
+                text={mode === "register" ? "signup_with" : "signin_with"}
+                onDone={() => router.push("/")}
+              />
             </>
           )}
         </div>

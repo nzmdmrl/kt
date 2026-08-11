@@ -87,13 +87,21 @@ async def google_login(data: GoogleIn, db: AsyncSession = Depends(get_db)):
     # aud (client_id) bizim uygulamamıza mı ait?
     if info.get("aud") != settings.GOOGLE_CLIENT_ID:
         raise HTTPException(status_code=401, detail="Google token bu uygulama için değil.")
+    # Token'ı gerçekten Google mı verdi?
+    if info.get("iss") not in ("accounts.google.com", "https://accounts.google.com"):
+        raise HTTPException(status_code=401, detail="Google token kaynağı geçersiz.")
     sub = info.get("sub")
     if not sub:
         raise HTTPException(status_code=401, detail="Google kimliği okunamadı.")
+    # E-posta yalnızca Google tarafından doğrulanmışsa mevcut hesapla eşleştirilir;
+    # aksi halde doğrulanmamış adresle başkasının hesabı ele geçirilebilir.
+    email = info.get("email")
+    if str(info.get("email_verified", "")).lower() not in ("true", "1"):
+        email = None
     user = await auth_service.get_or_create_google_user(
         db,
         sub=sub,
-        email=info.get("email"),
+        email=email,
         name=info.get("name"),
         picture=info.get("picture"),
     )
