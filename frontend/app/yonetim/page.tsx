@@ -19,6 +19,7 @@ const TABS = [
   { key: "titles", label: "🏅 Unvanlar" },
   { key: "badges", label: "🎖️ Rozetler" },
   { key: "music", label: "🎵 Müzik" },
+  { key: "seo", label: "🔍 SEO" },
 ];
 
 export default function AdminPage() {
@@ -52,6 +53,7 @@ export default function AdminPage() {
       {tab === "titles" && <Titles />}
       {tab === "badges" && <Badges />}
       {tab === "music" && <MusicPools />}
+      {tab === "seo" && <Seo />}
     </Wrap>
   );
 }
@@ -393,6 +395,148 @@ function Sounds() {
     </div>
   );
 }
+
+// SEO sekmesi — her sayfanın Google başlığı/açıklaması ve paylaşım (og) görseli.
+// Boş bırakılan alanlarda koddaki varsayılan metin kullanılır.
+type SeoRow = {
+  key: string; label: string; path: string; image_only: boolean; indexable: boolean;
+  default_title: string; default_description: string; default_keywords: string;
+  title: string; description: string; keywords: string;
+  has_image: boolean; image_name: string; image_path: string | null;
+};
+
+function Seo() {
+  const [rows, setRows] = useState<SeoRow[]>([]);
+  const [msg, setMsg] = useState("");
+
+  function load() {
+    fetch(apiUrl("/api/seo/admin"), { headers: authHeaders() })
+      .then((r) => r.json())
+      .then((d) => setRows(d.pages || []))
+      .catch(() => {});
+  }
+  useEffect(() => { load(); }, []);
+
+  function flash(t: string) { setMsg(t); setTimeout(() => setMsg(""), 2500); }
+
+  function patch(key: string, field: keyof SeoRow, value: string) {
+    setRows((rs) => rs.map((r) => (r.key === key ? { ...r, [field]: value } : r)));
+  }
+
+  function save(row: SeoRow) {
+    fetch(apiUrl(`/api/seo/admin/${row.key}`), {
+      method: "PUT",
+      headers: authHeaders(),
+      body: JSON.stringify({ title: row.title, description: row.description, keywords: row.keywords }),
+    })
+      .then((r) => r.json())
+      .then((d) => flash(d.ok ? "Kaydedildi ✓ (yayına yansıması 5 dk sürebilir)" : d.detail || "Hata"));
+  }
+
+  function upload(key: string, file: File) {
+    const fd = new FormData();
+    fd.append("file", file);
+    const t = localStorage.getItem("kt_token");
+    fetch(apiUrl(`/api/seo/admin/${key}/image`), {
+      method: "POST",
+      headers: t ? { Authorization: `Bearer ${t}` } : {},
+      body: fd,
+    })
+      .then((r) => r.json())
+      .then((d) => { flash(d.ok ? "Görsel yüklendi ✓" : d.detail || "Hata"); load(); });
+  }
+
+  function removeImage(key: string) {
+    fetch(apiUrl(`/api/seo/admin/${key}/image`), { method: "DELETE", headers: authHeaders() })
+      .then(() => { flash("Görsel silindi"); load(); });
+  }
+
+  return (
+    <div style={{ display: "grid", gap: 14 }}>
+      <div style={{ background: "var(--bg-panel)", borderRadius: 10, padding: "12px 14px", fontSize: 13, color: "var(--text-soft)", lineHeight: 1.6 }}>
+        Burada her sayfanın <b>Google başlığı</b>, <b>açıklaması</b> ve <b>paylaşım görseli</b> (WhatsApp/X/Facebook
+        önizlemesi) ayarlanır. Alanı boş bırakırsan hazır varsayılan metin kullanılır (gri yazı).<br />
+        • Başlık: 50–60 karakter önerilir; site adı (&quot;| Kelime Tahmin&quot;) sonuna otomatik eklenir.<br />
+        • Açıklama: 120–160 karakter.<br />
+        • Görsel: <b>1200×630 px</b> JPG/PNG (en fazla 5 MB). Görsel yüklemediğin sayfalar
+        &quot;★ Genel&quot; görselini kullanır.
+      </div>
+      {msg && <p style={{ fontSize: 13, color: "var(--accent)", margin: 0 }}>{msg}</p>}
+
+      {rows.map((r) => (
+        <div key={r.key} style={{ background: "var(--bg-panel)", borderRadius: 12, padding: 14, display: "grid", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-strong)" }}>{r.label}</div>
+            {r.path && <span style={{ fontSize: 12, color: "var(--text-dim)" }}>{r.path}</span>}
+            {!r.indexable && !r.image_only && (
+              <span style={{ fontSize: 11, color: "var(--text-dim)", border: "1px solid var(--border-soft)", borderRadius: 6, padding: "1px 6px" }}>
+                aramaya kapalı
+              </span>
+            )}
+          </div>
+
+          {!r.image_only && (
+            <>
+              <input
+                value={r.title}
+                onChange={(e) => patch(r.key, "title", e.target.value)}
+                placeholder={r.default_title}
+                style={seoInput}
+              />
+              <textarea
+                value={r.description}
+                onChange={(e) => patch(r.key, "description", e.target.value)}
+                placeholder={r.default_description}
+                rows={3}
+                style={{ ...seoInput, resize: "vertical" }}
+              />
+              <input
+                value={r.keywords}
+                onChange={(e) => patch(r.key, "keywords", e.target.value)}
+                placeholder={r.default_keywords || "anahtar kelimeler (virgülle)"}
+                style={{ ...seoInput, fontSize: 12 }}
+              />
+            </>
+          )}
+
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            {r.has_image && r.image_path && (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={apiUrl(r.image_path)}
+                alt=""
+                style={{ width: 96, height: 50, objectFit: "cover", borderRadius: 6, border: "1px solid var(--border-soft)" }}
+              />
+            )}
+            <div style={{ flex: 1, fontSize: 12, color: r.has_image ? "var(--tile-correct)" : "var(--text-dim)" }}>
+              {r.has_image ? (r.image_name || "Görsel yüklü") : (r.image_only ? "Yüklenmedi" : "Görsel yok — ★ Genel görseli kullanılır")}
+            </div>
+            <label style={{ padding: "6px 12px", borderRadius: 8, background: "var(--bg-elevated)", color: "var(--text-strong)", cursor: "pointer", fontSize: 13, border: "1px solid var(--border-soft)" }}>
+              {r.image_only ? "Favicon yükle" : "Görsel yükle"}
+              <input
+                type="file"
+                accept={r.image_only ? ".ico,.png,.svg,image/*" : "image/*"}
+                style={{ display: "none" }}
+                onChange={(e) => e.target.files?.[0] && upload(r.key, e.target.files[0])}
+              />
+            </label>
+            {r.has_image && (
+              <button onClick={() => removeImage(r.key)} style={{ padding: "6px 10px", borderRadius: 8, border: "none", background: "transparent", color: "var(--accent-hot)", cursor: "pointer", fontSize: 13 }}>Sil</button>
+            )}
+            {!r.image_only && (
+              <button onClick={() => save(r)} style={{ padding: "6px 14px", borderRadius: 8, border: "none", background: "var(--accent)", color: "#1a1330", cursor: "pointer", fontSize: 13, fontWeight: 700 }}>Kaydet</button>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const seoInput: React.CSSProperties = {
+  width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--border-soft)",
+  background: "var(--bg-elevated)", color: "var(--text-strong)", fontSize: 13, fontFamily: "inherit",
+};
 
 function Stat({ label, value, accent }: { label: string; value: any; accent?: boolean }) {
   return (

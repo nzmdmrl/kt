@@ -8,29 +8,50 @@ import BottomNav from "@/components/BottomNav";
 import DesktopChrome from "@/components/DesktopChrome";
 import NightBackground from "@/components/NightBackground";
 import { SITE_URL } from "@/lib/site";
+import { SITE_NAME, absoluteImage, fetchSeo, fetchSeoAll } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  metadataBase: new URL(SITE_URL),
-  title: "Kelime Tahmin Oyunu — Online Kelime Tahmin Maçları | kelimetahmin.com",
-  description:
-    "Karşılıklı kelime tahmin oyunu oyna! Gerçek rakiplerle online kelime tahmin maçları yap, ligde yarış, kupalar kazan. Hemen ücretsiz oyna.",
-  keywords: [
-    "kelime tahmin oyunu",
-    "online kelime tahmin",
-    "kelime oyunu",
-    "kelime düellosu",
-    "türkçe kelime oyunu",
-  ],
-  openGraph: {
-    title: "Kelime Tahmin Oyunu — Online Kelime Tahmin Maçları",
-    description:
-      "Gerçek rakiplerle karşılıklı kelime tahmin maçları. Ligde yarış, kupa ve rozet kazan.",
-    type: "website",
-    locale: "tr_TR",
-    siteName: "Kelime Tahmin",
-  },
-  robots: { index: true, follow: true },
-};
+// SEO verisi 5 dakikada bir tazelenir — admin panelinden yapılan başlık/açıklama/
+// görsel değişikliği en geç 5 dk içinde yayına yansır.
+export const revalidate = 300;
+
+// Site geneli metadata. Başlık/açıklama/paylaşım görselleri admin panelindeki
+// "🔍 SEO" sekmesinden yönetilir (backend /api/seo/meta).
+export async function generateMetadata(): Promise<Metadata> {
+  const [home, all] = await Promise.all([fetchSeo("home"), fetchSeoAll()]);
+  const image = absoluteImage(home.image_path);
+  const favicon = all.favicon_path ? absoluteImage(all.favicon_path) : null;
+
+  return {
+    metadataBase: new URL(SITE_URL),
+    title: {
+      default: home.title,
+      // Alt sayfalar kendi başlığını verir; site adı sona otomatik eklenir.
+      template: `%s | ${SITE_NAME}`,
+    },
+    description: home.description,
+    keywords: home.keywords.length ? home.keywords : undefined,
+    applicationName: SITE_NAME,
+    openGraph: {
+      title: home.title,
+      description: home.description,
+      url: SITE_URL,
+      type: "website",
+      locale: "tr_TR",
+      siteName: SITE_NAME,
+      images: image ? [{ url: image, width: 1200, height: 630, alt: home.title }] : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: home.title,
+      description: home.description,
+      images: image ? [image] : undefined,
+    },
+    icons: favicon
+      ? { icon: [{ url: favicon }], shortcut: [{ url: favicon }], apple: [{ url: favicon }] }
+      : undefined,
+    robots: { index: true, follow: true },
+  };
+}
 
 export const viewport: Viewport = {
   themeColor: "#0e0b1e",

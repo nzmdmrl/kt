@@ -1,11 +1,13 @@
 import LegalPage from "@/components/LegalPage";
 import { COMPANY, LEGAL_UPDATED } from "@/lib/legal";
 
-export const metadata = {
-  title: "Kullanım Koşulları — Kelime Tahmin",
-  description:
-    "Kelime Tahmin'i kullanırken geçerli olan kurallar: hesap, adil oyun, yasak davranışlar, fikri mülkiyet, sorumluluk ve hesap kapatma.",
-};
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
+
+// SEO: admin → "🔍 SEO" sekmesi (terms).
+export async function generateMetadata(): Promise<Metadata> {
+  return pageMetadata("terms");
+}
 
 export default function KosullarPage() {
   return (

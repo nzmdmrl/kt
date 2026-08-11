@@ -1,11 +1,13 @@
 import LegalPage from "@/components/LegalPage";
 import { COMPANY, LEGAL_UPDATED } from "@/lib/legal";
 
-export const metadata = {
-  title: "Gizlilik Politikası ve KVKK Aydınlatma Metni — Kelime Tahmin",
-  description:
-    "Kelime Tahmin'de hangi kişisel verilerin işlendiğini, ne amaçla kullanıldığını, ne kadar saklandığını ve KVKK kapsamındaki haklarınızı açıklar.",
-};
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
+
+// SEO: admin → "🔍 SEO" sekmesi (privacy).
+export async function generateMetadata(): Promise<Metadata> {
+  return pageMetadata("privacy");
+}
 
 export default function GizlilikPage() {
   return (

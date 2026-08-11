@@ -2,11 +2,13 @@ import LegalPage from "@/components/LegalPage";
 import CookiePreferenceButton from "@/components/CookiePreferenceButton";
 import { COMPANY, LEGAL_UPDATED } from "@/lib/legal";
 
-export const metadata = {
-  title: "Çerez Politikası — Kelime Tahmin",
-  description:
-    "Kelime Tahmin'in tarayıcınızda hangi bilgileri sakladığı, neden sakladığı ve bunları nasıl temizleyebileceğiniz.",
-};
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
+
+// SEO: admin → "🔍 SEO" sekmesi (cookies).
+export async function generateMetadata(): Promise<Metadata> {
+  return pageMetadata("cookies");
+}
 
 export default function CerezPage() {
   return (

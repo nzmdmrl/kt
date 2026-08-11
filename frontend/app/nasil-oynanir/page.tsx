@@ -1,6 +1,12 @@
 import LegalPage from "@/components/LegalPage";
 
-export const metadata = { title: "Nasıl Oynanır — Kelime Tahmin" };
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
+
+// SEO: admin → "🔍 SEO" sekmesi (how).
+export async function generateMetadata(): Promise<Metadata> {
+  return pageMetadata("how");
+}
 
 export default function HakkindaPage() {
   return (

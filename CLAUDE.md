@@ -74,6 +74,7 @@ kelimetahmin/
 │   │   │   ├── badge_def.py       # DB'deki rozet tanımları (code,name,icon,tier,stat_key,threshold)
 │   │   │   ├── title.py           # DB'deki unvan tanımları (name,icon,xp_required)
 │   │   │   ├── music_track.py     # Müzik havuzu (section, name, mime, data_b64)
+│   │   │   ├── seo_page.py        # Sayfa SEO'su + VARSAYILAN başlık/açıklama listesi (SEO_PAGES)
 │   │   │   ├── arena_history.py   # Arena maç kayıtları (her oyuncu 1 satır, match_id YOK)
 │   │   │   └── ...
 │   │   ├── api/routes/            # 21 route dosyası
@@ -81,6 +82,7 @@ kelimetahmin/
 │   │   │   ├── arena.py           # arena WS + _persist_results (kupa/madalya/XP/rozet)
 │   │   │   ├── match.py           # maç WS + maç geçmişi kaydı
 │   │   │   ├── music.py           # müzik havuzu API (public liste/dosya + admin upload/sil/ses)
+│   │   │   ├── seo.py             # sayfa SEO API (public meta/görsel + admin düzenle/yükle)
 │   │   │   ├── profile.py         # profil (stats, achievements, badges, trophies/medals)
 │   │   │   ├── home.py            # /home/appearance (gece bg ayarı, public), recent-matches
 │   │   │   └── ...
@@ -156,7 +158,19 @@ Aşağıdakiler canlıda çalışıyor veya son push'a dahil. Detaylı geçmiş 
 
 ### Admin paneli (`/yonetim`)
 Sekmeler: 📊 Özet (bugünkü maç/arena, online, canlı maç), ⚙️ Ayarlar, 🤖 Botlar, 📝 Kelimeler,
-🔊 Sesler, 🏅 Unvanlar, 🎖️ Rozetler, 🎵 Müzik.
+🔊 Sesler, 🏅 Unvanlar, 🎖️ Rozetler, 🎵 Müzik, 🔍 SEO.
+
+### SEO (sayfa başlığı / açıklaması / paylaşım görseli)
+- Varsayılan metinler KODDA: `backend/app/models/seo_page.py` → `SEO_PAGES` (19 kayıt).
+  Frontend yedeği: `frontend/lib/seo.ts` → `FALLBACK` (backend'e ulaşılamazsa kullanılır; ikisi
+  birlikte güncellenmeli).
+- Admin `/yonetim` → 🔍 SEO sekmesinden başlık/açıklama/anahtar kelime ve **og görseli** (1200×630)
+  yüklenir. Boş bırakılan alan varsayılana döner. Görseller DB'de base64 (disk volume yok).
+- Özel anahtarlar: `default` (görseli olmayan tüm sayfaların og görseli), `favicon` (sekme ikonu).
+- Frontend: her sayfanın `layout.tsx`'inde `pageMetadata("<key>")` (`frontend/lib/seo.ts`).
+  Yeni sayfa eklerken: SEO_PAGES'e kayıt + sayfaya layout.tsx ekle.
+- Yayına yansıma: ISR `revalidate = 300` (kök layout) — değişiklik en geç 5 dk sonra görünür.
+- `/robots.txt` (`app/robots.ts`) ve `/sitemap.xml` (`app/sitemap.ts`) SEO_PAGES'ten üretilir.
 
 ### Ana sayfa (son tasarım)
 - Profil kartı: avatar, seviye, unvan, XP bar + sayaçlar (⭐ Puan, 🏆 Kupa, 🥈 Madalya, 🎖️ Rozet).
@@ -199,6 +213,8 @@ Sekmeler: 📊 Özet (bugünkü maç/arena, online, canlı maç), ⚙️ Ayarlar
 - Arena rozet kazanımında bildirim yok (sadece kupa/madalya bildirimi var).
 - Yasal metinler hukukçu onayı bekliyor.
 - Otomatik DB yedeği kurulmadı.
+- SEO görselleri (og image) ve favicon admin panelden yüklenmeli — yüklenmezse paylaşımlarda
+  görsel çıkmaz (metinler zaten hazır).
 - Eski kullanılmayan bileşenler duruyor: `HomeHero.tsx`, `HomeDesktop.tsx` (artık import edilmiyor,
   temizlenebilir).
 
