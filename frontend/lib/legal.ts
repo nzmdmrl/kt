@@ -10,9 +10,9 @@
 
 export const COMPANY = {
   /** Markanın arkasındaki şirket/işletme adı */
-  name: "Patron Panda",
+  name: "Founder Panda",
   /** Resmî ticaret unvanı — ticaret sicilindeki tam ad */
-  legalName: "Patron Panda",
+  legalName: "Founder Panda",
   /** Platform (oyun) adı */
   product: "Kelime Tahmin",
   domain: "kelimetahmin.com",
