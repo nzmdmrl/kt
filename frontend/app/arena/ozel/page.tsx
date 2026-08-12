@@ -6,6 +6,7 @@ import { apiUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import Logo from "@/components/Logo";
 import ShareButtons from "@/components/ShareButtons";
+import LinkCopyBox from "@/components/LinkCopyBox";
 import { SITE_URL } from "@/lib/site";
 
 type Friend = { id: number; username: string; display_name: string; avatar_url: string | null };
@@ -29,7 +30,6 @@ export default function OzelArenaPage() {
   const [friends, setFriends] = useState<Friend[]>([]);
   const [invited, setInvited] = useState<Set<number>>(new Set());
   const [saved, setSaved] = useState<SavedArena[]>([]);
-  const [copied, setCopied] = useState(false);
 
   function token() { return typeof window !== "undefined" ? localStorage.getItem("kt_token") : null; }
 
@@ -87,12 +87,6 @@ export default function OzelArenaPage() {
     if (r.ok) setInvited((s) => new Set(s).add(fid));
   }
 
-  function copyLink() {
-    if (!created) return;
-    const link = `${window.location.origin}/arena/ozel/${created.code}`;
-    navigator.clipboard?.writeText(link).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); }).catch(() => {});
-  }
-
   if (loading) return <Wrap><Center>Yükleniyor…</Center></Wrap>;
   if (!user) return <Wrap><Center><a href="/giris" style={{ color: "var(--accent)" }}>Giriş yap →</a></Center></Wrap>;
 
@@ -107,11 +101,16 @@ export default function OzelArenaPage() {
         <p style={{ color: "var(--text-soft)", marginBottom: 20 }}>Arena hazır! Arkadaşlarını davet et.</p>
 
         {/* Link */}
-        <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-          <button onClick={copyLink} style={{ flex: 1, padding: "12px", borderRadius: 10, border: "none", background: "var(--accent)", color: "#1a1330", fontWeight: 700, cursor: "pointer" }}>
-            {copied ? "✓ Kopyalandı" : "🔗 Arena linkini kopyala"}
-          </button>
-          <button onClick={() => router.push(`/arena/ozel/${created.code}`)} style={{ padding: "12px 18px", borderRadius: 10, border: "none", background: "var(--tile-correct)", color: "#fff", fontWeight: 700, cursor: "pointer" }}>
+        <div style={{ display: "grid", gap: 8, marginBottom: 12, minWidth: 0 }}>
+          <LinkCopyBox link={link} label="🔗 Arena linkini kopyala" />
+          <button
+            onClick={() => router.push(`/arena/ozel/${created.code}`)}
+            style={{
+              width: "100%", minWidth: 0, boxSizing: "border-box",
+              padding: "12px", borderRadius: 10, border: "none",
+              background: "var(--tile-correct)", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer",
+            }}
+          >
             Arenaya Gir →
           </button>
         </div>

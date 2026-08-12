@@ -5,6 +5,7 @@ import { apiUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { SITE_URL } from "@/lib/site";
 import ShareButtons from "@/components/ShareButtons";
+import LinkCopyBox from "@/components/LinkCopyBox";
 
 type Friend = { id: number; username: string; display_name: string; avatar_url: string | null };
 
@@ -13,7 +14,6 @@ export default function RoomInvite({ code }: { code: string }) {
   const { user } = useAuth();
   const [friends, setFriends] = useState<Friend[]>([]);
   const [invited, setInvited] = useState<Set<number>>(new Set());
-  const [copied, setCopied] = useState(false);
 
   function token() {
     return typeof window !== "undefined" ? localStorage.getItem("kt_token") : null;
@@ -31,12 +31,6 @@ export default function RoomInvite({ code }: { code: string }) {
   const link = `${origin}/oda/${code}`;
   const shareTitle = `${user?.display_name || "Arkadaşın"} ile kelime tahmin oyna`;
 
-  function copyLink() {
-    navigator.clipboard?.writeText(link)
-      .then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); })
-      .catch(() => {});
-  }
-
   async function invite(fid: number) {
     const r = await fetch(apiUrl("/api/room/invite"), {
       method: "POST",
@@ -47,28 +41,14 @@ export default function RoomInvite({ code }: { code: string }) {
   }
 
   return (
-    <div style={{ width: "100%", maxWidth: 420, display: "grid", gap: 14, marginTop: 4 }}>
+    <div
+      style={{
+        width: "100%", maxWidth: 420, minWidth: 0, boxSizing: "border-box",
+        justifySelf: "stretch", display: "grid", gap: 14, marginTop: 4,
+      }}
+    >
       {/* Oda linki */}
-      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-        <div
-          style={{
-            flex: 1, padding: "10px 12px", borderRadius: 10, fontSize: 13,
-            background: "var(--bg-panel)", border: "1px solid var(--border-soft)",
-            color: "var(--text-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-          }}
-        >
-          {link}
-        </div>
-        <button
-          onClick={copyLink}
-          style={{
-            padding: "10px 14px", borderRadius: 10, border: "none", background: "var(--accent)",
-            color: "#1a1330", fontWeight: 700, fontSize: 13, cursor: "pointer", whiteSpace: "nowrap",
-          }}
-        >
-          {copied ? "✓ Kopyalandı" : "🔗 Linki kopyala"}
-        </button>
-      </div>
+      <LinkCopyBox link={link} label="🔗 Linki kopyala" />
 
       {/* Sosyal medya */}
       <ShareButtons url={link} title={shareTitle} label="Davet et" />
