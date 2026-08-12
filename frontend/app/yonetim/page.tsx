@@ -20,6 +20,7 @@ const TABS = [
   { key: "badges", label: "🎖️ Rozetler" },
   { key: "music", label: "🎵 Müzik" },
   { key: "seo", label: "🔍 SEO" },
+  { key: "mobile", label: "📱 Mobil & Reklam" },
 ];
 
 export default function AdminPage() {
@@ -54,6 +55,7 @@ export default function AdminPage() {
       {tab === "badges" && <Badges />}
       {tab === "music" && <MusicPools />}
       {tab === "seo" && <Seo />}
+      {tab === "mobile" && <Mobile />}
     </Wrap>
   );
 }
@@ -882,6 +884,173 @@ function MusicSection({ sectionKey, label }: { sectionKey: string; label: string
           style={{ flex: 1, accentColor: "var(--accent)" }} />
         <span className="brand-mono" style={{ width: 36, textAlign: "right", color: "var(--accent)" }}>{volume}</span>
       </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------- Mobil & Reklam
+
+type AppSettingRow = { key: string; label: string; value: any; is_public: boolean; updated_at: string | null };
+
+type MobileField = { path: string; label: string; type?: "text" | "bool" | "list"; hint?: string };
+
+const MOBILE_FIELDS: Record<string, MobileField[]> = {
+  "ads.adsense": [
+    { path: "enabled", label: "AdSense reklamları açık", type: "bool" },
+    { path: "client", label: "Yayıncı kimliği", hint: "ca-pub-0000000000000000" },
+    { path: "slots.header", label: "Slot — üst (header)" },
+    { path: "slots.in_content", label: "Slot — içerik arası" },
+    { path: "slots.footer", label: "Slot — alt (footer)" },
+  ],
+  "ads.admob": [
+    { path: "enabled", label: "AdMob reklamları açık", type: "bool" },
+    { path: "test_mode", label: "Test modu (gerçek reklam gösterilmez)", type: "bool" },
+    { path: "android.app_id", label: "Android — uygulama kimliği" },
+    { path: "android.banner", label: "Android — banner birimi" },
+    { path: "android.interstitial", label: "Android — geçiş (interstitial) birimi" },
+    { path: "ios.app_id", label: "iOS — uygulama kimliği" },
+    { path: "ios.banner", label: "iOS — banner birimi" },
+    { path: "ios.interstitial", label: "iOS — geçiş (interstitial) birimi" },
+  ],
+  "push.firebase": [
+    { path: "web.apiKey", label: "Web — apiKey" },
+    { path: "web.projectId", label: "Web — projectId" },
+    { path: "web.appId", label: "Web — appId" },
+    { path: "web.messagingSenderId", label: "Web — messagingSenderId" },
+    { path: "vapid_key", label: "VAPID anahtarı" },
+  ],
+  "app.stores": [
+    { path: "badges_enabled", label: "Mağaza rozetleri gösterilsin", type: "bool" },
+    { path: "play_url", label: "Google Play adresi", hint: "https://play.google.com/store/apps/details?id=…" },
+    { path: "ios_url", label: "App Store adresi", hint: "https://apps.apple.com/tr/app/…" },
+    { path: "show_on_paths", label: "Hangi sayfalarda görünsün", type: "list", hint: "virgülle ayır: /, /lig" },
+  ],
+};
+
+function mobileGet(obj: any, path: string): any {
+  return path.split(".").reduce((o: any, k) => (o === null || o === undefined ? undefined : o[k]), obj);
+}
+
+function mobileSet(obj: any, path: string, value: any): any {
+  const parts = path.split(".");
+  const head = parts[0];
+  const base = obj && typeof obj === "object" && !Array.isArray(obj) ? obj : {};
+  return { ...base, [head]: parts.length > 1 ? mobileSet(base[head], parts.slice(1).join("."), value) : value };
+}
+
+function Mobile() {
+  const [rows, setRows] = useState<AppSettingRow[]>([]);
+  const [listText, setListText] = useState<Record<string, string>>({});
+  const [saved, setSaved] = useState<string | null>(null);
+  const [msg, setMsg] = useState("");
+
+  function load() {
+    fetch(apiUrl("/api/admin/app-settings"), { headers: authHeaders() })
+      .then((r) => r.json())
+      .then((d) => {
+        const list: AppSettingRow[] = d.settings || [];
+        setRows(list);
+        const texts: Record<string, string> = {};
+        for (const r of list) {
+          for (const f of MOBILE_FIELDS[r.key] || []) {
+            if (f.type !== "list") continue;
+            const v = mobileGet(r.value, f.path);
+            texts[`${r.key}:${f.path}`] = Array.isArray(v) ? v.join(", ") : "";
+          }
+        }
+        setListText(texts);
+      })
+      .catch(() => setMsg("Ayarlar yüklenemedi."));
+  }
+  useEffect(() => { load(); }, []);
+
+  function patch(key: string, path: string, value: any) {
+    setRows((rs) => rs.map((r) => (r.key === key ? { ...r, value: mobileSet(r.value, path, value) } : r)));
+  }
+
+  async function save(row: AppSettingRow) {
+    let value = row.value && typeof row.value === "object" ? { ...row.value } : {};
+    for (const f of MOBILE_FIELDS[row.key] || []) {
+      if (f.type !== "list") continue;
+      const raw = listText[`${row.key}:${f.path}`] ?? "";
+      value = mobileSet(value, f.path, raw.split(",").map((s) => s.trim()).filter(Boolean));
+    }
+    const res = await fetch(apiUrl(`/api/admin/app-settings/${row.key}`), {
+      method: "PUT", headers: authHeaders(), body: JSON.stringify({ value }),
+    }).catch(() => null);
+    if (!res || !res.ok) { setMsg("Kaydedilemedi."); return; }
+    setMsg("");
+    setSaved(row.key); setTimeout(() => setSaved(null), 1500);
+    load();
+  }
+
+  return (
+    <div style={{ display: "grid", gap: 16 }}>
+      <div style={{ background: "var(--bg-panel)", borderRadius: 12, padding: 14, fontSize: 13, color: "var(--text-dim)", lineHeight: 1.7 }}>
+        Mobil uygulama ve reklam yapılandırması burada tutulur. Kaydettiğin değerler
+        <b> /api/app-config</b> ucundan (web / android / ios) okunur; değişiklik en geç
+        60 saniye içinde yayılır.<br />
+        • Alanları boş bırakırsan o özellik kapalı kalır — yanlışlıkla reklam çıkmaz.<br />
+        • AdMob&apos;da <b>Test modu</b> açıkken gerçek reklam gösterilmez.
+      </div>
+      {msg && <p style={{ fontSize: 13, color: "var(--accent-hot)", margin: 0 }}>{msg}</p>}
+
+      {rows.map((row) => (
+        <div key={row.key} style={{ background: "var(--bg-panel)", borderRadius: 12, padding: 14, display: "grid", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-strong)" }}>{row.label}</div>
+            <span className="brand-mono" style={{ fontSize: 12, color: "var(--text-dim)" }}>{row.key}</span>
+            {!row.is_public && (
+              <span style={{ fontSize: 11, color: "var(--text-dim)", border: "1px solid var(--border-soft)", borderRadius: 6, padding: "1px 6px" }}>
+                gizli
+              </span>
+            )}
+          </div>
+
+          {(MOBILE_FIELDS[row.key] || []).map((f) => {
+            const val = mobileGet(row.value, f.path);
+            if (f.type === "bool") {
+              return (
+                <label key={f.path} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--text-strong)", cursor: "pointer" }}>
+                  <input type="checkbox" checked={val === true}
+                    onChange={(e) => patch(row.key, f.path, e.target.checked)}
+                    style={{ width: 16, height: 16, accentColor: "var(--accent)" }} />
+                  {f.label}
+                </label>
+              );
+            }
+            const isList = f.type === "list";
+            const text = isList ? (listText[`${row.key}:${f.path}`] ?? "") : (typeof val === "string" ? val : "");
+            return (
+              <div key={f.path} style={{ display: "grid", gap: 4 }}>
+                <span style={{ fontSize: 12, color: "var(--text-dim)" }}>{f.label}</span>
+                <input
+                  value={text}
+                  placeholder={f.hint || ""}
+                  onChange={(e) => {
+                    if (isList) setListText((t) => ({ ...t, [`${row.key}:${f.path}`]: e.target.value }));
+                    else patch(row.key, f.path, e.target.value);
+                  }}
+                  style={seoInput}
+                />
+              </div>
+            );
+          })}
+
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ flex: 1, fontSize: 12, color: "var(--text-dim)" }}>
+              {row.updated_at ? `Son güncelleme: ${new Date(row.updated_at).toLocaleString("tr-TR")}` : ""}
+            </span>
+            <button onClick={() => save(row)} style={{
+              padding: "6px 14px", borderRadius: 8, border: "none",
+              background: saved === row.key ? "var(--tile-correct)" : "var(--accent)",
+              color: saved === row.key ? "#fff" : "#1a1330", fontWeight: 700, fontSize: 13, cursor: "pointer",
+            }}>
+              {saved === row.key ? "✓" : "Kaydet"}
+            </button>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

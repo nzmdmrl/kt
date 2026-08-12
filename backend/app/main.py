@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
 from app.core.database import init_models
-from app.api.routes import health, words, room, match, auth, matchmaking, league, profile, daily, admin, sounds, notifications, home, account, presence, challenge, solo, arena, friends, music, seo
+from app.api.routes import health, words, room, match, auth, matchmaking, league, profile, daily, admin, sounds, notifications, home, account, presence, challenge, solo, arena, friends, music, seo, app_settings
 
 settings = get_settings()
 
@@ -68,6 +68,7 @@ app.include_router(arena.router, prefix="/api")  # WebSocket: /api/ws/arena
 app.include_router(friends.router, prefix="/api")
 app.include_router(music.router, prefix="/api")
 app.include_router(seo.router, prefix="/api")  # sayfa SEO (baslik/aciklama/og gorsel)
+app.include_router(app_settings.router, prefix="/api")  # mobil & reklam ayarlari (app_settings)
 
 
 @app.on_event("startup")
@@ -97,6 +98,15 @@ async def on_startup():
                 print(f"[startup] link ALTER atlandı: {_e}")
     except Exception as e:
         print(f"[startup] link garantileme hatası: {e}")
+
+    # app_settings tablosunu (mobil & reklam ayarları) düz SQL ile garantile + seed et.
+    # ORM modeli yok; CREATE TABLE IF NOT EXISTS + eksik anahtar ekleme (idempotent).
+    try:
+        from app.api.routes.app_settings import ensure_app_settings_table
+        added = await ensure_app_settings_table()
+        print(f"[startup] app_settings garantilendi ({added} yeni anahtar).")
+    except Exception as e:
+        print(f"[startup] app_settings garantileme hatası: {e}")
 
     # Unvanları seed et (yoksa) ve cache'e yükle.
     try:
