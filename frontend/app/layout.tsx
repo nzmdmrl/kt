@@ -9,6 +9,7 @@ import DesktopChrome from "@/components/DesktopChrome";
 import NightBackground from "@/components/NightBackground";
 import { SITE_URL } from "@/lib/site";
 import { SITE_NAME, absoluteImage, fetchSeo, fetchSeoAll } from "@/lib/seo";
+import { fetchAppearance } from "@/lib/appearance";
 
 // SEO verisi 1 dakikada bir tazelenir — admin panelinden yapılan başlık/açıklama/
 // görsel değişikliği kısa sürede yayına yansır. (Next "stale-while-revalidate"
@@ -62,9 +63,13 @@ export const viewport: Viewport = {
   maximumScale: 1, // WebView'de istenmeyen zoom'u engelle
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Arka plan ayarı sunucuda okunur ve <html data-sky> olarak basılır — gökyüzü
+  // zemini CSS'ten geldiği için sayfa yenilemede beyaz flaş olmaz (globals.css).
+  const sky = await fetchAppearance();
+
   return (
-    <html lang="tr">
+    <html lang="tr" data-sky={sky.enabled ? sky.theme : undefined}>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
@@ -80,7 +85,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
-        <NightBackground />
+        <NightBackground enabled={sky.enabled} theme={sky.theme} />
         {/* useSearchParams kullandığı için Suspense şart — yoksa tüm sayfalar CSR'a düşer */}
         <Suspense fallback={null}>
           <Analytics />

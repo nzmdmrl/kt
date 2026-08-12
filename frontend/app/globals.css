@@ -85,11 +85,31 @@ body {
   flex-direction: column;
 }
 
-/* Gece arka plan animasyonu aktifken body opak zeminini kaldır (animasyon görünsün) */
-html[data-nightbg] body,
-html[data-nightbg] {
-  background: transparent !important;
+/* ---------------------------------------------------------------------------
+   Gökyüzü zemini (arka plan animasyonu açıkken)
+
+   <html data-sky="night|aurora|nebula|snow"> SUNUCUDAN gelir (lib/appearance.ts),
+   gradyan da burada CSS'te durur. Böylece sayfa yenilendiğinde daha İLK boyamada
+   doğru zemin var — JS/ağ beklenmiyor, beyaz flaş veya renk sıçraması olmuyor.
+   NightBackground yalnızca üstteki katmanı (yıldız/bulut/güneş) çizer.
+--------------------------------------------------------------------------- */
+html[data-sky="night"]  { --sky-bg: radial-gradient(ellipse at 50% -10%, #1a1640 0%, #0b0a1e 55%, #060512 100%); }
+html[data-sky="aurora"] { --sky-bg: radial-gradient(ellipse at 30% -10%, #10324a 0%, #0a1e2e 45%, #061018 100%); }
+html[data-sky="nebula"] { --sky-bg: radial-gradient(ellipse at 60% -10%, #3a1650 0%, #1e0e33 50%, #0c0618 100%); }
+html[data-sky="snow"]   { --sky-bg: radial-gradient(ellipse at 50% -10%, #1c2740 0%, #12203a 50%, #0a1424 100%); }
+
+/* Gündüz temasında hangi gece teması seçili olursa olsun mavi gökyüzü */
+html[data-theme="light"][data-sky] {
+  --sky-bg: linear-gradient(180deg, #7fc4f5 0%, #aed9f7 45%, #dceffb 100%);
 }
+
+html[data-sky],
+html[data-sky] body {
+  background: var(--sky-bg) !important;
+}
+
+/* Yıldız/bulut katmanı zemin üstüne yumuşak gelsin (ani belirme olmasın) */
+@keyframes skyFadeIn { from { opacity: 0; } to { opacity: 1; } }
 
 a { color: inherit; text-decoration: none; }
 

@@ -2,22 +2,28 @@
 
 import { useState, useEffect } from "react";
 import { apiUrl } from "@/lib/api";
+import type { HomeBoardsData } from "@/lib/homeData";
 
 // Ana sayfa alt bölümleri: son 10 maç + bugünün lig ilk 10'u.
-export default function HomeBoards() {
-  const [matches, setMatches] = useState<any[]>([]);
-  const [top, setTop] = useState<any[]>([]);
-  const [loaded, setLoaded] = useState(false);
+// İlk içerik sunucudan gelir (initial) — bölüm sayfa açılır açılmaz yerinde durur,
+// sonradan düşüp sayfayı aşağı kaydırmaz. Açılışta bir kez tazelenir (veri canlı).
+export default function HomeBoards({ initial }: { initial?: HomeBoardsData }) {
+  const [matches, setMatches] = useState<any[]>(initial?.matches || []);
+  const [top, setTop] = useState<any[]>(initial?.top || []);
+  const [loaded, setLoaded] = useState(!!initial);
 
   useEffect(() => {
+    let alive = true;
     Promise.all([
-      fetch(apiUrl("/api/home/recent-matches")).then((r) => r.json()).catch(() => ({ matches: [] })),
-      fetch(apiUrl("/api/home/daily-top")).then((r) => r.json()).catch(() => ({ top: [] })),
+      fetch(apiUrl("/api/home/recent-matches")).then((r) => r.json()).catch(() => null),
+      fetch(apiUrl("/api/home/daily-top")).then((r) => r.json()).catch(() => null),
     ]).then(([m, d]) => {
-      setMatches(m.matches || []);
-      setTop(d.top || []);
+      if (!alive) return;
+      if (m) setMatches(m.matches || []);
+      if (d) setTop(d.top || []);
       setLoaded(true);
     });
+    return () => { alive = false; };
   }, []);
 
   if (!loaded) return null;

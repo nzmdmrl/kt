@@ -1,35 +1,23 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { apiUrl } from "@/lib/api";
 import { effectiveTheme } from "@/lib/theme";
 
-// Tüm ekranların arkasında sabit (fixed) gökyüzü animasyonu.
-// GECE modu: seçili tema (night/aurora/nebula/snow) — parlayan yıldızlar + ağır bulutlar.
-// GÜNDÜZ modu: mavi gökyüzü + güneş + beyaz bulutlar (yıldız yok).
-// Admin panelden açılıp kapatılır, gece teması seçilebilir.
-export default function NightBackground() {
-  const [enabled, setEnabled] = useState(false);
-  const [theme, setTheme] = useState("night");
-  const [isDay, setIsDay] = useState(() => {
-    if (typeof document === "undefined") return false;
-    return document.documentElement.getAttribute("data-theme") === "light";
-  });
+// Tüm ekranların arkasında sabit (fixed) gökyüzü KATMANI.
+// GECE modu: parlayan yıldızlar + ağır bulutlar (tema: night/aurora/nebula/snow).
+// GÜNDÜZ modu: güneş + beyaz bulutlar (yıldız yok).
+//
+// ÖNEMLİ: Zemin gradyanı artık BURADA DEĞİL, globals.css'te (<html data-sky="...">).
+// Ayar sunucuda okunup HTML'e basıldığı için sayfa yenilenirken beyaz flaş olmuyor;
+// bu bileşen yalnızca üstteki hareketli katmanı çizer.
+export default function NightBackground({ enabled, theme }: { enabled: boolean; theme: string }) {
+  // Katman yalnızca tarayıcıda çizilir: gündüz/gece ayrımı localStorage'daki temaya
+  // bağlı olduğu için sunucuda doğru katmanı bilemeyiz (hydration uyuşmazlığı olur).
+  // Zemin zaten CSS'ten geldiğinden katmanın bir kare geç gelmesi göze çarpmaz.
+  const [mounted, setMounted] = useState(false);
+  const [isDay, setIsDay] = useState(false);
 
-  useEffect(() => {
-    let alive = true;
-    fetch(apiUrl("/api/home/appearance"))
-      .then((r) => r.json())
-      .then((d) => {
-        if (!alive) return;
-        setEnabled(!!d.night_bg_enabled);
-        setTheme(d.night_bg_theme || "night");
-        if (d.night_bg_enabled) document.documentElement.setAttribute("data-nightbg", "1");
-        else document.documentElement.removeAttribute("data-nightbg");
-      })
-      .catch(() => {});
-    return () => { alive = false; };
-  }, []);
+  useEffect(() => { setMounted(true); }, []);
 
   // Gündüz/gece modunu izle (data-theme değişimini dinle).
   useEffect(() => {
@@ -49,13 +37,14 @@ export default function NightBackground() {
     dur: 2.5 + Math.random() * 3,
   })), []);
 
-  if (!enabled) return null;
+  if (!enabled || !mounted) return null;
 
-  const themes: Record<string, { bg: string; star: string; cloud: string }> = {
-    night:  { bg: "radial-gradient(ellipse at 50% -10%, #1a1640 0%, #0b0a1e 55%, #060512 100%)", star: "#ffffff", cloud: "rgba(120,110,180,.10)" },
-    aurora: { bg: "radial-gradient(ellipse at 30% -10%, #10324a 0%, #0a1e2e 45%, #061018 100%)", star: "#dff6ff", cloud: "rgba(60,200,170,.10)" },
-    nebula: { bg: "radial-gradient(ellipse at 60% -10%, #3a1650 0%, #1e0e33 50%, #0c0618 100%)", star: "#ffe6ff", cloud: "rgba(200,90,200,.10)" },
-    snow:   { bg: "radial-gradient(ellipse at 50% -10%, #1c2740 0%, #12203a 50%, #0a1424 100%)", star: "#eaf2ff", cloud: "rgba(180,200,240,.12)" },
+  // Zemin rengi CSS'te (globals.css → html[data-sky]); burada sadece katman renkleri.
+  const themes: Record<string, { star: string; cloud: string }> = {
+    night:  { star: "#ffffff", cloud: "rgba(120,110,180,.10)" },
+    aurora: { star: "#dff6ff", cloud: "rgba(60,200,170,.10)" },
+    nebula: { star: "#ffe6ff", cloud: "rgba(200,90,200,.10)" },
+    snow:   { star: "#eaf2ff", cloud: "rgba(180,200,240,.12)" },
   };
   const t = themes[theme] || themes.night;
 
@@ -64,7 +53,7 @@ export default function NightBackground() {
     return (
       <div aria-hidden style={{
         position: "fixed", inset: 0, zIndex: -1, overflow: "hidden", pointerEvents: "none",
-        background: "linear-gradient(180deg, #7fc4f5 0%, #aed9f7 45%, #dceffb 100%)",
+        animation: "skyFadeIn .5s ease both",
       }}>
         {/* Güneş (sağ üstte, hafif parıldar) */}
         <div style={{
@@ -93,8 +82,8 @@ export default function NightBackground() {
   // ---- GECE MODU: seçili tema ----
   return (
     <div aria-hidden style={{
-      position: "fixed", inset: 0, zIndex: -1, overflow: "hidden",
-      background: t.bg, pointerEvents: "none",
+      position: "fixed", inset: 0, zIndex: -1, overflow: "hidden", pointerEvents: "none",
+      animation: "skyFadeIn .5s ease both",
     }}>
       {/* Ağır hareket eden bulutlar */}
       <div style={{ position: "absolute", inset: 0 }}>

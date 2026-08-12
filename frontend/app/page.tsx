@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/seo";
 import HomeModes from "@/components/HomeModes";
 import HomeBoards from "@/components/HomeBoards";
+import { fetchHomeBoards } from "@/lib/homeData";
 import HomeMusic from "@/components/HomeMusic";
 import TopBar from "@/components/TopBar";
 import Footer from "@/components/Footer";
@@ -14,14 +15,19 @@ export async function generateMetadata(): Promise<Metadata> {
   return pageMetadata("home", { absoluteTitle: true });
 }
 
-export default function Home() {
+// Alt tablolar (bugünün ligi + son maçlar) sunucuda çekilir; 30 sn'de bir tazelenir.
+export const revalidate = 30;
+
+export default async function Home() {
+  const boards = await fetchHomeBoards();
+
   return (
     <main style={{ flex: 1, width: "100%" }}>
       {/* MOBİL */}
       <div className="home-mobile">
         <HomeModes />
         <div style={{ maxWidth: 520, margin: "0 auto", padding: "0 16px 40px" }}>
-          <HomeBoards />
+          <HomeBoards initial={boards} />
         </div>
       </div>
 
@@ -30,7 +36,7 @@ export default function Home() {
         <TopBar />
         <HomeModes />
         <div style={{ maxWidth: 760, margin: "0 auto", padding: "0 18px 40px" }}>
-          <HomeBoards />
+          <HomeBoards initial={boards} />
         </div>
         <Footer />
       </div>
