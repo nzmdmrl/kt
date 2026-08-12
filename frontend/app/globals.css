@@ -103,9 +103,17 @@ html[data-theme="light"][data-sky] {
   --sky-bg: linear-gradient(180deg, #7fc4f5 0%, #aed9f7 45%, #dceffb 100%);
 }
 
-html[data-sky],
-html[data-sky] body {
+/* Zemin YALNIZCA <html>'e verilir (tarayıcı bunu canvas'a taşır) ve body
+   saydam bırakılır. Sebep: NightBackground katmanı z-index:-1 ile çizilir;
+   body'nin opak arka planı olursa katman ONUN ALTINDA kalır ve yıldız/bulut
+   görünmez. Zemin html'de durduğu için ilk boyamada renk yine doğru — beyaz
+   flaş da geri gelmez. */
+html[data-sky] {
   background: var(--sky-bg) !important;
+  background-attachment: fixed !important; /* uzun sayfada gradyan gerinmesin */
+}
+html[data-sky] body {
+  background: none !important;
 }
 
 /* Yıldız/bulut katmanı zemin üstüne yumuşak gelsin (ani belirme olmasın) */
