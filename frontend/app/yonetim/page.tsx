@@ -21,6 +21,7 @@ const TABS = [
   { key: "music", label: "🎵 Müzik" },
   { key: "seo", label: "🔍 SEO" },
   { key: "mobile", label: "📱 Mobil & Reklam" },
+  { key: "notiftypes", label: "🔔 Bildirim Türleri" },
 ];
 
 export default function AdminPage() {
@@ -56,6 +57,7 @@ export default function AdminPage() {
       {tab === "music" && <MusicPools />}
       {tab === "seo" && <Seo />}
       {tab === "mobile" && <Mobile />}
+      {tab === "notiftypes" && <NotificationTypes />}
     </Wrap>
   );
 }
@@ -1052,5 +1054,123 @@ function Mobile() {
         </div>
       ))}
     </div>
+  );
+}
+
+function NotificationTypes() {
+  type NT = {
+    code: string; group_code: string; label: string; description: string;
+    default_enabled: boolean; user_editable: boolean;
+    allow_push: boolean; allow_web: boolean; allow_native: boolean;
+    is_active: boolean; sort_order: number; route_template: string; channel_id: string;
+  };
+  type G = { code: string; label: string; sort_order: number };
+  const [types, setTypes] = useState<NT[]>([]);
+  const [groups, setGroups] = useState<G[]>([]);
+  const [saved, setSaved] = useState<string | null>(null);
+
+  function load() {
+    fetch(apiUrl("/api/admin/notification-types"), { headers: authHeaders() })
+      .then((r) => r.json())
+      .then((d) => { setTypes(d.types || []); setGroups(d.groups || []); })
+      .catch(() => {});
+  }
+  useEffect(() => { load(); }, []);
+
+  function updateLocal(code: string, patch: Partial<NT>) {
+    setTypes((ts) => ts.map((t) => t.code === code ? { ...t, ...patch } : t));
+  }
+
+  async function saveType(t: NT) {
+    await fetch(apiUrl(`/api/admin/notification-types/${t.code}`), {
+      method: "PUT", headers: authHeaders(),
+      body: JSON.stringify({
+        label: t.label, description: t.description,
+        default_enabled: t.default_enabled, user_editable: t.user_editable,
+        allow_push: t.allow_push, allow_web: t.allow_web, allow_native: t.allow_native,
+        is_active: t.is_active, sort_order: Number(t.sort_order) || 100,
+      }),
+    }).catch(() => {});
+    setSaved(t.code); setTimeout(() => setSaved(null), 1500);
+    load();
+  }
+
+  return (
+    <div style={{ display: "grid", gap: 24 }}>
+      <div>
+        <h3 style={{ fontSize: 16, marginBottom: 4 }}>🔔 Bildirim Türleri</h3>
+        <p style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 4, lineHeight: 1.5 }}>
+          Bu katalog yalnızca <strong>push</strong> bildirimlerini yönetir — uygulama içi bildirim
+          satırları ayarlardan bağımsız olarak her zaman oluşur.
+        </p>
+        <p style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 14, lineHeight: 1.5 }}>
+          <strong>Varsayılan</strong>: kullanıcı dokunmadıysa geçerli olan değer.
+          <strong> Kullanıcı değiştirebilir</strong>: kapalıysa ayar sayfasında kilitli görünür.
+          <strong> Aktif</strong>: kapalıysa tür kullanıcı ayar sayfasında hiç görünmez
+          (henüz üretilmeyen, planlanan türler için).
+        </p>
+      </div>
+
+      {groups.map((g) => {
+        const rows = types.filter((t) => t.group_code === g.code);
+        if (!rows.length) return null;
+        return (
+          <div key={g.code}>
+            <div style={{
+              fontSize: 13, fontWeight: 700, color: "var(--text-soft)", marginBottom: 8,
+              textTransform: "uppercase", letterSpacing: "0.05em",
+            }}>{g.label}</div>
+            <div style={{ display: "grid", gap: 8 }}>
+              {rows.map((t) => (
+                <div key={t.code} style={{
+                  padding: "10px 12px", background: "var(--bg-panel)", borderRadius: 10,
+                  display: "grid", gap: 8, opacity: t.is_active ? 1 : 0.65,
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                    <code style={{ fontSize: 11, color: "var(--text-dim)", minWidth: 130 }}>{t.code}</code>
+                    <input value={t.label} onChange={(e) => updateLocal(t.code, { label: e.target.value })}
+                      style={{ flex: "1 1 160px", minWidth: 120, padding: "6px 10px", borderRadius: 8, border: "1px solid var(--border-soft)", background: "var(--bg-elevated)", color: "var(--text-strong)", fontWeight: 600 }} />
+                    <input type="number" value={t.sort_order} onChange={(e) => updateLocal(t.code, { sort_order: Number(e.target.value) })}
+                      title="Sıra"
+                      style={{ width: 64, padding: "6px 8px", borderRadius: 8, textAlign: "center", border: "1px solid var(--border-soft)", background: "var(--bg-elevated)", color: "var(--accent)", fontFamily: "var(--font-display)" }} />
+                    <button onClick={() => saveType(t)} style={{
+                      padding: "6px 12px", borderRadius: 8, border: "none",
+                      background: saved === t.code ? "var(--tile-correct)" : "var(--accent)",
+                      color: saved === t.code ? "#fff" : "#1a1330", fontWeight: 700, fontSize: 13, cursor: "pointer",
+                    }}>{saved === t.code ? "✓" : "Kaydet"}</button>
+                  </div>
+
+                  <input value={t.description} placeholder="Açıklama (kullanıcıya gösterilir)"
+                    onChange={(e) => updateLocal(t.code, { description: e.target.value })}
+                    style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid var(--border-soft)", background: "var(--bg-elevated)", color: "var(--text-soft)", fontSize: 13 }} />
+
+                  <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: 13 }}>
+                    <Check label="Varsayılan açık" on={t.default_enabled} onChange={(v) => updateLocal(t.code, { default_enabled: v })} />
+                    <Check label="Kullanıcı değiştirebilir" on={t.user_editable} onChange={(v) => updateLocal(t.code, { user_editable: v })} />
+                    <Check label="Aktif" on={t.is_active} onChange={(v) => updateLocal(t.code, { is_active: v })} />
+                    <Check label="Push" on={t.allow_push} onChange={(v) => updateLocal(t.code, { allow_push: v })} />
+                    <Check label="Web" on={t.allow_web} onChange={(v) => updateLocal(t.code, { allow_web: v })} />
+                    <Check label="Native" on={t.allow_native} onChange={(v) => updateLocal(t.code, { allow_native: v })} />
+                  </div>
+
+                  {t.route_template && (
+                    <div style={{ fontSize: 11, color: "var(--text-dim)" }}>Bağlantı: <code>{t.route_template}</code></div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function Check({ label, on, onChange }: { label: string; on: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label style={{ display: "flex", alignItems: "center", gap: 5, cursor: "pointer", color: "var(--text-soft)" }}>
+      <input type="checkbox" checked={on} onChange={(e) => onChange(e.target.checked)} style={{ cursor: "pointer" }} />
+      {label}
+    </label>
   );
 }

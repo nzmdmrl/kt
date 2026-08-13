@@ -95,6 +95,7 @@ const FALLBACK: Record<string, { title: string; description: string; path: strin
   },
   history: { title: "Maç Geçmişim", description: "Oynadığın maçların sonuçları ve kazandığın puanlar.", path: "/gecmis", indexable: false },
   notifications: { title: "Bildirimler", description: "Arkadaşlık istekleri, yeni unvanlar ve arena ödüllerin.", path: "/bildirimler", indexable: false },
+  notification_settings: { title: "Bildirim Ayarları", description: "Hangi bildirimler için push almak istediğini seç, sessiz saatleri ayarla.", path: "/ayarlar/bildirimler", indexable: false },
   menu: { title: "Menü", description: "Ayarlar, profil, lig ve diğer bölümlere hızlı erişim.", path: "/menu", indexable: false },
   privacy: {
     title: "Gizlilik Politikası ve KVKK Aydınlatma Metni",

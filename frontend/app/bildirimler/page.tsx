@@ -37,7 +37,14 @@ export default function BildirimlerPage() {
 
   return (
     <Wrap>
-      <h1 className="brand-mono" style={{ fontSize: 26, marginBottom: 20 }}>🔔 Bildirimler</h1>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+        <h1 className="brand-mono" style={{ fontSize: 26, margin: 0, flex: 1 }}>🔔 Bildirimler</h1>
+        <a href="/ayarlar/bildirimler" title="Bildirim ayarları" style={{
+          padding: "7px 12px", borderRadius: 9, background: "var(--bg-panel)",
+          border: "1px solid var(--border-soft)", color: "var(--text-soft)",
+          fontSize: 13, fontWeight: 600, textDecoration: "none", flexShrink: 0,
+        }}>⚙️ Ayarlar</a>
+      </div>
 
       {/* Gelen arkadaşlık istekleri (aksiyon gerektiren) */}
       {requests.length > 0 && (

@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
 from app.core.database import init_models
-from app.api.routes import health, words, room, match, auth, matchmaking, league, profile, daily, admin, sounds, notifications, home, account, presence, challenge, solo, arena, friends, music, seo, app_settings
+from app.api.routes import health, words, room, match, auth, matchmaking, league, profile, daily, admin, sounds, notifications, home, account, presence, challenge, solo, arena, friends, music, seo, app_settings, notification_prefs
 
 settings = get_settings()
 
@@ -69,6 +69,7 @@ app.include_router(friends.router, prefix="/api")
 app.include_router(music.router, prefix="/api")
 app.include_router(seo.router, prefix="/api")  # sayfa SEO (baslik/aciklama/og gorsel)
 app.include_router(app_settings.router, prefix="/api")  # mobil & reklam ayarlari (app_settings)
+app.include_router(notification_prefs.router, prefix="/api")  # bildirim turu katalogu + push tercihleri
 
 
 @app.on_event("startup")
@@ -107,6 +108,15 @@ async def on_startup():
         print(f"[startup] app_settings garantilendi ({added} yeni anahtar).")
     except Exception as e:
         print(f"[startup] app_settings garantileme hatası: {e}")
+
+    # Bildirim türü kataloğu + push tercih tabloları (düz SQL, ORM modeli yok).
+    # Seed idempotent: ON CONFLICT DO NOTHING.
+    try:
+        from app.api.routes.notification_prefs import ensure_notification_tables
+        added = await ensure_notification_tables()
+        print(f"[startup] bildirim türü kataloğu garantilendi ({added} yeni satır).")
+    except Exception as e:
+        print(f"[startup] bildirim kataloğu garantileme hatası: {e}")
 
     # Unvanları seed et (yoksa) ve cache'e yükle.
     try:

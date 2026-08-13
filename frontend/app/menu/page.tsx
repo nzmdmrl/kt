@@ -36,6 +36,16 @@ export default function MenuPage() {
       <div style={{ display: "grid", gap: 10, marginBottom: 28 }}>
         <ToggleRow icon={dark ? "🌙" : "☀️"} label={dark ? "Gece modu" : "Gündüz modu"} on={dark} onClick={toggleTheme} />
         <ToggleRow icon="🔊" label="Ses" on={sound} onClick={toggleSound} />
+        {user && (
+          <button onClick={() => router.push("/ayarlar/bildirimler")} style={{ ...rowStyle, cursor: "pointer", width: "100%", textAlign: "left" }}>
+            <span style={{
+              fontSize: 22, width: 40, height: 40, flexShrink: 0, borderRadius: 11,
+              background: "var(--bg-elevated)", display: "grid", placeItems: "center",
+            }}>🔔</span>
+            <span style={{ flex: 1, fontWeight: 600, fontSize: 16, color: "var(--text-strong)" }}>Bildirim ayarları</span>
+            <span style={{ color: "var(--text-dim)", fontSize: 18 }}>›</span>
+          </button>
+        )}
       </div>
 
       {/* Hesap & bilgi butonları */}

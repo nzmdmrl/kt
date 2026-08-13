@@ -193,6 +193,16 @@ SEO_PAGES: list[dict] = [
         "keywords": "",
     },
     {
+        "key": "notification_settings",
+        "path": "/ayarlar/bildirimler",
+        "label": "Bildirim Ayarları (/ayarlar/bildirimler)",
+        "indexable": False,
+        "priority": 0.2,
+        "title": "Bildirim Ayarları",
+        "description": "Hangi bildirimler için push almak istediğini seç, sessiz saatleri ayarla.",
+        "keywords": "",
+    },
+    {
         "key": "menu",
         "path": "/menu",
         "label": "Menü (/menu)",
