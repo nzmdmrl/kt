@@ -5,7 +5,30 @@ import { apiUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import Logo from "@/components/Logo";
 
-type Notif = { id: number; title: string; body: string; read: boolean; created_at: string; link?: string; icon?: string };
+type Notif = { id: number; kind?: string; title: string; body: string; read: boolean; created_at: string; link?: string; icon?: string };
+
+// Bildirim türüne göre "→" eylem etiketi.
+// Anahtarlar backend'de gerçekten yazılan kind değerleridir (Notification(kind=...)).
+// DİKKAT: lig ödülleri tek bir "award" kind'ı ile yazılıyor (league_scheduler.py);
+// günlük/aylık/yıllık ayrımı yalnızca bildirim türü kataloğunda var. Kod ileride
+// üçe bölünürse diye o kodlar da eşlendi.
+const ACTION_LABELS: Record<string, string> = {
+  system_announcement: "Duyuruya git →",
+  arena_invite: "Arenaya git →",
+  room_invite: "Odaya git →",
+  friend_request: "İsteklere git →",
+  friend_accept: "Profile git →",
+  friend_reject: "Profile git →",
+  arena_medal: "Profile git →",
+  title_up: "Profile git →",
+  award: "Lige git →",
+  award_daily: "Lige git →",
+  award_monthly: "Lige git →",
+  award_yearly: "Lige git →",
+};
+
+// Eşlenmemiş yeni bir tür yanlış yönlendirme yazmasın diye nötr yedek.
+const ACTION_FALLBACK = "Görüntüle →";
 type FriendReq = { id: number; username: string; display_name: string; avatar_url: string | null };
 
 export default function BildirimlerPage() {
@@ -80,7 +103,7 @@ export default function BildirimlerPage() {
               <>
                 <div style={{ fontWeight: 600, color: "var(--text-strong)", fontSize: 14 }}>{n.icon} {n.title}</div>
                 {n.body && <div style={{ color: "var(--text-soft)", fontSize: 13, marginTop: 2 }}>{n.body}</div>}
-                {clickable && <div style={{ color: "var(--accent)", fontSize: 12, marginTop: 4, fontWeight: 600 }}>{n.link!.startsWith("/profil") ? "Profile git →" : "Arenaya git →"}</div>}
+                {clickable && <div style={{ color: "var(--accent)", fontSize: 12, marginTop: 4, fontWeight: 600 }}>{ACTION_LABELS[n.kind || ""] || ACTION_FALLBACK}</div>}
               </>
             );
             const cardStyle: React.CSSProperties = {
