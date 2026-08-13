@@ -110,3 +110,40 @@ bir adres harici tarayıcıda açılır.
 
 Backend, uygulamadan gelen istekleri `KelimeApp/1.0 (android|ios)` user-agent
 son ekiyle ayırt edebilir (`android.appendUserAgent` / `ios.appendUserAgent`).
+
+---
+
+## AdMob uygulama kimliği (build-time — panelden yönetilemez)
+
+AdMob **uygulama kimliği** (app id) native manifest'e gömülür; uygulama açılışında
+Google Play Services SDK'sı onu manifest'ten okur. Panelden/ayarlardan gelen bir
+değer olamaz, çünkü SDK bu değeri uygulama daha ağ isteği yapmadan, süreç başlarken
+ister. Eksikse uygulama **açılışta çöker**:
+`Missing application ID. AdMob publishers should follow the instructions…`
+(hata kaynağı: `MobileAdsInitProvider`).
+
+Bu yüzden kimlik iki dosyada, elle tutulur:
+
+| Dosya | Satır |
+|---|---|
+| `android/app/src/main/res/values/strings.xml` | `<string name="admob_app_id">ca-app-pub-7879889419651461~2548256765</string>` |
+| `android/app/src/main/AndroidManifest.xml` | `<application>` içinde `<meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="@string/admob_app_id"/>` |
+
+Değiştirmek için bu iki dosyayı düzenle, sonra **yeni bir sürüm derleyip Play
+Store'a yükle** — canlıdaki uygulamalar etkilenmez.
+
+> Bu iki dosya `npx cap sync` tarafından **üretilmez**, elle bakılan kaynak
+> dosyalardır; sync üzerine yazmaz. (Yukarıdaki "üretilmiş dosyaları elle düzenleme"
+> uyarısı `assets/public/`, `capacitor.config.json` gibi çıktı dosyaları içindir.)
+
+**Reklam birimi kimlikleri (banner / interstitial) ise panelden yönetilir.** Onlar
+uygulama açıldıktan sonra API'den okunur: `/yonetim` → ⚙️ Ayarlar → **AdMob (mobil
+uygulama)** (`ads.admob` anahtarı, `backend/app/api/routes/app_settings.py`). Yani
+banner/geçiş birimini değiştirmek için yeni sürüm gerekmez; sadece app id için gerekir.
+
+Not: aynı panelde bir **"Android — uygulama kimliği"** alanı da görünüyor, ama
+manifest'i etkilemez — app id yalnızca yukarıdaki `strings.xml`'den gelir. Panel
+alanını doldurursan da orayı referans/kayıt amaçlı tutmuş olursun.
+
+iOS eklendiğinde karşılığı `Info.plist` içindeki `GADApplicationIdentifier`
+anahtarıdır; o da aynı şekilde build-time'dır.

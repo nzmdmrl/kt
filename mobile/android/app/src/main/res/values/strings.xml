@@ -4,4 +4,5 @@
     <string name="title_activity_main">Kelime Tahmin</string>
     <string name="package_name">com.kelimetahmin.app</string>
     <string name="custom_url_scheme">com.kelimetahmin.app</string>
+    <string name="admob_app_id">ca-app-pub-7879889419651461~2548256765</string>
 </resources>
