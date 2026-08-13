@@ -157,7 +157,7 @@ export default function ArenaGame({ onExit, customCode }: { onExit: () => void; 
 
   const leftToastEl = leftToast ? (
     <div style={{
-      position: "fixed", top: 16, left: "50%", transform: "translateX(-50%)",
+      position: "fixed", top: "calc(16px + var(--kt-safe-top))", left: "50%", transform: "translateX(-50%)",
       zIndex: 500, background: "var(--bg-panel)", border: "1px solid var(--accent-hot)",
       color: "var(--text-strong)", padding: "12px 20px", borderRadius: 12,
       boxShadow: "0 6px 24px rgba(0,0,0,.35)", fontWeight: 600, fontSize: 14,

@@ -1,4 +1,9 @@
 :root {
+  /* Güvenli alan (iPhone çentik/home indicator, Android gesture bar).
+     Masaüstünde ve safe-area olmayan cihazlarda 0px döner — görünüm değişmez. */
+  --kt-safe-top: env(safe-area-inset-top, 0px);
+  --kt-safe-bottom: env(safe-area-inset-bottom, 0px);
+
   /* Arena paleti — derin gece zemini + amber enerji + grid renkleri */
   --bg-deep: #0e0b1e;          /* en derin zemin */
   --bg-panel: #171331;         /* panel/kart zemini */
@@ -217,6 +222,9 @@ a { color: inherit; text-decoration: none; }
 @media (min-width: 721px) {
   .kt-bottom-nav { display: none !important; }
 }
+
+/* Native reklam bandı açıkken içeriğin altına bant + güvenli alan kadar boşluk */
+.has-native-banner { padding-bottom: calc(60px + var(--kt-safe-bottom)); }
 
 /* Çerez bandı: mobilde alt navigasyonun (76px) üstünde dursun */
 @media (max-width: 720px) {
@@ -450,7 +458,7 @@ a { color: inherit; text-decoration: none; }
    hemen solunda (profil/skor kartının yanında) durur, kenarda kaybolmaz. */
 .match-back {
   position: fixed;
-  top: 8px;
+  top: calc(8px + var(--kt-safe-top)); /* çentik/durum çubuğunun altında kalmasın */
   left: 8px;
   z-index: 40;
 }

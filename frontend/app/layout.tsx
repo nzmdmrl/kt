@@ -61,6 +61,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1, // WebView'de istenmeyen zoom'u engelle
+  viewportFit: "cover", // env(safe-area-inset-*) ancak bununla 0'dan farklı döner
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

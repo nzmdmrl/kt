@@ -70,15 +70,17 @@ export default function BottomNav() {
 
   return (
     <>
-      {/* Alt bar yüksekliği kadar boşluk (içerik gizlenmesin) */}
-      <div className="kt-bottom-nav" style={{ height: 76 }} />
+      {/* Alt bar yüksekliği kadar boşluk (içerik gizlenmesin) — bar güvenli alan
+          kadar büyüdüğü için boşluk da aynı miktarda büyür */}
+      <div className="kt-bottom-nav" style={{ height: "calc(76px + var(--kt-safe-bottom))" }} />
       <nav className="kt-bottom-nav" style={{
         position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50,
         display: "flex", justifyContent: "space-around", alignItems: "flex-end",
         background: "var(--bg-panel)",
         borderTop: "1px solid var(--border-soft)",
         borderTopLeftRadius: 22, borderTopRightRadius: 22,
-        padding: "10px 6px 12px", maxWidth: 560, margin: "0 auto",
+        // Alt boşluk home indicator / gesture bar kadar artar (masaüstünde 0px)
+        padding: "10px 6px calc(12px + var(--kt-safe-bottom))", maxWidth: 560, margin: "0 auto",
         boxShadow: "0 -6px 24px rgba(0,0,0,.22)",
       }}>
         {ITEMS.map((item) => {
