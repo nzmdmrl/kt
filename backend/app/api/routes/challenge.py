@@ -71,7 +71,7 @@ async def send_challenge(to_user_id: int, user: User = Depends(get_current_user)
     n_title = "Maç teklifi"
     n_body = f"{challenger} seni 1v1 düelloya çağırıyor."
     notif = Notification(
-        user_id=to_user_id, kind="challenge_offer",
+        user_id=to_user_id, kind="challenge_offer", type_code="challenge_offer",
         title=n_title, body=n_body, icon="⚔️", link=CHALLENGE_ROUTE,
     )
     db.add(notif)

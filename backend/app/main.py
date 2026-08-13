@@ -95,7 +95,8 @@ async def on_startup():
         async with engine.begin() as conn:
             try:
                 await conn.execute(_text("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS link VARCHAR(128) DEFAULT ''"))
-                print("[startup] notifications.link garantilendi.")
+                await conn.execute(_text("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS type_code VARCHAR(48) DEFAULT ''"))
+                print("[startup] notifications.link + type_code garantilendi.")
             except Exception as _e:
                 # SQLite gibi IF NOT EXISTS desteklemeyen dialektler için sessiz geç.
                 print(f"[startup] link ALTER atlandı: {_e}")
@@ -143,6 +144,15 @@ async def on_startup():
         print("[startup] maç teklifi tablosu garantilendi.")
     except Exception as e:
         print(f"[startup] maç teklifi tablosu garantileme hatası: {e}")
+
+    # Bir kez çalışan veri düzeltmeleri (katalog UPDATE'leri + geriye dönük
+    # doldurmalar). Tablolar/sütunlar hazır olduktan SONRA çalışmalı.
+    try:
+        from app.core.migrations import apply_data_migrations
+        n = await apply_data_migrations()
+        print(f"[startup] veri migration'ları kontrol edildi ({n} yeni uygulandı).")
+    except Exception as e:
+        print(f"[startup] veri migration hatası: {e}")
 
     # Unvanları seed et (yoksa) ve cache'e yükle.
     try:

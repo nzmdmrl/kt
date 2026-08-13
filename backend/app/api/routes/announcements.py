@@ -406,7 +406,7 @@ async def _send_announcement_notifications(ann_id: int, title: str, slug: str, s
                 # Mevcut bildirim çağrı yerleriyle aynı kalıp (db.add(Notification(...))).
                 for uid in batch:
                     db.add(Notification(
-                        user_id=uid, kind=NOTIFY_KIND,
+                        user_id=uid, kind=NOTIFY_KIND, type_code=NOTIFY_KIND,
                         title=notif_title,
                         body=notif_body,
                         icon=NOTIFY_ICON,

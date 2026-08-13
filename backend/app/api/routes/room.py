@@ -65,7 +65,7 @@ async def invite_to_room(data: RoomInviteIn, user=Depends(get_current_user), db=
         if not f:
             continue
         db.add(Notification(
-            user_id=fid, kind="room_invite",
+            user_id=fid, kind="room_invite", type_code="room_invite",
             title=n_title,
             body=n_body,
             icon="🎮",

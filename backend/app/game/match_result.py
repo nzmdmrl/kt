@@ -116,9 +116,10 @@ async def apply_match_result(
                 from app.models.notification import Notification
                 n_title = "Yeni unvan kazandın!"
                 n_body = f"{title_after_info['title_icon']} {title_after_info['title']} unvanına yükseldin."
-                n_link = f"/profil/{user.username}" if user.username else "/profil/me"
+                # username boşsa /profil/me 404 verirdi (backend username='me' arar).
+                n_link = f"/profil/{user.username}" if user.username else "/bildirimler"
                 db.add(Notification(
-                    user_id=user_id, kind="title_up",
+                    user_id=user_id, kind="title_up", type_code="title_up",
                     title=n_title,
                     body=n_body,
                     icon=title_after_info["title_icon"],

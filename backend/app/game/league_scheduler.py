@@ -112,10 +112,12 @@ async def award_period(db: AsyncSession, period_type: str, period_key: str) -> i
         n_body = f"{period_label} liginde {award_title(period_type, rank)} oldun. Tebrikler!"
         db.add(Notification(
             user_id=entry["user_id"],
-            kind="award",
+            kind="award",                        # eski alan — DEĞİŞMEDİ
+            type_code=push_type or "",           # award_daily / _monthly / _yearly
             title=n_title,
             body=n_body,
             icon=icon,
+            link=LEAGUE_ROUTE,                   # push ile AYNI rota
         ))
         if push_type:
             pending_push.append((entry["user_id"], push_type, n_title, n_body))

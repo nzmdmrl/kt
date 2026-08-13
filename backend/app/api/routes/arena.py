@@ -178,7 +178,7 @@ async def invite_to_custom_arena(data: InviteIn, user=Depends(get_current_user),
         if not f:
             continue
         db.add(Notification(
-            user_id=fid, kind="arena_invite",
+            user_id=fid, kind="arena_invite", type_code="arena_invite",
             title=n_title,
             body=n_body,
             icon="🎪",
@@ -441,13 +441,14 @@ async def _persist_results(match: ArenaMatch) -> dict:
                 elif rank == 3:
                     user.arena_third = (user.arena_third or 0) + 1
                     medal_notif = ("🥉", "Arena 3.sü!", "Arenada 3. oldun, bronz madalya kazandın!")
-                prof_link = f"/profil/{user.username}" if user.username else "/profil/me"
+                # username boşsa /profil/me 404 verirdi (backend username='me' arar).
+                prof_link = f"/profil/{user.username}" if user.username else "/bildirimler"
                 if medal_notif:
                     try:
                         from app.models.notification import Notification as _Notif
                         _icon, _title, _body = medal_notif
                         db.add(_Notif(
-                            user_id=uid, kind="arena_medal",
+                            user_id=uid, kind="arena_medal", type_code="arena_medal",
                             title=_title, body=_body, icon=_icon,
                             link=prof_link,
                         ))
@@ -479,7 +480,7 @@ async def _persist_results(match: ArenaMatch) -> dict:
                         _t_title = "Yeni unvan kazandın!"
                         _t_body = f"{title_after['title_icon']} {title_after['title']} unvanına yükseldin."
                         db.add(Notification(
-                            user_id=uid, kind="title_up",
+                            user_id=uid, kind="title_up", type_code="title_up",
                             title=_t_title,
                             body=_t_body,
                             icon=title_after["title_icon"],

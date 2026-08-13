@@ -117,6 +117,10 @@ DEFAULT_GROUPS: list[tuple[str, str, int]] = [
 # code, group, label, description, default_enabled, channel_id, route_template,
 # sort_order, is_active
 #
+# DİKKAT: Bu liste yalnızca SIFIRDAN kurulan veritabanını etkiler (seed
+# ON CONFLICT DO NOTHING). Canlıdaki bir satırı düzeltmek için buradaki değeri
+# değiştirmek YETMEZ — app/core/migrations.py içine bir UPDATE migration'ı ekle.
+#
 # AKTİF türler bugün gerçekten üretilen bildirimlere karşılık gelir
 # (docs/mobile/00-discovery.md §1.1 — 9 çağrı). route_template yalnızca bugün
 # zaten link üretilen türlerde dolu.

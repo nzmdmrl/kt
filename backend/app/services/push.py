@@ -120,18 +120,19 @@ def in_quiet_hours(start: int | None, end: int | None, now: datetime | None = No
 
 async def _log(
     db: AsyncSession, user_id: int | None, type_code: str, route: str,
-    platform: str, status: str, error: str | None = None,
+    platform: str, status: str, error: str | None = None, is_test: bool = False,
 ) -> None:
     try:
         await db.execute(
             text(
-                "INSERT INTO push_log (user_id, type_code, route, platform, status, error) "
-                "VALUES (:user_id, :type_code, :route, :platform, :status, :error)"
+                "INSERT INTO push_log (user_id, type_code, route, platform, status, error, is_test) "
+                "VALUES (:user_id, :type_code, :route, :platform, :status, :error, :is_test)"
             ),
             {
                 "user_id": user_id, "type_code": type_code[:48], "route": route,
                 "platform": platform[:10], "status": status[:16],
                 "error": (error or None) if error is None else error[:500],
+                "is_test": bool(is_test),
             },
         )
         await db.commit()
@@ -210,7 +211,7 @@ def _build_message(
 async def _send_to_tokens(
     db: AsyncSession, user_id: int, type_code: str, title: str, body: str,
     route: str, tokens: list[dict[str, Any]], channel_id: str | None,
-    ctx: dict[str, Any] | None = None,
+    ctx: dict[str, Any] | None = None, is_test: bool = False,
 ) -> dict[str, Any]:
     """Asıl gönderim. Hata fırlatmaz."""
     if not tokens:
@@ -218,7 +219,7 @@ async def _send_to_tokens(
 
     app = _get_app()
     if app is None:
-        await _log(db, user_id, type_code, route, "-", "no_credentials")
+        await _log(db, user_id, type_code, route, "-", "no_credentials", is_test=is_test)
         return {"sent": 0, "failed": 0, "skipped": "no_credentials"}
 
     from firebase_admin import messaging
@@ -229,7 +230,8 @@ async def _send_to_tokens(
         # firebase-admin senkron çalışır — event loop'u bloklamasın.
         resp = await asyncio.to_thread(messaging.send_each_for_multicast, msg, app=app)
     except Exception as e:
-        await _log(db, user_id, type_code, route, "-", "send_error", f"{type(e).__name__}: {e}")
+        await _log(db, user_id, type_code, route, "-", "send_error", f"{type(e).__name__}: {e}",
+                   is_test=is_test)
         return {"sent": 0, "failed": len(tokens), "error": type(e).__name__}
 
     sent = failed = 0
@@ -238,7 +240,7 @@ async def _send_to_tokens(
     for tok, r in zip(tokens, resp.responses):
         if r.success:
             sent += 1
-            await _log(db, user_id, type_code, route, tok["platform"], "sent")
+            await _log(db, user_id, type_code, route, tok["platform"], "sent", is_test=is_test)
             continue
         failed += 1
         exc = r.exception
@@ -246,9 +248,11 @@ async def _send_to_tokens(
         errors.append(err)
         if exc is not None and _is_dead_token(exc):
             dead.append(tok["id"])
-            await _log(db, user_id, type_code, route, tok["platform"], "token_dead", err)
+            await _log(db, user_id, type_code, route, tok["platform"], "token_dead", err,
+                       is_test=is_test)
         else:
-            await _log(db, user_id, type_code, route, tok["platform"], "failed", err)
+            await _log(db, user_id, type_code, route, tok["platform"], "failed", err,
+                       is_test=is_test)
 
     await _deactivate(db, dead)
     return {"sent": sent, "failed": failed, "deactivated": len(dead), "errors": errors}
@@ -382,17 +386,27 @@ def send_to_user_bg(
         print(f"[push] arka plan görevi başlatılamadı ({type(e).__name__}: {e})")
 
 
+# Admin test gönderimi kendi tür kodunu kullanır. Eskiden 'system_announcement'
+# yazılıyordu ve gerçek duyuru istatistiğini kirletiyordu; push_log.is_test ile
+# birlikte artık testler tamamen ayrıştırılabilir.
+TEST_TYPE_CODE = "admin_test"
+
+
 async def send_test_to_user(
     db: AsyncSession, user_id: int, title: str, body: str, route: str = "/duyurular",
 ) -> dict[str, Any]:
-    """Admin test gönderimi — tercihleri ve sessiz saatleri ATLAR."""
+    """Admin test gönderimi — tercihleri ve sessiz saatleri ATLAR.
+
+    push_log satırları is_test=TRUE ve type_code='admin_test' ile yazılır;
+    gerçek gönderim sayımlarına karışmaz.
+    """
     try:
         tokens = await _active_tokens(db, user_id)
         if not tokens:
             return {"sent": 0, "failed": 0, "devices": 0, "skipped": "no_device"}
         out = await _send_to_tokens(
-            db, user_id, "system_announcement", title, body, route, tokens,
-            channel_id="system", ctx={"test": "1"},
+            db, user_id, TEST_TYPE_CODE, title, body, route, tokens,
+            channel_id="system", ctx={"test": "1"}, is_test=True,
         )
         out["devices"] = len(tokens)
         return out

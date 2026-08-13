@@ -70,9 +70,18 @@ CREATE TABLE IF NOT EXISTS push_log (
     platform VARCHAR(10),
     status VARCHAR(16),
     error TEXT,
+    is_test BOOLEAN NOT NULL DEFAULT {"FALSE" if _IS_PG else "0"},
     created_at {_TS} DEFAULT {_NOW}
 )
 """
+
+# Mevcut kurulumlarda push_log zaten vardı — eksik sütunu ekle.
+# (CREATE TABLE IF NOT EXISTS var olan tabloya sütun EKLEMEZ.)
+ALTER_PUSH_LOG_IS_TEST_SQL = (
+    "ALTER TABLE push_log ADD COLUMN IF NOT EXISTS is_test BOOLEAN NOT NULL DEFAULT FALSE"
+    if _IS_PG else
+    "ALTER TABLE push_log ADD COLUMN is_test BOOLEAN NOT NULL DEFAULT 0"
+)
 
 
 async def ensure_push_tables() -> None:
@@ -85,6 +94,14 @@ async def ensure_push_tables() -> None:
         except Exception as e:
             # Kısmi indeksi desteklemeyen dialekt olursa gönderim yine çalışır.
             print(f"[startup] device_tokens kısmi indeksi atlandı: {e}")
+
+    # Ayrı işlem: SQLite'ta sütun zaten varsa ALTER hata verir; aynı işlemin
+    # içinde olsaydı üstteki DDL'leri de geri alırdı.
+    try:
+        async with engine.begin() as conn:
+            await conn.execute(text(ALTER_PUSH_LOG_IS_TEST_SQL))
+    except Exception:
+        pass   # sütun zaten var (SQLite'ta "IF NOT EXISTS" yok) — zararsız
 
 
 # ---------------------------------------------------------------- cihaz uçları

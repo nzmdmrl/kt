@@ -27,6 +27,10 @@ class Notification(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     kind: Mapped[str] = mapped_column(String(24), default="award")
+    # notification_types.code karşılığı. kind ESKİ alandır ve olduğu gibi kalır;
+    # lig ödüllerinde kind='award' iken type_code dönem başına ayrışır
+    # (award_daily / award_monthly / award_yearly).
+    type_code: Mapped[str] = mapped_column(String(48), default="")
     title: Mapped[str] = mapped_column(String(128))
     body: Mapped[str] = mapped_column(Text, default="")
     icon: Mapped[str] = mapped_column(String(8), default="🔔")
@@ -38,6 +42,7 @@ class Notification(Base):
         return {
             "id": self.id,
             "kind": self.kind,
+            "type_code": getattr(self, "type_code", "") or "",
             "title": self.title,
             "body": self.body,
             "icon": self.icon,
