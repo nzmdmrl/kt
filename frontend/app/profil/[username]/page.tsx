@@ -5,6 +5,7 @@ import { getJSON, apiUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import ProfileEditModal from "@/components/ProfileEditModal";
 import PresenceBadge from "@/components/PresenceBadge";
+import { CHALLENGE_SENT_EVENT } from "@/components/ChallengeWatcher";
 import Logo from "@/components/Logo";
 
 type Badge = { code: string; name: string; desc: string; icon: string; tier: string; earned: boolean };
@@ -89,6 +90,9 @@ export default function ProfilePage({ params }: { params: { username: string } }
       if (!r.ok) { setChallengeErr(j.detail || "Teklif gönderilemedi"); return; }
       setChallengeSent(true);
       // Kabul edilince ChallengeWatcher (outgoing) beni maça yönlendirecek.
+      // Bu olay olmadan outgoing HİÇ yoklanmaz — yoklama yalnızca teklifi
+      // gönderen kullanıcıda, teklif sonuçlanana kadar çalışır.
+      window.dispatchEvent(new Event(CHALLENGE_SENT_EVENT));
     } catch {
       setChallengeErr("Bağlantı hatası");
     }

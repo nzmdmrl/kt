@@ -9,9 +9,27 @@ import { apiUrl } from "@/lib/api";
 //    (/api/challenge/incoming -> expires_in). TTL admin panelinden değişebilir
 //    (app.flags.challenge_ttl_seconds), popup da onunla birlikte değişir.
 // 2) Benim gönderdiğim teklif kabul edilince beni maç odasına yönlendirir.
+//    /challenge/outgoing YALNIZCA teklif gönderen kullanıcıda yoklanır
+//    (waitingAccept); teklif sonuçlanınca durur. Diğer herkes için o uç hiç
+//    çağrılmaz.
+// 3) Sekme görünmezken HİÇBİR yoklama yapılmaz (visibilitychange); sekme
+//    görünür olur olmaz anında bir kez yoklanır.
 
 // Backend expires_in/expires_at vermezse (eski sürüm) kullanılacak süre.
 const FALLBACK_SECONDS = 30;
+
+// Görünür sekmede yoklama aralığı.
+const POLL_MS = 3000;
+
+// "Teklif gönderdim" işareti: sayfa değişse/yenilense de gönderen kullanıcı
+// outgoing'i yoklamaya devam etsin diye localStorage'da tutulur.
+const SENT_KEY = "kt_challenge_sent_at";
+// Emniyet freni: normalde yoklama sunucunun verdiği sonuç durumunda (accepted/
+// declined/cancelled/expired ya da boş yanıt) durur. Ağ tamamen koparsa bu
+// süre sonunda yine de durur — sonsuza kadar yoklama yapılmaz.
+const OUTGOING_MAX_MS = 5 * 60 * 1000;
+// Teklif gönderen sayfanın (profil) haber verdiği olay.
+export const CHALLENGE_SENT_EVENT = "kt:challenge-sent";
 
 export default function ChallengeWatcher() {
   const [incoming, setIncoming] = useState<any>(null);
@@ -21,6 +39,13 @@ export default function ChallengeWatcher() {
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [waitingAccept, setWaitingAccept] = useState(false); // ben teklif gönderdim, bekliyorum
   const handledOutgoing = useRef(false);
+  // poll() tek bir zamanlayıcıya bağlı ve mount'ta bir kez kurulur; güncel
+  // değerleri state yerine ref'ten okur (yoksa her değişimde interval yeniden
+  // kurulur ve fazladan istek atılırdı).
+  const incomingRef = useRef<any>(null);
+  const waitingRef = useRef(false);
+  useEffect(() => { incomingRef.current = incoming; }, [incoming]);
+  useEffect(() => { waitingRef.current = waitingAccept; }, [waitingAccept]);
 
   function token() { return typeof window !== "undefined" ? localStorage.getItem("kt_token") : null; }
   function headers() { return { "Content-Type": "application/json", Authorization: `Bearer ${token()}` }; }
@@ -43,15 +68,50 @@ export default function ChallengeWatcher() {
     return typeof window !== "undefined" && window.location.pathname.startsWith("/oyna");
   }
 
-  // Gelen teklifleri ve giden teklif durumunu düzenli yokla.
+  // "Teklifimi bekliyorum" durumunu başlat/bitir.
+  function startWaiting() {
+    try { localStorage.setItem(SENT_KEY, String(Date.now())); } catch {}
+    waitingRef.current = true;
+    setWaitingAccept(true);
+  }
+  function stopWaiting() {
+    try { localStorage.removeItem(SENT_KEY); } catch {}
+    waitingRef.current = false;
+    setWaitingAccept(false);
+  }
+
+  // Teklif gönderildiğini profil sayfası olayla bildirir; sayfa yenilenirse
+  // localStorage işareti devralır.
+  useEffect(() => {
+    function onSent() { startWaiting(); }
+    window.addEventListener(CHALLENGE_SENT_EVENT, onSent);
+    try {
+      const ts = Number(localStorage.getItem(SENT_KEY) || 0);
+      if (ts && Date.now() - ts < OUTGOING_MAX_MS) {
+        waitingRef.current = true;
+        setWaitingAccept(true);
+      } else if (ts) {
+        localStorage.removeItem(SENT_KEY);
+      }
+    } catch {}
+    return () => window.removeEventListener(CHALLENGE_SENT_EVENT, onSent);
+  }, []);
+
+  // Gelen teklifleri ve (yalnızca gönderdiysem) giden teklif durumunu yokla.
   useEffect(() => {
     if (!token()) return;
     let alive = true;
 
+    // Sekme görünür mü? Zamanlayıcı zaten görünmezken duruyor; bu kontrol,
+    // yoklama sürerken sekme gizlenirse İKİNCİ isteğin de atılmamasını sağlar.
+    function visible() {
+      return typeof document === "undefined" || document.visibilityState === "visible";
+    }
+
     async function poll() {
-      if (!alive) return;
+      if (!alive || !visible()) return;
       // Gelen teklif (maç ekranında değilsem).
-      if (!onMatchPage() && !incoming) {
+      if (!onMatchPage() && !incomingRef.current) {
         try {
           const r = await fetch(apiUrl("/api/challenge/incoming"), { headers: headers() });
           const j = await r.json();
@@ -66,23 +126,51 @@ export default function ChallengeWatcher() {
           }
         } catch {}
       }
-      // Giden teklif durumu (kabul edildiyse yönlen) — maç sayfasında değilsem.
-      if (!onMatchPage()) {
+      // Giden teklif durumu: SADECE ben teklif gönderdiysem ve sonuçlanmadıysa.
+      if (!alive || !visible()) return;
+      if (!onMatchPage() && waitingRef.current) {
         try {
           const r = await fetch(apiUrl("/api/challenge/outgoing"), { headers: headers() });
           const j = await r.json();
-          if (alive && j.challenge && j.challenge.status === "accepted" && j.challenge.room_code && !handledOutgoing.current) {
-            handledOutgoing.current = true;
-            window.location.href = `/oyna?duel=${encodeURIComponent(j.challenge.room_code)}`;
+          if (!alive) return;
+          const ch = j.challenge;
+          if (ch && ch.status === "accepted" && ch.room_code) {
+            stopWaiting();
+            if (!handledOutgoing.current) {
+              handledOutgoing.current = true;
+              window.location.href = `/oyna?duel=${encodeURIComponent(ch.room_code)}`;
+            }
+          } else if (!ch || ch.status !== "pending") {
+            // declined / cancelled / expired ya da kayıt yok: yoklamayı bitir.
+            stopWaiting();
           }
         } catch {}
       }
     }
 
-    poll();
-    const iv = setInterval(poll, 3000);
-    return () => { alive = false; clearInterval(iv); };
-  }, [incoming]);
+    // Tek zamanlayıcı sahibi. Sekme görünmezken durur, görünür olunca ANINDA
+    // bir kez yoklar ve tekrar kurulur.
+    let iv: ReturnType<typeof setInterval> | null = null;
+    function start() {
+      if (iv || !alive) return;
+      poll();
+      iv = setInterval(poll, POLL_MS);
+    }
+    function stop() {
+      if (iv) { clearInterval(iv); iv = null; }
+    }
+    function onVisibility() {
+      if (document.visibilityState === "visible") start(); else stop();
+    }
+
+    if (document.visibilityState === "visible") start();
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      alive = false;
+      stop();
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, []);
 
   // Popup geri sayımı: kalan süre HER SEFERİNDE duvar saatinden hesaplanır.
   // Sayaç azaltmak yerine böyle yapılır; sekme arka plana alındığında tarayıcı
