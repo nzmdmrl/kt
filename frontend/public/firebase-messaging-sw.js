@@ -9,10 +9,25 @@
  * (Kayıt lib/webpush.ts içinde yapılır.)
  */
 
-/* Sürüm, npm'deki firebase paketiyle aynı tutulmalı (frontend/package.json). */
+/* Firebase compat dosyaları KENDİ SUNUCUMUZDAN yüklenir (public/vendor/...).
+ *
+ * Neden: gstatic.com'dan çekildiğinde reklam/izleyici engelleyiciler, antivirüs
+ * veya kurumsal DNS importScripts() isteğini kesiyor ve service worker kaydı
+ * "Operation has been aborted" ile tamamen başarısız oluyordu. Aynı origin'den
+ * servis edilince bu bağımlılık ortadan kalkıyor.
+ *
+ * ⚠️ FB_VERSION ile frontend/package.json'daki "firebase" sürümü BİRLİKTE
+ * güncellenmeli. Yükseltirken üç adım:
+ *   1) npm install firebase@<yeni-sürüm>
+ *   2) public/vendor/firebase/<yeni-sürüm>/ altına şu iki dosyayı indir:
+ *      firebase-app-compat.js ve firebase-messaging-compat.js
+ *      (https://www.gstatic.com/firebasejs/<yeni-sürüm>/... — node_modules/firebase/
+ *       içindeki aynı adlı dosyalarla birebir aynıdır, oradan da kopyalanabilir)
+ *   3) aşağıdaki FB_VERSION'ı güncelle ve eski sürüm klasörünü sil
+ */
 var FB_VERSION = "12.17.1";
-importScripts("https://www.gstatic.com/firebasejs/" + FB_VERSION + "/firebase-app-compat.js");
-importScripts("https://www.gstatic.com/firebasejs/" + FB_VERSION + "/firebase-messaging-compat.js");
+importScripts("/vendor/firebase/" + FB_VERSION + "/firebase-app-compat.js");
+importScripts("/vendor/firebase/" + FB_VERSION + "/firebase-messaging-compat.js");
 
 var params = new URL(self.location).searchParams;
 var projectId = params.get("projectId") || "";

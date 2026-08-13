@@ -20,6 +20,7 @@ export type WebPushStatus =
   | "ios-needs-pwa"  // iOS Safari: önce ana ekrana eklenmeli
   | "denied"         // kullanıcı/tarayıcı engelledi
   | "no-config"      // Firebase ayarları admin panelinde boş
+  | "sw-failed"      // service worker kaydı engellendi (engelleyici/antivirüs/gizli sekme)
   | "error";
 
 export type WebPushResult = { status: WebPushStatus; message?: string };
@@ -157,8 +158,21 @@ export async function enableWebPush(): Promise<WebPushResult> {
     const perm = await Notification.requestPermission();
     if (perm !== "granted") return { status: "denied" };
 
-    const reg = await navigator.serviceWorker.register(swUrl(cfg.web), { scope: "/" });
-    await navigator.serviceWorker.ready;
+    // Service worker kaydı — sessizce yutma: engelleyici/antivirüs yüzünden
+    // başarısız olursa kullanıcı nedenini görmeli, ayrıntı konsola düşmeli.
+    let reg: ServiceWorkerRegistration;
+    try {
+      reg = await navigator.serviceWorker.register(swUrl(cfg.web), { scope: "/" });
+      await navigator.serviceWorker.ready;
+    } catch (e: any) {
+      console.error("[webpush] Service worker kaydı başarısız:", e);
+      return {
+        status: "sw-failed",
+        message:
+          "Bildirim servisi başlatılamadı. Reklam engelleyici, antivirüs veya gizli sekme " +
+          "engelliyor olabilir; kapatıp tekrar dene. (Ayrıntı için tarayıcı konsolu)",
+      };
+    }
 
     // firebase SADECE burada, dinamik olarak yüklenir.
     const [{ initializeApp, getApps, getApp }, { getMessaging, getToken, onMessage }] =
@@ -196,6 +210,7 @@ export async function enableWebPush(): Promise<WebPushResult> {
 
     return { status: "ok" };
   } catch (e: any) {
+    console.error("[webpush] Bildirim açılamadı:", e);
     return { status: "error", message: e?.message || "Bilinmeyen hata" };
   }
 }

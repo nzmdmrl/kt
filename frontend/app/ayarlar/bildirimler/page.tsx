@@ -393,6 +393,11 @@ function BrowserPushRow({
       action: false,
     },
     "no-config": { icon: "⚙️", text: "Bildirim altyapısı hazır değil", hint: "Site yöneticisi Firebase ayarlarını henüz girmemiş.", action: false },
+    "sw-failed": {
+      icon: "⚠️", text: "Bildirim servisi başlatılamadı",
+      hint: "Reklam engelleyici, antivirüs veya gizli sekme engelliyor olabilir. Kapatıp tekrar dene.",
+      action: true,
+    },
     error: { icon: "🔔", text: "Bu tarayıcıda bildirim al", hint: "Maç davetleri ve duyurular için izin ver.", action: true },
   };
   const s = map[status || "error"] || map.error;
