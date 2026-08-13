@@ -34,6 +34,11 @@ type PushSettings = {
 
 const SAVE_DELAY = 600;
 
+// Sessiz saat varsayılanı — backend'deki DEFAULT_QUIET_START/END ile aynı olmalı
+// (backend/app/api/routes/notification_prefs.py).
+const DEFAULT_QUIET_START = 0;
+const DEFAULT_QUIET_END = 8;
+
 function token() {
   return typeof window !== "undefined" ? localStorage.getItem("kt_token") : null;
 }
@@ -131,6 +136,8 @@ export default function BildirimAyarlariPage() {
     );
 
   const master = settings?.push_master !== false;
+  // Sessiz saat "açık" = iki uç da dolu. Kapatınca ikisi birden NULL yazılır.
+  const quietOn = settings?.quiet_start != null && settings?.quiet_end != null;
 
   return (
     <Wrap>
@@ -152,28 +159,47 @@ export default function BildirimAyarlariPage() {
         onChange={(v) => patchSettings({ push_master: v })}
       />
 
-      {/* Sessiz saatler */}
+      {/* Sessiz saatler — kapatınca İKİ sütun da NULL olur */}
       <div style={{ ...cardStyle, marginTop: 10, opacity: master ? 1 : 0.5 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <span style={iconBox}>🌙</span>
-          <span style={{ fontWeight: 600, fontSize: 16, color: "var(--text-strong)" }}>Sessiz saatler</span>
-        </div>
-        <p style={{ color: "var(--text-dim)", fontSize: 13, margin: "0 0 12px 50px" }}>
-          Bu aralıkta push gönderilmez.
-        </p>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: 50, flexWrap: "wrap" }}>
-          <HourSelect
-            value={settings?.quiet_start ?? null}
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ display: "block", fontWeight: 600, fontSize: 15, color: "var(--text-strong)" }}>
+              Sessiz saatler
+            </span>
+            <span style={{ display: "block", color: "var(--text-dim)", fontSize: 12.5, marginTop: 3, lineHeight: 1.4 }}>
+              Bu aralıkta bildirim gönderilmez
+            </span>
+          </span>
+          <Switch
+            on={quietOn}
             disabled={!master}
-            onChange={(v) => patchSettings({ quiet_start: v })}
-          />
-          <span style={{ color: "var(--text-dim)", fontSize: 13 }}>→</span>
-          <HourSelect
-            value={settings?.quiet_end ?? null}
-            disabled={!master}
-            onChange={(v) => patchSettings({ quiet_end: v })}
+            onChange={(v) =>
+              patchSettings(
+                v
+                  ? { quiet_start: DEFAULT_QUIET_START, quiet_end: DEFAULT_QUIET_END }
+                  : { quiet_start: null, quiet_end: null }
+              )
+            }
           />
         </div>
+        {quietOn ? (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: 48, marginTop: 12, flexWrap: "wrap" }}>
+            <HourSelect
+              value={settings?.quiet_start ?? DEFAULT_QUIET_START}
+              disabled={!master}
+              onChange={(v) => patchSettings({ quiet_start: v })}
+            />
+            <span style={{ color: "var(--text-dim)", fontSize: 13 }}>→</span>
+            <HourSelect
+              value={settings?.quiet_end ?? DEFAULT_QUIET_END}
+              disabled={!master}
+              onChange={(v) => patchSettings({ quiet_end: v })}
+            />
+          </div>
+        ) : (
+          <div style={{ marginLeft: 48, marginTop: 8, color: "var(--text-dim)", fontSize: 13 }}>Kapalı</div>
+        )}
       </div>
 
       {/* Tür grupları */}
@@ -261,40 +287,70 @@ function ToggleRow({
           </span>
         )}
       </span>
-      <span style={{
-        width: 48, height: 28, borderRadius: 14, flexShrink: 0,
-        background: on ? "var(--accent)" : "var(--bg-elevated)",
-        border: on ? "none" : "1px solid var(--border-soft)",
-        position: "relative", transition: "background .2s",
-      }}>
-        <span style={{
-          position: "absolute", top: 2, left: on ? 22 : 2, width: 22, height: 22, borderRadius: "50%",
-          background: "#fff", transition: "left .2s", boxShadow: "0 1px 3px rgba(0,0,0,.3)",
-        }} />
-      </span>
+      <SwitchPill on={on} />
     </button>
   );
 }
 
+/** Anahtar görünümü (menü sayfasındaki ToggleRow ile aynı ölçüler). */
+function SwitchPill({ on }: { on: boolean }) {
+  return (
+    <span style={{
+      width: 48, height: 28, borderRadius: 14, flexShrink: 0,
+      background: on ? "var(--accent)" : "var(--bg-elevated)",
+      border: on ? "none" : "1px solid var(--border-soft)",
+      position: "relative", transition: "background .2s",
+    }}>
+      <span style={{
+        position: "absolute", top: 2, left: on ? 22 : 2, width: 22, height: 22, borderRadius: "50%",
+        background: "#fff", transition: "left .2s", boxShadow: "0 1px 3px rgba(0,0,0,.3)",
+      }} />
+    </span>
+  );
+}
+
+/** Tek başına tıklanabilir anahtar (sessiz saat kartı için). */
+function Switch({
+  on, onChange, disabled,
+}: {
+  on: boolean;
+  onChange: (v: boolean) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      onClick={() => { if (!disabled) onChange(!on); }}
+      disabled={disabled}
+      aria-label="Sessiz saatler"
+      style={{
+        background: "none", border: "none", padding: 0, flexShrink: 0,
+        cursor: disabled ? "default" : "pointer", lineHeight: 0,
+      }}
+    >
+      <SwitchPill on={on} />
+    </button>
+  );
+}
+
+/** Saat seçici. "Kapalı" durumu kartın anahtarıyla yönetilir (ikisini birden NULL yapar). */
 function HourSelect({
   value, onChange, disabled,
 }: {
-  value: number | null;
-  onChange: (v: number | null) => void;
+  value: number;
+  onChange: (v: number) => void;
   disabled?: boolean;
 }) {
   return (
     <select
-      value={value === null ? "" : String(value)}
+      value={String(value)}
       disabled={disabled}
-      onChange={(e) => onChange(e.target.value === "" ? null : Number(e.target.value))}
+      onChange={(e) => onChange(Number(e.target.value))}
       style={{
         padding: "8px 10px", borderRadius: 9, border: "1px solid var(--border-soft)",
         background: "var(--bg-elevated)", color: "var(--text-strong)",
         fontFamily: "var(--font-display)", fontSize: 14, cursor: disabled ? "default" : "pointer",
       }}
     >
-      <option value="">Kapalı</option>
       {Array.from({ length: 24 }, (_, h) => (
         <option key={h} value={h}>{String(h).padStart(2, "0")}:00</option>
       ))}

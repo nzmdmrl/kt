@@ -143,19 +143,20 @@ export default function ProfilePage({ params }: { params: { username: string } }
 
       {/* Üst kart — ana sayfadaki profil kartının aynısı (avatar kart dışında solda) */}
       <div className="hm-profile-wrap prof-card">
+        {/* Masaüstünde ayarlara tek giriş noktası: mobilde alt menü var, burada yok.
+            Dış sarmalayıcıya inline "display" VERİLMEZ — .kt-desktop-only'nin
+            gizle/göster kuralını ezerdi. */}
         {isMe && (
-          <button
-            onClick={() => setEditOpen(true)}
-            className="kt-desktop-only"
-            style={{
-              position: "absolute", top: 12, right: 12, zIndex: 2,
-              padding: "7px 14px", fontSize: 13, fontWeight: 600,
-              background: "var(--bg-elevated)", color: "var(--text-strong)",
-              border: "1px solid var(--border-soft)", borderRadius: 9, cursor: "pointer",
-            }}
-          >
-            ⚙️ Düzenle
-          </button>
+          <div className="kt-desktop-only" style={{ position: "absolute", top: 12, right: 12, zIndex: 2 }}>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={() => { window.location.href = "/menu"; }} style={profActionBtn}>
+                ⚙️ Ayarlar
+              </button>
+              <button onClick={() => setEditOpen(true)} style={profActionBtn}>
+                ⚙️ Düzenle
+              </button>
+            </div>
+          </div>
         )}
         {profile.avatar_url ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -418,6 +419,13 @@ function BadgeCard({ badge }: { badge: Badge }) {
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return <h2 className="brand-mono" style={{ fontSize: 16, color: "var(--text-soft)", marginBottom: 12 }}>{children}</h2>;
 }
+
+// Kart sağ üstündeki masaüstü butonları (Ayarlar / Düzenle) — ikisi de aynı görünüm.
+const profActionBtn: React.CSSProperties = {
+  padding: "7px 14px", fontSize: 13, fontWeight: 600,
+  background: "var(--bg-elevated)", color: "var(--text-strong)",
+  border: "1px solid var(--border-soft)", borderRadius: 9, cursor: "pointer",
+};
 
 const awardBox: React.CSSProperties = {
   display: "flex", alignItems: "center", gap: 8,

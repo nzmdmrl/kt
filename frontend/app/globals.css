@@ -411,9 +411,9 @@ a { color: inherit; text-decoration: none; }
 .prof-username { font-size: 13px; color: var(--text-dim); }
 /* Arkadaş sayısı — isim satırının sağına hizalı */
 .prof-friends { margin-left: auto; }
-/* Masaüstünde sağ üstteki ⚙️ Düzenle butonuyla çakışmasın */
+/* Masaüstünde sağ üstteki ⚙️ Ayarlar + ⚙️ Düzenle butonlarıyla çakışmasın */
 @media (min-width: 721px) {
-  .prof-has-edit { padding-right: 118px; }
+  .prof-has-edit { padding-right: 222px; }
 }
 .hm-chip {
   display: inline-flex; align-items: center; gap: 4px;

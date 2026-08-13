@@ -95,8 +95,8 @@ CREATE_USER_SETTINGS_SQL = f"""
 CREATE TABLE IF NOT EXISTS user_push_settings (
     user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     push_master BOOLEAN DEFAULT {_BOOL_T},
-    quiet_start SMALLINT,
-    quiet_end SMALLINT,
+    quiet_start SMALLINT DEFAULT 0,
+    quiet_end SMALLINT DEFAULT 8,
     delivery_mode VARCHAR(16) DEFAULT 'prefer_native',
     updated_at {_TS} DEFAULT {_NOW}
 )
@@ -188,6 +188,11 @@ DEFAULT_TYPES: list[tuple[str, str, str, str, bool, str, str, int, bool]] = [
 # varsayılan prefer_native = uygulama kuruluysa native, değilse web push.
 DELIVERY_MODES = ("prefer_native", "native_only", "web_only", "all")
 
+# Sessiz saat varsayılanı: yeni kullanıcıda AÇIK, 00:00–08:00.
+# Kullanıcı kapatırsa iki sütun da NULL yazılır (bkz. _settings_row).
+DEFAULT_QUIET_START = 0
+DEFAULT_QUIET_END = 8
+
 
 async def ensure_notification_tables() -> int:
     """Tabloları oluştur (yoksa) + katalog satırlarını seed et — idempotent."""
@@ -265,7 +270,12 @@ async def _groups(db: AsyncSession) -> list[dict[str, Any]]:
 
 
 async def _settings_row(db: AsyncSession, user_id: int) -> dict[str, Any]:
-    """Kullanıcının push ayarı — satır yoksa varsayılanlar döner (404 yok)."""
+    """Kullanıcının push ayarı — satır yoksa varsayılanlar döner (404 yok).
+
+    Sessiz saat YENİ KULLANICIDA AÇIK gelir: 00:00–08:00. Satır varsa ve
+    quiet_start/quiet_end NULL ise bu "kullanıcı sessiz saati kapattı" demektir —
+    o durumda None döner, varsayılana geri düşmez.
+    """
     res = await db.execute(
         text(
             "SELECT push_master, quiet_start, quiet_end, delivery_mode "
@@ -276,7 +286,8 @@ async def _settings_row(db: AsyncSession, user_id: int) -> dict[str, Any]:
     row = res.first()
     if row is None:
         return {
-            "push_master": True, "quiet_start": None, "quiet_end": None,
+            "push_master": True,
+            "quiet_start": DEFAULT_QUIET_START, "quiet_end": DEFAULT_QUIET_END,
             "delivery_mode": "prefer_native",
         }
     return {
