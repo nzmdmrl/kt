@@ -22,6 +22,7 @@ const TABS = [
   { key: "seo", label: "🔍 SEO" },
   { key: "mobile", label: "📱 Mobil & Reklam" },
   { key: "notiftypes", label: "🔔 Bildirim Türleri" },
+  { key: "announcements", label: "📢 Duyurular" },
 ];
 
 export default function AdminPage() {
@@ -58,6 +59,7 @@ export default function AdminPage() {
       {tab === "seo" && <Seo />}
       {tab === "mobile" && <Mobile />}
       {tab === "notiftypes" && <NotificationTypes />}
+      {tab === "announcements" && <Announcements />}
     </Wrap>
   );
 }
@@ -1172,5 +1174,183 @@ function Check({ label, on, onChange }: { label: string; on: boolean; onChange: 
       <input type="checkbox" checked={on} onChange={(e) => onChange(e.target.checked)} style={{ cursor: "pointer" }} />
       {label}
     </label>
+  );
+}
+
+function Announcements() {
+  type A = {
+    id: number; slug: string; title: string; summary: string; body: string;
+    is_published: boolean; published_at: string | null;
+    notify_sent_at: string | null; notify_recipient_count: number | null;
+    created_at: string | null; updated_at: string | null;
+  };
+  const [items, setItems] = useState<A[]>([]);
+  const [recipients, setRecipients] = useState(0);
+  const [editing, setEditing] = useState<A | null>(null);
+  const [form, setForm] = useState({ title: "", summary: "", body: "", is_published: false });
+  const [saved, setSaved] = useState<number | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  function load() {
+    fetch(apiUrl("/api/admin/announcements"), { headers: authHeaders() })
+      .then((r) => r.json())
+      .then((d) => { setItems(d.announcements || []); setRecipients(d.recipient_estimate || 0); })
+      .catch(() => {});
+  }
+  useEffect(() => { load(); }, []);
+
+  function startNew() {
+    setEditing(null);
+    setForm({ title: "", summary: "", body: "", is_published: false });
+  }
+  function startEdit(a: A) {
+    setEditing(a);
+    setForm({ title: a.title, summary: a.summary || "", body: a.body || "", is_published: a.is_published });
+  }
+
+  async function save() {
+    if (!form.title.trim()) return;
+    setBusy(true);
+    const url = editing ? `/api/admin/announcements/${editing.id}` : "/api/admin/announcements";
+    await fetch(apiUrl(url), {
+      method: editing ? "PUT" : "POST", headers: authHeaders(), body: JSON.stringify(form),
+    }).catch(() => {});
+    setBusy(false);
+    startNew();
+    load();
+  }
+
+  async function remove(a: A) {
+    if (!confirm(`"${a.title}" duyurusu silinsin mi? Bu işlem geri alınamaz.`)) return;
+    await fetch(apiUrl(`/api/admin/announcements/${a.id}`), { method: "DELETE", headers: authHeaders() }).catch(() => {});
+    if (editing?.id === a.id) startNew();
+    load();
+  }
+
+  async function notify(a: A) {
+    const ok = confirm(
+      `"${a.title}" duyurusu ${recipients} kullanıcıya bildirim olarak gönderilecek.\n\n` +
+      `Bu işlem SADECE BİR KEZ yapılabilir ve geri alınamaz. Devam edilsin mi?`
+    );
+    if (!ok) return;
+    setBusy(true);
+    const r = await fetch(apiUrl(`/api/admin/announcements/${a.id}/notify`), {
+      method: "POST", headers: authHeaders(),
+    }).catch(() => null);
+    setBusy(false);
+    if (r && r.ok) {
+      const d = await r.json().catch(() => ({}));
+      alert(`Gönderim başladı: ${d.recipient_count ?? recipients} kullanıcı.`);
+    } else {
+      const d = r ? await r.json().catch(() => ({})) : {};
+      alert(d?.detail || "Gönderilemedi.");
+    }
+    setSaved(a.id); setTimeout(() => setSaved(null), 1500);
+    load();
+  }
+
+  // Gönder butonunun durumu — neden kapalı olduğunu etikete yazıyoruz.
+  function notifyState(a: A): { label: string; disabled: boolean; title: string } {
+    if (a.notify_sent_at) {
+      const n = a.notify_recipient_count;
+      return {
+        label: `✓ Gönderildi${n != null ? ` (${n})` : ""}`,
+        disabled: true,
+        title: `Bildirim ${new Date(a.notify_sent_at).toLocaleString("tr-TR")} tarihinde gönderildi. Bir duyuru için yalnızca bir kez gönderilir.`,
+      };
+    }
+    if (!a.is_published) {
+      return { label: "🔒 Önce yayına al", disabled: true, title: "Bildirim göndermek için duyuru yayında olmalı." };
+    }
+    return { label: "🔔 Bildirim Gönder", disabled: false, title: `${recipients} kullanıcıya gönderilir.` };
+  }
+
+  return (
+    <div style={{ display: "grid", gap: 24 }}>
+      <div>
+        <h3 style={{ fontSize: 16, marginBottom: 4 }}>{editing ? "✏️ Duyuruyu Düzenle" : "➕ Yeni Duyuru"}</h3>
+        <p style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 12, lineHeight: 1.5 }}>
+          Gövde <strong>düz metin</strong>dir: satır sonları korunur, çıplak bağlantılar tıklanabilir olur.
+          HTML çalışmaz. Bağlantı adresi (slug) başlıktan üretilir.
+        </p>
+        <div style={{ display: "grid", gap: 8, background: "var(--bg-panel)", padding: 14, borderRadius: 12 }}>
+          <input value={form.title} placeholder="Başlık"
+            onChange={(e) => setForm({ ...form, title: e.target.value })}
+            style={{ padding: "9px 12px", borderRadius: 8, border: "1px solid var(--border-soft)", background: "var(--bg-elevated)", color: "var(--text-strong)", fontWeight: 600, fontSize: 15 }} />
+          <input value={form.summary} placeholder="Özet (liste ve bildirimde görünür, en fazla 300 karakter)"
+            onChange={(e) => setForm({ ...form, summary: e.target.value })}
+            style={{ padding: "9px 12px", borderRadius: 8, border: "1px solid var(--border-soft)", background: "var(--bg-elevated)", color: "var(--text-soft)", fontSize: 14 }} />
+          <textarea value={form.body} placeholder="Duyuru metni (düz metin)" rows={8}
+            onChange={(e) => setForm({ ...form, body: e.target.value })}
+            style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid var(--border-soft)", background: "var(--bg-elevated)", color: "var(--text-strong)", fontSize: 14, fontFamily: "var(--font-body)", lineHeight: 1.6, resize: "vertical" }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+            <Check label="Yayında" on={form.is_published} onChange={(v) => setForm({ ...form, is_published: v })} />
+            <span style={{ flex: 1 }} />
+            {editing && (
+              <button onClick={startNew} style={{ padding: "8px 14px", borderRadius: 8, border: "1px solid var(--border-soft)", background: "transparent", color: "var(--text-soft)", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
+                Vazgeç
+              </button>
+            )}
+            <button onClick={save} disabled={busy || !form.title.trim()} style={{
+              padding: "8px 18px", borderRadius: 8, border: "none",
+              background: "var(--accent)", color: "#1a1330", fontWeight: 700, fontSize: 13,
+              cursor: busy || !form.title.trim() ? "default" : "pointer",
+              opacity: busy || !form.title.trim() ? 0.5 : 1,
+            }}>{editing ? "Kaydet" : "Oluştur"}</button>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <h3 style={{ fontSize: 16, marginBottom: 4 }}>📢 Tüm Duyurular</h3>
+        <p style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 12 }}>
+          Bildirim gönderimi uygulama içi bildirim oluşturur (push değil) ve duyuru başına yalnızca bir kez yapılabilir.
+          Şu an <strong>{recipients}</strong> kullanıcı alıcı durumunda.
+        </p>
+        <div style={{ display: "grid", gap: 8 }}>
+          {items.length === 0 && (
+            <p style={{ color: "var(--text-dim)", fontSize: 13 }}>Henüz duyuru yok.</p>
+          )}
+          {items.map((a) => {
+            const ns = notifyState(a);
+            return (
+              <div key={a.id} style={{
+                padding: "10px 12px", background: "var(--bg-panel)", borderRadius: 10,
+                display: "grid", gap: 8, opacity: a.is_published ? 1 : 0.7,
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <span style={{
+                    fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 8,
+                    background: a.is_published ? "rgba(58,167,109,.18)" : "var(--bg-elevated)",
+                    color: a.is_published ? "var(--tile-correct)" : "var(--text-dim)",
+                  }}>{a.is_published ? "YAYINDA" : "TASLAK"}</span>
+                  <span style={{ flex: "1 1 160px", minWidth: 120, fontWeight: 600, color: "var(--text-strong)" }}>{a.title}</span>
+                  <span style={{ fontSize: 11, color: "var(--text-dim)" }}>/duyurular/{a.slug}</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <a href={`/duyurular/${a.slug}`} target="_blank" rel="noopener noreferrer"
+                    style={{ fontSize: 13, color: "var(--text-soft)", textDecoration: "none", padding: "6px 10px", borderRadius: 8, border: "1px solid var(--border-soft)" }}>
+                    👁️ Gör
+                  </a>
+                  <button onClick={() => startEdit(a)} style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid var(--border-soft)", background: "var(--bg-elevated)", color: "var(--text-strong)", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
+                    ✏️ Düzenle
+                  </button>
+                  <button onClick={() => notify(a)} disabled={ns.disabled || busy} title={ns.title} style={{
+                    padding: "6px 12px", borderRadius: 8,
+                    background: ns.disabled ? "var(--bg-elevated)" : (saved === a.id ? "var(--tile-correct)" : "var(--accent)"),
+                    color: ns.disabled ? "var(--text-dim)" : (saved === a.id ? "#fff" : "#1a1330"),
+                    fontWeight: 700, fontSize: 13,
+                    cursor: ns.disabled || busy ? "default" : "pointer",
+                    border: ns.disabled ? "1px solid var(--border-soft)" : "none",
+                  }}>{ns.label}</button>
+                  <span style={{ flex: 1 }} />
+                  <button onClick={() => remove(a)} title="Sil" style={{ padding: "6px 8px", borderRadius: 8, border: "none", background: "none", color: "var(--text-dim)", cursor: "pointer", fontSize: 15 }}>🗑️</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
   );
 }

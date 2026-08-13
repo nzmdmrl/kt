@@ -6,6 +6,7 @@ import { COMPANY } from "@/lib/legal";
 export default function Footer() {
   const links = [
     { href: "/nasil-oynanir", label: "Nasıl Oynanır" },
+    { href: "/duyurular", label: "Haberler" },
     { href: "/gizlilik", label: "Gizlilik & KVKK" },
     { href: "/kosullar", label: "Kullanım Koşulları" },
     { href: "/cerez", label: "Çerez Politikası" },

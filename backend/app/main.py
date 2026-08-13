@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
 from app.core.database import init_models
-from app.api.routes import health, words, room, match, auth, matchmaking, league, profile, daily, admin, sounds, notifications, home, account, presence, challenge, solo, arena, friends, music, seo, app_settings, notification_prefs
+from app.api.routes import health, words, room, match, auth, matchmaking, league, profile, daily, admin, sounds, notifications, home, account, presence, challenge, solo, arena, friends, music, seo, app_settings, notification_prefs, announcements
 
 settings = get_settings()
 
@@ -70,6 +70,7 @@ app.include_router(music.router, prefix="/api")
 app.include_router(seo.router, prefix="/api")  # sayfa SEO (baslik/aciklama/og gorsel)
 app.include_router(app_settings.router, prefix="/api")  # mobil & reklam ayarlari (app_settings)
 app.include_router(notification_prefs.router, prefix="/api")  # bildirim turu katalogu + push tercihleri
+app.include_router(announcements.router, prefix="/api")  # duyurular (public liste + admin CRUD/bildirim)
 
 
 @app.on_event("startup")
@@ -117,6 +118,14 @@ async def on_startup():
         print(f"[startup] bildirim türü kataloğu garantilendi ({added} yeni satır).")
     except Exception as e:
         print(f"[startup] bildirim kataloğu garantileme hatası: {e}")
+
+    # Duyurular tablosu (düz SQL, ORM modeli yok).
+    try:
+        from app.api.routes.announcements import ensure_announcements_table
+        await ensure_announcements_table()
+        print("[startup] duyurular tablosu garantilendi.")
+    except Exception as e:
+        print(f"[startup] duyurular tablosu garantileme hatası: {e}")
 
     # Unvanları seed et (yoksa) ve cache'e yükle.
     try:

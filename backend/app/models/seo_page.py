@@ -193,6 +193,16 @@ SEO_PAGES: list[dict] = [
         "keywords": "",
     },
     {
+        "key": "announcements",
+        "path": "/duyurular",
+        "label": "Duyurular (/duyurular)",
+        "indexable": True,
+        "priority": 0.5,
+        "title": "Duyurular — Kelime Tahmin Haberleri",
+        "description": "Kelime Tahmin'deki yenilikler, güncellemeler ve etkinlik duyuruları.",
+        "keywords": "kelime tahmin duyuru, kelime oyunu haberleri, güncellemeler",
+    },
+    {
         "key": "notification_settings",
         "path": "/ayarlar/bildirimler",
         "label": "Bildirim Ayarları (/ayarlar/bildirimler)",

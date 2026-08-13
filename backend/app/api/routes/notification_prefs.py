@@ -178,7 +178,7 @@ DEFAULT_TYPES: list[tuple[str, str, str, str, bool, str, str, int, bool]] = [
      False, "league", "", 40, False),
     ("system_announcement", "system", "Sistem duyuruları",
      "Yeni özellikler, bakım ve önemli duyurular.",
-     True, "system", "", 10, False),
+     True, "system", "/duyurular/{slug}", 10, True),
     ("daily_reminder", "system", "Günlük hatırlatma",
      "Günün kelimesini henüz çözmediysen günlük hatırlatma.",
      False, "system", "", 20, False),
@@ -234,6 +234,20 @@ async def ensure_notification_tables() -> int:
                 },
             )
             added += res.rowcount or 0
+
+        # Duyurular modülü geldi: system_announcement artık gerçekten üretiliyor.
+        # Seed ON CONFLICT DO NOTHING olduğu için ÖNCEDEN eklenmiş satırı burada
+        # bir kez düzeltiyoruz. Koşul route_template'in boş olması: düzeltme
+        # uygulandıktan sonra bir daha çalışmaz, böylece adminin sonradan yaptığı
+        # is_active değişikliği her açılışta ezilmez.
+        await db.execute(
+            text(
+                "UPDATE notification_types "
+                f"SET is_active = {_BOOL_T}, route_template = '/duyurular/{{slug}}' "
+                "WHERE code = 'system_announcement' "
+                "AND (route_template IS NULL OR route_template = '')"
+            )
+        )
         await db.commit()
     return added
 
