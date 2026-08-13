@@ -1111,6 +1111,7 @@ function NotificationTypes() {
           <strong> Aktif</strong>: kapalıysa tür kullanıcı ayar sayfasında hiç görünmez
           (henüz üretilmeyen, planlanan türler için).
         </p>
+        <PushTestButton />
       </div>
 
       {groups.map((g) => {
@@ -1351,6 +1352,53 @@ function Announcements() {
           })}
         </div>
       </div>
+    </div>
+  );
+}
+
+/** Push kurulumunu doğrulamak için: yalnızca ADMİNİN KENDİ cihazlarına test gönderir. */
+function PushTestButton() {
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<string | null>(null);
+  const [ok, setOk] = useState(false);
+
+  async function send() {
+    setBusy(true); setResult(null);
+    try {
+      const r = await fetch(apiUrl("/api/admin/push/test"), { method: "POST", headers: authHeaders() });
+      const d = await r.json();
+      if (!d.configured) {
+        setOk(false);
+        setResult("Firebase anahtarı yok: sunucuda FIREBASE_CREDENTIALS_B64 tanımlı değil veya geçersiz.");
+      } else if (d.skipped === "no_device") {
+        setOk(false);
+        setResult("Kayıtlı cihazın yok. Önce /ayarlar/bildirimler sayfasından bu tarayıcıya izin ver.");
+      } else if (d.sent > 0) {
+        setOk(true);
+        setResult(`Gönderildi: ${d.sent}/${d.devices} cihaz.` + (d.failed ? ` ${d.failed} başarısız.` : ""));
+      } else {
+        setOk(false);
+        setResult(`Gönderilemedi (${d.devices} cihaz denendi). ${(d.errors || []).join(" | ") || d.error || ""}`);
+      }
+    } catch {
+      setOk(false); setResult("İstek başarısız.");
+    }
+    setBusy(false);
+  }
+
+  return (
+    <div style={{ marginTop: 6, marginBottom: 8 }}>
+      <button onClick={send} disabled={busy} style={{
+        padding: "9px 16px", borderRadius: 9, border: "none",
+        background: "var(--accent)", color: "#1a1330", fontWeight: 700, fontSize: 13,
+        cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1,
+      }}>{busy ? "Gönderiliyor…" : "🔔 Kendime test bildirimi gönder"}</button>
+      {result && (
+        <div style={{
+          marginTop: 8, fontSize: 13, lineHeight: 1.45,
+          color: ok ? "var(--tile-correct)" : "var(--accent-hot)",
+        }}>{result}</div>
+      )}
     </div>
   );
 }

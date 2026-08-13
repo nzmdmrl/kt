@@ -21,4 +21,14 @@ def health():
         "word_pools": pool_stats(),
         "google_oauth_configured": settings.google_oauth_configured,
         "recaptcha_configured": settings.recaptcha_configured,
+        # FIREBASE_CREDENTIALS_B64 geçerli mi? (push gönderimi bunsuz sessizce atlanır)
+        "push_configured": _push_configured(),
     }
+
+
+def _push_configured() -> bool:
+    try:
+        from app.services.push import push_configured
+        return push_configured()
+    except Exception:
+        return False

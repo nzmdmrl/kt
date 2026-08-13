@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
 from app.core.database import init_models
-from app.api.routes import health, words, room, match, auth, matchmaking, league, profile, daily, admin, sounds, notifications, home, account, presence, challenge, solo, arena, friends, music, seo, app_settings, notification_prefs, announcements
+from app.api.routes import health, words, room, match, auth, matchmaking, league, profile, daily, admin, sounds, notifications, home, account, presence, challenge, solo, arena, friends, music, seo, app_settings, notification_prefs, announcements, devices
 
 settings = get_settings()
 
@@ -71,6 +71,7 @@ app.include_router(seo.router, prefix="/api")  # sayfa SEO (baslik/aciklama/og g
 app.include_router(app_settings.router, prefix="/api")  # mobil & reklam ayarlari (app_settings)
 app.include_router(notification_prefs.router, prefix="/api")  # bildirim turu katalogu + push tercihleri
 app.include_router(announcements.router, prefix="/api")  # duyurular (public liste + admin CRUD/bildirim)
+app.include_router(devices.router, prefix="/api")  # push cihaz kayitlari + admin test gonderimi
 
 
 @app.on_event("startup")
@@ -126,6 +127,14 @@ async def on_startup():
         print("[startup] duyurular tablosu garantilendi.")
     except Exception as e:
         print(f"[startup] duyurular tablosu garantileme hatası: {e}")
+
+    # Push cihaz tabloları (device_tokens + push_log).
+    try:
+        from app.api.routes.devices import ensure_push_tables
+        await ensure_push_tables()
+        print("[startup] push cihaz tabloları garantilendi.")
+    except Exception as e:
+        print(f"[startup] push tabloları garantileme hatası: {e}")
 
     # Unvanları seed et (yoksa) ve cache'e yükle.
     try:
