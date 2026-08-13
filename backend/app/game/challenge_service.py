@@ -18,12 +18,16 @@ TASARIM NOTLARI
   kabul edilemez. Süpürme sorgusu kısmi indeksi (status='pending') kullanır ve
   normalde sıfır satır eşleştiği için maliyeti ihmal edilebilir.
 - delivered_at: teklif ilk kez /challenge/incoming ile İSTEMCİYE VERİLDİĞİNDE
-  damgalanır. Frontend popup'ı 30 sn sayıp kendiliğinden kapanıyor; TTL 120 sn
-  olduğu için damga olmasaydı aynı popup 3 sn sonra tekrar tekrar açılırdı.
-  Damga sayesinde popup davranışı eski (TTL=30) hâliyle aynı kalır: bir kez
-  gösterilir, POPUP_WINDOW içinde sayfa yenilenirse geri gelir, sonra gelmez.
-  Bildirime/push'a dokunup uygulamayı geç açan kullanıcı ise teklifi TTL boyunca
-  görebilir (delivered_at hâlâ NULL).
+  damgalanır. YALNIZCA TEŞHİS AMAÇLIDIR; hiçbir süzgeçte kullanılmaz.
+  Eskiden popup 30 sn sabit sayıp kapandığı için, damgadan 30 sn sonra teklif
+  artık döndürülmüyordu (yoksa kapanan popup 3 sn'de bir yeniden açılırdı).
+  Popup artık gerçek expires_at'e kadar açık kaldığından o süzgeç KALDIRILDI:
+  teklif geçerli olduğu SÜRECE döner. Aksi hâlde 40. saniyede push'a dokunup
+  uygulamayı açan kullanıcıya "teklif yok" denirdi — hâlbuki teklif 80 sn daha
+  geçerli.
+- pending_for, popup'ın geri sayımı için expires_at ile birlikte SUNUCUDA
+  hesaplanan expires_in (kalan saniye) döner. İstemci saati sunucudan sapmış
+  olabileceği için geri sayım expires_in üzerinden kurulur.
 - notification_id: teklif oluşturulurken yazılan uygulama içi bildirim satırının
   id'si. Teklif reddedilince/iptal edilince o satır okundu işaretlenir.
 """
@@ -50,10 +54,6 @@ TTL_SETTING_KEY = "app.flags"
 TTL_FIELD = "challenge_ttl_seconds"
 DEFAULT_TTL = 120
 MIN_TTL, MAX_TTL = 10, 900
-
-# Frontend popup'ının kendi geri sayımı (ChallengeWatcher.tsx: secondsLeft = 30).
-# delivered_at damgasından sonra teklifin popup'a çıkmaya devam edeceği süre.
-POPUP_WINDOW = 30
 
 # Gönderenin /challenge/outgoing ile son teklifini görebileceği pencere.
 # Eski bellek sürümünde kayıtlar 120 sn sonra tamamen siliniyordu; burada da
@@ -118,6 +118,21 @@ def _plus(bind: str) -> str:
     if _IS_PG:
         return f"(now() + ({bind} * interval '1 second'))"
     return f"datetime('now', '+' || {bind} || ' seconds')"
+
+
+def _secs_left(col: str) -> str:
+    """SQL: `col` zaman damgasına kalan saniye (negatif olabilir)."""
+    if _IS_PG:
+        return f"EXTRACT(EPOCH FROM ({col} - now()))"
+    return f"((julianday({col}) - julianday('now')) * 86400)"
+
+
+def _iso(value: Any) -> str:
+    """expires_at'i istemciye ISO 8601 olarak ver (PG datetime / SQLite metin)."""
+    if value is None:
+        return ""
+    iso = getattr(value, "isoformat", None)
+    return iso() if callable(iso) else str(value)
 
 
 # ---------------------------------------------------------------- TTL ayarı
@@ -197,21 +212,23 @@ async def has_pending(db: AsyncSession, from_id: int, to_id: int) -> bool:
 async def pending_for(db: AsyncSession, to_id: int) -> dict[str, Any] | None:
     """Kullanıcıya gelen, popup'ta gösterilecek ilk bekleyen teklif.
 
-    İlk kez döndürülen teklife delivered_at damgası basılır (bkz. modül başı).
+    Teklif GEÇERLİ OLDUĞU SÜRECE döner (bkz. modül başı: delivered_at süzgeci
+    kaldırıldı). Popup'ın geri sayımı için expires_at + expires_in eklenir.
+    İlk kez döndürülen teklife delivered_at damgası basılır (yalnızca teşhis).
     """
     row = (await db.execute(
         text(
-            f"SELECT c.id, c.from_user_id, c.to_user_id, u.display_name, u.username "
+            f"SELECT c.id, c.from_user_id, c.to_user_id, u.display_name, u.username, "
+            f"       c.expires_at, {_secs_left('c.expires_at')} AS secs_left "
             f"FROM challenges c JOIN users u ON u.id = c.from_user_id "
             f"WHERE c.to_user_id = :t AND c.status = 'pending' AND c.expires_at > {_NOW} "
-            f"  AND (c.delivered_at IS NULL OR c.delivered_at > {_minus(':win')}) "
             f"ORDER BY c.id LIMIT 1"
         ),
-        {"t": to_id, "win": POPUP_WINDOW},
+        {"t": to_id},
     )).first()
     if row is None:
         return None
-    cid, from_id, to_user_id, display_name, username = row
+    cid, from_id, to_user_id, display_name, username, expires_at, secs_left = row
     try:
         await db.execute(
             text(f"UPDATE challenges SET delivered_at = {_NOW} "
@@ -224,6 +241,10 @@ async def pending_for(db: AsyncSession, to_id: int) -> dict[str, Any] | None:
     return {
         "id": cid, "from_id": from_id, "to_id": to_user_id,
         "from_name": display_name or username,
+        "expires_at": _iso(expires_at),
+        # Aşağı yuvarlanmaz: 0.4 sn kalmışsa popup 1 sn gösterip kapanır,
+        # erken kapanmaktansa milisaniyelik geç kapanmak yeğdir.
+        "expires_in": max(0, int(round(float(secs_left or 0)))),
     }
 
 

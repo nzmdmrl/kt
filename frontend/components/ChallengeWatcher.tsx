@@ -4,16 +4,39 @@ import { useState, useEffect, useRef } from "react";
 import { apiUrl } from "@/lib/api";
 
 // Global maç teklifi izleyici (giriş yapmış kullanıcı, maç ekranı hariç her yerde):
-// 1) Bana gelen bekleyen teklifi popup olarak gösterir (Kabul / Reddet, 30sn geri sayım).
+// 1) Bana gelen bekleyen teklifi popup olarak gösterir (Kabul / Reddet).
+//    Geri sayım SABİT DEĞİL: teklifin gerçek son kullanma anından türetilir
+//    (/api/challenge/incoming -> expires_in). TTL admin panelinden değişebilir
+//    (app.flags.challenge_ttl_seconds), popup da onunla birlikte değişir.
 // 2) Benim gönderdiğim teklif kabul edilince beni maç odasına yönlendirir.
+
+// Backend expires_in/expires_at vermezse (eski sürüm) kullanılacak süre.
+const FALLBACK_SECONDS = 30;
+
 export default function ChallengeWatcher() {
   const [incoming, setIncoming] = useState<any>(null);
-  const [secondsLeft, setSecondsLeft] = useState(30);
+  // Teklifin bitiş anı — İSTEMCİ saatinde ms. expires_in ile kurulur, böylece
+  // istemci/sunucu saat farkı geri sayımı bozmaz.
+  const [deadline, setDeadline] = useState(0);
+  const [secondsLeft, setSecondsLeft] = useState(0);
   const [waitingAccept, setWaitingAccept] = useState(false); // ben teklif gönderdim, bekliyorum
   const handledOutgoing = useRef(false);
 
   function token() { return typeof window !== "undefined" ? localStorage.getItem("kt_token") : null; }
   function headers() { return { "Content-Type": "application/json", Authorization: `Bearer ${token()}` }; }
+
+  // Teklifin bitmesine kalan saniye. Kaynak sırası: sunucunun hesapladığı
+  // expires_in -> expires_at (istemci saatiyle) -> eski sürüm yedeği.
+  function secondsUntilExpiry(ch: any): number {
+    if (typeof ch?.expires_in === "number" && isFinite(ch.expires_in)) {
+      return Math.max(0, ch.expires_in);
+    }
+    if (ch?.expires_at) {
+      const ms = Date.parse(ch.expires_at) - Date.now();
+      if (!isNaN(ms)) return Math.max(0, ms / 1000);
+    }
+    return FALLBACK_SECONDS;
+  }
 
   // Maç ekranındayken teklif popup'ı gösterme.
   function onMatchPage() {
@@ -33,8 +56,13 @@ export default function ChallengeWatcher() {
           const r = await fetch(apiUrl("/api/challenge/incoming"), { headers: headers() });
           const j = await r.json();
           if (alive && j.challenge) {
-            setIncoming(j.challenge);
-            setSecondsLeft(30);
+            const secs = secondsUntilExpiry(j.challenge);
+            // Süresi çoktan geçmiş bir teklifi hiç açma.
+            if (secs > 0) {
+              setDeadline(Date.now() + secs * 1000);
+              setSecondsLeft(Math.ceil(secs));
+              setIncoming(j.challenge);
+            }
           }
         } catch {}
       }
@@ -56,13 +84,22 @@ export default function ChallengeWatcher() {
     return () => { alive = false; clearInterval(iv); };
   }, [incoming]);
 
-  // Popup geri sayımı.
+  // Popup geri sayımı: kalan süre HER SEFERİNDE duvar saatinden hesaplanır.
+  // Sayaç azaltmak yerine böyle yapılır; sekme arka plana alındığında tarayıcı
+  // zamanlayıcıları kıstığında sayaç sürüklenir, teklif ise sürüklenmez.
   useEffect(() => {
-    if (!incoming) return;
-    if (secondsLeft <= 0) { setIncoming(null); return; }
-    const t = setTimeout(() => setSecondsLeft((s) => s - 1), 1000);
-    return () => clearTimeout(t);
-  }, [incoming, secondsLeft]);
+    if (!incoming || !deadline) return;
+    function tick() {
+      const left = deadline - Date.now();
+      if (left <= 0) { setIncoming(null); setSecondsLeft(0); return; }
+      setSecondsLeft(Math.ceil(left / 1000));
+    }
+    tick();
+    const iv = setInterval(tick, 500);
+    // Kapanış tam bitiş anında olsun (500 ms'lik tick'e bırakılmaz).
+    const close = setTimeout(() => setIncoming(null), Math.max(0, deadline - Date.now()));
+    return () => { clearInterval(iv); clearTimeout(close); };
+  }, [incoming, deadline]);
 
   async function accept() {
     if (!incoming) return;
@@ -72,6 +109,9 @@ export default function ChallengeWatcher() {
       if (r.ok && j.room_code) {
         setIncoming(null);
         window.location.href = `/oyna?duel=${encodeURIComponent(j.room_code)}`;
+      } else if (r.status === 404 || r.status === 409) {
+        // Teklif tam bu sırada süresi doldu / geri çekildi: popup'ı açık tutma.
+        setIncoming(null);
       }
     } catch {}
   }

@@ -96,7 +96,12 @@ async def incoming(user: User = Depends(get_current_user), db: AsyncSession = De
     ch = await challenge_service.pending_for(db, user.id)
     if not ch:
         return {"challenge": None}
-    return {"challenge": {"id": str(ch["id"]), "from_name": ch["from_name"], "from_id": ch["from_id"]}}
+    # expires_in: popup geri sayımının KAYNAĞI (sunucuda hesaplanır, istemci
+    # saatinin sunucudan sapması sayımı bozmasın). expires_at bilgi amaçlıdır.
+    return {"challenge": {
+        "id": str(ch["id"]), "from_name": ch["from_name"], "from_id": ch["from_id"],
+        "expires_at": ch["expires_at"], "expires_in": ch["expires_in"],
+    }}
 
 
 @router.post("/{cid}/accept")
