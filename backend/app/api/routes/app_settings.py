@@ -94,6 +94,14 @@ DEFAULT_APP_SETTINGS: dict[str, tuple[dict, bool]] = {
         },
         True,
     ),
+    # Davranış bayrakları. challenge_ttl_seconds: maç teklifinin geçerlilik
+    # süresi (app/game/challenge_service.py okur, 60 sn cache'li).
+    "app.flags": (
+        {
+            "challenge_ttl_seconds": 120,
+        },
+        True,
+    ),
 }
 
 # Admin panelinde görünen etiketler.
@@ -102,6 +110,7 @@ SETTING_LABELS: dict[str, str] = {
     "ads.admob": "AdMob (mobil uygulama)",
     "push.firebase": "Firebase / Push bildirim",
     "app.stores": "Uygulama mağaza rozetleri",
+    "app.flags": "Davranış ayarları",
 }
 
 
@@ -253,4 +262,8 @@ async def admin_update(
     )
     await db.commit()
     _clear_cache()
+    if key == "app.flags":
+        # Maç teklifi TTL'i buradan okunuyor — 60 sn beklemeden yansısın.
+        from app.game.challenge_service import clear_ttl_cache
+        clear_ttl_cache()
     return {"ok": True, "key": key}

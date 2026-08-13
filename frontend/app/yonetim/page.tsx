@@ -896,7 +896,7 @@ function MusicSection({ sectionKey, label }: { sectionKey: string; label: string
 
 type AppSettingRow = { key: string; label: string; value: any; is_public: boolean; updated_at: string | null };
 
-type MobileField = { path: string; label: string; type?: "text" | "bool" | "list"; hint?: string };
+type MobileField = { path: string; label: string; type?: "text" | "bool" | "list" | "number"; hint?: string };
 
 const MOBILE_FIELDS: Record<string, MobileField[]> = {
   "ads.adsense": [
@@ -928,6 +928,14 @@ const MOBILE_FIELDS: Record<string, MobileField[]> = {
     { path: "play_url", label: "Google Play adresi", hint: "https://play.google.com/store/apps/details?id=…" },
     { path: "ios_url", label: "App Store adresi", hint: "https://apps.apple.com/tr/app/…" },
     { path: "show_on_paths", label: "Hangi sayfalarda görünsün", type: "list", hint: "virgülle ayır: /, /lig" },
+  ],
+  "app.flags": [
+    {
+      path: "challenge_ttl_seconds",
+      label: "Maç teklifi geçerlilik süresi (saniye)",
+      type: "number",
+      hint: "varsayılan 120 — 10 ile 900 arası",
+    },
   ],
 };
 
@@ -1021,6 +1029,23 @@ function Mobile() {
                     style={{ width: 16, height: 16, accentColor: "var(--accent)" }} />
                   {f.label}
                 </label>
+              );
+            }
+            if (f.type === "number") {
+              return (
+                <div key={f.path} style={{ display: "grid", gap: 4 }}>
+                  <span style={{ fontSize: 12, color: "var(--text-dim)" }}>{f.label}</span>
+                  <input
+                    type="number"
+                    value={typeof val === "number" ? String(val) : ""}
+                    placeholder={f.hint || ""}
+                    onChange={(e) => {
+                      const n = parseInt(e.target.value, 10);
+                      patch(row.key, f.path, Number.isFinite(n) ? n : "");
+                    }}
+                    style={{ ...seoInput, maxWidth: 200 }}
+                  />
+                </div>
               );
             }
             const isList = f.type === "list";

@@ -156,11 +156,11 @@ DEFAULT_TYPES: list[tuple[str, str, str, str, bool, str, str, int, bool]] = [
     ("title_up", "achievement", "Unvan yükselmeleri",
      "Kazandığın XP ile yeni bir unvana yükseldiğinde.",
      True, "achievement", "/profil/{username}", 20, True),
-
-    # --- PASİF (planlanan; bugün üretilmiyor, ayar sayfasında GÖRÜNMEZ) ---
     ("challenge_offer", "game", "Maç teklifleri",
      "Bir arkadaşın sana doğrudan 1v1 maç teklifi gönderdiğinde.",
-     True, "game", "", 30, False),
+     True, "game", "/", 30, True),
+
+    # --- PASİF (planlanan; bugün üretilmiyor, ayar sayfasında GÖRÜNMEZ) ---
     ("match_result", "game", "Maç sonuçları",
      "Oynadığın 1v1 maçın sonucu belli olduğunda.",
      True, "game", "", 40, False),
@@ -245,6 +245,17 @@ async def ensure_notification_tables() -> int:
                 "UPDATE notification_types "
                 f"SET is_active = {_BOOL_T}, route_template = '/duyurular/{{slug}}' "
                 "WHERE code = 'system_announcement' "
+                "AND (route_template IS NULL OR route_template = '')"
+            )
+        )
+        # Aynı gerekçe: maç teklifleri artık challenges tablosuna yazılıyor ve
+        # gerçekten bildirim/push üretiyor (bkz. app/game/challenge_service.py).
+        await db.execute(
+            text(
+                "UPDATE notification_types "
+                f"SET is_active = {_BOOL_T}, route_template = '/', "
+                f"    group_code = 'game', channel_id = 'game', default_enabled = {_BOOL_T} "
+                "WHERE code = 'challenge_offer' "
                 "AND (route_template IS NULL OR route_template = '')"
             )
         )

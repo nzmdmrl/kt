@@ -136,6 +136,14 @@ async def on_startup():
     except Exception as e:
         print(f"[startup] push tabloları garantileme hatası: {e}")
 
+    # Maç teklifi tablosu (challenges) — düz SQL, ORM modeli yok.
+    try:
+        from app.game.challenge_service import ensure_challenge_table
+        await ensure_challenge_table()
+        print("[startup] maç teklifi tablosu garantilendi.")
+    except Exception as e:
+        print(f"[startup] maç teklifi tablosu garantileme hatası: {e}")
+
     # Unvanları seed et (yoksa) ve cache'e yükle.
     try:
         from app.core.database import AsyncSessionLocal as _ASL

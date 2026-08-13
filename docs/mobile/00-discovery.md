@@ -43,10 +43,13 @@ startup'ta `asyncio.create_task` ile başlatılır (`backend/app/main.py:186`) v
 Aşağıdakiler için bugün **hiçbir kalıcı kayıt oluşmuyor**. Mobil push isteniyorsa
 yeni kod gerekir:
 
-- **1v1 maç teklifi (challenge)** — DB'ye yazılmıyor.
-  `backend/app/game/challenge_service.py`: tamamen **bellekte** (`_challenges` dict'i),
-  **TTL 30 sn** (`CHALLENGE_TTL`, satır 15). Frontend `frontend/components/ChallengeWatcher.tsx`
-  **3 saniyede bir** `/api/challenge/incoming` polling yapıyor. Uygulama kapalıyken teklif kaybolur.
+- ~~**1v1 maç teklifi (challenge)** — DB'ye yazılmıyor.~~
+  **GÜNCELLENDİ (2026-08-13):** artık `challenges` tablosuna yazılıyor, `challenge_offer`
+  bildirimi + push üretiyor. TTL app_settings `app.flags.challenge_ttl_seconds` (varsayılan
+  120 sn). Bkz. `backend/app/game/challenge_service.py`. Aşağıdaki tespit tarihsel kayıttır:
+  `challenge_service.py` tamamen **bellekteydi** (`_challenges` dict'i), **TTL 30 sn**.
+  Frontend `frontend/components/ChallengeWatcher.tsx` **3 saniyede bir**
+  `/api/challenge/incoming` polling yapıyor. Uygulama kapalıyken teklif kayboluyordu.
 - **Maç sonucu** (1v1 galibiyet/mağlubiyet/beraberlik) — bildirim yok, sadece maç sonu ekranı.
 - **Rozet kazanımı** — bildirim yok. `match_result.py` `new_badges` hesaplıyor ama
   sadece maç sonu ekranına dönüyor (`MatchRewards.tsx`).
