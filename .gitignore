@@ -20,3 +20,16 @@ backend/app/words/raw_tr_freq.txt
 
 # Sistem
 .DS_Store
+
+# Capacitor mobil kabuk (mobile/)
+# DİKKAT: mobile/android KLASÖRÜ REPODA TUTULUR (Mac'te build alınacak),
+# sadece build çıktıları ve gizli anahtarlar hariç tutulur.
+mobile/node_modules
+mobile/android/build
+mobile/android/app/build
+mobile/android/.gradle
+mobile/android/local.properties
+mobile/android/app/google-services.json
+mobile/ios/App/Pods
+mobile/*.keystore
+mobile/android/keystore.properties

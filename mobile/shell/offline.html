@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bağlantı yok — Kelime Tahmin</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: #0e0b1e; color: #f5f3ff;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center;
+    padding: 24px calc(24px + env(safe-area-inset-left, 0px))
+             calc(24px + env(safe-area-inset-bottom, 0px))
+             calc(24px + env(safe-area-inset-right, 0px));
+  }
+  .icon { font-size: 56px; line-height: 1; margin-bottom: 18px; }
+  h1 { font-size: 22px; font-weight: 700; margin: 0 0 10px; }
+  p { font-size: 15px; line-height: 1.5; color: #b4acd8; margin: 0 0 28px; max-width: 320px; }
+  button {
+    -webkit-appearance: none; appearance: none;
+    border: none; cursor: pointer;
+    background: linear-gradient(145deg, #ffb020, #ff7a45);
+    color: #1c1638; font-size: 16px; font-weight: 700;
+    padding: 14px 34px; border-radius: 12px;
+    box-shadow: 0 6px 18px rgba(255, 176, 32, .28);
+  }
+  button:active { transform: translateY(1px); }
+</style>
+</head>
+<body>
+  <div class="icon">📡</div>
+  <h1>İnternet bağlantısı yok</h1>
+  <p>Kelime Tahmin'e bağlanılamadı. Bağlantını kontrol edip tekrar dene.</p>
+  <button type="button" onclick="location.reload()">Tekrar dene</button>
+</body>
+</html>

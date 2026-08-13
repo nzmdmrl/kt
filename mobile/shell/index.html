@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kelime Tahmin</title>
+<!--
+  Normal çalışmada bu sayfa GÖRÜNMEZ: capacitor.config.ts içindeki server.url
+  sayesinde WebView doğrudan https://www.kelimetahmin.com adresini açar.
+  Bu dosya yalnızca (a) Capacitor'ün webDir için index.html zorunluluğunu
+  karşılamak, (b) server.url devre dışı kalırsa canlı siteye yönlendirmek için var.
+  Bağlantı yoksa yönlendirme başarısız olur ve server.errorPath → offline.html devreye girer.
+-->
+<style>
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: #0e0b1e; color: #b4acd8;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+  }
+  body { display: flex; align-items: center; justify-content: center; text-align: center; }
+  p { font-size: 15px; margin: 0; }
+</style>
+</head>
+<body>
+  <p>Kelime Tahmin yükleniyor…</p>
+  <script>location.replace("https://www.kelimetahmin.com");</script>
+</body>
+</html>
