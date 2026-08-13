@@ -51,6 +51,15 @@ AWARD_NAMES = {
 RANK_LABEL = {1: "Şampiyonu", 2: "2.si", 3: "3.sü"}
 RANK_ICON = {1: "🏆", 2: "🥈", 3: "🥉"}
 
+# Uygulama içi tek bir "award" kind'ı var; push kataloğunda kullanıcı üç dönemi
+# ayrı kapatabilsin diye period_type'a göre üçe ayrılır (notification_prefs.py).
+PUSH_TYPE_BY_PERIOD = {
+    "daily": "award_daily",
+    "monthly": "award_monthly",
+    "yearly": "award_yearly",
+}
+LEAGUE_ROUTE = "/lig"
+
 
 def award_title(period_type: str, rank: int) -> str:
     """Örn: 'Günün Şampiyonu', 'Ayın 2.si'."""
@@ -81,6 +90,8 @@ async def award_period(db: AsyncSession, period_type: str, period_key: str) -> i
         return 0
 
     from app.models.notification import Notification
+    push_type = PUSH_TYPE_BY_PERIOD.get(period_type)
+    pending_push: list[tuple] = []   # commit'ten SONRA gönderilir
     awarded = 0
     for entry in board:
         rank = entry["rank"]
@@ -97,15 +108,24 @@ async def award_period(db: AsyncSession, period_type: str, period_key: str) -> i
         title = award_title(period_type, rank)
         icon = RANK_ICON.get(rank, "🏅")
         period_label = _period_label(period_type, period_key)
+        n_title = f"{title}!"
+        n_body = f"{period_label} liginde {award_title(period_type, rank)} oldun. Tebrikler!"
         db.add(Notification(
             user_id=entry["user_id"],
             kind="award",
-            title=f"{title}!",
-            body=f"{period_label} liginde {award_title(period_type, rank)} oldun. Tebrikler!",
+            title=n_title,
+            body=n_body,
             icon=icon,
         ))
+        if push_type:
+            pending_push.append((entry["user_id"], push_type, n_title, n_body))
         awarded += 1
     await db.commit()
+    # Push: uygulama içi satırlar commit edildikten sonra, ateşle-unut.
+    from app.services.push import send_to_user_bg
+    for uid, type_code, n_title, n_body in pending_push:
+        send_to_user_bg(uid, type_code, n_title, n_body, LEAGUE_ROUTE,
+                        ctx={"period_type": period_type, "period_key": period_key})
     return awarded
 
 

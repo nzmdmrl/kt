@@ -152,6 +152,7 @@ async def invite_to_custom_arena(data: InviteIn, user=Depends(get_current_user),
     """Arkadaşları özel arenaya davet et — her birine bildirim gönder."""
     from app.models.notification import Notification
     from app.models.friendship import Friendship
+    from app.services.push import send_to_user_bg
     from sqlalchemy import or_, and_
     lobby = arena_manager.custom_lobby(data.code)
     if not lobby:
@@ -160,6 +161,10 @@ async def invite_to_custom_arena(data: InviteIn, user=Depends(get_current_user),
         raise HTTPException(403, "Sadece arenayı kuran davet edebilir.")
 
     inviter = user.display_name or user.username
+    n_title = "Özel Arena daveti"
+    n_body = f"{inviter} seni '{lobby.name}' arenasına davet etti."
+    link = f"/arena/ozel/{lobby.code}"
+    invited: list[int] = []
     sent = 0
     for fid in data.friend_ids[:20]:
         # Gerçekten arkadaş mı doğrula
@@ -174,13 +179,17 @@ async def invite_to_custom_arena(data: InviteIn, user=Depends(get_current_user),
             continue
         db.add(Notification(
             user_id=fid, kind="arena_invite",
-            title="Özel Arena daveti",
-            body=f"{inviter} seni '{lobby.name}' arenasına davet etti.",
+            title=n_title,
+            body=n_body,
             icon="🎪",
-            link=f"/arena/ozel/{lobby.code}",
+            link=link,
         ))
+        invited.append(fid)
         sent += 1
     await db.commit()
+    for fid in invited:
+        send_to_user_bg(fid, "arena_invite", n_title, n_body, link,
+                        ctx={"code": lobby.code, "from_user_id": user.id})
     return {"ok": True, "sent": sent}
 
 
@@ -397,6 +406,8 @@ async def _persist_custom_results(match: ArenaMatch):
 async def _persist_results(match: ArenaMatch) -> dict:
     """Arena sonucu: geçmişe kaydet + gerçek oyunculara XP ver. rewards_by_pid döndürür."""
     rewards_by_pid: dict = {}
+    # (user_id, type_code, title, body, route) — commit'ten SONRA gönderilir.
+    pending_push: list[tuple] = []
     try:
         ranking = match.final_ranking()
         rank_by_pid = {r["pid"]: r["rank"] for r in ranking}
@@ -430,6 +441,7 @@ async def _persist_results(match: ArenaMatch) -> dict:
                 elif rank == 3:
                     user.arena_third = (user.arena_third or 0) + 1
                     medal_notif = ("🥉", "Arena 3.sü!", "Arenada 3. oldun, bronz madalya kazandın!")
+                prof_link = f"/profil/{user.username}" if user.username else "/profil/me"
                 if medal_notif:
                     try:
                         from app.models.notification import Notification as _Notif
@@ -437,8 +449,9 @@ async def _persist_results(match: ArenaMatch) -> dict:
                         db.add(_Notif(
                             user_id=uid, kind="arena_medal",
                             title=_title, body=_body, icon=_icon,
-                            link=f"/profil/{user.username}" if user.username else "/profil/me",
+                            link=prof_link,
                         ))
+                        pending_push.append((uid, "arena_medal", _title, _body, prof_link))
                     except Exception as e:
                         print(f"[arena madalya bildirim] HATA: {e}")
                 # Geçmişe kaydet
@@ -463,13 +476,16 @@ async def _persist_results(match: ArenaMatch) -> dict:
                     new_title = {"name": title_after["title"], "icon": title_after["title_icon"]}
                     try:
                         from app.models.notification import Notification
+                        _t_title = "Yeni unvan kazandın!"
+                        _t_body = f"{title_after['title_icon']} {title_after['title']} unvanına yükseldin."
                         db.add(Notification(
                             user_id=uid, kind="title_up",
-                            title="Yeni unvan kazandın!",
-                            body=f"{title_after['title_icon']} {title_after['title']} unvanına yükseldin.",
+                            title=_t_title,
+                            body=_t_body,
                             icon=title_after["title_icon"],
-                            link=f"/profil/{user.username}" if user.username else "/profil/me",
+                            link=prof_link,
                         ))
+                        pending_push.append((uid, "title_up", _t_title, _t_body, prof_link))
                     except Exception as e:
                         print(f"[arena unvan bildirim] HATA: {e}")
                 rewards_by_pid[pid] = {
@@ -481,6 +497,11 @@ async def _persist_results(match: ArenaMatch) -> dict:
             await db.commit()
     except Exception as e:
         print(f"[arena xp] HATA: {e}")
+    else:
+        # Push yalnızca uygulama içi satırlar commit edildiyse gider (ateşle-unut).
+        from app.services.push import send_to_user_bg
+        for _uid, _code, _title, _body, _route in pending_push:
+            send_to_user_bg(_uid, _code, _title, _body, _route)
     return rewards_by_pid
 
 

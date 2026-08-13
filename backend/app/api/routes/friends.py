@@ -23,8 +23,17 @@ from app.core.deps import get_current_user
 from app.models.friendship import Friendship
 from app.models.notification import Notification
 from app.models.user import User
+from app.services.push import send_to_user_bg
 
 router = APIRouter(prefix="/friends", tags=["friends"])
+
+# Arkadaşlık istekleri bu sayfanın üstünde listelenir (app/bildirimler/page.tsx).
+FRIEND_REQUESTS_ROUTE = "/bildirimler"
+
+
+def _profile_route(u: User) -> str:
+    """Kullanıcının profil yolu (arena/match_result ile aynı kalıp)."""
+    return f"/profil/{u.username}" if u.username else "/profil/me"
 
 
 async def _friendship_between(db, a: int, b: int):
@@ -87,13 +96,17 @@ async def send_request(target_id: int, user: User = Depends(get_current_user), d
 
     db.add(Friendship(requester_id=user.id, addressee_id=target_id, status="pending"))
     # Karşı tarafa bildirim
+    n_title = "Yeni arkadaşlık isteği"
+    n_body = f"{user.display_name or user.username} sana arkadaşlık isteği gönderdi."
     db.add(Notification(
         user_id=target_id, kind="friend_request",
-        title="Yeni arkadaşlık isteği",
-        body=f"{user.display_name or user.username} sana arkadaşlık isteği gönderdi.",
+        title=n_title,
+        body=n_body,
         icon="🤝",
     ))
     await db.commit()
+    send_to_user_bg(target_id, "friend_request", n_title, n_body, FRIEND_REQUESTS_ROUTE,
+                    ctx={"from_user_id": user.id})
     return {"ok": True, "status": "request_sent"}
 
 
@@ -103,13 +116,18 @@ async def accept_request(requester_id: int, user: User = Depends(get_current_use
     if not f or f.status != "pending" or f.addressee_id != user.id:
         raise HTTPException(404, "Bekleyen istek yok.")
     f.status = "accepted"
+    n_title = "Arkadaşlık kabul edildi"
+    n_body = f"{user.display_name or user.username} arkadaşlık isteğini kabul etti."
     db.add(Notification(
         user_id=requester_id, kind="friend_accept",
-        title="Arkadaşlık kabul edildi",
-        body=f"{user.display_name or user.username} arkadaşlık isteğini kabul etti.",
+        title=n_title,
+        body=n_body,
         icon="✅",
     ))
     await db.commit()
+    # Kabul EDENİN profiline götürür (bildirimi alan, isteği gönderen taraf).
+    send_to_user_bg(requester_id, "friend_accept", n_title, n_body, _profile_route(user),
+                    ctx={"from_user_id": user.id})
     return {"ok": True, "status": "friends"}
 
 
@@ -119,13 +137,18 @@ async def reject_request(requester_id: int, user: User = Depends(get_current_use
     if not f or f.status != "pending" or f.addressee_id != user.id:
         raise HTTPException(404, "Bekleyen istek yok.")
     await db.delete(f)
+    n_title = "Arkadaşlık reddedildi"
+    n_body = f"{user.display_name or user.username} arkadaşlık isteğini reddetti."
     db.add(Notification(
         user_id=requester_id, kind="friend_reject",
-        title="Arkadaşlık reddedildi",
-        body=f"{user.display_name or user.username} arkadaşlık isteğini reddetti.",
+        title=n_title,
+        body=n_body,
         icon="❌",
     ))
     await db.commit()
+    # Reddedenin profiline götürür (bildirimi alan, isteği gönderen taraf).
+    send_to_user_bg(requester_id, "friend_reject", n_title, n_body, _profile_route(user),
+                    ctx={"from_user_id": user.id})
     return {"ok": True, "status": "none"}
 
 

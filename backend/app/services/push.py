@@ -12,7 +12,12 @@ TASARIM
 - Tercih kapıları SADECE push'u kısıtlar; uygulama içi bildirim satırları
   bundan bağımsız olarak her zaman oluşur (notification_prefs.py'daki kural).
 
-Bu görevde mevcut bildirim çağrı yerlerine BAĞLANMADI — sonraki görevin işi.
+ÇAĞRI YERLERİ
+-------------
+Mevcut bildirim çağrı yerleri send_to_user_bg() ile bağlandı (ateşle-unut).
+Uygulama içi satır YAZILDIKTAN VE COMMIT EDİLDİKTEN SONRA çağrılır; push
+başarısız olsa da uygulama içi bildirim her hâlükârda durur.
+Tam liste: docs/mobile/00-discovery.md §1.1.
 """
 
 from __future__ import annotations
@@ -340,6 +345,41 @@ async def send_to_user(
         # Push hiçbir koşulda çağıranı bozmamalı.
         print(f"[push] send_to_user beklenmeyen hata ({type(e).__name__}: {e})")
         return {"skipped": "error", "error": type(e).__name__}
+
+
+# Arka plan görevlerine güçlü referans — aksi hâlde GC görevi yarıda toplayabilir.
+_bg_tasks: set[asyncio.Task] = set()
+
+
+def send_to_user_bg(
+    user_id: int, type_code: str, title: str, body: str,
+    route: str, ctx: dict[str, Any] | None = None,
+) -> None:
+    """Ateşle-unut push. Çağıranı ASLA bloklamaz, ASLA hata fırlatmaz.
+
+    Çağıranın DB session'ı yanıt sonrası kapanabileceği için görev KENDİ
+    session'ını açar. Uygulama içi bildirim satırı commit EDİLDİKTEN SONRA
+    çağrılmalıdır.
+    """
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        return   # event loop yok (senkron bağlam) — sessizce atla
+
+    async def _run() -> None:
+        try:
+            from app.core.database import AsyncSessionLocal
+            async with AsyncSessionLocal() as db:
+                await send_to_user(db, int(user_id), type_code, title, body, route, ctx)
+        except Exception as e:
+            print(f"[push] arka plan gönderimi başarısız ({type(e).__name__}: {e})")
+
+    try:
+        task = loop.create_task(_run())
+        _bg_tasks.add(task)
+        task.add_done_callback(_bg_tasks.discard)
+    except Exception as e:
+        print(f"[push] arka plan görevi başlatılamadı ({type(e).__name__}: {e})")
 
 
 async def send_test_to_user(

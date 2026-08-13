@@ -40,6 +40,7 @@ async def invite_to_room(data: RoomInviteIn, user=Depends(get_current_user), db=
     """Arkadaşları özel 1v1 odasına davet et — her birine bildirim gönder."""
     from app.models.friendship import Friendship
     from app.models.notification import Notification
+    from app.services.push import send_to_user_bg
 
     code = (data.code or "").strip().upper()
     room = room_manager.rooms.get(code)
@@ -47,6 +48,10 @@ async def invite_to_room(data: RoomInviteIn, user=Depends(get_current_user), db=
         raise HTTPException(404, "Oda bulunamadı.")
 
     inviter = user.display_name or user.username
+    n_title = "Düello daveti"
+    n_body = f"{inviter} seni özel odada 1v1 düelloya davet etti."
+    link = f"/oyna?join={code}"
+    invited: list[int] = []
     sent = 0
     for fid in data.friend_ids[:20]:
         # Gerçekten arkadaş mı doğrula
@@ -61,13 +66,17 @@ async def invite_to_room(data: RoomInviteIn, user=Depends(get_current_user), db=
             continue
         db.add(Notification(
             user_id=fid, kind="room_invite",
-            title="Düello daveti",
-            body=f"{inviter} seni özel odada 1v1 düelloya davet etti.",
+            title=n_title,
+            body=n_body,
             icon="🎮",
-            link=f"/oyna?join={code}",
+            link=link,
         ))
+        invited.append(fid)
         sent += 1
     await db.commit()
+    for fid in invited:
+        send_to_user_bg(fid, "room_invite", n_title, n_body, link,
+                        ctx={"code": code, "from_user_id": user.id})
     return {"ok": True, "sent": sent}
 
 

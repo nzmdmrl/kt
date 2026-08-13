@@ -114,14 +114,20 @@ async def apply_match_result(
             # Bildirim: yeni unvan (profile götürür)
             try:
                 from app.models.notification import Notification
+                n_title = "Yeni unvan kazandın!"
+                n_body = f"{title_after_info['title_icon']} {title_after_info['title']} unvanına yükseldin."
+                n_link = f"/profil/{user.username}" if user.username else "/profil/me"
                 db.add(Notification(
                     user_id=user_id, kind="title_up",
-                    title="Yeni unvan kazandın!",
-                    body=f"{title_after_info['title_icon']} {title_after_info['title']} unvanına yükseldin.",
+                    title=n_title,
+                    body=n_body,
                     icon=title_after_info["title_icon"],
-                    link=f"/profil/{user.username}" if user.username else "/profil/me",
+                    link=n_link,
                 ))
                 await db.commit()
+                # Push: commit'ten sonra, ateşle-unut (maç bitişini bloklamaz).
+                from app.services.push import send_to_user_bg
+                send_to_user_bg(user_id, "title_up", n_title, n_body, n_link)
             except Exception as e:
                 print(f"[unvan bildirim] HATA user={user_id}: {e}")
     except Exception as e:

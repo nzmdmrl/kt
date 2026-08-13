@@ -17,10 +17,11 @@ Admin (get_admin_user):
 - POST   /admin/announcements            -> oluştur
 - PUT    /admin/announcements/{id}       -> güncelle
 - DELETE /admin/announcements/{id}       -> sil
-- POST   /admin/announcements/{id}/notify -> uygulama içi bildirim gönder (BİR KEZ)
+- POST   /admin/announcements/{id}/notify -> uygulama içi bildirim + push gönder (BİR KEZ)
 
-NOT: notify ucu PUSH GÖNDERMEZ. Yalnızca notifications tablosuna satır yazar
-(kind='system_announcement'). Push/FCM sonraki görevin işi.
+NOT: notify ucu aynı arka plan görevinde hem notifications satırını yazar
+(kind='system_announcement') hem de aynı alıcılara aynı gruplar hâlinde push
+atar. Push başarısız olsa da uygulama içi bildirim durur.
 """
 
 from __future__ import annotations
@@ -32,7 +33,7 @@ from typing import Any
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel, Field
-from sqlalchemy import text
+from sqlalchemy import bindparam, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import engine, get_db
@@ -54,6 +55,7 @@ SLUG_MAX = 100              # link = "/duyurular/" + slug, notifications.link VA
 NOTIF_TITLE_MAX = 128       # notifications.title VARCHAR(128)
 NOTIFY_KIND = "system_announcement"
 NOTIFY_ICON = "📢"
+PUSH_BODY_MAX = 120         # bildirim gölgesinde okunabilir kalan uzunluk
 
 CREATE_TABLE_SQL = f"""
 CREATE TABLE IF NOT EXISTS announcements (
@@ -347,8 +349,44 @@ async def admin_delete(
 
 # ---------------------------------------------------------------- bildirim gönderimi
 
+async def _push_batch(
+    db: AsyncSession, user_ids: list[int], title: str, body: str, route: str, slug: str,
+) -> int:
+    """Bir grup kullanıcıya duyuru push'u — hata YUTULUR, çağıranı bozmaz.
+
+    Tercih/sessiz saat kapıları send_to_user içinde; burada yalnızca cihazı OLAN
+    kullanıcılar süzülür (gereksiz sorgu turunu atlamak için).
+    """
+    if not user_ids:
+        return 0
+    from app.services.push import send_to_user
+    try:
+        rows = (await db.execute(
+            text(
+                "SELECT DISTINCT user_id FROM device_tokens "
+                "WHERE is_active = TRUE AND user_id IN :ids"
+            ).bindparams(bindparam("ids", expanding=True)),
+            {"ids": user_ids},
+        )).fetchall()
+    except Exception as e:
+        print(f"[announcements] push alıcıları okunamadı ({type(e).__name__}: {e})")
+        return 0
+
+    sent = 0
+    for (uid,) in rows:
+        try:
+            # send_to_user zaten hata fırlatmaz; yine de tek kullanıcının
+            # sorunu kalan alıcıları durdurmasın.
+            res = await send_to_user(db, uid, NOTIFY_KIND, title, body, route, ctx={"slug": slug})
+            sent += int(res.get("sent") or 0)
+        except Exception as e:
+            print(f"[announcements] push hatası (user={uid}, {type(e).__name__}: {e})")
+    return sent
+
+
 async def _send_announcement_notifications(ann_id: int, title: str, slug: str, summary: str) -> None:
-    """Arka plan görevi — notifications satırlarını 500'lük gruplar hâlinde yazar.
+    """Arka plan görevi — notifications satırlarını 500'lük gruplar hâlinde yazar
+    ve aynı gruplara system_announcement push'u gönderir.
 
     İstek session'ı kapandığı için KENDİ session'ını açar.
     """
@@ -356,8 +394,10 @@ async def _send_announcement_notifications(ann_id: int, title: str, slug: str, s
 
     notif_title = title[:NOTIF_TITLE_MAX]
     notif_body = (summary or "").strip()
+    push_body = notif_body if len(notif_body) <= PUSH_BODY_MAX else notif_body[:PUSH_BODY_MAX - 1].rstrip() + "…"
     link = f"/duyurular/{slug}"
     written = 0
+    pushed = 0
     try:
         async with AsyncSessionLocal() as db:
             ids = [r[0] for r in (await db.execute(text("SELECT id FROM users ORDER BY id"))).fetchall()]
@@ -374,11 +414,15 @@ async def _send_announcement_notifications(ann_id: int, title: str, slug: str, s
                     ))
                 await db.commit()
                 written += len(batch)
+                # Push, satırlar commit EDİLDİKTEN sonra — push çökse bile
+                # uygulama içi bildirim durur.
+                pushed += await _push_batch(db, batch, notif_title, push_body, link, slug)
             await db.execute(
                 text("UPDATE announcements SET notify_recipient_count = :n WHERE id = :id"),
                 {"n": written, "id": ann_id},
             )
             await db.commit()
+        print(f"[announcements] id={ann_id}: {written} bildirim, {pushed} push gönderildi.")
     except Exception as e:
         # Kısmen gönderilmiş olabilir: notify_sent_at BİLEREK geri alınmaz
         # (aksi hâlde yeniden gönderim çift bildirim yaratır). Yazılan sayı kaydedilir.
@@ -401,9 +445,11 @@ async def admin_notify(
     admin: User = Depends(get_admin_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Duyuruyu uygulama içi bildirim olarak gönderir. BİR DUYURU, BİR KEZ.
+    """Duyuruyu uygulama içi bildirim + push olarak gönderir. BİR DUYURU, BİR KEZ.
 
-    Push GÖNDERİLMEZ — sadece notifications satırı yazılır.
+    Aynı arka plan görevi hem notifications satırını yazar hem de cihazı olan
+    alıcılara 'system_announcement' push'u atar (tercih/sessiz saat kapıları
+    send_to_user içinde uygulanır).
     """
     row = (await db.execute(
         text("SELECT id, slug, title, summary, is_published, notify_sent_at "
