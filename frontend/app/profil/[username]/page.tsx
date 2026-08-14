@@ -340,11 +340,11 @@ export default function ProfilePage({ params }: { params: { username: string } }
         <Stat label="Puan" value={profile.stats.total_score} />
       </div>
 
-      {/* Solo mod */}
+      {/* Maraton */}
       {profile.solo && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 24 }}>
-          <Stat label="🗺️ Solo Level" value={profile.solo.level} accent />
-          <Stat label="⭐ Solo Yıldız" value={profile.solo.stars} />
+          <Stat label="🏃 Maraton Bölüm" value={profile.solo.level} accent />
+          <Stat label="⭐ Maraton Yıldız" value={profile.solo.stars} />
         </div>
       )}
 

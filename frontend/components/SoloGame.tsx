@@ -15,7 +15,7 @@ const TILE_COLOR: Record<string, string> = {
   absent: "var(--tile-absent)",
 };
 
-// Solo level oyun ekranı: süre + sınırsız tahmin + joker + yıldız sonucu.
+// Maraton bölüm oyun ekranı: süre + sınırsız tahmin + joker + yıldız sonucu.
 export default function SoloGame({ level, onExit, onComplete }: {
   level: number;
   onExit: () => void;
@@ -45,7 +45,7 @@ export default function SoloGame({ level, onExit, onComplete }: {
         setSecondsLeft(d.seconds);
         setStatus("playing");
       })
-      .catch(() => setErr("Level başlatılamadı"));
+      .catch(() => setErr("Bölüm başlatılamadı"));
   }, [level]);
 
   // Geri sayım.
@@ -152,7 +152,7 @@ export default function SoloGame({ level, onExit, onComplete }: {
       {/* Üst bar: çıkış + level + süre */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
         <button onClick={() => { stopTicking(); onExit(); }} style={{ background: "var(--bg-panel)", border: "1px solid var(--border-soft)", borderRadius: "50%", width: 36, height: 36, cursor: "pointer", fontSize: 18, color: "var(--text-strong)" }}>←</button>
-        <span className="brand-mono" style={{ fontSize: 18 }}>Level {level}</span>
+        <span className="brand-mono" style={{ fontSize: 18 }}>Bölüm {level}</span>
         <span className="brand-mono" style={{ fontSize: 22, color: timeColor, minWidth: 54, textAlign: "right" }}>{secondsLeft}s</span>
       </div>
       {/* Süre çubuğu */}
@@ -249,7 +249,7 @@ export default function SoloGame({ level, onExit, onComplete }: {
       {/* Kazanma sonucu — yıldızlı */}
       {status === "won" && result && (
         <div style={{ textAlign: "center", background: "var(--bg-panel)", borderRadius: 18, padding: 26 }}>
-          <div className="brand-mono" style={{ fontSize: 22, color: "var(--tile-correct)", marginBottom: 12 }}>Level Tamam! 🎉</div>
+          <div className="brand-mono" style={{ fontSize: 22, color: "var(--tile-correct)", marginBottom: 12 }}>Bölüm Tamam! 🎉</div>
           <div style={{ display: "flex", gap: 8, justifyContent: "center", marginBottom: 12 }}>
             {[1, 2, 3].map((s) => (
               <span key={s} style={{ fontSize: 44, filter: s <= result.stars ? "none" : "grayscale(1) opacity(0.3)" }}>⭐</span>
@@ -257,7 +257,7 @@ export default function SoloGame({ level, onExit, onComplete }: {
           </div>
           <p style={{ color: "var(--text-soft)", marginBottom: 18 }}>Toplam yıldız: {result.total}</p>
           <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-            <button onClick={() => { stopTicking(); onComplete(result.stars, result.next); }} style={btnPrimary}>Sonraki Level →</button>
+            <button onClick={() => { stopTicking(); onComplete(result.stars, result.next); }} style={btnPrimary}>Sonraki Bölüm →</button>
             <button onClick={() => { stopTicking(); onExit(); }} style={btnGhost}>Haritaya Dön</button>
           </div>
         </div>

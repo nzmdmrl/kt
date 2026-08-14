@@ -63,7 +63,7 @@ export default function DesktopUserSummary() {
           )}
           {soloLevel != null && (
             <span style={{ padding: "2px 10px", borderRadius: 11, fontSize: 12, fontWeight: 600, background: "var(--bg-elevated)", color: "#a586e0" }}>
-              🗺️ Solo {soloLevel}
+              🏃 Maraton {soloLevel}
             </span>
           )}
         </div>

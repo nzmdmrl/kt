@@ -51,7 +51,7 @@ export default function SoloPage() {
     return (
       <Center>
         <div style={{ textAlign: "center" }}>
-          <p style={{ color: "var(--text-soft)", marginBottom: 16 }}>Solo mod için giriş yapmalısın.</p>
+          <p style={{ color: "var(--text-soft)", marginBottom: 16 }}>Maraton için giriş yapmalısın.</p>
           <a href="/giris" style={{ color: "var(--accent)", fontWeight: 700 }}>Giriş Yap →</a>
         </div>
       </Center>
@@ -85,7 +85,7 @@ export default function SoloPage() {
         background: "var(--bg)", borderBottom: "1px solid var(--border-soft)",
       }}>
         <a href="/" style={{ background: "var(--bg-panel)", border: "1px solid var(--border-soft)", borderRadius: "50%", width: 36, height: 36, display: "grid", placeItems: "center", textDecoration: "none", color: "var(--text-strong)", fontSize: 18 }}>←</a>
-        <span className="brand-mono" style={{ fontSize: 18 }}>Solo Mod</span>
+        <span className="brand-mono" style={{ fontSize: 18 }}>Maraton</span>
         <span className="brand-mono" style={{ fontSize: 16, color: "var(--accent)" }}>⭐ {prog.total_stars}</span>
       </div>
 

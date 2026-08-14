@@ -39,7 +39,7 @@ export default function HomeHero() {
   const cards = [
     { icon: "⚔️", label: "Arena", href: "/arena", bg: "linear-gradient(145deg,#e0940a,#c47a00)", desc: "Rakip bul" },
     { icon: "🎪", label: "Özel Arena", href: "/arena/ozel", bg: "linear-gradient(145deg,#7b52c4,#5e3a9e)", desc: "Arkadaşlarınla" },
-    { icon: "🗺️", label: "Solo Mod", href: "/solo", bg: "linear-gradient(145deg,#4a8fc4,#2e6da8)", desc: "Bölümler" },
+    { icon: "🗺️", label: "Maraton", href: "/solo", bg: "linear-gradient(145deg,#4a8fc4,#2e6da8)", desc: "Bölümler" },
     { icon: "📅", label: "Günün Kelimesi", href: "/gunun-kelimesi", bg: "linear-gradient(145deg,#c44a7e,#a23763)", desc: "Günlük" },
     { icon: "🏆", label: "Lig", href: "/lig", bg: "linear-gradient(145deg,#3a7fc4,#2868a8)", desc: "Sıralama" },
   ];
@@ -72,7 +72,7 @@ export default function HomeHero() {
               )}
               {soloLevel != null && (
                 <span style={{ padding: "2px 9px", borderRadius: 10, fontSize: 11, fontWeight: 600, background: "var(--bg-elevated)", color: "#a586e0" }}>
-                  🗺️ Solo {soloLevel}
+                  🏃 Maraton {soloLevel}
                 </span>
               )}
             </div>

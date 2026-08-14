@@ -5,7 +5,7 @@ Bölümler (section):
   home        -> Ana sayfa arka plan müziği
   arena_wait  -> Arena rakip aranırken
   match_wait  -> 1v1 rakip aranırken
-  solo        -> Solo mod arka plan müziği
+  solo        -> Maraton arka plan müziği
   daily       -> Günün kelimesi müziği
 
 Her bölümde birden fazla parça olabilir; oynatıcı rastgele seçer, biterken
@@ -26,7 +26,7 @@ MUSIC_SECTIONS = {
     "home": "Ana sayfa müziği",
     "arena_wait": "Arena rakip aranırken",
     "match_wait": "1v1 rakip aranırken",
-    "solo": "Solo mod müziği",
+    "solo": "Maraton müziği",
     "daily": "Günün kelimesi müziği",
 }
 

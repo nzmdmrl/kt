@@ -124,7 +124,7 @@ const SETTING_GROUPS: [string, string][] = [
   ["Genel", "🎯"],
   ["1v1 Düello", "⚔️"],
   ["Arena", "🏟️"],
-  ["Maraton (Solo)", "🏃"],
+  ["Maraton", "🏃"],
   ["Jokerler", "🃏"],
   ["XP", "💎"],
   ["Adlar & Listeler", "🔤"],
@@ -678,7 +678,7 @@ function Titles() {
   const eventLabel: Record<string, string> = {
     match_win: "1v1 Galibiyet", match_loss: "1v1 Mağlubiyet", match_draw: "1v1 Beraberlik",
     arena_played: "Arena Katılım", arena_win: "Arena Birincilik",
-    solo_level: "Solo Level Geçme", daily_solved: "Günün Kelimesi",
+    solo_level: "Maraton Bölüm Geçme", daily_solved: "Günün Kelimesi",
   };
 
   async function saveEvent(key: string, value: string) {
@@ -874,7 +874,7 @@ const MUSIC_SECTIONS = [
   { key: "home", label: "🏠 Ana sayfa müziği" },
   { key: "arena_wait", label: "⚔️ Arena rakip aranırken" },
   { key: "match_wait", label: "🎯 1v1 rakip aranırken" },
-  { key: "solo", label: "🧩 Solo mod müziği" },
+  { key: "solo", label: "🏃 Maraton müziği" },
   { key: "daily", label: "📅 Günün kelimesi müziği" },
 ];
 
