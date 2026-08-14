@@ -53,6 +53,8 @@ const FALLBACK_GROUPS: { code: string; label: string }[] = [
 const HIGH_IMPORTANCE_GROUP = "game";
 
 const BANNER_BODY_CLASS = "has-native-banner";
+/** Bant + alt bar tek parça görünsün diye serilen dolgu şeridinin id'si. */
+const BANNER_FILL_ID = "kt-native-banner-fill";
 /** Alt bar bu sayfada basılı mı — rezerv spacer'a mı gövdeye mi yazılacak. */
 const NAV_PRESENT_CLASS = "has-bottom-nav";
 const BANNER_HEIGHT_VAR = "--kt-banner-h";
@@ -227,6 +229,84 @@ function applyBannerSpace() {
     // Alt bar bu sayfada basılı mı? Rezervin spacer'a mı yoksa gövdeye mi
     // yazılacağını bu belirler (bkz. globals.css).
     document.body.classList.toggle(NAV_PRESENT_CLASS, d.measured);
+    syncBannerFill();
+  } catch {}
+}
+
+// ------------------------------------------------- BANDIN ARKASINDAKİ DOLGU
+//
+// Bant native bir katman: WebView'ın ÜSTÜNE çiziliyor, yani altında kalan alan
+// hâlâ sayfaya ait ve sayfa zemini (gökyüzü animasyonu) oradan sızıyor. Alt bar
+// ekranın dibinde, bant onun 15 px üstünde durduğu için araya ve bandın yanına
+// zemin görünüyordu. Bu şerit o alanı alt barın KENDİ zeminiyle doldurur →
+// "bar + bant" tek parça renkli bir kuşak gibi okunur.
+//
+// Kurallar:
+//  - yalnızca native'de ve bant GÖRÜNÜRKEN var; bant gizlenince/kapalıyken
+//    DOM'dan tamamen silinir (setBannerHeight(0) → syncBannerFill).
+//  - yükseklik CSS değişkeninden okunur (--kt-banner-space = ekran altından
+//    bandın üst kenarına), böylece her boyut olayında kendiliğinden güncellenir.
+//  - z-index alt barın (50) altında, pointer-events yok → dokunuşu ASLA yemez.
+//  - renk SABİT DEĞİL: alt barın hesaplanmış stilinden kopyalanır; bar yoksa
+//    (ör. /giris) barın kullandığı --bg-panel belirtecine düşer.
+
+/** Alt barın o anki zemini — renk/gradyan/blur, hesaplanmış stilden okunur. */
+function navBackground(): { color: string; image: string; filter: string } {
+  try {
+    const bar = document.querySelector<HTMLElement>(".kt-bottom-nav-bar");
+    if (bar) {
+      const cs = getComputedStyle(bar);
+      return {
+        color: cs.backgroundColor || "var(--bg-panel)",
+        image: cs.backgroundImage && cs.backgroundImage !== "none" ? cs.backgroundImage : "none",
+        filter: cs.backdropFilter && cs.backdropFilter !== "none" ? cs.backdropFilter : "none",
+      };
+    }
+  } catch {}
+  // Bar bu sayfada basılı değil — barın kullandığı belirtecin ta kendisi.
+  return { color: "var(--bg-panel)", image: "none", filter: "none" };
+}
+
+/** Tema değişince (data-theme) rengi tazelemek için — şerit varken dinler. */
+let fillThemeWatcher: MutationObserver | null = null;
+
+function syncBannerFill() {
+  try {
+    let el = document.getElementById(BANNER_FILL_ID);
+
+    // Bant yok/gizli → iz bırakmadan kaldır.
+    if (bannerHeightPx <= 0) {
+      el?.remove();
+      fillThemeWatcher?.disconnect();
+      fillThemeWatcher = null;
+      return;
+    }
+
+    if (!el) {
+      el = document.createElement("div");
+      el.id = BANNER_FILL_ID;
+      el.setAttribute("aria-hidden", "true");
+      el.style.cssText =
+        "position:fixed;left:0;right:0;bottom:0;z-index:49;pointer-events:none;";
+      document.body.appendChild(el);
+
+      // Gündüz/gece geçişinde bar rengi değişir; kopyalanan renk bayatlamasın.
+      fillThemeWatcher = new MutationObserver(() => syncBannerFill());
+      fillThemeWatcher.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ["data-theme"],
+      });
+    }
+
+    // Ekran altından bandın ÜST kenarına: bar + boşluk + bant (+ güvenli alan,
+    // barın kendi dolgusunda). Değişken her boyut olayında yeniden yazılıyor.
+    el.style.height = `var(${BANNER_SPACE_VAR}, 0px)`;
+
+    const bg = navBackground();
+    el.style.backgroundColor = bg.color;
+    el.style.backgroundImage = bg.image;
+    el.style.setProperty("backdrop-filter", bg.filter);
+    el.style.setProperty("-webkit-backdrop-filter", bg.filter);
   } catch {}
 }
 
