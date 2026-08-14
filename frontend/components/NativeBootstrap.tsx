@@ -66,6 +66,15 @@ function log(...args: any[]) {
   console.warn("[native]", ...args);
 }
 
+/**
+ * GEÇİCİ TEŞHİS — "banner hiç çıkmıyor" sorunu için adım adım iz kaydı.
+ * chrome://inspect konsolunda "[banner]" ile filtrelenir. Sorun bulununca SİLİNECEK.
+ * Sadece native tarafta çalışır (çağrıldığı yerlerin hepsi isNative kapısının ardında).
+ */
+function blog(...args: any[]) {
+  console.log("[banner]", ...args);
+}
+
 /** Bandın gerçek yüksekliği (px) — CSS bu değere göre yer açar. */
 function setBannerHeight(px: number) {
   try {
@@ -101,8 +110,17 @@ let bannerQueue: Promise<void> = Promise.resolve();
 /** Şu anki yola göre bandı gizler veya geri getirir. Hazır değilse sessiz geçer. */
 function applyBannerForPath(): Promise<void> {
   const ctl = bannerCtl;
-  if (!ctl) return Promise.resolve();
+  if (!ctl) {
+    blog("gezinme:", currentPath, "-> kurulum HENÜZ BİTMEDİ (banner denetimi yok)");
+    return Promise.resolve();
+  }
   const shouldHide = pathHidden(currentPath, ctl.hiddenPaths);
+  blog(
+    "gezinme:", currentPath,
+    "| gizli liste:", JSON.stringify(ctl.hiddenPaths),
+    "| eşleşti:", shouldHide,
+    "->", shouldHide ? "hide()" : "show()",
+  );
   bannerQueue = bannerQueue
     .then(() => (shouldHide ? ctl.hide() : ctl.show()))
     .catch(() => {});
@@ -353,17 +371,19 @@ async function setupPush(
 
 async function setupAdMob(platform: Platform) {
   try {
+    blog("kurulum başlıyor — platform:", platform, "| yol:", currentPath);
     const config = await loadAppConfig(platform);
     const admob = config?.["ads.admob"];
-    if (!admob?.enabled) return;
+    blog("ayar okundu:", JSON.stringify(admob ?? null));
+    if (!admob?.enabled) { blog("ÇIKIŞ: ads.admob.enabled kapalı veya ayar okunamadı"); return; }
     // banner_enabled ayrı anahtar: banner kapatılsa da geçiş reklamı kalır.
     // Alan hiç yoksa (migration öncesi kayıt) eskisi gibi AÇIK sayılır.
-    if (admob.banner_enabled === false) return;
+    if (admob.banner_enabled === false) { blog("ÇIKIŞ: banner_enabled = false"); return; }
 
     const unit = (
       (platform === "ios" ? admob.ios?.banner : admob.android?.banner) || ""
     ).trim();
-    if (!unit) return;   // birim id yoksa hiçbir şey yapma (eklenti bile yüklenmez)
+    if (!unit) { blog("ÇIKIŞ: bu platformun banner birim id'si BOŞ"); return; }
 
     const hiddenPaths = Array.isArray(admob.banner_hidden_paths)
       ? admob.banner_hidden_paths.filter((p): p is string => typeof p === "string" && !!p.trim())
@@ -371,9 +391,17 @@ async function setupAdMob(platform: Platform) {
 
     const { AdMob, BannerAdSize, BannerAdPosition, BannerAdPluginEvents } =
       await import("@capacitor-community/admob");
+    try {
+      const { Capacitor } = await import("@capacitor/core");
+      blog("AdMob eklentisi native tarafta var mı:", Capacitor.isPluginAvailable("AdMob"));
+    } catch {}
 
     const isTesting = !!admob.test_mode;
+    // DİKKAT: initialize Play Services olmayan emülatörde HİÇ ÇÖZÜLMEYEBİLİR.
+    // "başlıyor" görünüp "bitti" görünmüyorsa sorun burada demektir.
+    blog("initialize başlıyor (initializeForTesting =", isTesting, ")");
     await AdMob.initialize({ initializeForTesting: isTesting });
+    blog("initialize bitti");
 
     // ATT (izleme izni) SADECE iOS'ta sorulur; Android'de bu çağrı yoktur.
     if (platform === "ios") {
@@ -394,12 +422,17 @@ async function setupAdMob(platform: Platform) {
     let visible = false;
     await AdMob.addListener(BannerAdPluginEvents.SizeChanged, (size: any) => {
       const h = Number(size?.height) || 0;
+      blog("boyut olayı: h =", h, "| visible =", visible, "-> --kt-banner-h =", visible ? h : 0);
       setBannerHeight(visible ? h : 0);
     });
     await AdMob.addListener(BannerAdPluginEvents.FailedToLoad, (err) => {
+      // AdMob hata kodları: 0 iç hata, 1 geçersiz istek, 2 ağ, 3 stok yok (no fill).
+      blog("YÜKLENEMEDİ:", JSON.stringify(err));
       log("banner yüklenemedi:", err);
       setBannerHeight(0);
     });
+    await AdMob.addListener(BannerAdPluginEvents.Loaded, () => blog("ilan YÜKLENDİ (Loaded)"));
+    blog("dinleyiciler bağlandı");
 
     let everShown = false;   // showBanner en az bir kez çağrıldı mı?
 
@@ -411,8 +444,11 @@ async function setupAdMob(platform: Platform) {
       try {
         if (everShown) {
           // İlan YENİDEN YÜKLENMEZ: var olan banner yeniden görünür yapılır.
+          blog("resumeBanner çağrılıyor");
           await AdMob.resumeBanner();
+          blog("resumeBanner tamam");
         } else {
+          blog("showBanner çağrılıyor — adId:", unit, "| isTesting:", isTesting);
           await AdMob.showBanner({
             adId: unit,
             adSize: BannerAdSize.ADAPTIVE_BANNER,
@@ -420,11 +456,13 @@ async function setupAdMob(platform: Platform) {
             margin: 0,
             isTesting,
           });
+          blog("showBanner tamam (ilan yükleme sonucu Loaded/YÜKLENEMEDİ olayında)");
           everShown = true;
         }
         // Yükseklik SizeChanged olayıyla gelir; olay gecikirse boşluk 0 kalır,
         // reklam görünür ama düzen bozulmaz.
       } catch (e) {
+        blog("show HATA:", String(e));
         log("banner gösterilemedi:", e);
         visible = false;
         setBannerHeight(0);
@@ -435,20 +473,25 @@ async function setupAdMob(platform: Platform) {
       // Ölçüyü ÖNCE sıfırla: düzen beklemeden kapanır (anında his).
       visible = false;
       setBannerHeight(0);
-      if (!everShown) return;   // hiç gösterilmediyse hideBanner reddeder
+      if (!everShown) { blog("hide: banner hiç gösterilmemiş, çağrı yok"); return; }
       try {
+        blog("hideBanner çağrılıyor");
         await AdMob.hideBanner();
+        blog("hideBanner tamam");
       } catch (e) {
+        blog("hide HATA:", String(e));
         log("banner gizlenemedi:", e);
       }
     };
 
     bannerCtl = { hiddenPaths, show, hide };
+    blog("denetim hazır — ilk karar veriliyor, yol:", currentPath);
 
     // İlk karar mevcut sayfaya göre: oyun ekranındaysak banner HİÇ açılmaz
     // (açıp hemen kapatma titremesi olmaz, boşuna ilan da yüklenmez).
     await applyBannerForPath();
   } catch (e) {
+    blog("KURULUM HATASI:", String(e));
     log("AdMob kurulumu başarısız:", e);
     setBannerHeight(0);
   }
