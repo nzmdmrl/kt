@@ -39,15 +39,11 @@ export default function HomeModes({ style = "stil2" }: { style?: "stil1" | "stil
   const [title, setTitle] = useState<TitleInfo | null>(null);
   const [soloLevel, setSoloLevel] = useState<number | null>(null);
   const [joinCode, setJoinCode] = useState("");
-  // Oturum daha doğrulanmadan logonun boyutu belli olsun (üye = küçük logo):
-  // token varlığına bakarak ilk boyamada doğru boyutu seç — sonradan zıplamaz.
-  const [hasToken, setHasToken] = useState(false);
 
   function token() { return typeof window !== "undefined" ? localStorage.getItem("kt_token") : null; }
 
   // 1) Önbellekten anında doldur (ekran boyanmadan önce) — sıçrama olmaz.
   useIsoLayoutEffect(() => {
-    setHasToken(!!token());
     if (!user) return;
     const c = readHomeCache(user.id);
     if (!c) return;
@@ -107,16 +103,13 @@ export default function HomeModes({ style = "stil2" }: { style?: "stil1" | "stil
   return (
     <div className={`home-modes-wrap${s2 ? " hm-s2" : ""}`}>
       {/* Stil 2: animasyonlu KELİME TAHMİN kutu logosu.
-          Giriş yapmamış kullanıcıda sayfanın ana görseli (büyük);
-          giriş yapmışta oyun öne çıksın diye küçük sürüm. */}
-      {s2 && (() => {
-        const small = loading ? hasToken : !!user;
-        return (
-          <div className={`hm-wordmark${small ? " hm-wordmark--compact" : ""}`}>
-            <AnimatedWordmark compact={small} />
-          </div>
-        );
-      })()}
+          Boyut giriş durumundan bağımsız sabit — auth yüklenirken/yüklendikten
+          sonra ölçü değişmesin, sayfa kaymasın. */}
+      {s2 && (
+        <div className="hm-wordmark">
+          <AnimatedWordmark />
+        </div>
+      )}
 
       {/* Profil / karşılama kartı — puan, madalya, rozet sayılarıyla */}
       {user ? (

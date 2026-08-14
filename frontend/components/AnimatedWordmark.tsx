@@ -11,7 +11,9 @@ import { playTileFlip, unlockAudio } from "@/lib/sound";
  * Her çevrilişte Web Audio ile üretilen kısa "tak" sesi çalar (lib/sound.ts).
  *
  * Renk: KELİME satırı tamamen yeşil, TAHMİN satırı tamamen sarı.
- * Yerleşim: masaüstünde iki satır, mobilde tek satır (globals.css .kt-aw).
+ * Yerleşim: her ekranda TEK SATIR, sabit ölçü (globals.css .kt-aw) — kutular
+ * ilk render'dan itibaren son boyutunda durur, giriş durumuna göre büyüyüp
+ * küçülmez; böylece yükleme/animasyon sırasında sayfada kayma olmaz.
  *
  * Kurallar:
  *  - Harf başına ayrı animasyon kodu YOK; tek zamanlayıcı + `revealed` sayacı.
@@ -34,7 +36,7 @@ const EMPTY_MS = 525;   // baştaki boş kutu bekleyişi
 const STEP_MS = 98;     // harfler arası gecikme
 export const FLIP_MS = 345; // tek kutunun dönüş süresi (globals.css ile aynı olmalı)
 
-export default function AnimatedWordmark({ compact = false }: { compact?: boolean }) {
+export default function AnimatedWordmark() {
   const [revealed, setRevealed] = useState(0);
   const reducedRef = useRef(false);
 
@@ -70,7 +72,7 @@ export default function AnimatedWordmark({ compact = false }: { compact?: boolea
 
   let idx = 0;
   return (
-    <div className={`kt-aw${compact ? " kt-aw--compact" : ""}`} role="img" aria-label="Kelime Tahmin">
+    <div className="kt-aw" role="img" aria-label="Kelime Tahmin">
       {ROWS.map((row, r) => (
         <div className="kt-aw-row" key={r}>
           {row.map((tile) => {
