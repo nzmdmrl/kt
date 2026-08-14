@@ -14,12 +14,32 @@ from __future__ import annotations
 import hashlib
 from datetime import date
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query, Request
+from sqlalchemy import select, func
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.database import get_db
+from app.models.daily_solve import DailySolve
 from app.words.word_service import get_pool
 from app.core.config import get_settings
 
 router = APIRouter(prefix="/daily", tags=["daily"])
 settings = get_settings()
+
+
+def _solver_key(request: Request, cid: str) -> str:
+    """Çözeni tekilleştiren anahtar: üye 'u{id}', misafir 'g{istemci anahtarı}'."""
+    auth = request.headers.get("Authorization", "")
+    if auth.startswith("Bearer "):
+        try:
+            from app.core.security import decode_token
+            uid = decode_token(auth[7:])
+            if uid:
+                return f"u{uid}"
+        except Exception:
+            pass
+    cid = "".join(ch for ch in (cid or "") if ch.isalnum())[:40]
+    return f"g{cid}" if cid else ""
 
 
 def word_of_day(d: date | None = None, length: int = 5, lang: str = "tr") -> str:
@@ -47,9 +67,30 @@ async def get_daily_word(length: int = Query(5, ge=4, le=6)):
     }
 
 
+@router.get("/stats")
+async def daily_stats(db: AsyncSession = Depends(get_db), length: int = Query(5, ge=4, le=6)):
+    """Bugün günün kelimesini kaç kişinin çözdüğü (public)."""
+    n = (await db.execute(
+        select(func.count(DailySolve.id)).where(
+            DailySolve.solve_date == date.today(), DailySolve.length == length
+        )
+    )).scalar_one()
+    return {"date": date.today().isoformat(), "length": length, "solved_count": int(n or 0)}
+
+
 @router.get("/check")
-async def check_daily_guess(guess: str, length: int = Query(5, ge=4, le=6)):
-    """Günün kelimesi tahminini değerlendirir (Wordle renkleri)."""
+async def check_daily_guess(
+    request: Request,
+    guess: str,
+    length: int = Query(5, ge=4, le=6),
+    cid: str = Query("", description="Misafir istemci anahtarı (tekilleştirme)"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Günün kelimesi tahminini değerlendirir (Wordle renkleri).
+
+    Tahmin doğruysa çözüm sayacına tek satır yazılır (aynı kişi tekrar çözerse
+    sayaç artmaz).
+    """
     from app.game.word_engine import normalize, evaluate_guess, is_correct, is_valid_word_shape
     lang = settings.GAME_LANG
     target = word_of_day(length=length, lang=lang)
@@ -60,6 +101,25 @@ async def check_daily_guess(guess: str, length: int = Query(5, ge=4, le=6)):
         return {"valid": False, "error": f"'{target[0]}' ile başlamalı"}
     results = evaluate_guess(g, target)
     correct = is_correct(g, target)
+    if correct:
+        # Sayaç: aynı çözen için ikinci satır açılmaz (benzersiz kısıt + kontrol).
+        solver = _solver_key(request, cid)
+        if solver:
+            today = date.today()
+            exists = (await db.execute(
+                select(DailySolve.id).where(
+                    DailySolve.solve_date == today,
+                    DailySolve.length == length,
+                    DailySolve.solver == solver,
+                )
+            )).scalar_one_or_none()
+            if not exists:
+                db.add(DailySolve(solve_date=today, length=length, solver=solver))
+                try:
+                    await db.commit()
+                except Exception:
+                    # Aynı anda iki istek geldiyse benzersiz kısıt patlar — sorun değil.
+                    await db.rollback()
     return {
         "valid": True,
         "correct": correct,

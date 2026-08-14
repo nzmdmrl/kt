@@ -39,6 +39,9 @@ export default function HomeModes({ style = "stil2" }: { style?: "stil1" | "stil
   const [title, setTitle] = useState<TitleInfo | null>(null);
   const [soloLevel, setSoloLevel] = useState<number | null>(null);
   const [joinCode, setJoinCode] = useState("");
+  // Kart alt satırları: günün kelimesini bugün kaç kişi çözdü + günlük lig sıram.
+  const [dailySolved, setDailySolved] = useState<number | null>(null);
+  const [dailyRank, setDailyRank] = useState<number | null>(null);
 
   function token() { return typeof window !== "undefined" ? localStorage.getItem("kt_token") : null; }
 
@@ -72,6 +75,17 @@ export default function HomeModes({ style = "stil2" }: { style?: "stil1" | "stil
     }
   }, [user]);
 
+  // 3) Günün kelimesi sayacı (herkese açık) + günlük lig sıram (girişliyse).
+  useEffect(() => {
+    fetch(apiUrl("/api/daily/stats?length=5"))
+      .then((r) => r.json()).then((d) => setDailySolved(d.solved_count ?? 0)).catch(() => {});
+  }, []);
+  useEffect(() => {
+    if (!user) { setDailyRank(null); return; }
+    fetch(apiUrl("/api/league/me?scope=daily"), { headers: { Authorization: `Bearer ${token()}` } })
+      .then((r) => r.json()).then((d) => setDailyRank(d?.entry?.rank ?? null)).catch(() => setDailyRank(null));
+  }, [user]);
+
   const avatar = user?.avatar_url || `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(user?.username || "guest")}`;
   const level = lvl?.level ?? user?.level ?? 1;
   const pct = title?.title_progress ?? 0;   // backend 0-100 döner
@@ -90,10 +104,22 @@ export default function HomeModes({ style = "stil2" }: { style?: "stil1" | "stil
     { icon: "🎪", label: "Özel Arena", href: "/arena/ozel", desc: "Arkadaşlarınla", bg: "linear-gradient(145deg,#7b52c4,#5e3a9e)" },
     { icon: "🏃", label: "Maraton", href: "/solo", desc: soloLevel != null ? `Bölüm ${soloLevel}` : "Bölüm bölüm ilerle", bg: "linear-gradient(145deg,#4a8fc4,#2e6da8)" },
   ];
-  // Alt modlar: Günün Kelimesi, Lig (başlıksız)
+  // Alt modlar: Günün Kelimesi, Lig (başlıksız).
+  // desc2: canlı veri satırı (aynı punto). Mobilde SADECE bu satır görünür,
+  // üstteki sabit açıklama (desc) gizlenir — yer kazanmak için.
   const bottomModes = [
-    { icon: "📅", label: "Günün Kelimesi", href: "/gunun-kelimesi", desc: "Günlük bulmaca", bg: "linear-gradient(145deg,#c44a7e,#a23763)" },
-    { icon: "🏆", label: "Lig", href: "/lig", desc: "Sıralamalar", bg: "linear-gradient(145deg,#3a7fc4,#2868a8)" },
+    {
+      icon: "📅", label: "Günün Kelimesi", href: "/gunun-kelimesi",
+      desc: "Günlük bulmaca",
+      desc2: dailySolved != null ? `Bugün ${dailySolved.toLocaleString("tr")} kişi çözdü` : "",
+      bg: "linear-gradient(145deg,#c44a7e,#a23763)",
+    },
+    {
+      icon: "🏆", label: "Lig", href: "/lig",
+      desc: "Sıralamalar",
+      desc2: dailyRank ? `Günlük ${dailyRank}. sıradasın` : "1v1 maç yap, lige katıl",
+      bg: "linear-gradient(145deg,#3a7fc4,#2868a8)",
+    },
   ];
 
   const s2 = style === "stil2";
@@ -244,7 +270,8 @@ export default function HomeModes({ style = "stil2" }: { style?: "stil1" | "stil
             <span className="hm-mode-icon">{m.icon}</span>
             <span className="hm-mode-text">
               <span className="hm-mode-label">{m.label}</span>
-              <span className="hm-mode-desc">{m.desc}</span>
+              <span className="hm-mode-desc hm-desc-static">{m.desc}</span>
+              {m.desc2 && <span className="hm-mode-desc">{m.desc2}</span>}
             </span>
             {deco(m.icon)}
           </button>

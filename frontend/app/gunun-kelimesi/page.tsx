@@ -13,6 +13,18 @@ type Tile = { letter: string; state: "correct" | "present" | "absent" };
 type DailyInfo = { date: string; length: number; first_letter: string };
 
 const MAX_ROWS = 6;
+
+// Misafirin tarayıcısına özel sabit anahtar — "bugün X kişi çözdü" sayacında
+// aynı kişinin tekrar sayılmaması için (üyede token'daki kullanıcı id'si kullanılır).
+function dailyClientId(): string {
+  if (typeof window === "undefined") return "";
+  let id = localStorage.getItem("kt_daily_cid");
+  if (!id) {
+    id = Math.random().toString(36).slice(2, 12) + Date.now().toString(36);
+    localStorage.setItem("kt_daily_cid", id);
+  }
+  return id;
+}
 const TILE_COLOR: Record<string, string> = {
   correct: "var(--tile-correct)",
   present: "var(--tile-present)",
@@ -41,7 +53,12 @@ export default function DailyPage() {
     if (draft.length !== info.length) return;
     setErr("");
     try {
-      const res = await fetch(apiUrl(`/api/daily/check?guess=${encodeURIComponent(draft)}&length=${info.length}`));
+      // cid + token: "bugün kaç kişi çözdü" sayacında aynı kişiyi bir kez saymak için.
+      const token = localStorage.getItem("kt_token");
+      const res = await fetch(
+        apiUrl(`/api/daily/check?guess=${encodeURIComponent(draft)}&length=${info.length}&cid=${dailyClientId()}`),
+        token ? { headers: { Authorization: `Bearer ${token}` } } : undefined,
+      );
       const data = await res.json();
       if (!data.valid) { setErr(data.error || "Geçersiz"); playSound("wrong"); return; }
       const newRows = [...rows, data.tiles];
