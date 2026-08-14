@@ -42,6 +42,11 @@ Domain: **kelimetahmin.com** (frontend `www.`, backend `api.`).
 - Coolify resource UUID: `mrx9s3fe2zqmkx1xnq1cz6ga`.
 - PostgreSQL: kullanıcı `kelime` / şifre `Kt1122334455xYzQ9871` / db `kelimetahmin`.
 - Bad Gateway görülürse: `docker restart coolify-proxy`.
+- **Apex → www yönlendirmesi**: `kelimetahmin.com` → `https://www.kelimetahmin.com` (301) ve apex
+  SSL sertifikası, Coolify'ın domain alanında DEĞİL, Traefik dynamic dosyasında tanımlı:
+  `/data/coolify/proxy/dynamic/kelimetahmin-apex-redirect.yaml` (repo dışında, sunucuda).
+  Coolify etiketleri her deploy'da yeniden yazıldığı için düzeltme oraya konmadı; dynamic
+  dizin kalıcı ve Traefik dosyayı canlı izliyor (yeniden başlatma gerekmez).
 - Docker Compose, frontend/backend/db/redis servisleri. Dockerfile'lar repoda
   (`frontend/Dockerfile`, `backend/Dockerfile`) — build-time ARG: `NEXT_PUBLIC_API_BASE` vb.
 
