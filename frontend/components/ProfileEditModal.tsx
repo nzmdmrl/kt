@@ -2,12 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { apiUrl } from "@/lib/api";
+import AlertPopup from "@/components/AlertPopup";
 
 // Profil düzenleme modalı: görünen ad/username/email/şifre + gizlilik ayarları.
 export default function ProfileEditModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
   const [data, setData] = useState<any>(null);
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
+  // Hatalar popup olarak gösterilir (limit aşımı gözden kaçmasın).
+  const [popup, setPopup] = useState("");
 
   const [displayName, setDisplayName] = useState("");
   const [username, setUsername] = useState("");
@@ -39,15 +42,50 @@ export default function ProfileEditModal({ onClose, onSaved }: { onClose: () => 
     try {
       const r = await fetch(apiUrl(path), { method: "POST", headers: headers(), body: JSON.stringify(body) });
       const j = await r.json();
-      if (!r.ok) { flash(j.detail || "Hata", true); return false; }
+      // Sunucu hatası (limit aşımı, alınmış ad, kota vb.) popup olarak çıkar.
+      if (!r.ok) { setPopup(j.detail || "İşlem başarısız."); return false; }
       flash(okMsg);
       return true;
-    } catch { flash("Bağlantı hatası", true); return false; }
+    } catch { setPopup("Bağlantı hatası. İnternetini kontrol edip tekrar dene."); return false; }
+  }
+
+  // Karakter limitleri sunucudan gelir (admin panelinden ayarlanır).
+  const lim = {
+    unameMin: data?.username_min_len ?? 3,
+    unameMax: data?.username_max_len ?? 20,
+    dispMin: data?.display_name_min_len ?? 2,
+    dispMax: data?.display_name_max_len ?? 24,
+  };
+
+  async function saveDisplayName() {
+    const name = displayName.trim().replace(/\s+/g, " ");
+    if (name.length < lim.dispMin) {
+      setPopup(`Görünen ad en az ${lim.dispMin} karakter olmalı (girdiğin: ${name.length}).`);
+      return;
+    }
+    if (name.length > lim.dispMax) {
+      setPopup(`Görünen ad en fazla ${lim.dispMax} karakter olabilir (girdiğin: ${name.length}).`);
+      return;
+    }
+    const ok = await post("/api/account/display-name", { display_name: name }, "Görünen ad güncellendi");
+    if (ok) { setDisplayName(name); setData((d: any) => ({ ...d, display_name: name })); onSaved(); }
   }
 
   async function saveUsername() {
     const uname = username.trim();
-    if (uname === data.username) { flash("Kullanıcı adı zaten bu.", true); return; }
+    if (uname === data.username) { setPopup("Kullanıcı adın zaten bu."); return; }
+    if (uname.length < lim.unameMin) {
+      setPopup(`Kullanıcı adı en az ${lim.unameMin} karakter olmalı (girdiğin: ${uname.length}).`);
+      return;
+    }
+    if (uname.length > lim.unameMax) {
+      setPopup(`Kullanıcı adı en fazla ${lim.unameMax} karakter olabilir (girdiğin: ${uname.length}).`);
+      return;
+    }
+    if (!/^[a-zA-Z0-9_]+$/.test(uname)) {
+      setPopup("Kullanıcı adı sadece harf, rakam ve alt çizgi (_) içerebilir.");
+      return;
+    }
     const ok = await post("/api/account/username", { username: uname }, "Kullanıcı adı güncellendi");
     if (!ok) return;
     // Profil adresi kullanıcı adına bağlı (/profil/<ad>) — yeni adrese taşı.
@@ -106,19 +144,17 @@ export default function ProfileEditModal({ onClose, onSaved }: { onClose: () => 
         />
       </Section>
 
-      {/* Görünen ad — oyunda herkesin gördüğü isim (serbestçe değiştirilebilir) */}
+      {/* Görünen ad — oyunda herkesin gördüğü isim (serbestçe değiştirilebilir).
+          Alan kesilmez; limit aşılırsa Kaydet'te popup uyarı çıkar. */}
       <Section title="Görünen Ad">
         <div style={{ display: "flex", gap: 8 }}>
-          <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} maxLength={24} style={input} />
-          <button
-            onClick={async () => {
-              const ok = await post("/api/account/display-name", { display_name: displayName }, "Görünen ad güncellendi");
-              if (ok) { setData((d: any) => ({ ...d, display_name: displayName.trim() })); onSaved(); }
-            }}
-            style={btn}
-          >Kaydet</button>
+          <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} style={input} />
+          <button onClick={saveDisplayName} style={btn}>Kaydet</button>
         </div>
-        <div style={hint}>Oyunda, sıralamalarda ve maçlarda bu isim görünür.</div>
+        <div style={hint}>
+          Oyunda, sıralamalarda ve maçlarda bu isim görünür. {lim.dispMin}-{lim.dispMax} karakter.{" "}
+          <Counter len={displayName.trim().length} max={lim.dispMax} />
+        </div>
       </Section>
 
       {/* Kullanıcı adı — profil adresin (@ad). Ayda 2 kez değiştirilebilir. */}
@@ -127,7 +163,6 @@ export default function ProfileEditModal({ onClose, onSaved }: { onClose: () => 
           <input
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            maxLength={20}
             disabled={unameLeft === 0}
             style={{ ...input, opacity: unameLeft === 0 ? 0.5 : 1 }}
           />
@@ -137,6 +172,9 @@ export default function ProfileEditModal({ onClose, onSaved }: { onClose: () => 
           </button>
         </div>
         <div style={hint}>
+          {lim.unameMin}-{lim.unameMax} karakter; harf, rakam ve alt çizgi (_).{" "}
+          <Counter len={username.trim().length} max={lim.unameMax} />
+          <br />
           {unameLeft > 0
             ? `${data.username_window_days ?? 30} günde ${data.username_limit ?? 2} kez değiştirebilirsin — kalan hak: ${unameLeft}.`
             : `Değiştirme hakkın doldu.${data.username_next_change_at ? ` Yeni hakkın: ${fmtDate(data.username_next_change_at)}.` : ""}`}
@@ -167,6 +205,8 @@ export default function ProfileEditModal({ onClose, onSaved }: { onClose: () => 
           >Kaydet</button>
         </div>
       </Section>
+
+      {popup && <AlertPopup message={popup} onClose={() => setPopup("")} />}
     </Overlay>
   );
 }
@@ -286,6 +326,16 @@ const btn: React.CSSProperties = {
   padding: "10px 16px", borderRadius: 9, border: "none", background: "var(--accent)",
   color: "#1a1330", fontWeight: 700, fontSize: 14, cursor: "pointer", flexShrink: 0,
 };
+// Karakter sayacı — limit aşılınca kırmızıya döner (popup'tan önce uyarı).
+function Counter({ len, max }: { len: number; max: number }) {
+  const over = len > max;
+  return (
+    <span className="brand-mono" style={{ color: over ? "var(--accent-hot)" : "var(--text-dim)", fontWeight: over ? 700 : 400 }}>
+      {len}/{max}
+    </span>
+  );
+}
+
 const hint: React.CSSProperties = {
   marginTop: 6, fontSize: 12, color: "var(--text-dim)", lineHeight: 1.4,
 };

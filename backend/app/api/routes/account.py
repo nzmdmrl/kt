@@ -24,10 +24,10 @@ from app.core.deps import get_current_user
 from app.core.security import hash_password, verify_password
 from app.models.user import User
 from app.models.username_change import UsernameChange
+from app.game import name_rules
 
 router = APIRouter(prefix="/account", tags=["account"])
 
-USERNAME_RE = re.compile(r"^[a-zA-Z0-9_]{3,20}$")
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 # Kullanıcı adı kotası: WINDOW_DAYS gün içinde en fazla USERNAME_LIMIT değişiklik.
@@ -57,10 +57,17 @@ async def _username_quota(db: AsyncSession, user_id: int) -> tuple[int, datetime
     return left, next_at
 
 
+@router.get("/limits")
+async def name_limits(db: AsyncSession = Depends(get_db)):
+    """Ad karakter limitleri — kayıt ekranı gibi girişsiz yerler için (public)."""
+    return await name_rules.limits(db)
+
+
 @router.get("/me")
 async def account_me(user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     left, next_at = await _username_quota(db, user.id)
     return {
+        **(await name_rules.limits(db)),
         "username": user.username,
         "email": user.email,
         "display_name": user.display_name,
@@ -82,9 +89,10 @@ class DisplayNameIn(BaseModel):
 @router.post("/display-name")
 async def change_display_name(data: DisplayNameIn, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     """Görünen ad — oyun içinde herkesin gördüğü isim. Sınırsız değiştirilebilir."""
-    name = " ".join(data.display_name.split())   # baş/son boşluk + çoklu boşluk temizliği
-    if len(name) < 2 or len(name) > 24:
-        raise HTTPException(400, "Görünen ad 2-24 karakter olmalı.")
+    try:
+        name = await name_rules.clean_display_name(db, data.display_name)
+    except name_rules.NameError_ as e:
+        raise HTTPException(400, str(e))
     user.display_name = name
     await db.commit()
     return {"ok": True, "display_name": name}
@@ -103,9 +111,10 @@ class UsernameIn(BaseModel):
 
 @router.post("/username")
 async def change_username(data: UsernameIn, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    uname = data.username.strip()
-    if not USERNAME_RE.match(uname):
-        raise HTTPException(400, "Kullanıcı adı 3-20 karakter, sadece harf/rakam/alt çizgi olmalı.")
+    try:
+        uname = await name_rules.clean_username(db, data.username)
+    except name_rules.NameError_ as e:
+        raise HTTPException(400, str(e))
     old = user.username
     if uname == old:
         # Aynı ad — kotadan hak yakmaya gerek yok.

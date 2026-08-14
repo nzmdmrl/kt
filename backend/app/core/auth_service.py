@@ -38,9 +38,14 @@ async def get_user_by_id(db: AsyncSession, user_id: int) -> User | None:
 
 
 async def _unique_username(db: AsyncSession, base: str) -> str:
-    """Verilen tabandan benzersiz bir username üretir."""
+    """Verilen tabandan benzersiz bir username üretir (admin limitlerine uyar)."""
+    from app.game import name_rules
+    lim = await name_rules.limits(db)
     base = re.sub(r"[^a-zA-Z0-9_]", "", base) or "oyuncu"
-    base = base[:24]
+    # Sonuna sıra numarası eklenebilir; üst sınırı aşmamak için pay bırak.
+    base = base[:max(1, lim["username_max_len"] - 2)]
+    while len(base) < lim["username_min_len"]:
+        base += "0"
     candidate = base
     i = 0
     while await get_user_by_username(db, candidate):
@@ -57,17 +62,21 @@ async def register_email(
         raise AuthError("Geçerli bir e-posta gir.")
     if len(password) < 6:
         raise AuthError("Şifre en az 6 karakter olmalı.")
-    if not display_name.strip():
-        raise AuthError("Bir görünen ad gir.")
+    # Görünen ad admin panelindeki karakter limitlerine uymalı.
+    from app.game import name_rules
+    try:
+        display_name = await name_rules.clean_display_name(db, display_name)
+    except name_rules.NameError_ as e:
+        raise AuthError(str(e))
     if await get_user_by_email(db, email):
         raise AuthError("Bu e-posta zaten kayıtlı.")
 
-    username = await _unique_username(db, display_name.strip())
+    username = await _unique_username(db, display_name)
     user = User(
         email=email,
         username=username,
         password_hash=hash_password(password),
-        display_name=display_name.strip()[:48],
+        display_name=display_name,
     )
     db.add(user)
     await db.commit()
@@ -101,8 +110,12 @@ async def get_or_create_google_user(
             await db.commit()
             await db.refresh(existing)
             return existing
-    # Yeni Google kullanıcısı
-    display = (name or (email.split("@")[0] if email else "Oyuncu"))[:48]
+    # Yeni Google kullanıcısı — Google'dan gelen ad limiti aşabilir; kayıt
+    # reddedilmesin diye hata yerine kırpılır (kullanıcı sonra düzenleyebilir).
+    from app.game import name_rules
+    _lim = await name_rules.limits(db)
+    display = " ".join((name or (email.split("@")[0] if email else "Oyuncu")).split())
+    display = display[:_lim["display_name_max_len"]] or "Oyuncu"
     username = await _unique_username(db, display)
     user = User(
         email=email.lower() if email else None,

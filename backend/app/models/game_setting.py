@@ -68,4 +68,10 @@ DEFAULT_SETTINGS = {
     "xp_solo_level": {"value": "30", "label": "XP: Solo level geçme", "type": "int"},
     "xp_daily_solved": {"value": "40", "label": "XP: Günün kelimesi çözme", "type": "int"},
     "friend_request_hourly_limit": {"value": "5", "label": "Saatlik arkadaşlık isteği limiti", "type": "int"},
+    # Ad kuralları — kayıt ve profil düzenlemede geçerli (hem sunucu hem arayüz uyar).
+    # Sunucu sınırı: kullanıcı adı en fazla 32, görünen ad en fazla 48 karakter (DB sütunu).
+    "username_min_len": {"value": "3", "label": "Kullanıcı adı: en az karakter", "type": "int"},
+    "username_max_len": {"value": "20", "label": "Kullanıcı adı: en fazla karakter (üst sınır 32)", "type": "int"},
+    "display_name_min_len": {"value": "2", "label": "Görünen ad: en az karakter", "type": "int"},
+    "display_name_max_len": {"value": "24", "label": "Görünen ad: en fazla karakter (üst sınır 48)", "type": "int"},
 }

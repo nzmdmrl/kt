@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { apiUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import Logo from "@/components/Logo";
+import AlertPopup from "@/components/AlertPopup";
 
 function authHeaders(): HeadersInit {
   const t = typeof window !== "undefined" ? localStorage.getItem("kt_token") : null;
@@ -121,6 +122,7 @@ function Dashboard({ onDenied }: { onDenied: () => void }) {
 function Settings() {
   const [settings, setSettings] = useState<any[]>([]);
   const [saved, setSaved] = useState("");
+  const [popup, setPopup] = useState("");
   useEffect(() => { load(); }, []);
   function load() {
     fetch(apiUrl("/api/admin/settings"), { headers: authHeaders() })
@@ -130,11 +132,18 @@ function Settings() {
     // UI'ı anında güncelle (switch hemen değişsin).
     setSettings((prev) => prev.map((s) => s.key === key ? { ...s, value } : s));
     fetch(apiUrl("/api/admin/settings"), { method: "POST", headers: authHeaders(), body: JSON.stringify({ key, value }) })
-      .then((r) => r.json()).then(() => { setSaved(key); setTimeout(() => setSaved(""), 1500); });
+      .then(async (r) => {
+        const j = await r.json().catch(() => ({}));
+        // Geçersiz değer (ör. ad limiti sınır dışı) → popup + eski değeri geri yükle.
+        if (!r.ok) { setPopup(j.detail || "Ayar kaydedilemedi."); load(); return; }
+        setSaved(key); setTimeout(() => setSaved(""), 1500);
+      })
+      .catch(() => setPopup("Bağlantı hatası."));
   }
   return (
     <div style={{ display: "grid", gap: 10 }}>
       <p style={{ color: "var(--text-dim)", fontSize: 13 }}>Değişiklikler yeni başlayan maçlarda geçerli olur.</p>
+      {popup && <AlertPopup message={popup} onClose={() => setPopup("")} />}
       {settings.map((s) => (
         <div key={s.key} style={{ display: "flex", alignItems: "center", gap: 10, background: "var(--bg-panel)", borderRadius: 10, padding: "10px 14px" }}>
           <div style={{ flex: 1 }}>

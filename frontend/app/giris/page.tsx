@@ -7,6 +7,7 @@ import { getJSON } from "@/lib/api";
 import Logo from "@/components/Logo";
 import GoogleSignIn from "@/components/GoogleSignIn";
 import Recaptcha from "@/components/Recaptcha";
+import AlertPopup from "@/components/AlertPopup";
 
 export default function GirisPage() {
   const { user, login, register, loading } = useAuth();
@@ -23,6 +24,15 @@ export default function GirisPage() {
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   // Artınca kutu sıfırdan kurulur — token tek kullanımlık, hatalı denemeden sonra tazelenmeli.
   const [captchaKey, setCaptchaKey] = useState(0);
+  // Görünen ad karakter limiti (admin panelinden ayarlanır) + hata popup'ı.
+  const [nameLimits, setNameLimits] = useState({ display_name_min_len: 2, display_name_max_len: 24 });
+  const [popup, setPopup] = useState("");
+
+  useEffect(() => {
+    getJSON<{ display_name_min_len: number; display_name_max_len: number }>("/api/account/limits")
+      .then((d) => setNameLimits((p) => ({ ...p, ...d })))
+      .catch(() => {});
+  }, []);
 
   // Zaten girişliyse ana sayfaya
   useEffect(() => {
@@ -41,7 +51,11 @@ export default function GirisPage() {
     setBusy(true);
     try {
       if (mode === "register") {
-        if (!displayName.trim()) throw new Error("Bir görünen ad gir");
+        const name = displayName.trim().replace(/\s+/g, " ");
+        const { display_name_min_len: lo, display_name_max_len: hi } = nameLimits;
+        if (!name) throw new Error("Bir görünen ad gir");
+        if (name.length < lo) throw new Error(`Görünen ad en az ${lo} karakter olmalı (girdiğin: ${name.length}).`);
+        if (name.length > hi) throw new Error(`Görünen ad en fazla ${hi} karakter olabilir (girdiğin: ${name.length}).`);
         if (captchaRequired && !captchaToken)
           throw new Error("Lütfen 'Ben robot değilim' kutusunu işaretle");
         await register(email, password, displayName, captchaToken);
@@ -50,7 +64,9 @@ export default function GirisPage() {
       }
       router.push("/");
     } catch (e: any) {
-      setErr(e.message || "Bir hata oluştu");
+      const m = e.message || "Bir hata oluştu";
+      setErr(m);
+      setPopup(m);   // hatayı popup olarak da göster (gözden kaçmasın)
       // Kullanılan captcha token'ı yanar; kutuyu tazele.
       if (mode === "register" && captchaRequired) {
         setCaptchaToken(null);
@@ -100,6 +116,12 @@ export default function GirisPage() {
               placeholder="Oyunda görünecek adın"
             />
           )}
+          {mode === "register" && (
+            <p style={{ fontSize: 12, color: displayName.trim().length > nameLimits.display_name_max_len ? "var(--accent-hot)" : "var(--text-dim)", marginTop: -8 }}>
+              {nameLimits.display_name_min_len}-{nameLimits.display_name_max_len} karakter
+              {" · "}{displayName.trim().length}/{nameLimits.display_name_max_len}
+            </p>
+          )}
           <Field label="E-posta" value={email} onChange={setEmail} type="email" placeholder="ornek@eposta.com" />
           <Field
             label="Şifre"
@@ -148,6 +170,7 @@ export default function GirisPage() {
           Üye olmadan dene →
         </a>
       </div>
+      {popup && <AlertPopup message={popup} onClose={() => setPopup("")} />}
     </main>
   );
 }

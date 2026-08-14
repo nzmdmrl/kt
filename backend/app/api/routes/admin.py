@@ -266,8 +266,40 @@ class SettingIn(BaseModel):
     value: str
 
 
+# Ad limiti ayarları için üst sınırlar — DB sütunları username(32) / display_name(48).
+_NAME_LIMIT_KEYS = {
+    "username_min_len": (1, 32),
+    "username_max_len": (1, 32),
+    "display_name_min_len": (1, 48),
+    "display_name_max_len": (1, 48),
+}
+
+
 @router.post("/settings")
 async def update_setting(data: SettingIn, admin: User = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+    # Ad limitleri: sayı olmalı, sütun sınırını aşmamalı ve min ≤ max olmalı.
+    if data.key in _NAME_LIMIT_KEYS:
+        lo, hi = _NAME_LIMIT_KEYS[data.key]
+        try:
+            val = int(data.value)
+        except (TypeError, ValueError):
+            raise HTTPException(400, "Bu ayar sayı olmalı.")
+        if val < lo or val > hi:
+            raise HTTPException(400, f"Değer {lo} ile {hi} arasında olmalı.")
+        # Karşı sınırla tutarlılık (min ≤ max). Geçerli değerler name_rules'tan
+        # okunur — DB'de kayıt yoksa varsayılanı doğru döner.
+        from app.game import name_rules
+        lim = await name_rules.limits(db)
+        if data.key.endswith("_min_len"):
+            other_val = lim[data.key.replace("_min_len", "_max_len")]
+            if val > other_val:
+                raise HTTPException(400, f"En az değer, en fazla değerden ({other_val}) büyük olamaz.")
+        else:
+            other_val = lim[data.key.replace("_max_len", "_min_len")]
+            if val < other_val:
+                raise HTTPException(400, f"En fazla değer, en az değerden ({other_val}) küçük olamaz.")
+        data.value = str(val)
+
     await settings_service.set_setting(db, data.key, data.value)
     return {"ok": True, "key": data.key, "value": data.value}
 
