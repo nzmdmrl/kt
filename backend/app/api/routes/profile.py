@@ -244,3 +244,80 @@ async def user_matches(username: str, db: AsyncSession = Depends(get_db), limit:
             "created_at": m.created_at.isoformat() if m.created_at else None,
         })
     return {"matches": out}
+
+
+@router.get("/{username}/head-to-head")
+async def head_to_head(
+    username: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    limit: int = 10,
+):
+    """Bakan kullanıcı ile profil sahibi arasındaki KARŞILIKLI maçlar.
+
+    Profil sayfasında "Sen 4 - 2 kadir" özeti + son karşılaşma tablosu için.
+    Misafir/giriş yapmamış ziyaretçide veya kendi profilinde `available: false`
+    döner (hata değil) — frontend bölümü hiç göstermez.
+    """
+    from app.models.match_history import MatchHistory
+    from sqlalchemy import or_, and_
+
+    other = (await db.execute(select(User).where(User.username == username))).scalar_one_or_none()
+    if not other:
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
+
+    viewer = await _optional_user(request, db)
+    if not viewer or viewer.id == other.id:
+        return {"available": False}
+
+    me_u, other_u = viewer.username, other.username
+    rows = (await db.execute(
+        select(MatchHistory)
+        .where(or_(
+            and_(MatchHistory.p1_username == me_u, MatchHistory.p2_username == other_u),
+            and_(MatchHistory.p1_username == other_u, MatchHistory.p2_username == me_u),
+        ))
+        .order_by(MatchHistory.created_at.desc())
+    )).scalars().all()
+
+    wins = losses = draws = 0
+    matches = []
+    for m in rows:
+        am_p1 = (m.p1_username == me_u)
+        my_name = m.p1_name if am_p1 else m.p2_name
+        my_score = m.p1_score if am_p1 else m.p2_score
+        opp_score = m.p2_score if am_p1 else m.p1_score
+        # Sonuç önce skordan; skorlar eşitse kazanan adına bakılır (terk/bağlantı
+        # kopması gibi durumlarda skor eşit kalıp kazanan yazılabiliyor).
+        if my_score > opp_score:
+            result = "win"
+        elif my_score < opp_score:
+            result = "loss"
+        elif not m.winner_name:
+            result = "draw"
+        else:
+            result = "win" if m.winner_name == my_name else "loss"
+        if result == "win":
+            wins += 1
+        elif result == "loss":
+            losses += 1
+        else:
+            draws += 1
+        if len(matches) < limit:
+            matches.append({
+                "my_score": my_score,
+                "opp_score": opp_score,
+                "result": result,
+                "created_at": m.created_at.isoformat() if m.created_at else None,
+            })
+
+    return {
+        "available": True,
+        "me": {"username": viewer.username, "display_name": viewer.display_name or viewer.username},
+        "opponent": {"username": other.username, "display_name": other.display_name or other.username},
+        "wins": wins,
+        "losses": losses,
+        "draws": draws,
+        "total": len(rows),
+        "matches": matches,
+    }

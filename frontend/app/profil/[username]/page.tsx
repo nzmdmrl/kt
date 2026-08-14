@@ -37,6 +37,17 @@ type Profile = {
   ranks: { daily: number | null; monthly: number | null; all: number | null };
   solo?: { level: number; stars: number };
 };
+// Karşılıklı maçlar (bakan kullanıcı ↔ profil sahibi) — "Sen 4 - 2 kadir".
+type H2H = {
+  available: boolean;
+  me: { username: string; display_name: string };
+  opponent: { username: string; display_name: string };
+  wins: number;
+  losses: number;
+  draws: number;
+  total: number;
+  matches: { my_score: number; opp_score: number; result: string; created_at: string | null }[];
+};
 
 export default function ProfilePage({ params }: { params: { username: string } }) {
   const { user } = useAuth();
@@ -45,6 +56,7 @@ export default function ProfilePage({ params }: { params: { username: string } }
   const [err, setErr] = useState("");
   const [editOpen, setEditOpen] = useState(false);
   const [recentMatches, setRecentMatches] = useState<any[]>([]);
+  const [h2h, setH2h] = useState<H2H | null>(null);
   const [oppStatus, setOppStatus] = useState("");
   const [oppAllow, setOppAllow] = useState(true);
   const [challengeSent, setChallengeSent] = useState(false);
@@ -118,6 +130,21 @@ export default function ProfilePage({ params }: { params: { username: string } }
       .then((d) => setRecentMatches(d.matches || []))
       .catch(() => setRecentMatches([]));
   }, [params.username]);
+
+  // Karşılıklı maçlar — sadece giriş yapmışken ve BAŞKASININ profilinde.
+  // (Kendi profilinde / misafirde uç `available: false` döner.)
+  useEffect(() => {
+    setH2h(null);
+    const token = typeof window !== "undefined" ? localStorage.getItem("kt_token") : null;
+    if (!token || !user || user.username === params.username) return;
+    fetch(apiUrl(`/api/profile/${encodeURIComponent(params.username)}/head-to-head?limit=10`), {
+      cache: "no-store",
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d?.available) setH2h(d); })
+      .catch(() => {});
+  }, [params.username, user?.username]);
 
   if (loading) return <Wrap><Centered>Yükleniyor…</Centered></Wrap>;
   if (err || !profile) return <Wrap><Centered>{err || "Profil yok"}</Centered></Wrap>;
@@ -271,6 +298,11 @@ export default function ProfilePage({ params }: { params: { username: string } }
         <ProfileEditModal onClose={() => setEditOpen(false)} onSaved={() => { setEditOpen(false); load(); }} />
       )}
 
+      {/* Karşılıklı geçmiş — "Sen 4 - 2 kadir" + son karşılaşmalar tablosu.
+          Sadece giriş yapmış kullanıcı, başkasının profiline bakarken ve
+          aralarında en az 1 maç varsa görünür. */}
+      {h2h && h2h.total > 0 && <HeadToHead h2h={h2h} />}
+
       {/* Başarılar — lig ödülleri (Günün/Ayın/Yılın Şampiyonu vb.), ×N ile */}
       {profile.achievements && profile.achievements.length > 0 && (
         <>
@@ -371,6 +403,77 @@ export default function ProfilePage({ params }: { params: { username: string } }
       </div>
     </Wrap>
   );
+}
+
+/**
+ * Karşılıklı geçmiş bloğu — üstte toplam skor ("Sen 4 - 2 kadir"),
+ * altında son karşılaşmaların tablosu (tarih / skor / sonuç).
+ * Önde olan tarafın sayısı yeşil, geride olanınki kırmızı; eşitse nötr.
+ */
+function HeadToHead({ h2h }: { h2h: H2H }) {
+  const lead = h2h.wins > h2h.losses ? "me" : h2h.losses > h2h.wins ? "opp" : "tie";
+  const meColor = lead === "me" ? "var(--tile-correct)" : lead === "opp" ? "var(--accent-hot)" : "var(--text-strong)";
+  const oppColor = lead === "opp" ? "var(--tile-correct)" : lead === "me" ? "var(--accent-hot)" : "var(--text-strong)";
+  const oppName = h2h.opponent.display_name;
+
+  return (
+    <>
+      <SectionTitle>Sen ⚔️ @{h2h.opponent.username}</SectionTitle>
+      <div style={{ background: "var(--bg-panel)", borderRadius: 12, padding: "14px 12px", marginBottom: 24 }}>
+        {/* Toplam karşılıklı skor */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 14, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text-strong)" }}>Sen</span>
+          <span className="brand-mono" style={{ fontSize: 30, fontWeight: 700, color: meColor }}>{h2h.wins}</span>
+          <span style={{ fontSize: 20, color: "var(--text-dim)" }}>–</span>
+          <span className="brand-mono" style={{ fontSize: 30, fontWeight: 700, color: oppColor }}>{h2h.losses}</span>
+          <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text-strong)", maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {oppName}
+          </span>
+        </div>
+        <div style={{ textAlign: "center", fontSize: 12, color: "var(--text-dim)", marginTop: 4 }}>
+          {h2h.total} karşılaşma{h2h.draws > 0 ? ` · ${h2h.draws} beraberlik` : ""}
+        </div>
+
+        {/* Son karşılaşmalar */}
+        <div style={{ overflowX: "auto", marginTop: 14 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+            <thead>
+              <tr style={{ color: "var(--text-dim)", textAlign: "left" }}>
+                <th style={h2hTh}>Tarih</th>
+                <th style={{ ...h2hTh, textAlign: "center" }}>Skor</th>
+                <th style={{ ...h2hTh, textAlign: "right" }}>Sonuç</th>
+              </tr>
+            </thead>
+            <tbody>
+              {h2h.matches.map((m, i) => {
+                const color = m.result === "win" ? "var(--tile-correct)" : m.result === "loss" ? "var(--accent-hot)" : "var(--text-dim)";
+                const label = m.result === "win" ? "Galibiyet" : m.result === "loss" ? "Mağlubiyet" : "Beraberlik";
+                return (
+                  <tr key={i} style={{ borderTop: "1px solid var(--border-soft)" }}>
+                    <td style={{ ...h2hTd, color: "var(--text-dim)" }}>{fmtDate(m.created_at)}</td>
+                    <td className="brand-mono" style={{ ...h2hTd, textAlign: "center", color: "var(--text-strong)", fontSize: 15 }}>
+                      {m.my_score} : {m.opp_score}
+                    </td>
+                    <td style={{ ...h2hTd, textAlign: "right", color, fontWeight: 700 }}>{label}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </>
+  );
+}
+
+const h2hTh: React.CSSProperties = { padding: "6px 8px", fontSize: 11, fontWeight: 600 };
+const h2hTd: React.CSSProperties = { padding: "9px 8px", whiteSpace: "nowrap" };
+
+function fmtDate(iso: string | null): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("tr", { day: "2-digit", month: "short", year: "2-digit" });
 }
 
 function Stat({ label, value, accent }: { label: string; value: number | string; accent?: boolean }) {
