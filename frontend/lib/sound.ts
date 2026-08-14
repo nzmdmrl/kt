@@ -210,6 +210,69 @@ function playSynth(slot: Slot, opts?: { intensity?: number }) {
   }
 }
 
+/**
+ * Kutu çevirme sesi (ana sayfa animasyonlu KELİME TAHMİN logosu).
+ *
+ * Kısa, net, hafif mekanik bir "tak" — gerçek bir harf kutusunun dönüşü gibi.
+ * Üç katman: alçak gövde tıkırtısı + tiz uç tıkırtısı + bant-geçiren kısa gürültü.
+ * Tamamen Web Audio ile üretilir (dosya yok) ve mevcut TEK AudioContext'i
+ * (ctx()) yeniden kullanır — her çağrıda yeni context açılmaz.
+ */
+export function playTileFlip() {
+  if (!soundEnabled) return;
+  const c = ctx();
+  if (!c) return;
+  const now = c.currentTime;
+  const out = c.createGain();
+  out.gain.value = volume * 0.5;
+  out.connect(c.destination);
+
+  // 1) Gövde: alçak, çok kısa "tok"
+  const body = c.createOscillator();
+  const bodyGain = c.createGain();
+  body.type = "triangle";
+  body.frequency.setValueAtTime(210, now);
+  body.frequency.exponentialRampToValueAtTime(120, now + 0.05);
+  bodyGain.gain.setValueAtTime(0, now);
+  bodyGain.gain.linearRampToValueAtTime(0.22, now + 0.004);   // çok hızlı attack
+  bodyGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.06);
+  body.connect(bodyGain); bodyGain.connect(out);
+  body.start(now); body.stop(now + 0.07);
+
+  // 2) Uç: tiz, iğne gibi kısa tık (plastik kutu hissi)
+  const tick = c.createOscillator();
+  const tickGain = c.createGain();
+  tick.type = "square";
+  tick.frequency.value = 1750;
+  tickGain.gain.setValueAtTime(0, now);
+  tickGain.gain.linearRampToValueAtTime(0.05, now + 0.002);
+  tickGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.022);
+  tick.connect(tickGain); tickGain.connect(out);
+  tick.start(now); tick.stop(now + 0.03);
+
+  // 3) Doku: filtrelenmiş çok kısa gürültü — "sürtünme" payı
+  const len = Math.floor(c.sampleRate * 0.03);
+  const buf = c.createBuffer(1, len, c.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / len);
+  const noise = c.createBufferSource();
+  noise.buffer = buf;
+  const bp = c.createBiquadFilter();
+  bp.type = "bandpass"; bp.frequency.value = 2600; bp.Q.value = 1.1;
+  const noiseGain = c.createGain();
+  noiseGain.gain.setValueAtTime(0.07, now);
+  noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.03);
+  noise.connect(bp); bp.connect(noiseGain); noiseGain.connect(out);
+  noise.start(now); noise.stop(now + 0.035);
+}
+
+/**
+ * Tarayıcı otomatik oynatma kilidini açar — İLK kullanıcı etkileşiminde
+ * çağrılmalı (pointerdown/touchstart/keydown). Yeni context açmaz, var olanı
+ * resume eder; ses izni yoksa sessizce başarısız olur, animasyon etkilenmez.
+ */
+export function unlockAudio() { ctx(); }
+
 // --- Genel çalma (yüklü mp3 varsa onu, yoksa sentetik) ---
 export function playSound(slot: Slot, opts?: { intensity?: number }) {
   if (!soundEnabled) return;

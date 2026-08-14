@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { apiUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useIsoLayoutEffect } from "@/lib/useIsoLayoutEffect";
+import AnimatedWordmark from "@/components/AnimatedWordmark";
 
 type LevelInfo = { level: number; xp: number; level_xp: number; level_need: number };
 type TitleInfo = {
@@ -38,11 +39,15 @@ export default function HomeModes({ style = "stil2" }: { style?: "stil1" | "stil
   const [title, setTitle] = useState<TitleInfo | null>(null);
   const [soloLevel, setSoloLevel] = useState<number | null>(null);
   const [joinCode, setJoinCode] = useState("");
+  // Oturum daha doğrulanmadan logonun boyutu belli olsun (üye = küçük logo):
+  // token varlığına bakarak ilk boyamada doğru boyutu seç — sonradan zıplamaz.
+  const [hasToken, setHasToken] = useState(false);
 
   function token() { return typeof window !== "undefined" ? localStorage.getItem("kt_token") : null; }
 
   // 1) Önbellekten anında doldur (ekran boyanmadan önce) — sıçrama olmaz.
   useIsoLayoutEffect(() => {
+    setHasToken(!!token());
     if (!user) return;
     const c = readHomeCache(user.id);
     if (!c) return;
@@ -95,8 +100,24 @@ export default function HomeModes({ style = "stil2" }: { style?: "stil1" | "stil
     { icon: "🏆", label: "Lig", href: "/lig", desc: "Sıralamalar", bg: "linear-gradient(145deg,#3a7fc4,#2868a8)" },
   ];
 
+  const s2 = style === "stil2";
+  // Stil 2'de kartların sağında, kart sınırıyla kırpılan büyük dekoratif ikon.
+  const deco = (icon: string) => (s2 ? <span className="hm-deco" aria-hidden>{icon}</span> : null);
+
   return (
-    <div className={`home-modes-wrap${style === "stil2" ? " hm-s2" : ""}`}>
+    <div className={`home-modes-wrap${s2 ? " hm-s2" : ""}`}>
+      {/* Stil 2: animasyonlu KELİME TAHMİN kutu logosu.
+          Giriş yapmamış kullanıcıda sayfanın ana görseli (büyük);
+          giriş yapmışta oyun öne çıksın diye küçük sürüm. */}
+      {s2 && (() => {
+        const small = loading ? hasToken : !!user;
+        return (
+          <div className={`hm-wordmark${small ? " hm-wordmark--compact" : ""}`}>
+            <AnimatedWordmark compact={small} />
+          </div>
+        );
+      })()}
+
       {/* Profil / karşılama kartı — puan, madalya, rozet sayılarıyla */}
       {user ? (
         <div className="hm-profile-wrap">
@@ -152,7 +173,8 @@ export default function HomeModes({ style = "stil2" }: { style?: "stil1" | "stil
         </div>
       ) : (
         <div className="hm-guest">
-          <div className="brand-mono hm-guest-title">Kelime Tahmin</div>
+          {/* Stil 2'de site adını zaten animasyonlu kutu logosu gösteriyor */}
+          {!s2 && <div className="brand-mono hm-guest-title">Kelime Tahmin</div>}
           <a href="/giris" className="hm-guest-cta">Giriş yap / Kayıt ol →</a>
         </div>
       )}
@@ -166,6 +188,7 @@ export default function HomeModes({ style = "stil2" }: { style?: "stil1" | "stil
               <span className="hm-mode-label">{m.label}</span>
               <span className="hm-mode-desc">{m.desc}</span>
             </span>
+            {deco(m.icon)}
           </button>
         ))}
       </div>
@@ -181,6 +204,7 @@ export default function HomeModes({ style = "stil2" }: { style?: "stil1" | "stil
             <span className="hm-hero-sub">1v1 Düello · Rakip bul</span>
           </span>
           <span className="hm-hero-arrow">→</span>
+          {deco("🎮")}
         </button>
 
         <div className="hm-1v1-grid">
@@ -188,11 +212,13 @@ export default function HomeModes({ style = "stil2" }: { style?: "stil1" | "stil
             <span className="hm-tile-icon">🤖</span>
             <span className="hm-tile-label">1vB Pratik</span>
             <span className="hm-tile-desc">Bota karşı</span>
+            {deco("🤖")}
           </button>
           <button className="hm-tile hm-tile-room" onClick={() => router.push("/oyna?mode=create")}>
             <span className="hm-tile-icon">🚪</span>
             <span className="hm-tile-label">Özel Oda Kur</span>
             <span className="hm-tile-desc">Arkadaşını davet et</span>
+            {deco("🚪")}
           </button>
         </div>
 
@@ -200,7 +226,7 @@ export default function HomeModes({ style = "stil2" }: { style?: "stil1" | "stil
           <span className="hm-join-icon">🔑</span>
           <input
             className="hm-join-input"
-            placeholder="Oda kodu"
+            placeholder={s2 ? "ODA KODU" : "Oda kodu"}
             value={joinCode}
             onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
             onKeyDown={(e) => e.key === "Enter" && joinRoom()}
@@ -219,6 +245,7 @@ export default function HomeModes({ style = "stil2" }: { style?: "stil1" | "stil
               <span className="hm-mode-label">{m.label}</span>
               <span className="hm-mode-desc">{m.desc}</span>
             </span>
+            {deco(m.icon)}
           </button>
         ))}
       </div>

@@ -469,6 +469,20 @@ a { color: inherit; text-decoration: none; }
   }
 }
 
+/* ===== KT monogramı (components/Logo.tsx) — her sayfadaki başlıkta =====
+   Boyut `--kt-logo-size` ile gelir. Stil 1 (klasik): K yükseltilmiş yüzey +
+   çerçeve, T amber. Stil 2 rengi aşağıdaki stil bölümünde değiştirir. */
+.kt-logo { display: inline-flex; align-items: center; gap: 4px; }
+.kt-logo-tile {
+  width: var(--kt-logo-size, 44px); height: var(--kt-logo-size, 44px);
+  display: grid; place-items: center; border-radius: 10px;
+  font-family: var(--font-display); font-weight: 700;
+  font-size: calc(var(--kt-logo-size, 44px) * .52);
+  border: 2px solid transparent;
+}
+.kt-logo-tile--k { color: var(--text-strong); background: var(--bg-elevated); border-color: var(--tile-border); }
+.kt-logo-tile--t { color: #1a1330; background: var(--accent); box-shadow: 0 6px 20px var(--accent-glow); }
+
 /* ============================================================
    ARAYÜZ STİLİ 2 (yeni görünüm)
    ------------------------------------------------------------
@@ -481,4 +495,143 @@ a { color: inherit; text-decoration: none; }
    admin "stil1"e döndüğünde eski hâl birebir geri gelsin.
    ============================================================ */
 
-/* (stil2 kuralları buraya) */
+/* --- 1) Palet (yalnızca gece teması) -------------------------------------
+   Gündüz (data-theme="light") teması bilerek dışarıda: açık tema özelliği
+   bozulmasın. Gece tarafında kart/çerçeve tonları biraz daha mor ve derin. */
+html[data-style="stil2"]:not([data-theme="light"]) {
+  --bg-deep: #0d0b2b;
+  --bg-panel: #241c52;
+  --bg-elevated: #191641;
+  --border-soft: #38306d;
+  --tile-border: #38306d;
+}
+
+/* --- 2) KT logosu — yeşil K / sarı T (oyun kutularıyla aynı dil) --------- */
+html[data-style="stil2"] .kt-logo-tile--k {
+  background: #39b86a; border-color: transparent; color: #fff;
+  box-shadow: 0 6px 18px rgba(57, 184, 106, .28);
+}
+html[data-style="stil2"] .kt-logo-tile--t {
+  background: #ffb51b; color: #0d0b2b;
+  box-shadow: 0 6px 18px rgba(255, 181, 27, .28);
+}
+
+/* --- 3) Animasyonlu KELİME TAHMİN kutu logosu (AnimatedWordmark) --------
+   Her kutu: ön yüz boş/gri, arka yüz harfli. `is-open` gelince iç katman
+   rotateY(180deg) döner; backface-visibility sayesinde harf tam 90°'den
+   sonra ortaya çıkar — gerçek kutu çevirme hissi. */
+.kt-aw {
+  --aw-size: clamp(40px, 11.5vw, 62px);
+  --aw-gap: clamp(5px, 1.4vw, 9px);
+  display: flex; flex-direction: column; align-items: center;
+  gap: var(--aw-gap); max-width: 100%;
+}
+.kt-aw--compact { --aw-size: clamp(26px, 7vw, 38px); --aw-gap: clamp(4px, 1vw, 6px); }
+.kt-aw-row { display: flex; gap: var(--aw-gap); }
+.kt-aw-tile { display: block; width: var(--aw-size); height: var(--aw-size); perspective: 600px; }
+.kt-aw-inner {
+  position: relative; display: block; width: 100%; height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 460ms cubic-bezier(.2, .7, .3, 1);
+}
+.kt-aw-tile.is-open .kt-aw-inner { transform: rotateY(180deg); }
+.kt-aw-face {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  border-radius: clamp(8px, 1.6vw, 12px);
+  backface-visibility: hidden; -webkit-backface-visibility: hidden;
+  font-family: var(--font-display); font-weight: 700; line-height: 1;
+  font-size: calc(var(--aw-size) * .55);
+}
+.kt-aw-front {
+  background: #3a3850; border: 2px solid #4a4768;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06);
+}
+.kt-aw-back {
+  transform: rotateY(180deg);
+  background: #302a5b; color: #fff;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .3);
+}
+.kt-aw-tile--k .kt-aw-back { background: #39b86a; color: #fff; box-shadow: 0 6px 20px rgba(57, 184, 106, .35); }
+.kt-aw-tile--t .kt-aw-back { background: #ffb51b; color: #0d0b2b; box-shadow: 0 6px 20px rgba(255, 181, 27, .35); }
+/* Gündüz temasında kutular da açılır — koyu blok gibi durmasın */
+html[data-theme="light"] .kt-aw-front { background: #ded9ee; border-color: #c8c1e0; }
+html[data-theme="light"] .kt-aw-back { background: #4a4278; }
+
+.hm-wordmark { display: flex; justify-content: center; padding: 6px 0 22px; }
+.hm-wordmark--compact { padding: 0 0 16px; }
+
+/* Hareket azaltma: 3B dönüş yok, yumuşak geçişle harf belirir (ses de kapalı) */
+@media (prefers-reduced-motion: reduce) {
+  .kt-aw-inner { transition: none; }
+  .kt-aw-tile.is-open .kt-aw-inner { transform: none; }
+  .kt-aw-face { backface-visibility: visible; -webkit-backface-visibility: visible; transition: opacity .25s ease; }
+  .kt-aw-back { transform: none; opacity: 0; }
+  .kt-aw-tile.is-open .kt-aw-back { opacity: 1; }
+  .kt-aw-tile.is-open .kt-aw-front { opacity: 0; }
+}
+
+/* --- 4) Kartların sağındaki dev dekoratif ikon (%20 opaklık, kırpılır) --- */
+.hm-s2 .hm-mode,
+.hm-s2 .hm-tile,
+.hm-s2 .hm-hero-btn { position: relative; overflow: hidden; }
+/* İçerik dekorun üstünde kalsın (dekorun kendisi hariç — o mutlak konumlu) */
+.hm-s2 .hm-mode > *:not(.hm-deco),
+.hm-s2 .hm-tile > *:not(.hm-deco),
+.hm-s2 .hm-hero-btn > *:not(.hm-deco) { position: relative; z-index: 1; }
+.hm-deco {
+  position: absolute; right: -10px; top: 50%; transform: translateY(-50%);
+  font-size: clamp(72px, 16vw, 112px); line-height: 1;
+  opacity: .2; pointer-events: none; user-select: none; z-index: 0;
+}
+.hm-s2 .hm-hero-btn .hm-deco { font-size: clamp(96px, 20vw, 150px); }
+
+/* --- 5) Kart cilası: daha yuvarlak köşe + hafif iç ışıma ---------------- */
+.hm-s2 .hm-mode,
+.hm-s2 .hm-tile { border-radius: 20px; }
+.hm-s2 .hm-mode { box-shadow: 0 8px 22px rgba(0, 0, 0, .3), inset 0 1px 0 rgba(255, 255, 255, .09); }
+.hm-s2 .hm-hero-btn {
+  border-radius: 22px;
+  background: linear-gradient(145deg, #3fc356, #2f9c42);
+  box-shadow: 0 10px 30px rgba(53, 179, 74, .34), inset 0 1px 0 rgba(255, 255, 255, .14);
+}
+.hm-s2 .hm-hero-btn:hover { box-shadow: 0 14px 36px rgba(53, 179, 74, .44), inset 0 1px 0 rgba(255, 255, 255, .14); }
+
+/* İkincil 1v1 kartlarında ana ikon SOLDA, metin sağda (iki satır) */
+.hm-s2 .hm-tile {
+  display: grid; grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas: "icon label" "icon desc";
+  align-items: center; column-gap: 13px; row-gap: 2px;
+  padding: 16px 18px;
+}
+.hm-s2 .hm-tile-icon { grid-area: icon; font-size: 36px; }
+.hm-s2 .hm-tile-label { grid-area: label; }
+.hm-s2 .hm-tile-desc { grid-area: desc; }
+
+/* Tipografi: tüm kart başlıkları aynı boyda, ana CTA bir tık büyük */
+.hm-s2 .hm-mode-label,
+.hm-s2 .hm-tile-label { font-size: 20px; font-weight: 800; }
+.hm-s2 .hm-mode-desc,
+.hm-s2 .hm-tile-desc { font-size: 13px; }
+.hm-s2 .hm-hero-title { font-size: 28px; }
+@media (min-width: 721px) {
+  .hm-s2 .hm-hero-title { font-size: 30px; }
+}
+
+/* --- 6) Profil kartı: ince mor çerçeve + yumuşak gradyan ---------------- */
+html[data-style="stil2"]:not([data-theme="light"]) .hm-s2 .hm-profile {
+  background: linear-gradient(160deg, #2a2160 0%, #1e1747 100%);
+  border: 1px solid #443a80;
+  box-shadow: 0 10px 34px rgba(0, 0, 0, .35);
+}
+
+/* --- 7) Oda kodu kutusu ------------------------------------------------- */
+.hm-s2 .hm-join { border-radius: 18px; }
+.hm-s2 .hm-join-btn { background: #ffb51b; color: #0d0b2b; }
+
+/* --- 8) Dokunma hedefi: mobilde tüm ana butonlar rahat yükseklikte ------ */
+@media (max-width: 420px) {
+  .hm-s2 .hm-tile { min-height: 76px; }
+  .hm-s2 .hm-mode { min-height: 72px; }
+  .hm-s2 .hm-join-btn,
+  .hm-s2 .hm-join-input { min-height: 46px; }
+}
