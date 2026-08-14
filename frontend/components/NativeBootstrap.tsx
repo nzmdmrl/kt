@@ -18,8 +18,9 @@
  *    token'ın /api/devices/register'a gönderilmesi, bildirime tıklayınca
  *    yönlendirme, uygulama açıkken hafif iç uyarı (toast).
  *  - AdMob: /api/app-config'teki ayara göre alt banner. Bandın GERÇEK yüksekliği
- *    --kt-banner-h değişkenine yazılır (globals.css'teki sabitlenmiş öğeler bu
- *    kadar yukarı çıkar) + gövdeye "has-native-banner" sınıfı. Oyun ekranlarında
+ *    --kt-banner-h değişkenine yazılır; alta sabitlenen öğeler globals.css'te
+ *    bundan türeyen --kt-banner-offset (yükseklik + güvenli alan) kadar yukarı
+ *    çıkar + gövdeye "has-native-banner" sınıfı eklenir. Oyun ekranlarında
  *    (ads.admob.banner_hidden_paths) banner gizlenir; ilan YENİDEN YÜKLENMEZ,
  *    aynı banner gizlenip gösterilir (hideBanner/resumeBanner).
  *  - Geri tuşu: sayfa geçmişi varsa geri git, yoksa uygulamayı arka plana al
@@ -94,12 +95,36 @@ function blog(...args: any[]) {
   console.log("[banner]", ...args);
 }
 
-/** Bandın gerçek yüksekliği (px) — CSS bu değere göre yer açar. */
+/**
+ * Bandın gerçek yüksekliği (px) — CSS bu değere göre yer açar.
+ *
+ * Sadece yükseklik yazılır; alta sabitlenen öğelerin çıkacağı mesafe
+ * (--kt-banner-offset = yükseklik + güvenli alan) globals.css'te
+ * `body.has-native-banner` kuralından türer. Böylece bant yokken değişken
+ * 0px kalır ve web düzeni hiç etkilenmez.
+ */
 function setBannerHeight(px: number) {
   try {
     const v = Number.isFinite(px) && px > 0 ? `${Math.round(px)}px` : "0px";
     document.documentElement.style.setProperty(BANNER_HEIGHT_VAR, v);
     document.body.classList.toggle(BANNER_BODY_CLASS, px > 0);
+
+    // GEÇİCİ TEŞHİS: değişken gerçekten uygulanıyor mu? Çözülmüş px değerleri.
+    // Güvenli alan env() ile ölçülür (computed custom property ham metin dönebilir).
+    const probe = document.createElement("div");
+    probe.style.cssText =
+      "position:fixed;left:-9999px;bottom:0;width:1px;height:env(safe-area-inset-bottom, 0px)";
+    document.body.appendChild(probe);
+    const safeBottom = Math.round(probe.getBoundingClientRect().height);
+    probe.remove();
+
+    const nav = document.querySelector(".kt-bottom-nav-bar");
+    blog(
+      "ölçüler -> --kt-banner-h:", v,
+      "| güvenli alan:", `${safeBottom}px`,
+      "| nav bottom (çözülmüş):", nav ? getComputedStyle(nav).bottom : "(nav gizli/yok)",
+      "| body sınıfı:", document.body.classList.contains(BANNER_BODY_CLASS),
+    );
   } catch {}
 }
 

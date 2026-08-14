@@ -227,7 +227,7 @@ export function showToast(title: string, body: string, route?: string) {
     "left:50%",
     "transform:translateX(-50%)",
     // Native reklam bandı varsa onun da üstünde kalsın (web'de 0px).
-    "bottom:calc(90px + env(safe-area-inset-bottom, 0px) + var(--kt-banner-h, 0px))",
+    "bottom:calc(90px + env(safe-area-inset-bottom, 0px) + var(--kt-banner-offset, 0px))",
     "z-index:900",
     "max-width:min(420px, calc(100vw - 24px))",
     "padding:12px 16px",
