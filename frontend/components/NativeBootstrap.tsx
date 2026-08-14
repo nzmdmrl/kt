@@ -54,6 +54,25 @@ const BANNER_BODY_CLASS = "has-native-banner";
 const BANNER_HEIGHT_VAR = "--kt-banner-h";
 
 /**
+ * GOOGLE'IN RESMİ TEST REKLAM BİRİMLERİ — tek yer burası, başka yere kopyalama.
+ * https://developers.google.com/admob/android/test-ads
+ *
+ * NEDEN GEREKLİ: eklentiye `isTesting: true` göndermek YETMİYOR. Android tarafında
+ * test birimi yalnızca `adId` HİÇ verilmediğinde devreye giriyor
+ * (AdOptions.java: `this.adId = call.getString("adId", getTestingId())`), biz ise
+ * her zaman gerçek birimi gönderiyorduk. Yeni açılmış bir reklam birimi henüz
+ * yayın yapmadığı için istek "No fill" (kod 3) dönüyor ve banner hiç çıkmıyordu.
+ *
+ * Bu yüzden: ads.admob.test_mode AÇIKKEN aşağıdaki test birimleri kullanılır
+ * (isTesting: true da gönderilmeye devam eder), KAPALIYKEN app_settings'teki
+ * gerçek birimler aynen kullanılır.
+ */
+const TEST_AD_UNITS = {
+  banner: "ca-app-pub-3940256099942544/6300978111",
+  interstitial: "ca-app-pub-3940256099942544/1033173712",
+} as const;
+
+/**
  * Banner'ın gizleneceği yolların yedeği — ayar okunamazsa kullanılır.
  * backend/app/api/routes/app_settings.py → DEFAULT_BANNER_HIDDEN_PATHS ile aynı.
  */
@@ -380,10 +399,19 @@ async function setupAdMob(platform: Platform) {
     // Alan hiç yoksa (migration öncesi kayıt) eskisi gibi AÇIK sayılır.
     if (admob.banner_enabled === false) { blog("ÇIKIŞ: banner_enabled = false"); return; }
 
-    const unit = (
+    const configuredUnit = (
       (platform === "ios" ? admob.ios?.banner : admob.android?.banner) || ""
     ).trim();
-    if (!unit) { blog("ÇIKIŞ: bu platformun banner birim id'si BOŞ"); return; }
+    // Yapılandırılmış birim boşsa reklam AÇILMAZ (test modunda bile): "ayar yoksa
+    // reklam yok" kuralı korunuyor.
+    if (!configuredUnit) { blog("ÇIKIŞ: bu platformun banner birim id'si BOŞ"); return; }
+
+    // Test modunda Google'ın test birimi kullanılır (bkz. TEST_AD_UNITS).
+    const useTestUnit = !!admob.test_mode;
+    const unit = useTestUnit ? TEST_AD_UNITS.banner : configuredUnit;
+    const unitKind = useTestUnit ? "GOOGLE TEST BİRİMİ" : "gerçek birim";
+    blog("kullanılacak banner birimi:", unit, `(${unitKind})`,
+         "| yapılandırılmış birim:", configuredUnit);
 
     const hiddenPaths = Array.isArray(admob.banner_hidden_paths)
       ? admob.banner_hidden_paths.filter((p): p is string => typeof p === "string" && !!p.trim())
@@ -415,40 +443,53 @@ async function setupAdMob(platform: Platform) {
       }
     }
 
+    // --- banner durumu ---------------------------------------------------
+    // Native tarafta banner nesnesinin gerçek hâli. Yanlış durumda çağrı yapmak
+    // eklentiyi hataya sokuyor ("You tried to hide a banner that was never shown"),
+    // bu yüzden her çağrıdan önce buraya bakılır:
+    //   "yok"      -> native AdView YOK (hiç açılmadı ya da yükleme hatasında yok edildi)
+    //   "gorunur"  -> ekranda
+    //   "gizli"    -> AdView duruyor ama gizlendi (resumeBanner ile geri gelir)
+    // ÖNEMLİ: eklenti, ilan yüklenemezse AdView'i destroy edip null yapıyor
+    // (BannerExecutor.onAdFailedToLoad) — o yüzden hata durumu "yok"a döner ve
+    // sonraki gösterimde resumeBanner değil, YENİ showBanner çağrılır.
+    let bannerState: "yok" | "gorunur" | "gizli" = "yok";
+
     // --- yükseklik: TAHMİN YOK, eklentinin bildirdiği gerçek ölçü kullanılır ---
     // SizeChanged (Android: bannerViewChangeSize, iOS: bannerViewDidReceiveAd
     // sonrası) {width, height} dp taşır; dp WebView'da CSS px'e denk gelir.
     // Eklenti gizlemede de 0 yükseklikli olay yayar — boşluk kendiliğinden kapanır.
-    let visible = false;
     await AdMob.addListener(BannerAdPluginEvents.SizeChanged, (size: any) => {
       const h = Number(size?.height) || 0;
-      blog("boyut olayı: h =", h, "| visible =", visible, "-> --kt-banner-h =", visible ? h : 0);
-      setBannerHeight(visible ? h : 0);
+      const shown = bannerState === "gorunur";
+      blog("boyut olayı: h =", h, "| durum =", bannerState, "-> --kt-banner-h =", shown ? h : 0);
+      setBannerHeight(shown ? h : 0);
     });
     await AdMob.addListener(BannerAdPluginEvents.FailedToLoad, (err) => {
       // AdMob hata kodları: 0 iç hata, 1 geçersiz istek, 2 ağ, 3 stok yok (no fill).
-      blog("YÜKLENEMEDİ:", JSON.stringify(err));
+      // Eklenti AdView'i yok etti: durumu "yok"a çek, yoksa hideBanner patlar.
+      bannerState = "yok";
+      blog("YÜKLENEMEDİ:", JSON.stringify(err), "-> durum: yok");
       log("banner yüklenemedi:", err);
       setBannerHeight(0);
     });
     await AdMob.addListener(BannerAdPluginEvents.Loaded, () => blog("ilan YÜKLENDİ (Loaded)"));
     blog("dinleyiciler bağlandı");
 
-    let everShown = false;   // showBanner en az bir kez çağrıldı mı?
-
     const show = async () => {
-      if (visible) return;
-      // DİKKAT: boyut olayı çağrının İÇİNDE gelebiliyor; bayrak önce set edilmezse
+      if (bannerState === "gorunur") { blog("show: zaten görünür, çağrı yok"); return; }
+      const resuming = bannerState === "gizli";
+      // DİKKAT: boyut olayı çağrının İÇİNDE gelebiliyor; durum önce set edilmezse
       // olay "gizli" sanıp yüksekliği 0 bırakır ve alt bar bandın altında kalır.
-      visible = true;
+      bannerState = "gorunur";
       try {
-        if (everShown) {
+        if (resuming) {
           // İlan YENİDEN YÜKLENMEZ: var olan banner yeniden görünür yapılır.
           blog("resumeBanner çağrılıyor");
           await AdMob.resumeBanner();
           blog("resumeBanner tamam");
         } else {
-          blog("showBanner çağrılıyor — adId:", unit, "| isTesting:", isTesting);
+          blog("showBanner çağrılıyor — adId:", unit, `(${unitKind})`, "| isTesting:", isTesting);
           await AdMob.showBanner({
             adId: unit,
             adSize: BannerAdSize.ADAPTIVE_BANNER,
@@ -457,29 +498,35 @@ async function setupAdMob(platform: Platform) {
             isTesting,
           });
           blog("showBanner tamam (ilan yükleme sonucu Loaded/YÜKLENEMEDİ olayında)");
-          everShown = true;
         }
         // Yükseklik SizeChanged olayıyla gelir; olay gecikirse boşluk 0 kalır,
         // reklam görünür ama düzen bozulmaz.
       } catch (e) {
-        blog("show HATA:", String(e));
+        // Çağrı patladıysa native tarafta sağlam bir AdView olduğunu varsayamayız:
+        // "yok"a dön ki bir sonraki deneme sıfırdan showBanner yapsın.
+        bannerState = "yok";
+        blog("show HATA:", String(e), "-> durum: yok");
         log("banner gösterilemedi:", e);
-        visible = false;
         setBannerHeight(0);
       }
     };
 
     const hide = async () => {
       // Ölçüyü ÖNCE sıfırla: düzen beklemeden kapanır (anında his).
-      visible = false;
       setBannerHeight(0);
-      if (!everShown) { blog("hide: banner hiç gösterilmemiş, çağrı yok"); return; }
+      if (bannerState !== "gorunur") {
+        // Hiç açılmadı ya da zaten gizli/yok — hideBanner çağırmak hata verir.
+        blog("hide: durum =", bannerState, "- çağrı yok");
+        return;
+      }
+      bannerState = "gizli";
       try {
         blog("hideBanner çağrılıyor");
         await AdMob.hideBanner();
         blog("hideBanner tamam");
       } catch (e) {
-        blog("hide HATA:", String(e));
+        bannerState = "yok";
+        blog("hide HATA:", String(e), "-> durum: yok");
         log("banner gizlenemedi:", e);
       }
     };
