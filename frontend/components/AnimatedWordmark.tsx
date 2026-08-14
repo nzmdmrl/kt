@@ -6,39 +6,36 @@ import { playTileFlip, unlockAudio } from "@/lib/sound";
 /**
  * Animasyonlu "KELİME TAHMİN" kutu logosu — arayüz stili 2 (yeni görünüm).
  *
- * Akış: tüm kutular BOŞ (gri) başlar → harfler soldan sağa, satır satır, tek tek
- * 3B (rotateY) çevrilerek açılır → kısa bekleme → kutular yine boşalır → döngü.
+ * Akış: tüm kutular BOŞ (gri) başlar → harfler soldan sağa tek tek 3B (rotateY)
+ * çevrilerek açılır → açık kalır. Animasyon sayfa başına BİR KEZ çalışır, döngü yok.
  * Her çevrilişte Web Audio ile üretilen kısa "tak" sesi çalar (lib/sound.ts).
+ *
+ * Renk: KELİME satırı tamamen yeşil, TAHMİN satırı tamamen sarı.
+ * Yerleşim: masaüstünde iki satır, mobilde tek satır (globals.css .kt-aw).
  *
  * Kurallar:
  *  - Harf başına ayrı animasyon kodu YOK; tek zamanlayıcı + `revealed` sayacı.
  *  - Ses açık/kapalı ayarına uyar (kt_sound). Ses engelliyse animasyon yine çalışır.
  *  - prefers-reduced-motion: 3B dönüş ve ses kapanır, yumuşak geçiş kalır.
- *
- * Görünüm ayarları globals.css → "ARAYÜZ STİLİ 2" bölümündeki .kt-aw-* sınıfları.
  */
 
-type Kind = "k" | "t" | "plain";
+type Kind = "k" | "t";
 type Tile = { ch: string; kind: Kind };
 
-// Satırlar: KELİME (6 harf) + TAHMİN (6 harf) = 12 kutu.
-// Baştaki K yeşil, baştaki T sarı — KT marka kutularıyla aynı dil.
+// KELİME (6 harf, yeşil) + TAHMİN (6 harf, sarı) = 12 kutu.
 const ROWS: Tile[][] = [
-  [...("KELİME")].map((ch, i) => ({ ch, kind: (i === 0 ? "k" : "plain") as Kind })),
-  [...("TAHMİN")].map((ch, i) => ({ ch, kind: (i === 0 ? "t" : "plain") as Kind })),
+  [...("KELİME")].map((ch) => ({ ch, kind: "k" as Kind })),
+  [...("TAHMİN")].map((ch) => ({ ch, kind: "t" as Kind })),
 ];
 const TILES: Tile[] = ROWS.flat();
 
-// Zamanlama (ms) — premium his için ölçülü stagger.
-const EMPTY_MS = 700;   // baştaki boş kutu bekleyişi
-const STEP_MS = 130;    // harfler arası gecikme
-const FLIP_MS = 460;    // tek kutunun dönüş süresi (CSS ile aynı olmalı)
-const HOLD_MS = 1800;   // kelime tamamlandıktan sonraki bekleme
-const CLEAR_STEP = 30;  // boşaltma dalgası
+// Zamanlama (ms) — ilk sürüme göre %25 daha hızlı.
+const EMPTY_MS = 525;   // baştaki boş kutu bekleyişi
+const STEP_MS = 98;     // harfler arası gecikme
+export const FLIP_MS = 345; // tek kutunun dönüş süresi (globals.css ile aynı olmalı)
 
 export default function AnimatedWordmark({ compact = false }: { compact?: boolean }) {
   const [revealed, setRevealed] = useState(0);
-  const [clearing, setClearing] = useState(false);
   const reducedRef = useRef(false);
 
   // İlk kullanıcı etkileşiminde ses kilidini aç (tarayıcı otomatik oynatma politikası).
@@ -56,37 +53,19 @@ export default function AnimatedWordmark({ compact = false }: { compact?: boolea
     };
   }, []);
 
+  // Tek seferlik açılış — bittiğinde kutular açık kalır.
   useEffect(() => {
     reducedRef.current =
       typeof window !== "undefined" &&
       !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
-    let timers: number[] = [];
-    let alive = true;
-
-    function run() {
-      if (!alive) return;
-      timers = [];                 // önceki turun zamanlayıcıları çoktan tetiklendi
-      setClearing(false);
-      setRevealed(0);
-
-      TILES.forEach((_, i) => {
-        timers.push(
-          window.setTimeout(() => {
-            setRevealed(i + 1);
-            if (!reducedRef.current) playTileFlip();
-          }, EMPTY_MS + i * STEP_MS)
-        );
-      });
-
-      const doneAt = EMPTY_MS + (TILES.length - 1) * STEP_MS + FLIP_MS;
-      // Boşaltma: kutular dalga hâlinde geri döner, sonra döngü baştan başlar.
-      timers.push(window.setTimeout(() => { setClearing(true); setRevealed(0); }, doneAt + HOLD_MS));
-      timers.push(window.setTimeout(run, doneAt + HOLD_MS + TILES.length * CLEAR_STEP + FLIP_MS + 250));
-    }
-
-    run();
-    return () => { alive = false; timers.forEach((t) => clearTimeout(t)); };
+    const timers = TILES.map((_, i) =>
+      window.setTimeout(() => {
+        setRevealed(i + 1);
+        if (!reducedRef.current) playTileFlip();
+      }, EMPTY_MS + i * STEP_MS)
+    );
+    return () => timers.forEach((t) => clearTimeout(t));
   }, []);
 
   let idx = 0;
@@ -96,13 +75,10 @@ export default function AnimatedWordmark({ compact = false }: { compact?: boolea
         <div className="kt-aw-row" key={r}>
           {row.map((tile) => {
             const i = idx++;
-            const open = i < revealed;
             return (
               <span
                 key={i}
-                className={`kt-aw-tile kt-aw-tile--${tile.kind}${open ? " is-open" : ""}`}
-                // Açılırken gecikme zamanlayıcıdan gelir (0), boşalırken dalga efekti.
-                style={{ transitionDelay: clearing ? `${i * CLEAR_STEP}ms` : "0ms" }}
+                className={`kt-aw-tile kt-aw-tile--${tile.kind}${i < revealed ? " is-open" : ""}`}
                 aria-hidden
               >
                 <span className="kt-aw-inner">

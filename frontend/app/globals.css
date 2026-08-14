@@ -520,24 +520,31 @@ html[data-style="stil2"] .kt-logo-tile--t {
    Her kutu: ön yüz boş/gri, arka yüz harfli. `is-open` gelince iç katman
    rotateY(180deg) döner; backface-visibility sayesinde harf tam 90°'den
    sonra ortaya çıkar — gerçek kutu çevirme hissi. */
+/* Masaüstü: iki satır (KELİME / TAHMİN), büyük kutular. */
 .kt-aw {
-  --aw-size: clamp(40px, 11.5vw, 62px);
-  --aw-gap: clamp(5px, 1.4vw, 9px);
+  --aw-size: clamp(52px, 15vw, 80px);
+  --aw-gap: clamp(7px, 1.8vw, 12px);
   display: flex; flex-direction: column; align-items: center;
   gap: var(--aw-gap); max-width: 100%;
 }
-.kt-aw--compact { --aw-size: clamp(26px, 7vw, 38px); --aw-gap: clamp(4px, 1vw, 6px); }
+.kt-aw--compact { --aw-size: clamp(34px, 9vw, 49px); --aw-gap: clamp(5px, 1.2vw, 8px); }
+/* Mobil: iki satır yan yana gelir → KELİMETAHMİN tek satır, 12 kutu bitişik.
+   Ölçüler vw tabanlı; 360px'te bile yatay taşma olmayacak şekilde sınırlı. */
+@media (max-width: 720px) {
+  .kt-aw { flex-direction: row; flex-wrap: nowrap; --aw-size: min(6.2vw, 32px); --aw-gap: min(0.8vw, 4px); }
+  .kt-aw--compact { --aw-size: min(5.4vw, 28px); --aw-gap: min(0.7vw, 3px); }
+}
 .kt-aw-row { display: flex; gap: var(--aw-gap); }
 .kt-aw-tile { display: block; width: var(--aw-size); height: var(--aw-size); perspective: 600px; }
 .kt-aw-inner {
   position: relative; display: block; width: 100%; height: 100%;
   transform-style: preserve-3d;
-  transition: transform 460ms cubic-bezier(.2, .7, .3, 1);
+  transition: transform 345ms cubic-bezier(.2, .7, .3, 1);
 }
 .kt-aw-tile.is-open .kt-aw-inner { transform: rotateY(180deg); }
 .kt-aw-face {
   position: absolute; inset: 0; display: grid; place-items: center;
-  border-radius: clamp(8px, 1.6vw, 12px);
+  border-radius: calc(var(--aw-size) * .2);
   backface-visibility: hidden; -webkit-backface-visibility: hidden;
   font-family: var(--font-display); font-weight: 700; line-height: 1;
   font-size: calc(var(--aw-size) * .55);
@@ -554,8 +561,8 @@ html[data-style="stil2"] .kt-logo-tile--t {
 .kt-aw-tile--k .kt-aw-back { background: #39b86a; color: #fff; box-shadow: 0 6px 20px rgba(57, 184, 106, .35); }
 .kt-aw-tile--t .kt-aw-back { background: #ffb51b; color: #0d0b2b; box-shadow: 0 6px 20px rgba(255, 181, 27, .35); }
 /* Gündüz temasında kutular da açılır — koyu blok gibi durmasın */
+/* Gündüz temasında yalnızca BOŞ kutu açılır; dolu kutular yeşil/sarı kalır */
 html[data-theme="light"] .kt-aw-front { background: #ded9ee; border-color: #c8c1e0; }
-html[data-theme="light"] .kt-aw-back { background: #4a4278; }
 
 .hm-wordmark { display: flex; justify-content: center; padding: 6px 0 22px; }
 .hm-wordmark--compact { padding: 0 0 16px; }
