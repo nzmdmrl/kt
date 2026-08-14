@@ -57,11 +57,29 @@ const BANNER_HEIGHT_VAR = "--kt-banner-h";
 /** Bandın akıştaki içerikten çaldığı yer = boşluk + bant yüksekliği. */
 const BANNER_SPACE_VAR = "--kt-banner-space";
 
-/** Bant ile alt navigasyon arasında bırakılan boşluk (dp/CSS px). */
-const BANNER_GAP = 10;
+/** Bant ile alt navigasyon arasında bırakılan boşluk (CSS px). */
+const BANNER_GAP = 15;
 
 /** Alt bar ölçülemezse kullanılacak yükseklik (globals.css'teki spacer değeri). */
 const NAV_HEIGHT_FALLBACK = 76;
+
+/**
+ * CSS px -> eklentinin margin biriminde katsayı.
+ *
+ * ARİTMETİK: eklenti margin'i px'e şöyle çeviriyor (BannerExecutor.java):
+ *     fiziksel_px = margin * density
+ * WebView'da ise
+ *     fiziksel_px = css_px * devicePixelRatio
+ * Android'de density == devicePixelRatio olduğu sürece (bu cihazda 2.75) 1 CSS px
+ * = 1 dp olur ve katsayı 1'dir.
+ *
+ * AMPİRİK DÜZELTME: istenen boşluk 15px iken ekranda görülen boşluk farklıysa
+ *     katsayı = istenen_boşluk / görülen_boşluk
+ * Örn. 15 istenip ~5.5px görülüyorsa katsayı = 15/5.5 ≈ 2.73 (yani dpr) → margin
+ * dp değil fiziksel px olarak yorumlanıyor demektir. Değeri konsoldan denemek için:
+ *     __ktBanner.retry(<margin CSS px>)   // bkz. setupAdMob sonundaki hata ayıklama kancası
+ */
+const MARGIN_DP_FACTOR = 1;
 
 /**
  * GOOGLE'IN RESMİ TEST REKLAM BİRİMLERİ — tek yer burası, başka yere kopyalama.
@@ -145,19 +163,58 @@ function logMeasurements(where: string) {
 }
 
 /**
- * Alt navigasyonun GERÇEK yüksekliği (px). Ölçülür — 76 sabiti yalnızca bar
- * ekranda yokken (oyun ekranı, masaüstü genişliği) yedek olarak kullanılır.
- * Ölçülen değer barın kendi alt dolgusunu, yani güvenli alanı ZATEN içerir.
+ * Bandın margin'i — HİÇBİRİ SABİT DEĞİL, üçü de çalışma anında ölçülür:
+ *
+ *   mesafe = window.innerHeight - navRect.top     (ekran altından barın ÜST kenarına)
+ *   margin = (mesafe + 15) * MARGIN_DP_FACTOR
+ *
+ * "Güvenli alan" bu mesafenin İÇİNDE: bar ekranın dibinde (bottom: 0) duruyor ve
+ * kendi alt dolgusu `12px + env(safe-area-inset-bottom)` — yani sistem çubuğu payı
+ * barın ölçülen yüksekliğine dahil. Log her bileşeni ayrı ayrı basar, doğrulanabilir.
+ *
+ * Bar ekranda yoksa (oyun ekranı / masaüstü genişliği) yedek: 76 + güvenli alan.
  */
-function measureNavHeight(): { height: number; measured: boolean } {
+type BannerMargin = {
+  margin: number;        // eklentiye geçilen değer
+  cssDistance: number;   // ekran altından barın üst kenarına (CSS px)
+  navHeight: number;
+  navTop: number;
+  safe: number;
+  innerHeight: number;
+  measured: boolean;
+};
+
+function computeBannerMargin(): BannerMargin {
+  const safe = measureSafeBottom();
+  const innerHeight = window.innerHeight;
   try {
     const bar = document.querySelector<HTMLElement>(".kt-bottom-nav-bar");
     if (bar) {
-      const h = Math.round(bar.getBoundingClientRect().height);
-      if (h > 0) return { height: h, measured: true };
+      const r = bar.getBoundingClientRect();
+      if (r.height > 0) {
+        const cssDistance = Math.round(innerHeight - r.top);
+        return {
+          margin: Math.round((cssDistance + BANNER_GAP) * MARGIN_DP_FACTOR),
+          cssDistance,
+          navHeight: Math.round(r.height),
+          navTop: Math.round(r.top),
+          safe,
+          innerHeight,
+          measured: true,
+        };
+      }
     }
   } catch {}
-  return { height: NAV_HEIGHT_FALLBACK + measureSafeBottom(), measured: false };
+  const cssDistance = NAV_HEIGHT_FALLBACK + safe;
+  return {
+    margin: Math.round((cssDistance + BANNER_GAP) * MARGIN_DP_FACTOR),
+    cssDistance,
+    navHeight: cssDistance,
+    navTop: innerHeight - cssDistance,
+    safe,
+    innerHeight,
+    measured: false,
+  };
 }
 
 /**
@@ -173,16 +230,35 @@ function measureNavHeight(): { height: number; measured: boolean } {
  * toplam rezerv = alt bar + boşluk + bant olur; bant içeriğin üstüne binmez.
  * Bant yokken değişken 0px'e döner → düzen web'dekiyle birebir aynı.
  */
+let bannerHeightPx = 0;
+
 function setBannerHeight(px: number) {
   try {
-    const h = Number.isFinite(px) && px > 0 ? Math.round(px) : 0;
+    bannerHeightPx = Number.isFinite(px) && px > 0 ? Math.round(px) : 0;
+    document.documentElement.style.setProperty(BANNER_HEIGHT_VAR, `${bannerHeightPx}px`);
+    document.body.classList.toggle(BANNER_BODY_CLASS, bannerHeightPx > 0);
+    applyBannerSpace();
+    logMeasurements(bannerHeightPx > 0 ? `bant ${bannerHeightPx}px` : "bant gizli");
+  } catch {}
+}
 
-    const root = document.documentElement;
-    root.style.setProperty(BANNER_HEIGHT_VAR, `${h}px`);
-    root.style.setProperty(BANNER_SPACE_VAR, h > 0 ? `${h + BANNER_GAP}px` : "0px");
-    document.body.classList.toggle(BANNER_BODY_CLASS, h > 0);
-
-    logMeasurements(h > 0 ? `bant ${h}px` : "bant gizli");
+/**
+ * Akıştaki içeriğin altında bırakılacak yeri hesaplar ve --kt-banner-space'e yazar.
+ *
+ * Bandın ÜST kenarı ekran altından şu kadar yukarıda:  mesafe + boşluk + bant
+ * Alt bar zaten spacer ile (76px + güvenli alan) yer ayırdığı için değişkene
+ * yalnızca ARTAN kısım yazılır; toplam rezerv tam olarak bandın üst kenarına eşit
+ * olur. Alt bar hiç basılmayan sayfalarda (ör. /giris) spacer olmadığı için
+ * ihtiyacın TAMAMI yazılır. Gezinmede yeniden çağrılır (bar var/yok değişebilir).
+ */
+function applyBannerSpace() {
+  try {
+    const d = computeBannerMargin();
+    const spacerReserve = NAV_HEIGHT_FALLBACK + d.safe;      // globals.css'teki spacer
+    const needed = d.cssDistance + BANNER_GAP + bannerHeightPx;
+    const space =
+      bannerHeightPx > 0 ? Math.max(0, d.measured ? needed - spacerReserve : needed) : 0;
+    document.documentElement.style.setProperty(BANNER_SPACE_VAR, `${space}px`);
   } catch {}
 }
 
@@ -260,8 +336,11 @@ export default function NativeBootstrap() {
     currentPath = pathname || "/";
     void applyBannerForPath();
 
-    // GEÇİCİ TEŞHİS: her gezinmede ölçüleri bas (bar sökülüp yeniden basılıyor).
-    const raf = requestAnimationFrame(() => logMeasurements(`gezinme ${currentPath}`));
+    // Bar bu sayfada var mı yok mu değişmiş olabilir → içerik rezervini tazele.
+    const raf = requestAnimationFrame(() => {
+      applyBannerSpace();
+      logMeasurements(`gezinme ${currentPath}`);
+    });
     return () => cancelAnimationFrame(raf);
   }, [pathname, ready, isNative]);
 
@@ -541,6 +620,8 @@ async function setupAdMob(platform: Platform) {
     // (BannerExecutor.onAdFailedToLoad) — o yüzden hata durumu "yok"a döner ve
     // sonraki gösterimde resumeBanner değil, YENİ showBanner çağrılır.
     let bannerState: "yok" | "gorunur" | "gizli" = "yok";
+    // Konsoldan elle margin denemek için (GEÇİCİ TEŞHİS — bkz. __ktBanner.retry).
+    let marginOverride: number | null = null;
 
     // --- yükseklik: TAHMİN YOK, eklentinin bildirdiği gerçek ölçü kullanılır ---
     // SizeChanged (Android: bannerViewChangeSize, iOS: bannerViewDidReceiveAd
@@ -577,24 +658,31 @@ async function setupAdMob(platform: Platform) {
           blog("resumeBanner tamam");
         } else {
           // Bant alt navigasyonun ÜSTÜNE yerleşsin: eklentinin kendi margin'i
-          // kullanılır (alt bar hiç oynatılmaz). Margin dp cinsinden gider;
-          // eklenti px'e çeviriyor (BannerExecutor: margin * density) ve WebView'da
-          // 1 CSS px = 1 dp olduğu için ölçüyü doğrudan px olarak veriyoruz.
-          // Ölçülen bar yüksekliği kendi alt dolgusuyla güvenli alanı zaten içerir.
-          const nav = measureNavHeight();
-          const margin = nav.height + BANNER_GAP;
+          // kullanılır (alt bar hiç oynatılmaz).
+          const m = marginOverride ?? computeBannerMargin().margin;
+          const d = computeBannerMargin();
           blog(
             "showBanner çağrılıyor — adId:", unit, `(${unitKind})`,
             "| isTesting:", isTesting,
-            "| nav yüksekliği:", `${nav.height}px`, nav.measured ? "(ölçüldü)" : "(YEDEK: 76 + güvenli alan)",
+            "\n  ARİTMETİK:",
+            "innerHeight:", d.innerHeight,
+            "- nav rect.top:", d.navTop,
+            "= mesafe:", `${d.cssDistance}px`,
+            "| nav yüksekliği:", `${d.navHeight}px`, d.measured ? "(ölçüldü)" : "(YEDEK 76 + güvenli alan)",
+            "| güvenli alan:", `${d.safe}px`,
             "| boşluk:", `${BANNER_GAP}px`,
-            "| margin (dp):", margin,
+            "| dpr:", window.devicePixelRatio,
+            "| katsayı:", MARGIN_DP_FACTOR,
+            "-> GEÇİLEN MARGIN:", m,
+            marginOverride != null ? "(konsoldan elle)" : "",
+            "\n  Görünen boşluk 15px değilse: katsayı = 15 / görünen_boşluk;",
+            "denemek için konsola: __ktBanner.retry(<margin>)",
           );
           await AdMob.showBanner({
             adId: unit,
             adSize: BannerAdSize.ADAPTIVE_BANNER,
             position: BannerAdPosition.BOTTOM_CENTER,
-            margin,
+            margin: m,
             isTesting,
           });
           blog("showBanner tamam (ilan yükleme sonucu Loaded/YÜKLENEMEDİ olayında)");
@@ -632,6 +720,36 @@ async function setupAdMob(platform: Platform) {
     };
 
     bannerCtl = { hiddenPaths, show, hide };
+
+    /**
+     * GEÇİCİ TEŞHİS KANCASI — birim (dp mi CSS px mi) sorusunu deneyerek çözmek için.
+     * chrome://inspect konsolunda:
+     *   __ktBanner.retry()      -> hesaplanan margin ile bandı sıfırdan kur
+     *   __ktBanner.retry(300)   -> margin'i elle 300 vererek dene
+     *   __ktBanner.info()       -> anlık ölçüm dökümü
+     * Margin yalnızca banner SIFIRDAN kurulurken uygulanıyor (eklenti mevcut
+     * görünümü güncellerken layout parametrelerine dokunmuyor), o yüzden önce
+     * removeBanner çağrılıyor.
+     */
+    (window as any).__ktBanner = {
+      async retry(margin?: number) {
+        try {
+          marginOverride = typeof margin === "number" ? margin : null;
+          await AdMob.removeBanner().catch(() => {});
+          bannerState = "yok";
+          setBannerHeight(0);
+          await show();
+        } catch (e) {
+          blog("retry HATA:", String(e));
+        }
+      },
+      info() {
+        const d = computeBannerMargin();
+        blog("hesaplanan margin:", JSON.stringify(d));
+        logMeasurements("manuel");
+      },
+    };
+
     blog("denetim hazır — ilk karar veriliyor, yol:", currentPath);
 
     // İlk karar mevcut sayfaya göre: oyun ekranındaysak banner HİÇ açılmaz
