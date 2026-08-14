@@ -271,6 +271,16 @@ a { color: inherit; text-decoration: none; }
 .hm-avatar { width: 60px; height: 60px; border-radius: 50%; background: var(--bg-elevated); border: 2px solid var(--accent); flex-shrink: 0; }
 .hm-name { font-size: 20px; font-weight: 800; color: var(--text-strong); }
 .hm-badge { font-size: 13px; font-weight: 700; color: #1a1330; background: var(--accent); padding: 2px 10px; border-radius: 20px; }
+/* Seviye rozeti (Lv 2) — masaüstünde isim satırında, MOBİLDE avatarın altında ortalı.
+   İki ayrı öğe olarak basılır; hangisinin görüneceğine ekran genişliği karar verir.
+   Seçiciler .hm-profile-wrap ile daraltıldı: iskelet .hm-skel-line kuralı dosyada
+   daha sonra geldiği için düz sınıf yeterli olmuyordu. */
+.hm-avatar-col { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.hm-profile-wrap .hm-badge--under { display: none; }
+@media (max-width: 720px) {
+  .hm-profile-wrap .hm-badge--row { display: none; }
+  .hm-profile-wrap .hm-badge--under { display: inline-block; }
+}
 .hm-title { font-size: 13px; color: var(--accent); font-weight: 600; }
 /* Unvan gelişim çubuğu — ana sayfa profil kartı + profil sayfası ortak */
 .xp-progress { margin-top: 8px; }

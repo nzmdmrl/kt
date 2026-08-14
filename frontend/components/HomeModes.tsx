@@ -114,14 +114,18 @@ export default function HomeModes({ style = "stil2" }: { style?: "stil1" | "stil
       {/* Profil / karşılama kartı — puan, madalya, rozet sayılarıyla */}
       {user ? (
         <div className="hm-profile-wrap">
-          {/* Avatar kartın dışında, solda — profile linkli */}
-          <a href={profileHref} className="hm-avatar-link" aria-label="Profilim">
-            <img src={avatar} alt="" className="hm-avatar" />
-          </a>
+          {/* Avatar kartın dışında, solda — profile linkli.
+              Seviye rozeti mobilde avatarın altında, masaüstünde isim satırında. */}
+          <div className="hm-avatar-col">
+            <a href={profileHref} className="hm-avatar-link" aria-label="Profilim">
+              <img src={avatar} alt="" className="hm-avatar" />
+            </a>
+            <span className="hm-badge hm-badge--under">Lv {level}</span>
+          </div>
           <div className="hm-profile">
             <div className="hm-name-row">
               <a href={profileHref} className="hm-name hm-name-link">{user.display_name || user.username}</a>
-              <span className="hm-badge">Lv {level}</span>
+              <span className="hm-badge hm-badge--row">Lv {level}</span>
             </div>
             {/* Unvan gelişimi — XP'nin yanında unvan */}
             {!title ? (
@@ -152,11 +156,15 @@ export default function HomeModes({ style = "stil2" }: { style?: "stil1" | "stil
         /* Kullanıcı henüz bilinmiyor: misafir yazısı yerine profil kartı iskeleti
            (aynı yükseklik) — içerik gelince zıplama/flaş olmaz. */
         <div className="hm-profile-wrap" aria-hidden="true">
-          <div className="hm-avatar hm-skel" />
+          {/* İskelet de aynı yerleşimi kurar (mobilde rozet avatarın altında) */}
+          <div className="hm-avatar-col">
+            <div className="hm-avatar hm-skel" />
+            <span className="hm-skel hm-skel-line hm-badge--under" style={{ width: 46, height: 18, borderRadius: 20 }} />
+          </div>
           <div className="hm-profile">
             <div className="hm-name-row">
               <span className="hm-skel hm-skel-line" style={{ width: 150, height: 20 }} />
-              <span className="hm-skel hm-skel-line" style={{ width: 46, height: 18, borderRadius: 20 }} />
+              <span className="hm-skel hm-skel-line hm-badge--row" style={{ width: 46, height: 18, borderRadius: 20 }} />
             </div>
             <div className="xp-progress hm-xp">
               <div className="xp-row"><span className="hm-skel hm-skel-line" style={{ width: 200, height: 12 }} /></div>

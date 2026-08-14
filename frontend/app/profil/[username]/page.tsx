@@ -189,18 +189,22 @@ export default function ProfilePage({ params }: { params: { username: string } }
             </div>
           </div>
         )}
-        {profile.avatar_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={profile.avatar_url} alt="" className="hm-avatar" />
-        ) : (
-          <div className="hm-avatar prof-avatar-fallback">
-            <span className="brand-mono">{profile.display_name.charAt(0).toUpperCase()}</span>
-          </div>
-        )}
+        {/* Avatar + seviye rozeti (mobilde avatarın altında ortalı) */}
+        <div className="hm-avatar-col">
+          {profile.avatar_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={profile.avatar_url} alt="" className="hm-avatar" />
+          ) : (
+            <div className="hm-avatar prof-avatar-fallback">
+              <span className="brand-mono">{profile.display_name.charAt(0).toUpperCase()}</span>
+            </div>
+          )}
+          {profile.level_info && <span className="hm-badge hm-badge--under">Lv {profile.level_info.level}</span>}
+        </div>
         <div className="hm-profile">
           <div className={`hm-name-row${isMe ? " prof-has-edit" : ""}`}>
             <span className="hm-name">{profile.display_name}</span>
-            {profile.level_info && <span className="hm-badge">Lv {profile.level_info.level}</span>}
+            {profile.level_info && <span className="hm-badge hm-badge--row">Lv {profile.level_info.level}</span>}
             <span className="prof-username">@{profile.username}</span>
             {typeof profile.friend_count === "number" && (
               <span className="hm-chip prof-friends" title="Arkadaş">🤝 {profile.friend_count} arkadaş</span>
