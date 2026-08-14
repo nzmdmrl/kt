@@ -66,6 +66,7 @@ async def _period_top3(db: AsyncSession, period_type: str, period_key: str) -> l
         .where(LeagueAward.period_type == period_type, LeagueAward.period_key == period_key)
         .order_by(LeagueAward.rank)
     )
+    from app.game.display_policy import public_name
     out = []
     for award, user in res.all():
         out.append({
@@ -73,6 +74,7 @@ async def _period_top3(db: AsyncSession, period_type: str, period_key: str) -> l
             "username": user.username,
             "display_name": user.display_name,
             "avatar_url": user.avatar_url,
+            "name": public_name(user.display_name, user.username),
             "score": award.total_score,
             "award": award.award,
         })

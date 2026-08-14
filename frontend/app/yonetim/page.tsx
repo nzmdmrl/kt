@@ -119,10 +119,29 @@ function Dashboard({ onDenied }: { onDenied: () => void }) {
   );
 }
 
+// Ayar grupları — panelde bu sırayla, katlanabilir başlıklar hâlinde çıkar.
+const SETTING_GROUPS: [string, string][] = [
+  ["Genel", "🎯"],
+  ["1v1 Düello", "⚔️"],
+  ["Arena", "🏟️"],
+  ["Maraton (Solo)", "🏃"],
+  ["Jokerler", "🃏"],
+  ["XP", "💎"],
+  ["Adlar & Listeler", "🔤"],
+  ["Görünüm", "🎨"],
+  ["Ses", "🔊"],
+  ["Sosyal", "🤝"],
+  ["Diğer", "📦"],
+];
+
 function Settings() {
   const [settings, setSettings] = useState<any[]>([]);
   const [saved, setSaved] = useState("");
   const [popup, setPopup] = useState("");
+  const [q, setQ] = useState("");
+  // Gruplar varsayılan olarak KAPALI — uzun listede aranan ayarı bulmak kolay olsun.
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+
   useEffect(() => { load(); }, []);
   function load() {
     fetch(apiUrl("/api/admin/settings"), { headers: authHeaders() })
@@ -140,72 +159,127 @@ function Settings() {
       })
       .catch(() => setPopup("Bağlantı hatası."));
   }
+
+  const query = q.trim().toLowerCase();
+  const shown = query
+    ? settings.filter((s) => `${s.label} ${s.key} ${s.group || ""}`.toLowerCase().includes(query))
+    : settings;
+  // Bilinen grup sırası + listede olmayan grupları sona ekle.
+  const names = [
+    ...SETTING_GROUPS.map(([n]) => n),
+    ...Array.from(new Set(shown.map((s) => s.group || "Diğer"))).filter((n) => !SETTING_GROUPS.some(([g]) => g === n)),
+  ];
+  const icons = Object.fromEntries(SETTING_GROUPS);
+
   return (
     <div style={{ display: "grid", gap: 10 }}>
       <p style={{ color: "var(--text-dim)", fontSize: 13 }}>Değişiklikler yeni başlayan maçlarda geçerli olur.</p>
       {popup && <AlertPopup message={popup} onClose={() => setPopup("")} />}
-      {settings.map((s) => (
-        <div key={s.key} style={{ display: "flex", alignItems: "center", gap: 10, background: "var(--bg-panel)", borderRadius: 10, padding: "10px 14px" }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 14, color: "var(--text-strong)" }}>{s.label}</div>
-            <div style={{ fontSize: 11, color: "var(--text-dim)" }}>{s.key} · varsayılan: {s.default}</div>
-          </div>
-          {s.key === "game_mode" ? (
-            <select
-              value={s.value}
-              onChange={(e) => save(s.key, e.target.value)}
-              style={{ padding: "8px", borderRadius: 8, border: "1px solid var(--tile-border)", background: "var(--bg-elevated)", color: "var(--text-strong)" }}
-            >
-              <option value="1">1 · Klasik (1v1: 3 tur · Arena: 6 kelime)</option>
-              <option value="2">2 · Hızlı (1v1: tek tur 5/6 harf · Arena: 5 kelime)</option>
-            </select>
-          ) : s.key === "ui_style" ? (
-            /* Arayüz stili — sadece görünümü değiştirir, oyun mantığı aynıdır.
-               Değişiklik ana sayfa/kök layout ISR'ı (60 sn) sonrası yayına yansır. */
-            <select
-              value={s.value}
-              onChange={(e) => save(s.key, e.target.value)}
-              style={{ padding: "8px", borderRadius: 8, border: "1px solid var(--tile-border)", background: "var(--bg-elevated)", color: "var(--text-strong)" }}
-            >
-              <option value="stil1">🎨 Stil 1 · Klasik (eski görünüm)</option>
-              <option value="stil2">✨ Stil 2 · Yeni görünüm</option>
-            </select>
-          ) : s.key === "night_bg_theme" ? (
-            <select
-              defaultValue={s.value}
-              onChange={(e) => save(s.key, e.target.value)}
-              style={{ padding: "8px", borderRadius: 8, border: "1px solid var(--tile-border)", background: "var(--bg-elevated)", color: "var(--text-strong)" }}
-            >
-              <option value="night">🌙 Gece</option>
-              <option value="aurora">🌌 Kutup Işıkları</option>
-              <option value="nebula">🪐 Nebula</option>
-              <option value="snow">❄️ Kar</option>
-            </select>
-          ) : s.type === "bool" ? (
+
+      {/* Ayar ara — yazarken eşleşen gruplar kendiliğinden açılır */}
+      <input
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        placeholder="🔍 Ayar ara (ör. arena, xp, karakter)"
+        style={{
+          padding: "10px 12px", borderRadius: 10, border: "1px solid var(--tile-border)",
+          background: "var(--bg-elevated)", color: "var(--text-strong)", fontSize: 14,
+        }}
+      />
+
+      {names.map((name) => {
+        const items = shown.filter((s) => (s.group || "Diğer") === name);
+        if (items.length === 0) return null;
+        const open = !!query || !!openGroups[name];
+        return (
+          <div key={name} style={{ background: "var(--bg-panel)", borderRadius: 12, overflow: "hidden" }}>
             <button
-              onClick={() => save(s.key, s.value === "true" ? "false" : "true")}
+              onClick={() => setOpenGroups((p) => ({ ...p, [name]: !p[name] }))}
               style={{
-                width: 52, height: 28, borderRadius: 14, border: "none", cursor: "pointer",
-                position: "relative", background: s.value === "true" ? "var(--accent)" : "var(--bg-elevated)",
-                transition: "background .2s",
+                width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
+                background: "none", border: "none", cursor: "pointer", color: "var(--text-strong)",
+                fontSize: 15, fontWeight: 700, textAlign: "left",
               }}
             >
-              <span style={{
-                position: "absolute", top: 3, left: s.value === "true" ? 27 : 3,
-                width: 22, height: 22, borderRadius: "50%", background: "#fff",
-                transition: "left .2s",
-              }} />
+              <span style={{ fontSize: 18 }}>{icons[name] || "📦"}</span>
+              <span style={{ flex: 1 }}>{name}</span>
+              <span style={{ color: "var(--text-dim)", fontSize: 12, fontWeight: 500 }}>{items.length} ayar</span>
+              <span style={{ color: "var(--text-dim)" }}>{open ? "▾" : "▸"}</span>
             </button>
-          ) : (
-            <input
-              defaultValue={s.value}
-              onBlur={(e) => e.target.value !== s.value && save(s.key, e.target.value)}
-              style={{ width: 70, padding: "8px", borderRadius: 8, border: "1px solid var(--tile-border)", background: "var(--bg-elevated)", color: "var(--text-strong)", textAlign: "center" }}
-            />
-          )}
-          {saved === s.key && <span style={{ color: "var(--tile-correct)", fontSize: 12 }}>✓</span>}
-        </div>
-      ))}
+            {open && (
+              <div style={{ display: "grid", gap: 8, padding: "0 10px 12px" }}>
+                {items.map((s) => (
+                  <SettingRow key={s.key} s={s} saved={saved === s.key} onSave={save} />
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function SettingRow({ s, saved, onSave }: { s: any; saved: boolean; onSave: (k: string, v: string) => void }) {
+  const selStyle: React.CSSProperties = {
+    padding: "8px", borderRadius: 8, border: "1px solid var(--tile-border)",
+    background: "var(--bg-elevated)", color: "var(--text-strong)",
+  };
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, background: "var(--bg-elevated)", borderRadius: 10, padding: "10px 14px" }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 14, color: "var(--text-strong)" }}>{s.label}</div>
+        <div style={{ fontSize: 11, color: "var(--text-dim)" }}>{s.key} · varsayılan: {s.default}</div>
+      </div>
+      {s.key === "game_mode" ? (
+        <select value={s.value} onChange={(e) => onSave(s.key, e.target.value)} style={selStyle}>
+          <option value="1">1 · Klasik (1v1: 3 tur · Arena: 6 kelime)</option>
+          <option value="2">2 · Hızlı (1v1: tek tur 5/6 harf · Arena: 5 kelime)</option>
+        </select>
+      ) : s.key === "ui_style" ? (
+        /* Arayüz stili — sadece görünümü değiştirir, oyun mantığı aynıdır.
+           Değişiklik ana sayfa/kök layout ISR'ı (60 sn) sonrası yayına yansır. */
+        <select value={s.value} onChange={(e) => onSave(s.key, e.target.value)} style={selStyle}>
+          <option value="stil1">🎨 Stil 1 · Klasik (eski görünüm)</option>
+          <option value="stil2">✨ Stil 2 · Yeni görünüm</option>
+        </select>
+      ) : s.key === "list_name_source" ? (
+        /* Listelerde (son maçlar, lig) hangi ad gösterilsin */
+        <select value={s.value} onChange={(e) => onSave(s.key, e.target.value)} style={selStyle}>
+          <option value="display_name">Görünen ad</option>
+          <option value="username">Kullanıcı adı</option>
+        </select>
+      ) : s.key === "night_bg_theme" ? (
+        <select defaultValue={s.value} onChange={(e) => onSave(s.key, e.target.value)} style={selStyle}>
+          <option value="night">🌙 Gece</option>
+          <option value="aurora">🌌 Kutup Işıkları</option>
+          <option value="nebula">🪐 Nebula</option>
+          <option value="snow">❄️ Kar</option>
+        </select>
+      ) : s.type === "bool" ? (
+        <button
+          onClick={() => onSave(s.key, s.value === "true" ? "false" : "true")}
+          style={{
+            width: 52, height: 28, borderRadius: 14, border: "none", cursor: "pointer",
+            position: "relative", background: s.value === "true" ? "var(--accent)" : "var(--bg-panel)",
+            transition: "background .2s", flexShrink: 0,
+          }}
+        >
+          <span style={{
+            position: "absolute", top: 3, left: s.value === "true" ? 27 : 3,
+            width: 22, height: 22, borderRadius: "50%", background: "#fff",
+            transition: "left .2s",
+          }} />
+        </button>
+      ) : (
+        <input
+          key={s.value}
+          defaultValue={s.value}
+          onBlur={(e) => e.target.value !== s.value && onSave(s.key, e.target.value)}
+          style={{ width: 70, padding: "8px", borderRadius: 8, border: "1px solid var(--tile-border)", background: "var(--bg-panel)", color: "var(--text-strong)", textAlign: "center", flexShrink: 0 }}
+        />
+      )}
+      <span style={{ width: 12, color: "var(--tile-correct)", fontSize: 12 }}>{saved ? "✓" : ""}</span>
     </div>
   );
 }

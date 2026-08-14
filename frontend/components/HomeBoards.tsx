@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { apiUrl } from "@/lib/api";
 import type { HomeBoardsData } from "@/lib/homeData";
+import MiniAvatar from "@/components/MiniAvatar";
 
 // Ana sayfa alt bölümleri: son 10 maç + bugünün lig ilk 10'u.
 // İlk içerik sunucudan gelir (initial) — bölüm sayfa açılır açılmaz yerinde durur,
@@ -48,8 +49,10 @@ export default function HomeBoards({ initial }: { initial?: HomeBoardsData }) {
                 }}>
                   {row.rank === 1 ? "🥇" : row.rank === 2 ? "🥈" : row.rank === 3 ? "🥉" : row.rank}
                 </span>
+                <MiniAvatar url={row.avatar_url} name={row.name || row.display_name || row.username} size={24} />
+                {/* Ad sunucuda seçilir/kısaltılır (admin: Adlar & Listeler) */}
                 <a href={`/profil/${row.username}`} style={{ flex: 1, minWidth: 0, color: "var(--text-strong)", fontWeight: 600, fontSize: 14, textDecoration: "none", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                  {row.display_name || row.username}
+                  {row.name || row.display_name || row.username}
                 </a>
                 <span className="brand-mono" style={{ color: "var(--accent)", fontSize: 15 }}>{row.score}</span>
               </div>
@@ -81,21 +84,26 @@ export default function HomeBoards({ initial }: { initial?: HomeBoardsData }) {
                   borderBottom: i < matches.length - 1 ? "1px solid var(--border-soft)" : "none",
                   fontSize: 14,
                 }}>
-                  <div style={{ flex: 1, minWidth: 0, textAlign: "right" }}>
+                  {/* Sol oyuncu: ad sağa yaslı, avatar adın sağında (skora en yakın taraf) */}
+                  <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6 }}>
                     {m.p1_username ? (
-                      <a href={`/profil/${m.p1_username}`} style={nameStyle(p1win)}>{m.p1_name}</a>
+                      <a href={`/profil/${m.p1_username}`} style={nameStyle(p1win)}>{m.p1_display || m.p1_name}</a>
                     ) : (
-                      <span style={nameStyle(p1win)}>{m.p1_name}</span>
+                      <span style={nameStyle(p1win)}>{m.p1_display || m.p1_name}</span>
                     )}
+                    <MiniAvatar url={m.p1_avatar} name={m.p1_display || m.p1_name} size={22}
+                      bot={m.p1_kind === "bot"} guest={m.p1_kind === "guest"} />
                   </div>
                   <span className="brand-mono" style={{ color: "var(--text-strong)", flexShrink: 0, fontSize: 13 }}>
                     {m.p1_score} : {m.p2_score}
                   </span>
-                  <div style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
+                  <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 6 }}>
+                    <MiniAvatar url={m.p2_avatar} name={m.p2_display || m.p2_name} size={22}
+                      bot={m.p2_kind === "bot"} guest={m.p2_kind === "guest"} />
                     {m.p2_username ? (
-                      <a href={`/profil/${m.p2_username}`} style={nameStyle(p2win)}>{m.p2_name}</a>
+                      <a href={`/profil/${m.p2_username}`} style={nameStyle(p2win)}>{m.p2_display || m.p2_name}</a>
                     ) : (
-                      <span style={nameStyle(p2win)}>{m.p2_name}</span>
+                      <span style={nameStyle(p2win)}>{m.p2_display || m.p2_name}</span>
                     )}
                   </div>
                 </div>

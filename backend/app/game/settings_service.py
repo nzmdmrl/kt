@@ -112,6 +112,7 @@ async def all_settings(db: AsyncSession) -> list[dict]:
             "key": key,
             "label": meta["label"],
             "type": meta["type"],
+            "group": meta.get("group", "Diğer"),   # panelde gruplu gösterim
             "value": _cache.get(key, meta["value"]),
             "default": meta["value"],
         })

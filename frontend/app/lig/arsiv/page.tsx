@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { getJSON } from "@/lib/api";
 import Logo from "@/components/Logo";
+import MiniAvatar from "@/components/MiniAvatar";
 
 const TYPES = [
   { key: "daily", label: "Günlük" },
@@ -75,8 +76,9 @@ export default function LigArsivPage() {
               {p.top3.map((e: any) => (
                 <div key={e.rank} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0" }}>
                   <span style={{ fontSize: 16 }}>{e.rank === 1 ? "🥇" : e.rank === 2 ? "🥈" : "🥉"}</span>
+                  <MiniAvatar url={e.avatar_url} name={e.name || e.display_name || e.username} size={24} />
                   <a href={`/profil/${e.username}`} style={{ flex: 1, minWidth: 0, color: "var(--text-strong)", fontWeight: 600, fontSize: 14, textDecoration: "none", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    {e.display_name}
+                    {e.name || e.display_name || e.username}
                   </a>
                   <span className="brand-mono" style={{ color: "var(--accent)", fontSize: 14 }}>{e.score}</span>
                 </div>

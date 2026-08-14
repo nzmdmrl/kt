@@ -277,6 +277,18 @@ _NAME_LIMIT_KEYS = {
 
 @router.post("/settings")
 async def update_setting(data: SettingIn, admin: User = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+    # Liste adı ayarları
+    if data.key == "list_name_source" and data.value not in ("display_name", "username"):
+        raise HTTPException(400, "Geçerli değerler: display_name veya username.")
+    if data.key == "list_name_max_len":
+        try:
+            n = int(data.value)
+        except (TypeError, ValueError):
+            raise HTTPException(400, "Bu ayar sayı olmalı.")
+        if n < 0 or n > 48:
+            raise HTTPException(400, "Değer 0 ile 48 arasında olmalı (0 = kesme yok).")
+        data.value = str(n)
+
     # Ad limitleri: sayı olmalı, sütun sınırını aşmamalı ve min ≤ max olmalı.
     if data.key in _NAME_LIMIT_KEYS:
         lo, hi = _NAME_LIMIT_KEYS[data.key]

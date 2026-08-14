@@ -87,6 +87,8 @@ async def leaderboard(
         select(
             DailyScore.user_id,
             User.username,
+            User.display_name,
+            User.avatar_url,
             User.elo,
             (DailyScore.best_score if scope == "daily" else func.sum(DailyScore.best_score)).label("score"),
         )
@@ -95,18 +97,23 @@ async def leaderboard(
     if start is not None:
         q = q.where(DailyScore.score_date >= start, DailyScore.score_date <= end)
     if scope != "daily":
-        q = q.group_by(DailyScore.user_id, User.username, User.elo)
+        q = q.group_by(DailyScore.user_id, User.username, User.display_name, User.avatar_url, User.elo)
     q = q.order_by(func.sum(DailyScore.best_score).desc() if scope != "daily" else DailyScore.best_score.desc())
     q = q.limit(limit)
 
     res = await db.execute(q)
     rows = res.all()
+    from app.game.display_policy import public_name
     out = []
     for i, r in enumerate(rows):
         out.append({
             "rank": i + 1,
             "user_id": r.user_id,
             "username": r.username,
+            "display_name": r.display_name,
+            "avatar_url": r.avatar_url,
+            # Listede gösterilecek ad — admin ayarına göre seçilir ve kısaltılır.
+            "name": public_name(r.display_name, r.username),
             "elo": r.elo,
             "score": int(r.score or 0),
         })

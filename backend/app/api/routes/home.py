@@ -33,10 +33,38 @@ async def appearance():
 
 @router.get("/recent-matches")
 async def recent_matches(db: AsyncSession = Depends(get_db), limit: int = 10):
+    """Son maçlar — gösterilecek ad (`p1_display`/`p2_display`) ve mini avatar dahil.
+
+    Maç geçmişinde ad ve kullanıcı adı maç anındaki haliyle durur; avatar ise
+    kullanıcıdan (güncel) alınır. Misafir/bot için avatar yoktur → arayüz
+    varsayılan avatarı çizer.
+    """
+    from app.models.user import User
+    from app.game.display_policy import public_name
+
     res = await db.execute(
         select(MatchHistory).order_by(MatchHistory.created_at.desc()).limit(limit)
     )
-    return {"matches": [m.to_public() for m in res.scalars().all()]}
+    rows = res.scalars().all()
+
+    unames = {u for m in rows for u in (m.p1_username, m.p2_username) if u}
+    users: dict[str, User] = {}
+    if unames:
+        found = (await db.execute(select(User).where(User.username.in_(unames)))).scalars().all()
+        users = {u.username: u for u in found}
+
+    out = []
+    for m in rows:
+        d = m.to_public()
+        for side, uname, stored in (("p1", m.p1_username, m.p1_name), ("p2", m.p2_username, m.p2_name)):
+            u = users.get(uname) if uname else None
+            # Üye ise güncel adları, değilse (misafir/bot) maçtaki kayıtlı adı kullan.
+            d[f"{side}_display"] = public_name(u.display_name if u else stored, uname)
+            d[f"{side}_avatar"] = (u.avatar_url if u else None) or ""
+            # Avatarı olmayanda hangi varsayılan çizilecek (misafir 👤 / bot 🤖).
+            d[f"{side}_kind"] = "user" if uname else ("guest" if stored == "Misafir" else ("bot" if m.has_bot else "guest"))
+        out.append(d)
+    return {"matches": out}
 
 
 @router.get("/daily-top")

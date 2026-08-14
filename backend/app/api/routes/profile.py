@@ -219,6 +219,9 @@ async def user_matches(username: str, db: AsyncSession = Depends(get_db), limit:
         .limit(limit)
     )).scalars().all()
 
+    # Rakip adı listelerdeki kuralla gösterilir (admin: Adlar & Listeler).
+    from app.game.display_policy import public_name
+
     out = []
     for m in rows:
         # Kullanıcı p1 mi p2 mi? Perspektifi ona göre kur.
@@ -235,7 +238,7 @@ async def user_matches(username: str, db: AsyncSession = Depends(get_db), limit:
         else:
             result = "loss"
         out.append({
-            "opp_name": opp_name,
+            "opp_name": public_name(opp_name, opp_username),
             "opp_username": opp_username,   # "" ise bot / link yok
             "my_score": my_score,
             "opp_score": opp_score,
