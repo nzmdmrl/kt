@@ -19,6 +19,9 @@ bu yüzden create_all bu tablolara dokunmaz, alembic autogenerate kullanılmaz.
 
 Uçlar
 -----
+Herkese açık:
+- GET /notification-groups        -> grup listesi (native Android kanalları için)
+
 Kullanıcı (giriş gerekli):
 - GET /notification-types        -> gruplar + aktif türler + kullanıcının etkin değeri
 - GET /me/push-preferences       -> ana anahtar, sessiz saat, teslim modu
@@ -325,6 +328,26 @@ async def _settings_row(db: AsyncSession, user_id: int) -> dict[str, Any]:
         "quiet_end": int(row[2]) if row[2] is not None else None,
         "delivery_mode": row[3] or "prefer_native",
     }
+
+
+# ---------------------------------------------------------------- public uçlar
+
+@router.get("/notification-groups")
+async def notification_groups(db: AsyncSession = Depends(get_db)):
+    """Bildirim grupları — GİRİŞ GEREKMEZ.
+
+    Native uygulama açılışta Android bildirim kanallarını bu listeden kurar
+    (kanal id = grup kodu). Kanallar kullanıcı giriş yapmadan da oluşmalı,
+    bu yüzden uç herkese açık; içinde kişisel veri yok.
+
+    Tablo henüz kurulmamışsa (çok eski kurulum) 500 yerine boş liste döner;
+    istemci tarafında sabit yedek liste var.
+    """
+    try:
+        return {"groups": await _groups(db)}
+    except Exception as e:                       # pragma: no cover - savunma amaçlı
+        print(f"[notification-groups] okunamadı: {e}")
+        return {"groups": []}
 
 
 # ---------------------------------------------------------------- kullanıcı uçları

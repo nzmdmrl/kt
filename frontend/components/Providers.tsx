@@ -5,6 +5,7 @@ import { AuthProvider } from "@/lib/auth";
 import HeartbeatPinger from "@/components/HeartbeatPinger";
 import ChallengeWatcher from "@/components/ChallengeWatcher";
 import UiClickSound from "@/components/UiClickSound";
+import NativeBootstrap from "@/components/NativeBootstrap";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -16,6 +17,8 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         <ChallengeWatcher />
         {/* Maç dışındaki tüm sayfalarda buton tıklama sesi */}
         <UiClickSound />
+        {/* Native kabuk: push + AdMob + geri tuşu. Tarayıcıda tamamen etkisiz. */}
+        <NativeBootstrap />
         {children}
       </AuthProvider>
     </PlatformProvider>
