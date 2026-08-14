@@ -4,6 +4,11 @@
   --kt-safe-top: env(safe-area-inset-top, 0px);
   --kt-safe-bottom: env(safe-area-inset-bottom, 0px);
 
+  /* Alt barın KENDİ alt dolgusundaki güvenli alan payı. Normalde güvenli alanın
+     ta kendisi; native bant varken bar ekranın dibinde olmadığı için 0'a düşer
+     (bkz. body.has-native-banner). */
+  --kt-nav-safe-bottom: var(--kt-safe-bottom);
+
   /* Native (Capacitor) AdMob bandının GERÇEK yüksekliği. Değeri yalnızca
      components/NativeBootstrap.tsx yazar; banner yokken/gizliyken 0px olur.
      Tarayıcıda HER ZAMAN 0px kalır — web düzeni hiç etkilenmez. */
@@ -235,16 +240,28 @@ a { color: inherit; text-decoration: none; }
   .kt-bottom-nav { display: none !important; }
 }
 
-/* Alt navigasyon geometrisi — reklam bandından ETKİLENMEZ, web'deki gibi
-   ekranın dibinde durur. Bant, AdMob margin'iyle barın üstüne yerleşir. */
+/* Alt navigasyon geometrisi — web'de ekranın dibinde. */
 .kt-bottom-nav-bar { bottom: 0; }
 .kt-bottom-nav-spacer { height: calc(76px + var(--kt-safe-bottom)); }
 
-/* Bant içeriğin üstünde yüzdüğü için altta yer ayrılır. --kt-banner-space
-   ekranın altından BANDIN ÜST KENARINA olan mesafedir (bar + boşluk + bant),
-   yani tek başına gereken tüm rezerv:
+/* NATIVE BANT VARKEN YIĞIN (ekran altından yukarı):
+     [ güvenli alan ] [ BANT ] [ ALT BAR ] [ içerik ]
+   Barı bandın üstüne çıkaran kural BUDUR — bant native katman olduğu için
+   sayfadan konumlandırılamaz, bar ona göre kalkar. --kt-banner-h'yi yalnızca
+   components/NativeBootstrap.tsx yazar; tarayıcıda hep 0px, sınıf hiç eklenmez. */
+body.has-native-banner .kt-bottom-nav-bar {
+  bottom: calc(var(--kt-banner-h, 0px) + var(--kt-safe-bottom));
+}
+
+/* Bar artık ekranın dibinde değil (altında bant var): kendi güvenli alan
+   dolgusunu bırakır, yoksa sistem çubuğu payı iki kez sayılır. Dolgu, bar
+   içindeki satır içi stilde bu değişkenle yazılıyor (BottomNav.tsx). */
+body.has-native-banner { --kt-nav-safe-bottom: 0px; }
+
+/* Akıştaki içeriğin altında bar + bant + güvenli alan kadar yer ayrılır.
+   --kt-banner-space ÖLÇÜLEN değerdir (innerHeight - navRect.top):
      - alt bar basılıysa spacer'ın yüksekliği doğrudan bu olur,
-     - basılı değilse (ör. /giris) aynı değer gövde dolgusuna yazılır.
+     - basılı değilse (ör. /giris) = bant + güvenli alan, gövde dolgusuna yazılır.
    Bant yokken sınıf da değişken de devrede olmadığı için web düzeni değişmez. */
 body.has-native-banner .kt-bottom-nav-spacer { height: var(--kt-banner-space, 0px); }
 body.has-native-banner:not(.has-bottom-nav) { padding-bottom: var(--kt-banner-space, 0px); }

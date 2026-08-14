@@ -80,8 +80,10 @@ export default function BottomNav() {
         background: "var(--bg-panel)",
         borderTop: "1px solid var(--border-soft)",
         borderTopLeftRadius: 22, borderTopRightRadius: 22,
-        // Alt boşluk home indicator / gesture bar kadar artar (masaüstünde 0px)
-        padding: "10px 6px calc(12px + var(--kt-safe-bottom))", maxWidth: 560, margin: "0 auto",
+        // Alt boşluk home indicator / gesture bar kadar artar (masaüstünde 0px).
+        // Native bant varken bar ekranın dibinde olmadığı için bu pay 0'a düşer
+        // (--kt-nav-safe-bottom, globals.css) — sistem çubuğu iki kez sayılmasın.
+        padding: "10px 6px calc(12px + var(--kt-nav-safe-bottom))", maxWidth: 560, margin: "0 auto",
         boxShadow: "0 -6px 24px rgba(0,0,0,.22)",
       }}>
         {ITEMS.map((item) => {
