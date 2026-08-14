@@ -240,15 +240,23 @@ a { color: inherit; text-decoration: none; }
 .kt-bottom-nav-bar { bottom: 0; }
 .kt-bottom-nav-spacer { height: calc(76px + var(--kt-safe-bottom)); }
 
-/* Bant içeriğin üstünde yüzdüğü için AKIŞTAKİ içeriğin altına bant + boşluk
-   kadar yer bırakılır. Alt bar kendi payını spacer ile zaten ayırıyor, ikisi
-   toplanınca rezerv = bar + boşluk + bant olur. */
-.has-native-banner { padding-bottom: var(--kt-banner-space, 0px); }
+/* Bant içeriğin üstünde yüzdüğü için altta yer ayrılır. --kt-banner-space
+   ekranın altından BANDIN ÜST KENARINA olan mesafedir (bar + boşluk + bant),
+   yani tek başına gereken tüm rezerv:
+     - alt bar basılıysa spacer'ın yüksekliği doğrudan bu olur,
+     - basılı değilse (ör. /giris) aynı değer gövde dolgusuna yazılır.
+   Bant yokken sınıf da değişken de devrede olmadığı için web düzeni değişmez. */
+body.has-native-banner .kt-bottom-nav-spacer { height: var(--kt-banner-space, 0px); }
+body.has-native-banner:not(.has-bottom-nav) { padding-bottom: var(--kt-banner-space, 0px); }
 
-/* Çerez bandı: mobilde alt navigasyonun (76px) üstünde dursun */
+/* Çerez bandı: mobilde alt navigasyonun (76px) üstünde dursun; bant varsa
+   onun da üstüne çıksın (max: iki koşuldan hangisi yüksekse). */
 @media (max-width: 720px) {
   .kt-cookie-bar {
-    bottom: calc(88px + env(safe-area-inset-bottom, 0px) + var(--kt-banner-space, 0px)) !important;
+    bottom: max(
+      calc(88px + env(safe-area-inset-bottom, 0px)),
+      calc(var(--kt-banner-space, 0px) + 12px)
+    ) !important;
   }
 }
 

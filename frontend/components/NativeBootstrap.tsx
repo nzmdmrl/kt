@@ -53,6 +53,8 @@ const FALLBACK_GROUPS: { code: string; label: string }[] = [
 const HIGH_IMPORTANCE_GROUP = "game";
 
 const BANNER_BODY_CLASS = "has-native-banner";
+/** Alt bar bu sayfada basılı mı — rezerv spacer'a mı gövdeye mi yazılacak. */
+const NAV_PRESENT_CLASS = "has-bottom-nav";
 const BANNER_HEIGHT_VAR = "--kt-banner-h";
 /** Bandın akıştaki içerikten çaldığı yer = boşluk + bant yüksekliği. */
 const BANNER_SPACE_VAR = "--kt-banner-space";
@@ -73,11 +75,8 @@ const NAV_HEIGHT_FALLBACK = 76;
  * Android'de density == devicePixelRatio olduğu sürece (bu cihazda 2.75) 1 CSS px
  * = 1 dp olur ve katsayı 1'dir.
  *
- * AMPİRİK DÜZELTME: istenen boşluk 15px iken ekranda görülen boşluk farklıysa
- *     katsayı = istenen_boşluk / görülen_boşluk
- * Örn. 15 istenip ~5.5px görülüyorsa katsayı = 15/5.5 ≈ 2.73 (yani dpr) → margin
- * dp değil fiziksel px olarak yorumlanıyor demektir. Değeri konsoldan denemek için:
- *     __ktBanner.retry(<margin CSS px>)   // bkz. setupAdMob sonundaki hata ayıklama kancası
+ * CİHAZDA DOĞRULANDI: 2400 fiziksel / 2.625 = 915 CSS px genişlik, yani 1 dp =
+ * 1 CSS px; margin 112 = nav 97 + boşluk 15 doğru karşılık buldu. Katsayı 1 kalıyor.
  */
 const MARGIN_DP_FACTOR = 1;
 
@@ -113,15 +112,6 @@ function log(...args: any[]) {
   console.warn("[native]", ...args);
 }
 
-/**
- * GEÇİCİ TEŞHİS — "banner hiç çıkmıyor" sorunu için adım adım iz kaydı.
- * chrome://inspect konsolunda "[banner]" ile filtrelenir. Sorun bulununca SİLİNECEK.
- * Sadece native tarafta çalışır (çağrıldığı yerlerin hepsi isNative kapısının ardında).
- */
-function blog(...args: any[]) {
-  console.log("[banner]", ...args);
-}
-
 /** Güvenli alan (alt) — env() gerçek px olarak ölçülür, ham metin okunmaz. */
 function measureSafeBottom(): number {
   try {
@@ -135,31 +125,6 @@ function measureSafeBottom(): number {
   } catch {
     return 0;
   }
-}
-
-/**
- * GEÇİCİ TEŞHİS — ölçüm dökümü. Değişken gerçekten yazılıyor mu, kural kazanıyor mu,
- * bar nereye düşüyor? Yükseklik değiştiğinde ve HER GEZİNMEDE basılır.
- */
-function logMeasurements(where: string) {
-  try {
-    const root = getComputedStyle(document.documentElement);
-    const nav = document.querySelector(".kt-bottom-nav-bar");
-    const navCs = nav ? getComputedStyle(nav) : null;
-    const rect = nav ? nav.getBoundingClientRect() : null;
-    blog(
-      `ÖLÇÜM [${where}]`,
-      "| --kt-banner-h:", root.getPropertyValue("--kt-banner-h").trim() || "(yok)",
-      "| --kt-banner-space:", root.getPropertyValue("--kt-banner-space").trim() || "(yok)",
-      "| güvenli alan (ölçülen):", `${measureSafeBottom()}px`,
-      "| nav yüksekliği (ölçülen):", rect ? Math.round(rect.height) : "(nav yok)",
-      "| nav computed bottom:", navCs ? navCs.bottom : "(nav yok)",
-      "| nav rect.top:", rect ? Math.round(rect.top) : "(nav yok)",
-      "| innerHeight:", window.innerHeight,
-      "| screen.height:", window.screen?.height,
-      "| dpr:", window.devicePixelRatio,
-    );
-  } catch {}
 }
 
 /**
@@ -238,27 +203,27 @@ function setBannerHeight(px: number) {
     document.documentElement.style.setProperty(BANNER_HEIGHT_VAR, `${bannerHeightPx}px`);
     document.body.classList.toggle(BANNER_BODY_CLASS, bannerHeightPx > 0);
     applyBannerSpace();
-    logMeasurements(bannerHeightPx > 0 ? `bant ${bannerHeightPx}px` : "bant gizli");
   } catch {}
 }
 
 /**
- * Akıştaki içeriğin altında bırakılacak yeri hesaplar ve --kt-banner-space'e yazar.
+ * --kt-banner-space = ekranın altından BANDIN ÜST KENARINA olan mesafe
+ *                   = alt bar yüksekliği + boşluk + bandın bildirdiği yükseklik
  *
- * Bandın ÜST kenarı ekran altından şu kadar yukarıda:  mesafe + boşluk + bant
- * Alt bar zaten spacer ile (76px + güvenli alan) yer ayırdığı için değişkene
- * yalnızca ARTAN kısım yazılır; toplam rezerv tam olarak bandın üst kenarına eşit
- * olur. Alt bar hiç basılmayan sayfalarda (ör. /giris) spacer olmadığı için
- * ihtiyacın TAMAMI yazılır. Gezinmede yeniden çağrılır (bar var/yok değişebilir).
+ * Yani "bu çizginin altı nav + bant tarafından kaplı" değeri. Tek sayı, bölüşme yok:
+ *  - alt bar varsa spacer'ın yüksekliği DOĞRUDAN bu olur (globals.css),
+ *  - alt bar basılmayan sayfalarda (ör. /giris) aynı değer gövde dolgusuna gider.
+ * Bant yüksekliği yükleme başına değişebildiği için (50 → 60 → 64) HER boyut
+ * olayında ve her gezinmede yeniden hesaplanır.
  */
 function applyBannerSpace() {
   try {
     const d = computeBannerMargin();
-    const spacerReserve = NAV_HEIGHT_FALLBACK + d.safe;      // globals.css'teki spacer
-    const needed = d.cssDistance + BANNER_GAP + bannerHeightPx;
-    const space =
-      bannerHeightPx > 0 ? Math.max(0, d.measured ? needed - spacerReserve : needed) : 0;
+    const space = bannerHeightPx > 0 ? d.cssDistance + BANNER_GAP + bannerHeightPx : 0;
     document.documentElement.style.setProperty(BANNER_SPACE_VAR, `${space}px`);
+    // Alt bar bu sayfada basılı mı? Rezervin spacer'a mı yoksa gövdeye mi
+    // yazılacağını bu belirler (bkz. globals.css).
+    document.body.classList.toggle(NAV_PRESENT_CLASS, d.measured);
   } catch {}
 }
 
@@ -289,16 +254,9 @@ let bannerQueue: Promise<void> = Promise.resolve();
 function applyBannerForPath(): Promise<void> {
   const ctl = bannerCtl;
   if (!ctl) {
-    blog("gezinme:", currentPath, "-> kurulum HENÜZ BİTMEDİ (banner denetimi yok)");
     return Promise.resolve();
   }
   const shouldHide = pathHidden(currentPath, ctl.hiddenPaths);
-  blog(
-    "gezinme:", currentPath,
-    "| gizli liste:", JSON.stringify(ctl.hiddenPaths),
-    "| eşleşti:", shouldHide,
-    "->", shouldHide ? "hide()" : "show()",
-  );
   bannerQueue = bannerQueue
     .then(() => (shouldHide ? ctl.hide() : ctl.show()))
     .catch(() => {});
@@ -339,7 +297,6 @@ export default function NativeBootstrap() {
     // Bar bu sayfada var mı yok mu değişmiş olabilir → içerik rezervini tazele.
     const raf = requestAnimationFrame(() => {
       applyBannerSpace();
-      logMeasurements(`gezinme ${currentPath}`);
     });
     return () => cancelAnimationFrame(raf);
   }, [pathname, ready, isNative]);
@@ -556,28 +513,24 @@ async function setupPush(
 
 async function setupAdMob(platform: Platform) {
   try {
-    blog("kurulum başlıyor — platform:", platform, "| yol:", currentPath);
     const config = await loadAppConfig(platform);
     const admob = config?.["ads.admob"];
-    blog("ayar okundu:", JSON.stringify(admob ?? null));
-    if (!admob?.enabled) { blog("ÇIKIŞ: ads.admob.enabled kapalı veya ayar okunamadı"); return; }
+    if (!admob?.enabled) { return; }
     // banner_enabled ayrı anahtar: banner kapatılsa da geçiş reklamı kalır.
     // Alan hiç yoksa (migration öncesi kayıt) eskisi gibi AÇIK sayılır.
-    if (admob.banner_enabled === false) { blog("ÇIKIŞ: banner_enabled = false"); return; }
+    if (admob.banner_enabled === false) { return; }
 
     const configuredUnit = (
       (platform === "ios" ? admob.ios?.banner : admob.android?.banner) || ""
     ).trim();
     // Yapılandırılmış birim boşsa reklam AÇILMAZ (test modunda bile): "ayar yoksa
     // reklam yok" kuralı korunuyor.
-    if (!configuredUnit) { blog("ÇIKIŞ: bu platformun banner birim id'si BOŞ"); return; }
+    if (!configuredUnit) { return; }
 
     // Test modunda Google'ın test birimi kullanılır (bkz. TEST_AD_UNITS).
     const useTestUnit = !!admob.test_mode;
     const unit = useTestUnit ? TEST_AD_UNITS.banner : configuredUnit;
     const unitKind = useTestUnit ? "GOOGLE TEST BİRİMİ" : "gerçek birim";
-    blog("kullanılacak banner birimi:", unit, `(${unitKind})`,
-         "| yapılandırılmış birim:", configuredUnit);
 
     const hiddenPaths = Array.isArray(admob.banner_hidden_paths)
       ? admob.banner_hidden_paths.filter((p): p is string => typeof p === "string" && !!p.trim())
@@ -587,15 +540,12 @@ async function setupAdMob(platform: Platform) {
       await import("@capacitor-community/admob");
     try {
       const { Capacitor } = await import("@capacitor/core");
-      blog("AdMob eklentisi native tarafta var mı:", Capacitor.isPluginAvailable("AdMob"));
     } catch {}
 
     const isTesting = !!admob.test_mode;
     // DİKKAT: initialize Play Services olmayan emülatörde HİÇ ÇÖZÜLMEYEBİLİR.
     // "başlıyor" görünüp "bitti" görünmüyorsa sorun burada demektir.
-    blog("initialize başlıyor (initializeForTesting =", isTesting, ")");
     await AdMob.initialize({ initializeForTesting: isTesting });
-    blog("initialize bitti");
 
     // ATT (izleme izni) SADECE iOS'ta sorulur; Android'de bu çağrı yoktur.
     if (platform === "ios") {
@@ -620,8 +570,6 @@ async function setupAdMob(platform: Platform) {
     // (BannerExecutor.onAdFailedToLoad) — o yüzden hata durumu "yok"a döner ve
     // sonraki gösterimde resumeBanner değil, YENİ showBanner çağrılır.
     let bannerState: "yok" | "gorunur" | "gizli" = "yok";
-    // Konsoldan elle margin denemek için (GEÇİCİ TEŞHİS — bkz. __ktBanner.retry).
-    let marginOverride: number | null = null;
 
     // --- yükseklik: TAHMİN YOK, eklentinin bildirdiği gerçek ölçü kullanılır ---
     // SizeChanged (Android: bannerViewChangeSize, iOS: bannerViewDidReceiveAd
@@ -630,22 +578,18 @@ async function setupAdMob(platform: Platform) {
     await AdMob.addListener(BannerAdPluginEvents.SizeChanged, (size: any) => {
       const h = Number(size?.height) || 0;
       const shown = bannerState === "gorunur";
-      blog("boyut olayı: h =", h, "| durum =", bannerState, "-> --kt-banner-h =", shown ? h : 0);
       setBannerHeight(shown ? h : 0);
     });
     await AdMob.addListener(BannerAdPluginEvents.FailedToLoad, (err) => {
       // AdMob hata kodları: 0 iç hata, 1 geçersiz istek, 2 ağ, 3 stok yok (no fill).
       // Eklenti AdView'i yok etti: durumu "yok"a çek, yoksa hideBanner patlar.
       bannerState = "yok";
-      blog("YÜKLENEMEDİ:", JSON.stringify(err), "-> durum: yok");
       log("banner yüklenemedi:", err);
       setBannerHeight(0);
     });
-    await AdMob.addListener(BannerAdPluginEvents.Loaded, () => blog("ilan YÜKLENDİ (Loaded)"));
-    blog("dinleyiciler bağlandı");
 
     const show = async () => {
-      if (bannerState === "gorunur") { blog("show: zaten görünür, çağrı yok"); return; }
+      if (bannerState === "gorunur") { return; }
       const resuming = bannerState === "gizli";
       // DİKKAT: boyut olayı çağrının İÇİNDE gelebiliyor; durum önce set edilmezse
       // olay "gizli" sanıp yüksekliği 0 bırakır ve alt bar bandın altında kalır.
@@ -653,39 +597,18 @@ async function setupAdMob(platform: Platform) {
       try {
         if (resuming) {
           // İlan YENİDEN YÜKLENMEZ: var olan banner yeniden görünür yapılır.
-          blog("resumeBanner çağrılıyor");
           await AdMob.resumeBanner();
-          blog("resumeBanner tamam");
         } else {
           // Bant alt navigasyonun ÜSTÜNE yerleşsin: eklentinin kendi margin'i
           // kullanılır (alt bar hiç oynatılmaz).
-          const m = marginOverride ?? computeBannerMargin().margin;
-          const d = computeBannerMargin();
-          blog(
-            "showBanner çağrılıyor — adId:", unit, `(${unitKind})`,
-            "| isTesting:", isTesting,
-            "\n  ARİTMETİK:",
-            "innerHeight:", d.innerHeight,
-            "- nav rect.top:", d.navTop,
-            "= mesafe:", `${d.cssDistance}px`,
-            "| nav yüksekliği:", `${d.navHeight}px`, d.measured ? "(ölçüldü)" : "(YEDEK 76 + güvenli alan)",
-            "| güvenli alan:", `${d.safe}px`,
-            "| boşluk:", `${BANNER_GAP}px`,
-            "| dpr:", window.devicePixelRatio,
-            "| katsayı:", MARGIN_DP_FACTOR,
-            "-> GEÇİLEN MARGIN:", m,
-            marginOverride != null ? "(konsoldan elle)" : "",
-            "\n  Görünen boşluk 15px değilse: katsayı = 15 / görünen_boşluk;",
-            "denemek için konsola: __ktBanner.retry(<margin>)",
-          );
+          const { margin } = computeBannerMargin();
           await AdMob.showBanner({
             adId: unit,
             adSize: BannerAdSize.ADAPTIVE_BANNER,
             position: BannerAdPosition.BOTTOM_CENTER,
-            margin: m,
+            margin,
             isTesting,
           });
-          blog("showBanner tamam (ilan yükleme sonucu Loaded/YÜKLENEMEDİ olayında)");
         }
         // Yükseklik SizeChanged olayıyla gelir; olay gecikirse boşluk 0 kalır,
         // reklam görünür ama düzen bozulmaz.
@@ -693,7 +616,6 @@ async function setupAdMob(platform: Platform) {
         // Çağrı patladıysa native tarafta sağlam bir AdView olduğunu varsayamayız:
         // "yok"a dön ki bir sonraki deneme sıfırdan showBanner yapsın.
         bannerState = "yok";
-        blog("show HATA:", String(e), "-> durum: yok");
         log("banner gösterilemedi:", e);
         setBannerHeight(0);
       }
@@ -704,59 +626,25 @@ async function setupAdMob(platform: Platform) {
       setBannerHeight(0);
       if (bannerState !== "gorunur") {
         // Hiç açılmadı ya da zaten gizli/yok — hideBanner çağırmak hata verir.
-        blog("hide: durum =", bannerState, "- çağrı yok");
         return;
       }
       bannerState = "gizli";
       try {
-        blog("hideBanner çağrılıyor");
         await AdMob.hideBanner();
-        blog("hideBanner tamam");
       } catch (e) {
         bannerState = "yok";
-        blog("hide HATA:", String(e), "-> durum: yok");
         log("banner gizlenemedi:", e);
       }
     };
 
     bannerCtl = { hiddenPaths, show, hide };
 
-    /**
-     * GEÇİCİ TEŞHİS KANCASI — birim (dp mi CSS px mi) sorusunu deneyerek çözmek için.
-     * chrome://inspect konsolunda:
-     *   __ktBanner.retry()      -> hesaplanan margin ile bandı sıfırdan kur
-     *   __ktBanner.retry(300)   -> margin'i elle 300 vererek dene
-     *   __ktBanner.info()       -> anlık ölçüm dökümü
-     * Margin yalnızca banner SIFIRDAN kurulurken uygulanıyor (eklenti mevcut
-     * görünümü güncellerken layout parametrelerine dokunmuyor), o yüzden önce
-     * removeBanner çağrılıyor.
-     */
-    (window as any).__ktBanner = {
-      async retry(margin?: number) {
-        try {
-          marginOverride = typeof margin === "number" ? margin : null;
-          await AdMob.removeBanner().catch(() => {});
-          bannerState = "yok";
-          setBannerHeight(0);
-          await show();
-        } catch (e) {
-          blog("retry HATA:", String(e));
-        }
-      },
-      info() {
-        const d = computeBannerMargin();
-        blog("hesaplanan margin:", JSON.stringify(d));
-        logMeasurements("manuel");
-      },
-    };
 
-    blog("denetim hazır — ilk karar veriliyor, yol:", currentPath);
 
     // İlk karar mevcut sayfaya göre: oyun ekranındaysak banner HİÇ açılmaz
     // (açıp hemen kapatma titremesi olmaz, boşuna ilan da yüklenmez).
     await applyBannerForPath();
   } catch (e) {
-    blog("KURULUM HATASI:", String(e));
     log("AdMob kurulumu başarısız:", e);
     setBannerHeight(0);
   }

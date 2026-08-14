@@ -218,7 +218,7 @@ function Overlay({ children, onClose }: { children: React.ReactNode; onClose: ()
       style={{
         position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", zIndex: 200,
         display: "grid", placeItems: "center", padding: 16,
-        paddingBottom: "calc(16px + var(--kt-banner-space, 0px))",
+        paddingBottom: "max(16px, var(--kt-banner-space, 0px))",
       }}
     >
       <div

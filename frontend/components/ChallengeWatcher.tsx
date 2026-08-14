@@ -218,7 +218,7 @@ export default function ChallengeWatcher() {
     <div style={{
       position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", zIndex: 300,
       display: "grid", placeItems: "center", padding: 16,
-      paddingBottom: "calc(16px + var(--kt-banner-space, 0px))",
+      paddingBottom: "max(16px, var(--kt-banner-space, 0px))",
       animation: "fadeIn .2s ease",
     }}>
       <div style={{

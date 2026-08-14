@@ -23,7 +23,7 @@ export default function AlertPopup({
         position: "fixed", inset: 0, background: "rgba(0,0,0,.55)", zIndex: 300,
         display: "grid", placeItems: "center", padding: 16,
         // Native reklam bandının üstünde kalsın (web'de 0px).
-        paddingBottom: "calc(16px + var(--kt-banner-space, 0px))",
+        paddingBottom: "max(16px, var(--kt-banner-space, 0px))",
       }}
     >
       <div

@@ -32,7 +32,7 @@ export default function CookieConsent() {
         left: 12,
         right: 12,
         // Native reklam bandının üstünde dursun (web'de --kt-banner-space = 0px).
-        bottom: "calc(12px + env(safe-area-inset-bottom, 0px) + var(--kt-banner-space, 0px))",
+        bottom: "max(calc(12px + env(safe-area-inset-bottom, 0px)), calc(var(--kt-banner-space, 0px) + 12px))",
         zIndex: 900,
         maxWidth: 720,
         margin: "0 auto",
