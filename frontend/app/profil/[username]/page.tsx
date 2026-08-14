@@ -294,8 +294,10 @@ export default function ProfilePage({ params }: { params: { username: string } }
         </div>
       )}
 
+      {/* onSaved: modalı KAPATMADAN arkadaki profil kartını tazeler
+          (görünen ad / avatar değişince kart hemen güncellensin). */}
       {isMe && editOpen && (
-        <ProfileEditModal onClose={() => setEditOpen(false)} onSaved={() => { setEditOpen(false); load(); }} />
+        <ProfileEditModal onClose={() => setEditOpen(false)} onSaved={load} />
       )}
 
       {/* Karşılıklı geçmiş — "Sen 4 - 2 kadir" + son karşılaşmalar tablosu.

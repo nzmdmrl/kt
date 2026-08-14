@@ -3,12 +3,13 @@
 import { useState, useEffect } from "react";
 import { apiUrl } from "@/lib/api";
 
-// Profil düzenleme modalı: username/email/şifre değiştir + gizlilik ayarları.
+// Profil düzenleme modalı: görünen ad/username/email/şifre + gizlilik ayarları.
 export default function ProfileEditModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
   const [data, setData] = useState<any>(null);
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
 
+  const [displayName, setDisplayName] = useState("");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [curPw, setCurPw] = useState("");
@@ -20,7 +21,12 @@ export default function ProfileEditModal({ onClose, onSaved }: { onClose: () => 
   useEffect(() => {
     fetch(apiUrl("/api/account/me"), { headers: headers() })
       .then((r) => r.json())
-      .then((d) => { setData(d); setUsername(d.username || ""); setEmail(d.email || ""); })
+      .then((d) => {
+        setData(d);
+        setDisplayName(d.display_name || "");
+        setUsername(d.username || "");
+        setEmail(d.email || "");
+      })
       .catch(() => setErr("Bilgiler yüklenemedi"));
   }, []);
 
@@ -39,6 +45,15 @@ export default function ProfileEditModal({ onClose, onSaved }: { onClose: () => 
     } catch { flash("Bağlantı hatası", true); return false; }
   }
 
+  async function saveUsername() {
+    const uname = username.trim();
+    if (uname === data.username) { flash("Kullanıcı adı zaten bu.", true); return; }
+    const ok = await post("/api/account/username", { username: uname }, "Kullanıcı adı güncellendi");
+    if (!ok) return;
+    // Profil adresi kullanıcı adına bağlı (/profil/<ad>) — yeni adrese taşı.
+    window.location.href = `/profil/${encodeURIComponent(uname)}`;
+  }
+
   async function togglePrivacy(field: string, value: boolean) {
     const ok = await post("/api/account/privacy", { [field]: value }, "Ayar kaydedildi");
     if (ok) setData((d: any) => ({ ...d, [field]: value }));
@@ -51,6 +66,10 @@ export default function ProfileEditModal({ onClose, onSaved }: { onClose: () => 
       </Overlay>
     );
   }
+
+  // Kullanıcı adı için kalan değiştirme hakkı (uç `username_changes_left` döner;
+  // eski sürüm/uç yoksa sınırsız varsayılır ki alan kilitlenmesin).
+  const unameLeft: number = typeof data.username_changes_left === "number" ? data.username_changes_left : 2;
 
   return (
     <Overlay onClose={onClose}>
@@ -68,7 +87,7 @@ export default function ProfileEditModal({ onClose, onSaved }: { onClose: () => 
           current={data.avatar_url}
           onPick={async (url) => {
             const ok = await post("/api/account/avatar", { avatar_url: url }, "Avatar güncellendi");
-            if (ok) setData((d: any) => ({ ...d, avatar_url: url }));
+            if (ok) { setData((d: any) => ({ ...d, avatar_url: url })); onSaved(); }
           }}
         />
       </Section>
@@ -87,11 +106,40 @@ export default function ProfileEditModal({ onClose, onSaved }: { onClose: () => 
         />
       </Section>
 
-      {/* Kullanıcı adı */}
+      {/* Görünen ad — oyunda herkesin gördüğü isim (serbestçe değiştirilebilir) */}
+      <Section title="Görünen Ad">
+        <div style={{ display: "flex", gap: 8 }}>
+          <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} maxLength={24} style={input} />
+          <button
+            onClick={async () => {
+              const ok = await post("/api/account/display-name", { display_name: displayName }, "Görünen ad güncellendi");
+              if (ok) { setData((d: any) => ({ ...d, display_name: displayName.trim() })); onSaved(); }
+            }}
+            style={btn}
+          >Kaydet</button>
+        </div>
+        <div style={hint}>Oyunda, sıralamalarda ve maçlarda bu isim görünür.</div>
+      </Section>
+
+      {/* Kullanıcı adı — profil adresin (@ad). Ayda 2 kez değiştirilebilir. */}
       <Section title="Kullanıcı Adı">
         <div style={{ display: "flex", gap: 8 }}>
-          <input value={username} onChange={(e) => setUsername(e.target.value)} style={input} />
-          <button onClick={() => post("/api/account/username", { username }, "Kullanıcı adı güncellendi")} style={btn}>Kaydet</button>
+          <input
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            maxLength={20}
+            disabled={unameLeft === 0}
+            style={{ ...input, opacity: unameLeft === 0 ? 0.5 : 1 }}
+          />
+          <button onClick={saveUsername} disabled={unameLeft === 0}
+            style={{ ...btn, opacity: unameLeft === 0 ? 0.5 : 1, cursor: unameLeft === 0 ? "default" : "pointer" }}>
+            Kaydet
+          </button>
+        </div>
+        <div style={hint}>
+          {unameLeft > 0
+            ? `${data.username_window_days ?? 30} günde ${data.username_limit ?? 2} kez değiştirebilirsin — kalan hak: ${unameLeft}.`
+            : `Değiştirme hakkın doldu.${data.username_next_change_at ? ` Yeni hakkın: ${fmtDate(data.username_next_change_at)}.` : ""}`}
         </div>
       </Section>
 
@@ -238,6 +286,16 @@ const btn: React.CSSProperties = {
   padding: "10px 16px", borderRadius: 9, border: "none", background: "var(--accent)",
   color: "#1a1330", fontWeight: 700, fontSize: 14, cursor: "pointer", flexShrink: 0,
 };
+const hint: React.CSSProperties = {
+  marginTop: 6, fontSize: 12, color: "var(--text-dim)", lineHeight: 1.4,
+};
+
+function fmtDate(iso: string): string {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("tr", { day: "2-digit", month: "long", year: "numeric" });
+}
+
 const notice = (color: string): React.CSSProperties => ({
   background: "var(--bg-elevated)", border: `1px solid ${color}`, color,
   borderRadius: 9, padding: "8px 12px", fontSize: 13, marginBottom: 12,

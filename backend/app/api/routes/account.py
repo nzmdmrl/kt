@@ -2,7 +2,8 @@
 Hesap yönetimi — kendi profilini düzenleme.
 
 - GET  /account/me            -> düzenlenebilir alanlar (email, username, gizlilik)
-- POST /account/username      -> kullanıcı adı değiştir
+- POST /account/display-name  -> görünen ad değiştir (serbest)
+- POST /account/username      -> kullanıcı adı değiştir (30 günde en fazla 2 kez)
 - POST /account/email         -> e-posta değiştir
 - POST /account/password      -> şifre değiştir (mevcut şifre doğrulaması ile)
 - POST /account/privacy       -> gizlilik ayarları (online göster, teklifler)
@@ -11,6 +12,7 @@ Hesap yönetimi — kendi profilini düzenleme.
 from __future__ import annotations
 
 import re
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -21,15 +23,43 @@ from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.core.security import hash_password, verify_password
 from app.models.user import User
+from app.models.username_change import UsernameChange
 
 router = APIRouter(prefix="/account", tags=["account"])
 
 USERNAME_RE = re.compile(r"^[a-zA-Z0-9_]{3,20}$")
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
+# Kullanıcı adı kotası: WINDOW_DAYS gün içinde en fazla USERNAME_LIMIT değişiklik.
+USERNAME_LIMIT = 2
+WINDOW_DAYS = 30
+
+
+async def _username_quota(db: AsyncSession, user_id: int) -> tuple[int, datetime | None]:
+    """(kalan hak, yeni hak kazanma zamanı) döner.
+
+    Son WINDOW_DAYS gün içindeki değişikliklere bakar. Hak dolduysa, en eski
+    değişikliğin üzerinden 30 gün geçtiğinde bir hak açılır.
+    """
+    since = datetime.now(timezone.utc) - timedelta(days=WINDOW_DAYS)
+    rows = (await db.execute(
+        select(UsernameChange)
+        .where(UsernameChange.user_id == user_id, UsernameChange.created_at >= since)
+        .order_by(UsernameChange.created_at.asc())
+    )).scalars().all()
+    left = max(0, USERNAME_LIMIT - len(rows))
+    next_at = None
+    if left == 0 and rows:
+        oldest = rows[0].created_at
+        if oldest.tzinfo is None:          # SQLite naive datetime döner
+            oldest = oldest.replace(tzinfo=timezone.utc)
+        next_at = oldest + timedelta(days=WINDOW_DAYS)
+    return left, next_at
+
 
 @router.get("/me")
-async def account_me(user: User = Depends(get_current_user)):
+async def account_me(user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    left, next_at = await _username_quota(db, user.id)
     return {
         "username": user.username,
         "email": user.email,
@@ -38,7 +68,26 @@ async def account_me(user: User = Depends(get_current_user)):
         "show_online": user.show_online,
         "allow_challenges": user.allow_challenges,
         "has_password": bool(user.password_hash),
+        "username_changes_left": left,
+        "username_limit": USERNAME_LIMIT,
+        "username_window_days": WINDOW_DAYS,
+        "username_next_change_at": next_at.isoformat() if next_at else None,
     }
+
+
+class DisplayNameIn(BaseModel):
+    display_name: str
+
+
+@router.post("/display-name")
+async def change_display_name(data: DisplayNameIn, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    """Görünen ad — oyun içinde herkesin gördüğü isim. Sınırsız değiştirilebilir."""
+    name = " ".join(data.display_name.split())   # baş/son boşluk + çoklu boşluk temizliği
+    if len(name) < 2 or len(name) > 24:
+        raise HTTPException(400, "Görünen ad 2-24 karakter olmalı.")
+    user.display_name = name
+    await db.commit()
+    return {"ok": True, "display_name": name}
 
 
 @router.get("/level")
@@ -57,13 +106,39 @@ async def change_username(data: UsernameIn, user: User = Depends(get_current_use
     uname = data.username.strip()
     if not USERNAME_RE.match(uname):
         raise HTTPException(400, "Kullanıcı adı 3-20 karakter, sadece harf/rakam/alt çizgi olmalı.")
+    old = user.username
+    if uname == old:
+        # Aynı ad — kotadan hak yakmaya gerek yok.
+        left, next_at = await _username_quota(db, user.id)
+        return {"ok": True, "username": uname, "username_changes_left": left,
+                "username_next_change_at": next_at.isoformat() if next_at else None}
     # Benzersiz mi (kendisi hariç)?
     existing = (await db.execute(select(User).where(User.username == uname))).scalar_one_or_none()
     if existing and existing.id != user.id:
         raise HTTPException(409, "Bu kullanıcı adı alınmış.")
+    # Kota: 30 günde en fazla 2 değişiklik.
+    left, next_at = await _username_quota(db, user.id)
+    if left <= 0:
+        when = next_at.strftime("%d.%m.%Y") if next_at else ""
+        raise HTTPException(
+            429,
+            f"Kullanıcı adını {WINDOW_DAYS} günde en fazla {USERNAME_LIMIT} kez değiştirebilirsin."
+            + (f" Yeni hakkın: {when}." if when else ""),
+        )
+
     user.username = uname
+    db.add(UsernameChange(user_id=user.id, old_username=old, new_username=uname))
+    # Maç geçmişindeki bağlantı alanları username tutuyor — eski ad kalırsa
+    # geçmiş maçlar profilden ve karşılıklı skordan düşerdi; birlikte taşı.
+    from app.models.match_history import MatchHistory
+    from sqlalchemy import update as sa_update
+    await db.execute(sa_update(MatchHistory).where(MatchHistory.p1_username == old).values(p1_username=uname))
+    await db.execute(sa_update(MatchHistory).where(MatchHistory.p2_username == old).values(p2_username=uname))
     await db.commit()
-    return {"ok": True, "username": uname}
+
+    left, next_at = await _username_quota(db, user.id)
+    return {"ok": True, "username": uname, "username_changes_left": left,
+            "username_next_change_at": next_at.isoformat() if next_at else None}
 
 
 class EmailIn(BaseModel):
