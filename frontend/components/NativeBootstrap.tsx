@@ -17,10 +17,11 @@
  *  - Push: Android bildirim kanalları (grup başına bir kanal), izin, kayıt,
  *    token'ın /api/devices/register'a gönderilmesi, bildirime tıklayınca
  *    yönlendirme, uygulama açıkken hafif iç uyarı (toast).
- *  - AdMob: /api/app-config'teki ayara göre alt banner. Bandın GERÇEK yüksekliği
- *    --kt-banner-h değişkenine yazılır; alta sabitlenen öğeler globals.css'te
- *    bundan türeyen --kt-banner-offset (yükseklik + güvenli alan) kadar yukarı
- *    çıkar + gövdeye "has-native-banner" sınıfı eklenir. Oyun ekranlarında
+ *  - AdMob: /api/app-config'teki ayara göre alt banner. Bant, eklentinin margin
+ *    seçeneğiyle alt navigasyonun ÜSTÜNE konur (alt bar hiç oynatılmaz, web'deki
+ *    gibi bottom: 0'da kalır). Bandın GERÇEK yüksekliği --kt-banner-h'ye, akışta
+ *    bırakılacak yer --kt-banner-space'e yazılır + gövdeye "has-native-banner"
+ *    sınıfı eklenir. Oyun ekranlarında
  *    (ads.admob.banner_hidden_paths) banner gizlenir; ilan YENİDEN YÜKLENMEZ,
  *    aynı banner gizlenip gösterilir (hideBanner/resumeBanner).
  *  - Geri tuşu: sayfa geçmişi varsa geri git, yoksa uygulamayı arka plana al
@@ -53,8 +54,14 @@ const HIGH_IMPORTANCE_GROUP = "game";
 
 const BANNER_BODY_CLASS = "has-native-banner";
 const BANNER_HEIGHT_VAR = "--kt-banner-h";
-/** Alta sabitlenen öğelerin çıkacağı mesafe = bant yüksekliği + güvenli alan. */
-const BANNER_OFFSET_VAR = "--kt-banner-offset";
+/** Bandın akıştaki içerikten çaldığı yer = boşluk + bant yüksekliği. */
+const BANNER_SPACE_VAR = "--kt-banner-space";
+
+/** Bant ile alt navigasyon arasında bırakılan boşluk (dp/CSS px). */
+const BANNER_GAP = 10;
+
+/** Alt bar ölçülemezse kullanılacak yükseklik (globals.css'teki spacer değeri). */
+const NAV_HEIGHT_FALLBACK = 76;
 
 /**
  * GOOGLE'IN RESMİ TEST REKLAM BİRİMLERİ — tek yer burası, başka yere kopyalama.
@@ -112,9 +119,6 @@ function measureSafeBottom(): number {
   }
 }
 
-/** En son bilinen bant yüksekliği — yeni basılan alt bar'a da uygulanabilsin diye. */
-let lastBannerHeight = 0;
-
 /**
  * GEÇİCİ TEŞHİS — ölçüm dökümü. Değişken gerçekten yazılıyor mu, kural kazanıyor mu,
  * bar nereye düşüyor? Yükseklik değiştiğinde ve HER GEZİNMEDE basılır.
@@ -128,75 +132,58 @@ function logMeasurements(where: string) {
     blog(
       `ÖLÇÜM [${where}]`,
       "| --kt-banner-h:", root.getPropertyValue("--kt-banner-h").trim() || "(yok)",
-      "| --kt-banner-offset:", root.getPropertyValue("--kt-banner-offset").trim() || "(yok)",
-      "| --kt-safe-bottom (ham):", root.getPropertyValue("--kt-safe-bottom").trim() || "(yok)",
+      "| --kt-banner-space:", root.getPropertyValue("--kt-banner-space").trim() || "(yok)",
       "| güvenli alan (ölçülen):", `${measureSafeBottom()}px`,
+      "| nav yüksekliği (ölçülen):", rect ? Math.round(rect.height) : "(nav yok)",
       "| nav computed bottom:", navCs ? navCs.bottom : "(nav yok)",
-      "| nav rect.bottom:", rect ? Math.round(rect.bottom) : "(nav yok)",
       "| nav rect.top:", rect ? Math.round(rect.top) : "(nav yok)",
       "| innerHeight:", window.innerHeight,
       "| screen.height:", window.screen?.height,
-      "| visualViewport.height:", Math.round((window as any).visualViewport?.height ?? -1),
       "| dpr:", window.devicePixelRatio,
     );
   } catch {}
 }
 
 /**
+ * Alt navigasyonun GERÇEK yüksekliği (px). Ölçülür — 76 sabiti yalnızca bar
+ * ekranda yokken (oyun ekranı, masaüstü genişliği) yedek olarak kullanılır.
+ * Ölçülen değer barın kendi alt dolgusunu, yani güvenli alanı ZATEN içerir.
+ */
+function measureNavHeight(): { height: number; measured: boolean } {
+  try {
+    const bar = document.querySelector<HTMLElement>(".kt-bottom-nav-bar");
+    if (bar) {
+      const h = Math.round(bar.getBoundingClientRect().height);
+      if (h > 0) return { height: h, measured: true };
+    }
+  } catch {}
+  return { height: NAV_HEIGHT_FALLBACK + measureSafeBottom(), measured: false };
+}
+
+/**
  * Bandın gerçek yüksekliğini uygular.
  *
- * Alta sabitlenen öğelerin çıkması gereken mesafe = BANT YÜKSEKLİĞİ + GÜVENLİ ALAN
- * (uygulama kenardan kenara çiziyor; bant sistem çubuğunun üstünde duruyor, yani
- * bandın üst kenarı ekran altından bu kadar yukarıda).
+ * ALT BAR HİÇ OYNATILMAZ — web'deki gibi bottom: 0'da kalır. Bandı yukarı alan
+ * şey AdMob'un kendi margin seçeneği (bkz. show()). Burada yalnızca AKIŞTAKİ
+ * içeriğin altında bırakılacak yer hesaplanır:
  *
- * Değer HEM CSS değişkenine (--kt-banner-offset: diğer sabit öğeler için) HEM DE
- * doğrudan alt bar öğesinin inline style'ına `!important` ile yazılır. Inline +
- * important her CSS kuralını yener; özgüllük tartışması bitsin.
+ *   --kt-banner-space = boşluk + bant yüksekliği
+ *
+ * Alt bar zaten kendi spacer'ıyla (76px + güvenli alan) yer ayırdığı için
+ * toplam rezerv = alt bar + boşluk + bant olur; bant içeriğin üstüne binmez.
+ * Bant yokken değişken 0px'e döner → düzen web'dekiyle birebir aynı.
  */
 function setBannerHeight(px: number) {
   try {
     const h = Number.isFinite(px) && px > 0 ? Math.round(px) : 0;
-    lastBannerHeight = h;
-    const safe = measureSafeBottom();
-    const offset = h > 0 ? h + safe : 0;
 
     const root = document.documentElement;
     root.style.setProperty(BANNER_HEIGHT_VAR, `${h}px`);
-    root.style.setProperty(BANNER_OFFSET_VAR, `${offset}px`);
+    root.style.setProperty(BANNER_SPACE_VAR, h > 0 ? `${h + BANNER_GAP}px` : "0px");
     document.body.classList.toggle(BANNER_BODY_CLASS, h > 0);
 
-    applyNavOffset(offset, safe);
     logMeasurements(h > 0 ? `bant ${h}px` : "bant gizli");
   } catch {}
-}
-
-/**
- * Alt bar ve akıştaki boşluğu doğrudan öğe üzerinden konumlandırır.
- * Bar oyun ekranlarında React tarafından söküldüğü için gezinmeden sonra da
- * yeniden uygulanır (bkz. reapplyNavOffset).
- */
-function applyNavOffset(offset: number, safe: number) {
-  try {
-    const bar = document.querySelector<HTMLElement>(".kt-bottom-nav-bar");
-    if (bar) {
-      if (offset > 0) bar.style.setProperty("bottom", `${offset}px`, "important");
-      else bar.style.removeProperty("bottom");    // CSS'teki 0px'e geri dön
-    }
-    const spacer = document.querySelector<HTMLElement>(".kt-bottom-nav-spacer");
-    if (spacer) {
-      if (offset > 0) {
-        spacer.style.setProperty("height", `calc(76px + ${safe}px + ${offset}px)`, "important");
-      } else {
-        spacer.style.removeProperty("height");
-      }
-    }
-  } catch {}
-}
-
-/** Gezinme sonrası (bar yeniden basılmış olabilir) son ölçüyü tekrar uygular. */
-function reapplyNavOffset() {
-  const safe = measureSafeBottom();
-  applyNavOffset(lastBannerHeight > 0 ? lastBannerHeight + safe : 0, safe);
 }
 
 /** "/arena" kaydı "/arena" ve "/arena/ozel/ABC" ile eşleşir, "/arenax" ile eşleşmez. */
@@ -273,12 +260,8 @@ export default function NativeBootstrap() {
     currentPath = pathname || "/";
     void applyBannerForPath();
 
-    // Alt bar oyun ekranlarında sökülüp geri basılıyor (BottomNav null dönüyor);
-    // yeni basılan bar'a ölçüyü yeniden uygula. rAF: React DOM'u yazsın diye.
-    const raf = requestAnimationFrame(() => {
-      reapplyNavOffset();
-      logMeasurements(`gezinme ${currentPath}`);
-    });
+    // GEÇİCİ TEŞHİS: her gezinmede ölçüleri bas (bar sökülüp yeniden basılıyor).
+    const raf = requestAnimationFrame(() => logMeasurements(`gezinme ${currentPath}`));
     return () => cancelAnimationFrame(raf);
   }, [pathname, ready, isNative]);
 
@@ -593,12 +576,25 @@ async function setupAdMob(platform: Platform) {
           await AdMob.resumeBanner();
           blog("resumeBanner tamam");
         } else {
-          blog("showBanner çağrılıyor — adId:", unit, `(${unitKind})`, "| isTesting:", isTesting);
+          // Bant alt navigasyonun ÜSTÜNE yerleşsin: eklentinin kendi margin'i
+          // kullanılır (alt bar hiç oynatılmaz). Margin dp cinsinden gider;
+          // eklenti px'e çeviriyor (BannerExecutor: margin * density) ve WebView'da
+          // 1 CSS px = 1 dp olduğu için ölçüyü doğrudan px olarak veriyoruz.
+          // Ölçülen bar yüksekliği kendi alt dolgusuyla güvenli alanı zaten içerir.
+          const nav = measureNavHeight();
+          const margin = nav.height + BANNER_GAP;
+          blog(
+            "showBanner çağrılıyor — adId:", unit, `(${unitKind})`,
+            "| isTesting:", isTesting,
+            "| nav yüksekliği:", `${nav.height}px`, nav.measured ? "(ölçüldü)" : "(YEDEK: 76 + güvenli alan)",
+            "| boşluk:", `${BANNER_GAP}px`,
+            "| margin (dp):", margin,
+          );
           await AdMob.showBanner({
             adId: unit,
             adSize: BannerAdSize.ADAPTIVE_BANNER,
             position: BannerAdPosition.BOTTOM_CENTER,
-            margin: 0,
+            margin,
             isTesting,
           });
           blog("showBanner tamam (ilan yükleme sonucu Loaded/YÜKLENEMEDİ olayında)");

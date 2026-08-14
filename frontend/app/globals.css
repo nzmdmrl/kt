@@ -9,16 +9,12 @@
      Tarayıcıda HER ZAMAN 0px kalır — web düzeni hiç etkilenmez. */
   --kt-banner-h: 0px;
 
-  /* Ekranın altına sabitlenen (position:fixed) öğelerin çıkması gereken MESAFE
-     = bant yüksekliği + güvenli alan. Neden bandın yüksekliğinden FAZLA:
-     uygulama kenardan kenara çiziyor (layout.tsx -> viewportFit: "cover"), yani
-     WebView sistem çubuğunun ALTINA kadar uzanıyor ve banner sistem çubuğunun
-     ÜSTÜNE yerleşiyor; bandın üst kenarı ekran altından bu kadar yukarıda.
-
-     Değeri NativeBootstrap px olarak yazar (ölçülmüş güvenli alan dahil); alt
-     bar ayrıca inline + !important ile de konumlanır. Banner yokken ve tarayıcıda
-     buradaki 0px geçerli kalır — web düzeni hiç etkilenmez. */
-  --kt-banner-offset: 0px;
+  /* Bandın AKIŞTAKİ içerikten çaldığı yer = boşluk + bant yüksekliği.
+     Bant, AdMob'un kendi margin seçeneğiyle alt navigasyonun ÜSTÜNE konuyor
+     (alt bar hiç oynatılmaz, web'deki gibi bottom: 0'da kalır), ama içeriğin
+     üstünde yüzdüğü için altta bu kadar boşluk bırakılmalı.
+     Değeri NativeBootstrap yazar; bant yokken ve tarayıcıda 0px kalır. */
+  --kt-banner-space: 0px;
 
   /* Arena paleti — derin gece zemini + amber enerji + grid renkleri */
   --bg-deep: #0e0b1e;          /* en derin zemin */
@@ -239,21 +235,20 @@ a { color: inherit; text-decoration: none; }
   .kt-bottom-nav { display: none !important; }
 }
 
-/* Alt navigasyon geometrisi — reklam bandı varsa bar bandın ÜSTÜNE çıkar,
-   akıştaki boşluk (spacer) da AYNI miktarda büyür (içerik kırpılmasın).
-   --kt-banner-offset web'de 0px olduğu için tarayıcıda ölçüler bugünküyle
-   birebir aynı kalır. */
-.kt-bottom-nav-bar { bottom: var(--kt-banner-offset, 0px); }
-.kt-bottom-nav-spacer { height: calc(76px + var(--kt-safe-bottom) + var(--kt-banner-offset, 0px)); }
+/* Alt navigasyon geometrisi — reklam bandından ETKİLENMEZ, web'deki gibi
+   ekranın dibinde durur. Bant, AdMob margin'iyle barın üstüne yerleşir. */
+.kt-bottom-nav-bar { bottom: 0; }
+.kt-bottom-nav-spacer { height: calc(76px + var(--kt-safe-bottom)); }
 
-/* Native reklam bandı açıkken AKIŞTAKİ içeriğin altına bant + güvenli alan
-   kadar boşluk (fixed öğeler için yukarıdaki/aşağıdaki kurallar geçerli). */
-.has-native-banner { padding-bottom: var(--kt-banner-offset, 0px); }
+/* Bant içeriğin üstünde yüzdüğü için AKIŞTAKİ içeriğin altına bant + boşluk
+   kadar yer bırakılır. Alt bar kendi payını spacer ile zaten ayırıyor, ikisi
+   toplanınca rezerv = bar + boşluk + bant olur. */
+.has-native-banner { padding-bottom: var(--kt-banner-space, 0px); }
 
 /* Çerez bandı: mobilde alt navigasyonun (76px) üstünde dursun */
 @media (max-width: 720px) {
   .kt-cookie-bar {
-    bottom: calc(88px + env(safe-area-inset-bottom, 0px) + var(--kt-banner-offset, 0px)) !important;
+    bottom: calc(88px + env(safe-area-inset-bottom, 0px) + var(--kt-banner-space, 0px)) !important;
   }
 }
 
