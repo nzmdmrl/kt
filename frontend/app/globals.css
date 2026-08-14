@@ -592,7 +592,11 @@ html[data-theme="light"] .kt-aw-front { background: #ded9ee; border-color: #c8c1
 .hm-s2 .hm-tile > *:not(.hm-deco),
 .hm-s2 .hm-hero-btn > *:not(.hm-deco) { position: relative; z-index: 1; }
 .hm-deco {
-  position: absolute; right: -10px; top: 50%; transform: translateY(-50%);
+  position: absolute; right: -10px; top: 50%;
+  /* 15° sola yatık + hafif 3B dönüş: dümdüz durmasın, perspektif hissi olsun.
+     Sıra önemli: önce dikey ortalama, sonra kendi merkezi etrafında dönüş. */
+  transform: translateY(-50%) perspective(420px) rotateY(16deg) rotate(-15deg);
+  transform-origin: 60% 50%;
   font-size: clamp(72px, 16vw, 112px); line-height: 1;
   opacity: .2; pointer-events: none; user-select: none; z-index: 0;
 }
