@@ -9,14 +9,15 @@
      Tarayıcıda HER ZAMAN 0px kalır — web düzeni hiç etkilenmez. */
   --kt-banner-h: 0px;
 
-  /* Ekranın altına sabitlenen (position:fixed) öğelerin çıkması gereken MESAFE.
-     Neden bandın yüksekliğinden FAZLA: uygulama kenardan kenara çiziyor
-     (layout.tsx -> viewportFit: "cover"), yani WebView sistem çubuğunun ALTINA
-     kadar uzanıyor ve banner sistem çubuğunun ÜSTÜNE yerleşiyor (eklenti
-     Android 15+'ta bandı inset kadar yukarı alıyor). Bu yüzden bandın üst kenarı
-     ekranın altından "bant yüksekliği + güvenli alan" kadar yukarıda.
-     Değer body.has-native-banner ile açılır: banner yokken 0px kalır, böylece
-     tarayıcıda ve oyun ekranlarında düzen bugünküyle birebir aynı olur. */
+  /* Ekranın altına sabitlenen (position:fixed) öğelerin çıkması gereken MESAFE
+     = bant yüksekliği + güvenli alan. Neden bandın yüksekliğinden FAZLA:
+     uygulama kenardan kenara çiziyor (layout.tsx -> viewportFit: "cover"), yani
+     WebView sistem çubuğunun ALTINA kadar uzanıyor ve banner sistem çubuğunun
+     ÜSTÜNE yerleşiyor; bandın üst kenarı ekran altından bu kadar yukarıda.
+
+     Değeri NativeBootstrap px olarak yazar (ölçülmüş güvenli alan dahil); alt
+     bar ayrıca inline + !important ile de konumlanır. Banner yokken ve tarayıcıda
+     buradaki 0px geçerli kalır — web düzeni hiç etkilenmez. */
   --kt-banner-offset: 0px;
 
   /* Arena paleti — derin gece zemini + amber enerji + grid renkleri */
@@ -236,13 +237,6 @@ a { color: inherit; text-decoration: none; }
 /* Alt navigasyon: sadece mobilde (masaüstünde gizli) */
 @media (min-width: 721px) {
   .kt-bottom-nav { display: none !important; }
-}
-
-/* Bant görünürken (sınıfı NativeBootstrap ekler) alta sabitlenen öğelerin
-   çıkacağı mesafe: bant yüksekliği + güvenli alan. Değişken kalıtımla tüm
-   alt öğelere iner; sınıf yokken :root'taki 0px geçerli kalır. */
-body.has-native-banner {
-  --kt-banner-offset: calc(var(--kt-banner-h) + var(--kt-safe-bottom));
 }
 
 /* Alt navigasyon geometrisi — reklam bandı varsa bar bandın ÜSTÜNE çıkar,
