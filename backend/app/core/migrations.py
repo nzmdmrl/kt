@@ -45,6 +45,12 @@ _ADMOB_NEW_KEYS_JSON = json.dumps(
     ensure_ascii=True,   # tek tırnaklı SQL literali içine güvenle gömülsün
 )
 
+# Bant konumu ince ayarı — sonradan eklenen anahtarlar (bkz. migration 7).
+_ADMOB_MARGIN_KEYS_JSON = json.dumps(
+    {"banner_margin_extra": 0, "banner_margin_override": 0},
+    ensure_ascii=True,
+)
+
 CREATE_MIGRATIONS_SQL = f"""
 CREATE TABLE IF NOT EXISTS applied_migrations (
     code VARCHAR(80) PRIMARY KEY,
@@ -172,6 +178,22 @@ DATA_MIGRATIONS: list[tuple[str, list[str]]] = [
             if _IS_PG else
             "UPDATE app_settings "
             f"SET value = json_patch('{_ADMOB_NEW_KEYS_JSON}', value), "
+            "    updated_at = CURRENT_TIMESTAMP "
+            "WHERE key = 'ads.admob'"
+        ),
+    ]),
+
+    # 7) Bant konumu ince ayarı: banner_margin_extra / banner_margin_override.
+    #    Gerekçe ve birleştirme yönü (6) ile aynı: varsayılanlar SOLDA, mevcut
+    #    değer SAĞDA -> adminin girdiği sayı ezilmez, yalnızca eksik anahtar eklenir.
+    ("2026_08_admob_margin_controls", [
+        (
+            "UPDATE app_settings "
+            f"SET value = '{_ADMOB_MARGIN_KEYS_JSON}'::jsonb || value, updated_at = now() "
+            "WHERE key = 'ads.admob'"
+            if _IS_PG else
+            "UPDATE app_settings "
+            f"SET value = json_patch('{_ADMOB_MARGIN_KEYS_JSON}', value), "
             "    updated_at = CURRENT_TIMESTAMP "
             "WHERE key = 'ads.admob'"
         ),

@@ -56,7 +56,7 @@ const BANNER_BODY_CLASS = "has-native-banner";
 /** Alt bar bu sayfada basılı mı — rezerv spacer'a mı gövdeye mi yazılacak. */
 const NAV_PRESENT_CLASS = "has-bottom-nav";
 const BANNER_HEIGHT_VAR = "--kt-banner-h";
-/** Bandın akıştaki içerikten çaldığı yer = boşluk + bant yüksekliği. */
+/** Ekran altından bandın ÜST kenarına mesafe = kullanılan margin + bant yüksekliği. */
 const BANNER_SPACE_VAR = "--kt-banner-space";
 
 /** Bant ile alt navigasyon arasında bırakılan boşluk (CSS px). */
@@ -186,14 +186,9 @@ function computeBannerMargin(): BannerMargin {
  * Bandın gerçek yüksekliğini uygular.
  *
  * ALT BAR HİÇ OYNATILMAZ — web'deki gibi bottom: 0'da kalır. Bandı yukarı alan
- * şey AdMob'un kendi margin seçeneği (bkz. show()). Burada yalnızca AKIŞTAKİ
- * içeriğin altında bırakılacak yer hesaplanır:
- *
- *   --kt-banner-space = boşluk + bant yüksekliği
- *
- * Alt bar zaten kendi spacer'ıyla (76px + güvenli alan) yer ayırdığı için
- * toplam rezerv = alt bar + boşluk + bant olur; bant içeriğin üstüne binmez.
- * Bant yokken değişken 0px'e döner → düzen web'dekiyle birebir aynı.
+ * şey AdMob'un kendi margin seçeneği (bkz. show()). Burada yalnızca akıştaki
+ * içeriğin altında bırakılacak yer güncellenir (bkz. applyBannerSpace).
+ * Bant yokken değişkenler 0px'e döner → düzen web'dekiyle birebir aynı.
  */
 let bannerHeightPx = 0;
 
@@ -207,19 +202,27 @@ function setBannerHeight(px: number) {
 }
 
 /**
+ * Banda GERÇEKTEN geçilen margin. Bant bir kez konumlandıktan sonra native tarafta
+ * sabit kaldığı için rezerv hesabı bu değeri izler (yeniden hesaplananı değil).
+ */
+let activeMargin: number | null = null;
+
+/**
  * --kt-banner-space = ekranın altından BANDIN ÜST KENARINA olan mesafe
- *                   = alt bar yüksekliği + boşluk + bandın bildirdiği yükseklik
+ *                   = KULLANILAN margin + bandın bildirdiği yükseklik
  *
  * Yani "bu çizginin altı nav + bant tarafından kaplı" değeri. Tek sayı, bölüşme yok:
  *  - alt bar varsa spacer'ın yüksekliği DOĞRUDAN bu olur (globals.css),
  *  - alt bar basılmayan sayfalarda (ör. /giris) aynı değer gövde dolgusuna gider.
- * Bant yüksekliği yükleme başına değişebildiği için (50 → 60 → 64) HER boyut
- * olayında ve her gezinmede yeniden hesaplanır.
+ * Margin admin panelinden değiştirilebildiği (ek boşluk / sabit değer) ve bant
+ * yüksekliği yükleme başına değişebildiği için (50 → 60 → 64) HER boyut olayında
+ * ve her gezinmede yeniden yazılır.
  */
 function applyBannerSpace() {
   try {
     const d = computeBannerMargin();
-    const space = bannerHeightPx > 0 ? d.cssDistance + BANNER_GAP + bannerHeightPx : 0;
+    const margin = activeMargin ?? d.margin;
+    const space = bannerHeightPx > 0 ? margin + bannerHeightPx : 0;
     document.documentElement.style.setProperty(BANNER_SPACE_VAR, `${space}px`);
     // Alt bar bu sayfada basılı mı? Rezervin spacer'a mı yoksa gövdeye mi
     // yazılacağını bu belirler (bkz. globals.css).
@@ -571,6 +574,12 @@ async function setupAdMob(platform: Platform) {
     // sonraki gösterimde resumeBanner değil, YENİ showBanner çağrılır.
     let bannerState: "yok" | "gorunur" | "gizli" = "yok";
 
+    // Admin panelinden bant konumu ince ayarı (Mobil & Reklam sekmesi).
+    const adminExtra = Number(admob.banner_margin_extra) || 0;
+    const adminOverride = Number(admob.banner_margin_override) || 0;
+    // Konsoldan elle deneme (bkz. __ktBanner.retry) — kaydetmeden önce denemek için.
+    let marginOverride: number | null = null;
+
     // --- yükseklik: TAHMİN YOK, eklentinin bildirdiği gerçek ölçü kullanılır ---
     // SizeChanged (Android: bannerViewChangeSize, iOS: bannerViewDidReceiveAd
     // sonrası) {width, height} dp taşır; dp WebView'da CSS px'e denk gelir.
@@ -584,6 +593,7 @@ async function setupAdMob(platform: Platform) {
       // AdMob hata kodları: 0 iç hata, 1 geçersiz istek, 2 ağ, 3 stok yok (no fill).
       // Eklenti AdView'i yok etti: durumu "yok"a çek, yoksa hideBanner patlar.
       bannerState = "yok";
+      activeMargin = null;
       log("banner yüklenemedi:", err);
       setBannerHeight(0);
     });
@@ -601,7 +611,24 @@ async function setupAdMob(platform: Platform) {
         } else {
           // Bant alt navigasyonun ÜSTÜNE yerleşsin: eklentinin kendi margin'i
           // kullanılır (alt bar hiç oynatılmaz).
-          const { margin } = computeBannerMargin();
+          //
+          // Öncelik: konsoldan elle verilen değer > admin "sabit değer" >
+          //          hesaplanan + admin "ek boşluk".
+          const computed = computeBannerMargin().margin;
+          const margin =
+            marginOverride ??
+            (adminOverride > 0 ? adminOverride : computed + adminExtra);
+          activeMargin = margin;
+          applyBannerSpace();   // rezerv kullanılan margin'i izlesin
+
+          console.log(
+            "[native] banner margin — hesaplanan:", computed,
+            "| ek (admin):", adminExtra,
+            "| sabit (admin):", adminOverride,
+            "| konsol:", marginOverride ?? "-",
+            "| KULLANILAN:", margin,
+          );
+
           await AdMob.showBanner({
             adId: unit,
             adSize: BannerAdSize.ADAPTIVE_BANNER,
@@ -638,6 +665,42 @@ async function setupAdMob(platform: Platform) {
     };
 
     bannerCtl = { hiddenPaths, show, hide };
+
+    /**
+     * Cihazda deneme kancası (chrome://inspect konsolu):
+     *   __ktBanner.retry(220)  -> bandı 220 px margin ile sıfırdan kur
+     *   __ktBanner.retry()     -> admin ayarları + hesaplama ile sıfırdan kur
+     *   __ktBanner.info()      -> hesaplanan margin ve o anki ölçüler
+     * Beğendiğin sayıyı /yonetim → Mobil & Reklam → "Bant konumu — sabit değer"
+     * alanına yazınca kalıcı olur. Margin yalnızca bant SIFIRDAN kurulurken
+     * uygulandığı için önce removeBanner çağrılıyor.
+     */
+    (window as any).__ktBanner = {
+      async retry(margin?: number) {
+        try {
+          marginOverride = typeof margin === "number" ? margin : null;
+          await AdMob.removeBanner().catch(() => {});
+          bannerState = "yok";
+          activeMargin = null;
+          setBannerHeight(0);
+          await show();
+        } catch (e) {
+          log("banner retry başarısız:", e);
+        }
+      },
+      info() {
+        const d = computeBannerMargin();
+        console.log(
+          "[native] banner ölçüm — hesaplanan margin:", d.margin,
+          "| nav yüksekliği:", d.navHeight, d.measured ? "(ölçüldü)" : "(yedek)",
+          "| mesafe:", d.cssDistance,
+          "| güvenli alan:", d.safe,
+          "| bant yüksekliği:", bannerHeightPx,
+          "| kullanılan margin:", activeMargin ?? "-",
+          "| admin ek/sabit:", adminExtra, "/", adminOverride,
+        );
+      },
+    };
 
 
 

@@ -1160,6 +1160,18 @@ const MOBILE_FIELDS: Record<string, MobileField[]> = {
       type: "lines",
       hint: "/oyna\n/arena\n/solo\n/gunun-kelimesi\n/oda",
     },
+    {
+      path: "banner_margin_extra",
+      label: "Bant konumu — ek boşluk (px)",
+      type: "number",
+      hint: "0 = dokunma; hesaplanan mesafeye eklenir (eksi değer bandı aşağı indirir)",
+    },
+    {
+      path: "banner_margin_override",
+      label: "Bant konumu — sabit değer (px)",
+      type: "number",
+      hint: "0 = kapalı. 0'dan büyükse hesaplama YOK SAYILIR, bant tam bu yüksekliğe konur",
+    },
   ],
   "push.firebase": [
     { path: "web.apiKey", label: "Web — apiKey" },
@@ -1253,7 +1265,11 @@ function Mobile() {
         • AdMob&apos;da <b>Test modu</b> açıkken gerçek reklam gösterilmez.<br />
         • Banner ile geçiş reklamı ayrı anahtarlarda: banner&apos;ı kapatmak geçiş reklamını etkilemez.<br />
         • <b>Gizlenecek sayfalar</b>: her satıra bir yol. Alt yollar da kapsanır
-        (<span className="brand-mono">/arena</span> yazmak <span className="brand-mono">/arena/ozel/ABC</span>&apos;yi de kapsar).
+        (<span className="brand-mono">/arena</span> yazmak <span className="brand-mono">/arena/ozel/ABC</span>&apos;yi de kapsar).<br />
+        • <b>Bant konumu</b>: uygulama bandı alt menünün üstüne kendi hesabıyla yerleştirir.
+        <b> Sabit değer</b> 0&apos;dan büyükse hesaplama devre dışı kalır ve bant tam o yüksekliğe konur;
+        0 ise <b>ek boşluk</b> hesaplanan değere eklenir. Değişiklik uygulamada bandın
+        yeniden kurulmasıyla (uygulamayı kapat–aç) geçerli olur.
       </div>
       {msg && <p style={{ fontSize: 13, color: "var(--accent-hot)", margin: 0 }}>{msg}</p>}
 
