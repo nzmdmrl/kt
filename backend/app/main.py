@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
 from app.core.database import init_models
-from app.api.routes import health, words, room, match, auth, matchmaking, league, profile, daily, admin, sounds, notifications, home, account, presence, challenge, solo, arena, friends, music, seo, app_settings, notification_prefs, announcements, devices
+from app.api.routes import health, words, room, match, auth, matchmaking, league, profile, daily, admin, sounds, notifications, home, account, presence, challenge, solo, arena, friends, music, seo, app_settings, notification_prefs, announcements, devices, pages
 
 settings = get_settings()
 
@@ -72,6 +72,7 @@ app.include_router(app_settings.router, prefix="/api")  # mobil & reklam ayarlar
 app.include_router(notification_prefs.router, prefix="/api")  # bildirim turu katalogu + push tercihleri
 app.include_router(announcements.router, prefix="/api")  # duyurular (public liste + admin CRUD/bildirim)
 app.include_router(devices.router, prefix="/api")  # push cihaz kayitlari + admin test gonderimi
+app.include_router(pages.router, prefix="/api")  # duzenlenebilir sayfa icerikleri (Hakkimizda, Nasil Oynanir)
 
 
 @app.on_event("startup")
@@ -203,6 +204,23 @@ async def on_startup():
             set_badges_cache([(r.code, r.name, r.description, r.icon, r.tier, r.stat_key, r.threshold, r.sort_order) for r in rows])
     except Exception as e:
         print(f"[startup] Rozet seed/cache hatası: {e}")
+
+    # Düzenlenebilir sayfa içeriklerini seed et (yoksa) — Hakkımızda, Nasıl Oynanır.
+    # Var olan kayda DOKUNULMAZ; admin panelinden yapılan düzenleme korunur.
+    try:
+        from app.core.database import AsyncSessionLocal
+        from app.models.site_page import SitePage, DEFAULT_PAGES
+        from sqlalchemy import select as _sel
+        async with AsyncSessionLocal() as db:
+            have = {r for r in (await db.execute(_sel(SitePage.key))).scalars().all()}
+            new = [p for p in DEFAULT_PAGES if p["key"] not in have]
+            for p in new:
+                db.add(SitePage(key=p["key"], title=p["title"], body=p["body"]))
+            if new:
+                await db.commit()
+                print(f"[startup] {len(new)} sayfa içeriği seed edildi.")
+    except Exception as e:
+        print(f"[startup] Sayfa içeriği seed hatası: {e}")
 
     # İlk kez ise botları seed et (100 Türkçe bot).
     try:

@@ -21,7 +21,7 @@ import { playTileFlip } from "@/lib/sound";
  *  - prefers-reduced-motion: 3B dönüş ve ses kapanır, yumuşak geçiş kalır.
  */
 
-type Kind = "k" | "t";
+type Kind = "k" | "t" | "o";
 type Tile = { ch: string; kind: Kind };
 
 // KELİME (6 harf, yeşil) + TAHMİN (6 harf, sarı) = 12 kutu.
@@ -29,14 +29,21 @@ const ROWS: Tile[][] = [
   [...("KELİME")].map((ch) => ({ ch, kind: "k" as Kind })),
   [...("TAHMİN")].map((ch) => ({ ch, kind: "t" as Kind })),
 ];
-const TILES: Tile[] = ROWS.flat();
+// Kare sürüm (Hakkımızda): üç satır alt alta, üçüncü satır mavi — sosyal medyada
+// profil fotoğrafı olarak ekran görüntüsü alınabilsin diye kare çerçevede durur.
+const SQUARE_ROWS: Tile[][] = [
+  ...ROWS,
+  [...("OYUNU✓")].map((ch) => ({ ch, kind: "o" as Kind })),
+];
 
 // Zamanlama (ms) — ilk sürüme göre %25 daha hızlı.
 const EMPTY_MS = 525;   // baştaki boş kutu bekleyişi
 const STEP_MS = 98;     // harfler arası gecikme
 export const FLIP_MS = 345; // tek kutunun dönüş süresi (globals.css ile aynı olmalı)
 
-export default function AnimatedWordmark() {
+export default function AnimatedWordmark({ variant = "inline" }: { variant?: "inline" | "square" }) {
+  const rows = variant === "square" ? SQUARE_ROWS : ROWS;
+  const total = rows.reduce((n, r) => n + r.length, 0);
   const [revealed, setRevealed] = useState(0);
   const reducedRef = useRef(false);
 
@@ -51,19 +58,23 @@ export default function AnimatedWordmark() {
       typeof window !== "undefined" &&
       !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
-    const timers = TILES.map((_, i) =>
+    const timers = Array.from({ length: total }, (_, i) =>
       window.setTimeout(() => {
         setRevealed(i + 1);
         if (!reducedRef.current) playTileFlip();
       }, EMPTY_MS + i * STEP_MS)
     );
     return () => timers.forEach((t) => clearTimeout(t));
-  }, []);
+  }, [total]);
 
   let idx = 0;
   return (
-    <div className="kt-aw" role="img" aria-label="Kelime Tahmin">
-      {ROWS.map((row, r) => (
+    <div
+      className={`kt-aw${variant === "square" ? " kt-aw--square" : ""}`}
+      role="img"
+      aria-label={variant === "square" ? "Kelime Tahmin Oyunu" : "Kelime Tahmin"}
+    >
+      {rows.map((row, r) => (
         <div className="kt-aw-row" key={r}>
           {row.map((tile) => {
             const i = idx++;

@@ -87,6 +87,12 @@ const FALLBACK: Record<string, { title: string; description: string; path: strin
     path: "/nasil-oynanir",
     indexable: true,
   },
+  about: {
+    title: "Hakkımızda — Kelime Tahmin Oyunu",
+    description: "Kelime Tahmin'in hikâyesi, oyun modları ve bize ulaşabileceğin adres.",
+    path: "/hakkimizda",
+    indexable: true,
+  },
   profile: {
     title: "Oyuncu Profili",
     description: "Oyuncunun istatistikleri: maç sayısı, galibiyet oranı, puanı, unvanı, kupaları ve rozetleri.",

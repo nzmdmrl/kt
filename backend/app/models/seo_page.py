@@ -160,6 +160,19 @@ SEO_PAGES: list[dict] = [
         "keywords": "kelime tahmin nasıl oynanır, oyun kuralları, kelime oyunu rehberi",
     },
     {
+        "key": "about",
+        "path": "/hakkimizda",
+        "label": "Hakkımızda (/hakkimizda)",
+        "indexable": True,
+        "priority": 0.6,
+        "title": "Hakkımızda — Kelime Tahmin Oyunu",
+        "description": (
+            "Kelime Tahmin kimin, neden ve nasıl yaptığı bir oyun? Türkçe kelime düellosunun "
+            "hikâyesi, oyun modları ve bize ulaşabileceğin adres."
+        ),
+        "keywords": "kelime tahmin hakkında, hakkımızda, türkçe kelime oyunu ekibi",
+    },
+    {
         "key": "profile",
         "path": "/profil",
         "label": "Oyuncu Profili (/profil/...)",

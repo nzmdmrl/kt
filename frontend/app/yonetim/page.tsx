@@ -24,6 +24,7 @@ const TABS = [
   { key: "mobile", label: "📱 Mobil & Reklam" },
   { key: "notiftypes", label: "🔔 Bildirim Türleri" },
   { key: "announcements", label: "📢 Duyurular" },
+  { key: "pages", label: "📄 Sayfalar" },
 ];
 
 export default function AdminPage() {
@@ -61,6 +62,7 @@ export default function AdminPage() {
       {tab === "mobile" && <Mobile />}
       {tab === "notiftypes" && <NotificationTypes />}
       {tab === "announcements" && <Announcements />}
+      {tab === "pages" && <Pages />}
     </Wrap>
   );
 }
@@ -115,6 +117,135 @@ function Dashboard({ onDenied }: { onDenied: () => void }) {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+/**
+ * 📄 Sayfalar — Hakkımızda / Nasıl Oynanır gibi sayfaların METNİNİ düzenler.
+ *
+ * Burada sadece başlık + içerik vardır; sayfanın tepesindeki animasyonlu kare
+ * logo yalnızca yayındaki sayfada görünür, bu ekranda GÖSTERİLMEZ.
+ * Sayfa başlığı/açıklaması (arama motoru) ayrı yerde: 🔍 SEO sekmesi.
+ */
+function Pages() {
+  const [pages, setPages] = useState<any[]>([]);
+  const [sel, setSel] = useState<string>("");
+  const [title, setTitle] = useState("");
+  const [body, setBody] = useState("");
+  const [saved, setSaved] = useState(false);
+  const [popup, setPopup] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => { load(); }, []);
+  function load() {
+    fetch(apiUrl("/api/admin/pages"), { headers: authHeaders() })
+      .then((r) => r.json())
+      .then((d) => {
+        const list = d.pages || [];
+        setPages(list);
+        if (list.length && !sel) pick(list[0]);
+      })
+      .catch(() => setPopup("Sayfalar yüklenemedi."));
+  }
+  function pick(p: any) { setSel(p.key); setTitle(p.title || ""); setBody(p.body || ""); setSaved(false); }
+
+  const current = pages.find((p) => p.key === sel);
+
+  async function save() {
+    if (!current) return;
+    setBusy(true);
+    try {
+      const r = await fetch(apiUrl(`/api/admin/pages/${current.key}`), {
+        method: "PUT", headers: authHeaders(), body: JSON.stringify({ title, body }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) { setPopup(j.detail || "Kaydedilemedi."); return; }
+      setSaved(true); setTimeout(() => setSaved(false), 2000);
+      setPages((prev) => prev.map((p) => p.key === current.key ? { ...p, title, body } : p));
+    } catch { setPopup("Bağlantı hatası."); }
+    finally { setBusy(false); }
+  }
+
+  return (
+    <div style={{ display: "grid", gap: 12 }}>
+      {popup && <AlertPopup message={popup} onClose={() => setPopup("")} />}
+      <p style={{ color: "var(--text-dim)", fontSize: 13 }}>
+        Sayfa metinleri. Biçimlendirme: <code>## Başlık</code>, <code>- madde</code>,{" "}
+        <code>**kalın**</code>, <code>[metin](adres)</code>, boş satır = yeni paragraf.
+        Yayına yansıması 1 dakika sürebilir (sayfa önbelleği).
+      </p>
+
+      {/* Sayfa seçimi */}
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        {pages.map((p) => (
+          <button
+            key={p.key}
+            onClick={() => pick(p)}
+            style={{
+              padding: "8px 14px", borderRadius: 9, cursor: "pointer", fontSize: 14, fontWeight: 600,
+              background: p.key === sel ? "var(--accent)" : "var(--bg-panel)",
+              color: p.key === sel ? "#1a1330" : "var(--text-soft)",
+              border: "1px solid var(--border-soft)",
+            }}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+
+      {current && (
+        <div style={{ background: "var(--bg-panel)", borderRadius: 12, padding: 14, display: "grid", gap: 10 }}>
+          <div style={{ fontSize: 12, color: "var(--text-dim)" }}>
+            Adres: <a href={current.path} target="_blank" rel="noreferrer" style={{ color: "var(--accent)" }}>{current.path}</a>
+            {current.updated_at && ` · son düzenleme: ${new Date(current.updated_at).toLocaleString("tr")}`}
+          </div>
+          <label style={{ fontSize: 13, color: "var(--text-soft)" }}>Sayfa başlığı</label>
+          <input
+            value={title}
+            onChange={(e) => { setTitle(e.target.value); setSaved(false); }}
+            style={{
+              padding: "10px 12px", borderRadius: 9, border: "1px solid var(--tile-border)",
+              background: "var(--bg-elevated)", color: "var(--text-strong)", fontSize: 15,
+            }}
+          />
+          <label style={{ fontSize: 13, color: "var(--text-soft)" }}>İçerik</label>
+          <textarea
+            value={body}
+            onChange={(e) => { setBody(e.target.value); setSaved(false); }}
+            rows={22}
+            style={{
+              padding: "12px", borderRadius: 9, border: "1px solid var(--tile-border)",
+              background: "var(--bg-elevated)", color: "var(--text-strong)",
+              fontSize: 14, lineHeight: 1.6, fontFamily: "inherit", resize: "vertical",
+            }}
+          />
+          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            <button
+              onClick={save}
+              disabled={busy}
+              style={{
+                padding: "10px 20px", borderRadius: 9, border: "none", background: "var(--accent)",
+                color: "#1a1330", fontWeight: 700, fontSize: 14, cursor: busy ? "default" : "pointer",
+                opacity: busy ? .6 : 1,
+              }}
+            >
+              {busy ? "Kaydediliyor…" : "Kaydet"}
+            </button>
+            <button
+              onClick={() => { setTitle(current.default_title); setBody(current.default_body); setSaved(false); }}
+              style={{
+                padding: "10px 16px", borderRadius: 9, background: "var(--bg-elevated)",
+                color: "var(--text-soft)", border: "1px solid var(--border-soft)", fontSize: 14, cursor: "pointer",
+              }}
+            >
+              Varsayılana dön
+            </button>
+            {saved && <span style={{ color: "var(--tile-correct)", fontSize: 13 }}>✓ Kaydedildi</span>}
+            <span style={{ marginLeft: "auto", fontSize: 12, color: "var(--text-dim)" }}>{body.length} karakter</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -573,6 +573,26 @@ html[data-style="stil2"] .kt-logo-tile--t {
 }
 .kt-aw-tile--k .kt-aw-back { background: #39b86a; color: #fff; box-shadow: 0 6px 20px rgba(57, 184, 106, .35); }
 .kt-aw-tile--t .kt-aw-back { background: #ffb51b; color: #0d0b2b; box-shadow: 0 6px 20px rgba(255, 181, 27, .35); }
+.kt-aw-tile--o .kt-aw-back { background: #3a8fd6; color: #fff; box-shadow: 0 6px 20px rgba(58, 143, 214, .35); }
+
+/* --- Kare sürüm (Hakkımızda) -------------------------------------------
+   KELİME / TAHMİN / OYUNU✓ alt alta, kare çerçevede, çevresinde rahat boşlukla.
+   Sosyal medyada profil fotoğrafı olarak ekran görüntüsü alınabilsin diye
+   tüm ölçüler `em` (çerçevenin font-size'ı) üzerinden büyür/küçülür. */
+.kt-aw--square {
+  flex-direction: column; flex-wrap: nowrap;
+  --aw-size: 1em; --aw-gap: .12em; gap: .12em;
+}
+.kt-about-logo {
+  font-size: clamp(30px, 8.6vw, 46px);
+  width: 7.6em; height: 7.6em;           /* kare */
+  display: grid; place-items: center;
+  margin: 0 auto 28px;
+  border-radius: .34em;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-soft);
+  box-shadow: var(--shadow-soft);
+}
 /* Gündüz temasında kutular da açılır — koyu blok gibi durmasın */
 /* Gündüz temasında yalnızca BOŞ kutu açılır; dolu kutular yeşil/sarı kalır */
 html[data-theme="light"] .kt-aw-front { background: #ded9ee; border-color: #c8c1e0; }

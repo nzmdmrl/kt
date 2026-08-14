@@ -1,4 +1,6 @@
 import LegalPage from "@/components/LegalPage";
+import PageBody from "@/components/PageBody";
+import { fetchPageContent } from "@/lib/pageContent";
 
 import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/seo";
@@ -8,48 +10,15 @@ export async function generateMetadata(): Promise<Metadata> {
   return pageMetadata("how");
 }
 
-export default function HakkindaPage() {
+// İçerik admin panelinden düzenlenir (📄 Sayfalar → Nasıl Oynanır?).
+export const revalidate = 60;
+
+export default async function NasilOynanirPage() {
+  const page = await fetchPageContent("nasil-oynanir");
+
   return (
-    <LegalPage title="Nasıl Oynanır?">
-      <p>
-        Kelime Tahmin, gerçek rakiplere karşı oynanan hızlı bir kelime düellosudur.
-        Amaç, gizli kelimeyi rakibinden önce bulmaktır.
-      </p>
-
-      <h2>Temel Kurallar</h2>
-      <p>
-        Her turda gizli bir kelime vardır ve kelimenin ilk harfi ile kaç harfli olduğu
-        gösterilir. Bir kelime tahmin ettiğinizde harfler renklenir: yeşil harf doğru
-        yerde, sarı harf kelimede var ama yanlış yerde, gri harf kelimede yok demektir.
-        Wordle oynadıysanız bu mantık tanıdık gelecek.
-      </p>
-
-      <h2>Sıra ve Buzzer</h2>
-      <p>
-        Tur başında sıra boştur — kim önce yazmaya başlarsa söz hakkı onda olur. Doğru
-        bilemezseniz sıra rakibinize geçer. İki oyuncu sırayla tahmin yaparak kelimeyi
-        bulmaya çalışır. Kelimeyi ilk bulan turu kazanır ve kalan süreye göre puan alır.
-      </p>
-
-      <h2>Sesli Cevap</h2>
-      <p>
-        Klavyeyle yazmak yerine mikrofon düğmesine basılı tutup kelimeyi sesli
-        söyleyebilirsiniz. Söylediğiniz kelime kutucuklara yazılır, onaylayıp
-        gönderirsiniz. (Tarayıcınızın ses tanımayı desteklemesi gerekir.)
-      </p>
-
-      <h2>Lig, Rozet ve Kupalar</h2>
-      <p>
-        Her maçta topladığınız puan sizi lig sıralamasında yükseltir. Günlük en iyi
-        maçınız aylık toplamınıza eklenir. Ay sonunda ilk üç oyuncu kupa ve madalya
-        kazanır. Ayrıca oyun ilerledikçe çeşitli rozetler açarsınız.
-      </p>
-
-      <h2>Günün Kelimesi</h2>
-      <p>
-        Her gün herkese aynı özel kelime sunulur. Tek başınıza çözer, sonucunuzu
-        arkadaşlarınızla paylaşırsınız. Yarın yeni bir kelime gelir.
-      </p>
+    <LegalPage title={page.title || "Nasıl Oynanır?"}>
+      <PageBody body={page.body} />
 
       <div style={{ marginTop: 30 }}>
         <a href="/oyna" style={{
