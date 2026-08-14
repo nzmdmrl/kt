@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { playTileFlip, unlockAudio } from "@/lib/sound";
+import { playTileFlip } from "@/lib/sound";
 
 /**
  * Animasyonlu "KELİME TAHMİN" kutu logosu — arayüz stili 2 (yeni görünüm).
@@ -40,20 +40,10 @@ export default function AnimatedWordmark() {
   const [revealed, setRevealed] = useState(0);
   const reducedRef = useRef(false);
 
-  // İlk kullanıcı etkileşiminde ses kilidini aç (tarayıcı otomatik oynatma politikası).
-  // Ses açılamazsa animasyon etkilenmez — bilerek sessiz devam eder.
-  useEffect(() => {
-    const unlock = () => unlockAudio();
-    const opts = { once: true, passive: true } as AddEventListenerOptions;
-    window.addEventListener("pointerdown", unlock, opts);
-    window.addEventListener("touchstart", unlock, opts);
-    window.addEventListener("keydown", unlock, opts);
-    return () => {
-      window.removeEventListener("pointerdown", unlock);
-      window.removeEventListener("touchstart", unlock);
-      window.removeEventListener("keydown", unlock);
-    };
-  }, []);
+  // Ses kilidi/otomatik oynatma yönetimi lib/sound.ts içinde global olarak
+  // yapılır: kullanıcı etkileşimi olmadan ses ZAMANLANMAZ (askıdaki context'e
+  // yazılan sesler resume anında üst üste çalıp "patlama" yapıyordu).
+  // Ses çalamıyorsa animasyon etkilenmez — sessiz devam eder.
 
   // Tek seferlik açılış — bittiğinde kutular açık kalır.
   useEffect(() => {

@@ -49,6 +49,36 @@ function ctx(): AudioContext | null {
   return audioCtx;
 }
 
+// Son kullanıcı etkileşimi zamanı (ms). Otomatik oynatma kilidi ancak
+// etkileşimden sonra açılır; resume() birkaç ms sürebildiği için kısa tolerans.
+let lastGestureAt = 0;
+if (typeof window !== "undefined") {
+  const mark = () => { lastGestureAt = Date.now(); ctx(); };
+  const opts = { passive: true } as AddEventListenerOptions;
+  window.addEventListener("pointerdown", mark, opts);
+  window.addEventListener("touchstart", mark, opts);
+  window.addEventListener("keydown", mark, opts);
+}
+
+/**
+ * ÇALMAYA HAZIR context — yoksa null.
+ *
+ * ÖNEMLİ: Askıdaki (suspended) bir context'e ses ZAMANLANMAMALI. Askıdayken
+ * `currentTime` ilerlemez; art arda gelen tüm sesler aynı (geçmiş) ana yazılır
+ * ve context resume olduğu anda HEPSİ ÜST ÜSTE çalar → kırpılmış "patlama"
+ * sesi. (Ana sayfa logosu 12 kutu çevirir; ilk tıklamada 12 ses birden patlıyordu.)
+ * Bu yüzden context "running" değilse ses üretmeyi sessizce atlıyoruz.
+ */
+function liveCtx(): AudioContext | null {
+  const c = ctx();
+  if (!c) return null;
+  if (c.state === "running") return c;
+  // Kullanıcı az önce etkileşime girdiyse resume yolda: en fazla birkaç ses
+  // sıraya girer, yığılma olmaz.
+  if (Date.now() - lastGestureAt < 400) return c;
+  return null;
+}
+
 export async function initSound(enabled: boolean, vol: number) {
   // Kayıtlı tercih varsa onu kullan (kullanıcı daha önce kapatmışsa kapalı kalsın).
   if (typeof window !== "undefined") {
@@ -87,7 +117,7 @@ export function isUiClickSuppressed() { return uiClickSuppressed > 0; }
 
 // --- Sentetik ses tonları ---
 function tone(freq: number, dur: number, type: OscillatorType = "sine", delay = 0, vol = 1) {
-  const c = ctx();
+  const c = liveCtx();
   if (!c) return;
   const now = c.currentTime;
   const osc = c.createOscillator();
@@ -157,7 +187,7 @@ function playSynth(slot: Slot, opts?: { intensity?: number }) {
       // Yumuşak tık. intensity 0..1 -> ses seviyesi ve hafif tizlik artar.
       const it = opts?.intensity ?? 0;
       // Yumuşak, alçak bir "tak": sine dalga, düşük frekans, yumuşak zarf.
-      const c = ctx();
+      const c = liveCtx();
       if (!c) break;
       const now = c.currentTime;
       const osc = c.createOscillator();
@@ -176,7 +206,7 @@ function playSynth(slot: Slot, opts?: { intensity?: number }) {
     }
     case "count_tick": {
       // Çok kısa, keskin "dır" tıkırtısı — hızlı ardışık çalınca "dırdırdır" olur.
-      const c = ctx();
+      const c = liveCtx();
       if (!c) break;
       const now = c.currentTime;
       const osc = c.createOscillator();
@@ -216,13 +246,25 @@ function playSynth(slot: Slot, opts?: { intensity?: number }) {
  * Kısa, net, hafif mekanik bir "tak" — gerçek bir harf kutusunun dönüşü gibi.
  * Üç katman: alçak gövde tıkırtısı + tiz uç tıkırtısı + bant-geçiren kısa gürültü.
  * Tamamen Web Audio ile üretilir (dosya yok) ve mevcut TEK AudioContext'i
- * (ctx()) yeniden kullanır — her çağrıda yeni context açılmaz.
+ * (liveCtx()) yeniden kullanır — her çağrıda yeni context açılmaz.
+ *
+ * İki koruma var:
+ *  1) liveCtx(): context askıdaysa ses hiç zamanlanmaz (yığılıp patlamasın).
+ *  2) minimum aralık: iki tık en az MIN_FLIP_GAP saniye arayla çalar; aynı ana
+ *     denk gelen çağrılar sıraya girer, üst üste binip kırpılma yapmaz.
  */
+const MIN_FLIP_GAP = 0.05;
+let lastFlipAt = 0;
+
 export function playTileFlip() {
   if (!soundEnabled) return;
-  const c = ctx();
+  const c = liveCtx();
   if (!c) return;
-  const now = c.currentTime;
+  // Sırada bekleyen tık çok ileriye kaymışsa (sekme arkaplana alınmış vb.) bu
+  // sesi tamamen atla — geç kalan sesler toplu halde çalmasın.
+  if (lastFlipAt - c.currentTime > 0.5) return;
+  const now = Math.max(c.currentTime, lastFlipAt + MIN_FLIP_GAP);
+  lastFlipAt = now;
   const out = c.createGain();
   out.gain.value = volume * 0.5;
   out.connect(c.destination);
@@ -264,6 +306,9 @@ export function playTileFlip() {
   noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.03);
   noise.connect(bp); bp.connect(noiseGain); noiseGain.connect(out);
   noise.start(now); noise.stop(now + 0.035);
+
+  // Ses bitince düğümleri koparttır — sayfa boyunca birikmesin.
+  body.onended = () => { try { out.disconnect(); } catch {} };
 }
 
 /**
@@ -271,7 +316,7 @@ export function playTileFlip() {
  * çağrılmalı (pointerdown/touchstart/keydown). Yeni context açmaz, var olanı
  * resume eder; ses izni yoksa sessizce başarısız olur, animasyon etkilenmez.
  */
-export function unlockAudio() { ctx(); }
+export function unlockAudio() { lastGestureAt = Date.now(); ctx(); }
 
 // --- Genel çalma (yüklü mp3 varsa onu, yoksa sentetik) ---
 export function playSound(slot: Slot, opts?: { intensity?: number }) {
