@@ -678,3 +678,116 @@ html[data-style="stil2"]:not([data-theme="light"]) .hm-s2 .hm-profile {
   .hm-s2 .hm-join-btn,
   .hm-s2 .hm-join-input { min-height: 46px; }
 }
+
+/* ======================================================================
+   NASIL OYNANIR SAYFASI (.ho-*)
+   Tüm görsel bölümler KODDADIR — admin panelindeki "📄 Sayfalar" metni
+   değişse bile bu düzen/animasyon etkilenmez.
+   ====================================================================== */
+
+/* --- Giriş bloğu --- */
+.ho-lead {
+  font-size: 16px; line-height: 1.75; color: var(--text-soft);
+  max-width: 620px; margin: 0 auto 28px; text-align: center;
+}
+.ho-section { margin: 40px 0 0; }
+.ho-h2 {
+  font-family: var(--font-display); font-size: 21px; font-weight: 800;
+  color: var(--text-strong); margin: 0 0 6px; display: flex; align-items: center; gap: 9px;
+}
+.ho-sub { font-size: 14px; color: var(--text-dim); margin: 0 0 16px; line-height: 1.6; }
+
+/* --- Canlı renk demosu (GuessDemo) --- */
+.ho-demo {
+  display: grid; gap: 10px; justify-items: center;
+  padding: 22px 16px; border-radius: 16px;
+  background: var(--bg-panel); border: 1px solid var(--border-soft);
+}
+.ho-demo-row { display: flex; gap: 8px; }
+.ho-tile {
+  --t: clamp(42px, 12vw, 56px);
+  width: var(--t); height: var(--t); perspective: 600px; display: block;
+}
+.ho-tile-inner {
+  position: relative; display: block; width: 100%; height: 100%;
+  transform-style: preserve-3d; transition: transform .5s cubic-bezier(.2, .7, .3, 1);
+}
+.ho-tile.is-open .ho-tile-inner { transform: rotateX(180deg); }
+.ho-face {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  border-radius: 10px; backface-visibility: hidden; -webkit-backface-visibility: hidden;
+  font-family: var(--font-display); font-weight: 800; line-height: 1;
+  font-size: calc(var(--t) * .5); color: #fff;
+}
+.ho-front { background: var(--bg-elevated); border: 2px solid var(--tile-border, var(--border-soft)); color: var(--text-strong); }
+.ho-tile.is-typed .ho-front { animation: ho-pop .18s ease; border-color: var(--accent); }
+.ho-back { transform: rotateX(180deg); }
+.ho-correct { background: var(--tile-correct); }
+.ho-present { background: var(--tile-present); color: #17122b; }
+.ho-absent  { background: var(--tile-absent); }
+@keyframes ho-pop { 0% { transform: scale(1); } 45% { transform: scale(1.09); } 100% { transform: scale(1); } }
+
+/* --- Renk açıklaması --- */
+.ho-legend { display: grid; gap: 10px; margin-top: 14px; }
+.ho-legend-row { display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--text-soft); }
+.ho-chip {
+  width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+  display: grid; place-items: center; font-family: var(--font-display);
+  font-weight: 800; color: #fff; font-size: 16px;
+}
+
+/* --- Mod kartları --- */
+.ho-modes { display: grid; gap: 14px; }
+@media (min-width: 721px) { .ho-modes { grid-template-columns: 1fr 1fr; } }
+.ho-mode {
+  position: relative; overflow: hidden;
+  background: var(--bg-panel); border: 1px solid var(--border-soft);
+  border-radius: 18px; padding: 18px 18px 16px;
+  display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 14px;
+  align-items: start;
+}
+.ho-mode::before {
+  content: ""; position: absolute; inset: 0 0 auto 0; height: 4px;
+  background: linear-gradient(90deg, var(--g1), var(--g2));
+}
+.ho-mode-icon {
+  grid-row: 1 / span 2; width: 52px; height: 52px; border-radius: 15px;
+  display: grid; place-items: center; font-size: 26px;
+  background: linear-gradient(145deg, var(--g1), var(--g2));
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .22);
+}
+.ho-mode-title { font-family: var(--font-display); font-size: 18px; font-weight: 800; color: var(--text-strong); margin: 2px 0 0; }
+.ho-mode-desc { font-size: 14px; color: var(--text-soft); line-height: 1.6; margin: 4px 0 0; }
+.ho-mode-steps { grid-column: 1 / -1; margin: 12px 0 0; padding: 0; list-style: none; display: grid; gap: 7px; }
+.ho-mode-steps li {
+  font-size: 13.5px; color: var(--text-soft); line-height: 1.55;
+  display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 9px; align-items: start;
+}
+.ho-step-no {
+  width: 20px; height: 20px; border-radius: 50%; background: var(--bg-elevated);
+  color: var(--accent); font-size: 11px; font-weight: 800;
+  display: grid; place-items: center; margin-top: 1px;
+}
+.ho-mode-tags { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.ho-tag {
+  font-size: 12px; padding: 3px 9px; border-radius: 20px;
+  background: var(--bg-elevated); color: var(--text-dim); border: 1px solid var(--border-soft);
+}
+
+/* --- Ödül/puan şeridi --- */
+.ho-facts { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; }
+@media (min-width: 721px) { .ho-facts { grid-template-columns: repeat(4, 1fr); } }
+.ho-fact {
+  background: var(--bg-panel); border: 1px solid var(--border-soft); border-radius: 14px;
+  padding: 16px 14px; text-align: center;
+}
+.ho-fact-icon { font-size: 26px; line-height: 1; }
+.ho-fact-title { font-size: 14px; font-weight: 700; color: var(--text-strong); margin-top: 8px; }
+.ho-fact-desc { font-size: 12.5px; color: var(--text-dim); margin-top: 4px; line-height: 1.5; }
+
+/* --- Sayfa sonu çağrısı --- */
+.ho-cta {
+  margin-top: 40px; padding: 24px 20px; border-radius: 18px; text-align: center;
+  background: linear-gradient(145deg, rgba(63, 195, 86, .16), rgba(47, 156, 66, .06));
+  border: 1px solid rgba(63, 195, 86, .3);
+}

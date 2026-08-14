@@ -170,10 +170,15 @@ function Pages() {
   return (
     <div style={{ display: "grid", gap: 12 }}>
       {popup && <AlertPopup message={popup} onClose={() => setPopup("")} />}
-      <p style={{ color: "var(--text-dim)", fontSize: 13 }}>
+      <p style={{ color: "var(--text-dim)", fontSize: 13, lineHeight: 1.6 }}>
         Sayfa metinleri. Biçimlendirme: <code>## Başlık</code>, <code>- madde</code>,{" "}
         <code>**kalın**</code>, <code>[metin](adres)</code>, boş satır = yeni paragraf.
         Yayına yansıması 1 dakika sürebilir (sayfa önbelleği).
+        <br />
+        <strong style={{ color: "var(--text-soft)" }}>Not:</strong> Sayfalardaki görsel bölümler
+        (Hakkımızda&apos;daki kare animasyonlu logo, Nasıl Oynanır&apos;daki renk demosu ve mod
+        kartları) koddadır — burada yazdığın metin onları etkilemez, bozmaz.
+        Nasıl Oynanır metni sayfanın &quot;Sık sorulanlar&quot; bölümünde görünür.
       </p>
 
       {/* Sayfa seçimi */}

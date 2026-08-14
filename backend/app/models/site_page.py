@@ -21,7 +21,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import String, Text, DateTime, func
+from sqlalchemy import String, Text, Boolean, DateTime, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -33,6 +33,10 @@ class SitePage(Base):
     key: Mapped[str] = mapped_column(String(48), primary_key=True)
     title: Mapped[str] = mapped_column(String(160), default="")
     body: Mapped[str] = mapped_column(Text, default="")
+    # Admin bu sayfayı bir kez kaydettiyse True olur. False kaldığı sürece
+    # koddaki varsayılan metin her açılışta satıra kopyalanır — böylece kod
+    # tarafındaki metin düzeltmeleri canlıya yansır, ADMİN DÜZENLEMESİ EZİLMEZ.
+    is_edited: Mapped[bool] = mapped_column(Boolean, default=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
@@ -92,38 +96,43 @@ Kelimelerle iyi eğlenceler — sıra sende.
 """
 
 HOW_BODY = """\
-Kelime Tahmin, gerçek rakiplere karşı oynanan hızlı bir kelime düellosudur.
-Amaç, gizli kelimeyi rakibinden önce bulmaktır.
+Bu sayfadaki renk demosu ve mod kartları oyunun kendisinden gelir; aşağıdaki
+bölümde ise sık sorulan ayrıntıları bulacaksın.
 
-## Temel kurallar
+## Puan nasıl hesaplanır?
 
-Her turda gizli bir kelime vardır; kelimenin ilk harfi ve kaç harfli olduğu
-gösterilir. Bir kelime tahmin ettiğinde harfler renklenir: **yeşil** harf doğru
-yerde, **sarı** harf kelimede var ama yanlış yerde, **gri** harf kelimede yok
-demektir.
+Turu kazanmak tek başına yetmez — **ne kadar hızlı** bulduğun da sayılır. Kelimeyi
+erken bilen oyuncu kalan süreye göre ek puan alır, ilk buzzer'a basan hız bonusu
+kazanır. Maç sonunda puanın ELO'na ve lig sıralamana işlenir.
 
-## Sıra ve buzzer
+## Jokerler ne işe yarar?
 
-Tur başında sıra boştur — kim önce yazmaya başlarsa söz hakkı onda olur. Doğru
-bilemezsen sıra rakibine geçer. Kelimeyi ilk bulan turu kazanır ve kalan süreye
-göre puan alır.
+Sıkıştığında üç joker imdadına yetişir: bir harfi **yeşil** olarak açan joker,
+kelimede geçen bir harfi **sarı** olarak gösteren joker ve sana birkaç saniye
+kazandıran **süre** jokeri. Her maçta sınırlı sayıda kullanılır; yönetici
+ayarlarına göre sayıları değişebilir.
 
-## Sesli cevap
+## Misafir olarak oynayabilir miyim?
 
-Klavyeyle yazmak yerine mikrofon düğmesine basılı tutup kelimeyi sesli
-söyleyebilirsin. Söylediğin kelime kutucuklara yazılır, onaylayıp gönderirsin.
-(Tarayıcının ses tanımayı desteklemesi gerekir.)
+Evet. Üye olmadan 1v1 maç yapabilir, günün kelimesini çözebilirsin. Ancak puan,
+rozet, unvan ve lig sıralaması yalnızca üyelerde birikir — ücretsiz üyelikle
+ilerlemen kayıt altına alınır.
 
-## Lig, rozet ve kupalar
+## Sesli cevap nasıl çalışır?
 
-Her maçta topladığın puan seni lig sıralamasında yükseltir. Günlük en iyi maçın
-aylık toplamına eklenir. Dönem sonunda ilk üç oyuncu kupa ve madalya kazanır.
-Oyun ilerledikçe rozetler ve yeni unvanlar açılır.
+Klavye yerine mikrofon düğmesine basılı tut ve kelimeyi söyle; söylediğin kelime
+kutucuklara yazılır, onaylayıp gönderirsin. Tarayıcının ses tanımayı desteklemesi
+gerekir (Chrome ve Safari'de çalışır).
 
-## Günün Kelimesi
+## Rakip bulamazsam ne olur?
 
-Her gün herkese aynı özel kelime sunulur. Tek başına çözer, sonucunu
-arkadaşlarınla paylaşırsın. Yarın yeni bir kelime gelir.
+Kısa bir bekleme sonunda seninle aynı seviyede bir bot devreye girer; maç yarıda
+kalmaz. Arenada da eksik kalan yerler botlarla doldurulur.
+
+## Bağlantım koparsa?
+
+Kısa kopmalarda oyuna geri dönebilirsin. Maçı sürekli terk edersen kısa süreli
+eşleşme engeli uygulanır — rakipleri yarı yolda bırakmamak için.
 """
 
 # Panelde listelenen düzenlenebilir sayfalar.

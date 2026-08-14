@@ -212,13 +212,20 @@ async def on_startup():
         from app.models.site_page import SitePage, DEFAULT_PAGES
         from sqlalchemy import select as _sel
         async with AsyncSessionLocal() as db:
-            have = {r for r in (await db.execute(_sel(SitePage.key))).scalars().all()}
-            new = [p for p in DEFAULT_PAGES if p["key"] not in have]
-            for p in new:
-                db.add(SitePage(key=p["key"], title=p["title"], body=p["body"]))
-            if new:
+            rows = {r.key: r for r in (await db.execute(_sel(SitePage))).scalars().all()}
+            added = synced = 0
+            for p in DEFAULT_PAGES:
+                row = rows.get(p["key"])
+                if row is None:
+                    db.add(SitePage(key=p["key"], title=p["title"], body=p["body"]))
+                    added += 1
+                elif not row.is_edited and (row.body != p["body"] or row.title != p["title"]):
+                    # Admin hiç dokunmadıysa koddaki güncel metni taşı.
+                    row.title, row.body = p["title"], p["body"]
+                    synced += 1
+            if added or synced:
                 await db.commit()
-                print(f"[startup] {len(new)} sayfa içeriği seed edildi.")
+                print(f"[startup] sayfa içeriği: {added} yeni, {synced} güncellendi.")
     except Exception as e:
         print(f"[startup] Sayfa içeriği seed hatası: {e}")
 

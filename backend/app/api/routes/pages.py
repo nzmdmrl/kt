@@ -76,6 +76,7 @@ async def admin_pages(admin: User = Depends(get_admin_user), db: AsyncSession = 
             "body": (r.body if r else p["body"]),
             "default_title": p["title"],
             "default_body": p["body"],
+            "is_edited": bool(r.is_edited) if r else False,
             "updated_at": r.updated_at.isoformat() if (r and r.updated_at) else None,
         })
     return {"pages": out}
@@ -108,8 +109,8 @@ async def update_page(
 
     row = await _row(db, key)
     if row:
-        row.title, row.body = title, body
+        row.title, row.body, row.is_edited = title, body, True
     else:
-        db.add(SitePage(key=key, title=title, body=body))
+        db.add(SitePage(key=key, title=title, body=body, is_edited=True))
     await db.commit()
     return {"ok": True, "key": key}
