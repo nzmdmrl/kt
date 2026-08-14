@@ -59,6 +59,7 @@ export default function TitleCelebration({ title, onClose }: {
         position: "fixed", inset: 0, zIndex: 1000,
         background: "rgba(0,0,0,.82)",
         display: "grid", placeItems: "center",
+        paddingBottom: "var(--kt-banner-h, 0px)",
         opacity: visible ? 1 : 0, transition: "opacity .4s ease",
         overflow: "hidden", cursor: "pointer",
       }}

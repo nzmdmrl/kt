@@ -17,14 +17,17 @@
  *  - Push: Android bildirim kanalları (grup başına bir kanal), izin, kayıt,
  *    token'ın /api/devices/register'a gönderilmesi, bildirime tıklayınca
  *    yönlendirme, uygulama açıkken hafif iç uyarı (toast).
- *  - AdMob: /api/app-config'teki ayara göre alt banner + gövdeye
- *    "has-native-banner" sınıfı (CSS zaten bu sınıfa göre yer ayırıyor).
+ *  - AdMob: /api/app-config'teki ayara göre alt banner. Bandın GERÇEK yüksekliği
+ *    --kt-banner-h değişkenine yazılır (globals.css'teki sabitlenmiş öğeler bu
+ *    kadar yukarı çıkar) + gövdeye "has-native-banner" sınıfı. Oyun ekranlarında
+ *    (ads.admob.banner_hidden_paths) banner gizlenir; ilan YENİDEN YÜKLENMEZ,
+ *    aynı banner gizlenip gösterilir (hideBanner/resumeBanner).
  *  - Geri tuşu: sayfa geçmişi varsa geri git, yoksa uygulamayı arka plana al
  *    (uygulamadan çıkma YOK).
  */
 
 import { useCallback, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { apiUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { usePlatform, type Platform } from "@/lib/platform";
@@ -48,12 +51,62 @@ const FALLBACK_GROUPS: { code: string; label: string }[] = [
 const HIGH_IMPORTANCE_GROUP = "game";
 
 const BANNER_BODY_CLASS = "has-native-banner";
+const BANNER_HEIGHT_VAR = "--kt-banner-h";
+
+/**
+ * Banner'ın gizleneceği yolların yedeği — ayar okunamazsa kullanılır.
+ * backend/app/api/routes/app_settings.py → DEFAULT_BANNER_HIDDEN_PATHS ile aynı.
+ */
+const FALLBACK_BANNER_HIDDEN_PATHS = ["/oyna", "/arena", "/solo", "/gunun-kelimesi", "/oda"];
 
 /** Kurulum belge başına bir kez çalışsın (dev StrictMode çift render'ı dahil). */
 let bootstrapped = false;
 
 function log(...args: any[]) {
   console.warn("[native]", ...args);
+}
+
+/** Bandın gerçek yüksekliği (px) — CSS bu değere göre yer açar. */
+function setBannerHeight(px: number) {
+  try {
+    const v = Number.isFinite(px) && px > 0 ? `${Math.round(px)}px` : "0px";
+    document.documentElement.style.setProperty(BANNER_HEIGHT_VAR, v);
+    document.body.classList.toggle(BANNER_BODY_CLASS, px > 0);
+  } catch {}
+}
+
+/** "/arena" kaydı "/arena" ve "/arena/ozel/ABC" ile eşleşir, "/arenax" ile eşleşmez. */
+function pathHidden(pathname: string, list: string[]): boolean {
+  const p = (pathname || "/").split("?")[0];
+  return list.some((raw) => {
+    const item = (raw || "").trim();
+    if (!item.startsWith("/")) return false;
+    const base = item.length > 1 && item.endsWith("/") ? item.slice(0, -1) : item;
+    return p === base || p.startsWith(`${base}/`);
+  });
+}
+
+// --- banner denetimi (modül kapsamı: kurulum bir kez, yol her gezinmede değişir) ---
+type BannerControl = {
+  hiddenPaths: string[];
+  show: () => Promise<void>;
+  hide: () => Promise<void>;
+};
+
+let bannerCtl: BannerControl | null = null;
+let currentPath = "/";
+/** Hızlı gezinmede göster/gizle çağrıları birbirine karışmasın diye sıraya alınır. */
+let bannerQueue: Promise<void> = Promise.resolve();
+
+/** Şu anki yola göre bandı gizler veya geri getirir. Hazır değilse sessiz geçer. */
+function applyBannerForPath(): Promise<void> {
+  const ctl = bannerCtl;
+  if (!ctl) return Promise.resolve();
+  const shouldHide = pathHidden(currentPath, ctl.hiddenPaths);
+  bannerQueue = bannerQueue
+    .then(() => (shouldHide ? ctl.hide() : ctl.show()))
+    .catch(() => {});
+  return bannerQueue;
 }
 
 /**
@@ -78,6 +131,15 @@ export default function NativeBootstrap() {
   const { platform, isNative, ready } = usePlatform();
   const { token: authToken } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
+
+  // Sayfa değiştikçe banner kararı yenilenir (oyun ekranında gizli).
+  // Kurulum henüz bitmediyse yalnızca yol saklanır; setupAdMob sonunda okur.
+  useEffect(() => {
+    if (!ready || !isNative) return;
+    currentPath = pathname || "/";
+    void applyBannerForPath();
+  }, [pathname, ready, isNative]);
 
   // --- yönlendirme kuyruğu -------------------------------------------------
   // Bildirime tıklanarak açılışta (cold start) olay, router hazır olmadan
@@ -294,11 +356,18 @@ async function setupAdMob(platform: Platform) {
     const config = await loadAppConfig(platform);
     const admob = config?.["ads.admob"];
     if (!admob?.enabled) return;
+    // banner_enabled ayrı anahtar: banner kapatılsa da geçiş reklamı kalır.
+    // Alan hiç yoksa (migration öncesi kayıt) eskisi gibi AÇIK sayılır.
+    if (admob.banner_enabled === false) return;
 
     const unit = (
       (platform === "ios" ? admob.ios?.banner : admob.android?.banner) || ""
     ).trim();
     if (!unit) return;   // birim id yoksa hiçbir şey yapma (eklenti bile yüklenmez)
+
+    const hiddenPaths = Array.isArray(admob.banner_hidden_paths)
+      ? admob.banner_hidden_paths.filter((p): p is string => typeof p === "string" && !!p.trim())
+      : FALLBACK_BANNER_HIDDEN_PATHS;
 
     const { AdMob, BannerAdSize, BannerAdPosition, BannerAdPluginEvents } =
       await import("@capacitor-community/admob");
@@ -318,30 +387,70 @@ async function setupAdMob(platform: Platform) {
       }
     }
 
-    // Banner gerçekten yüklendiğinde CSS yer ayırsın; yüklenemezse boşluk kalmasın.
-    const setBannerClass = (on: boolean) => {
-      try {
-        document.body.classList.toggle(BANNER_BODY_CLASS, on);
-      } catch {}
-    };
-    await AdMob.addListener(BannerAdPluginEvents.Loaded, () => setBannerClass(true));
+    // --- yükseklik: TAHMİN YOK, eklentinin bildirdiği gerçek ölçü kullanılır ---
+    // SizeChanged (Android: bannerViewChangeSize, iOS: bannerViewDidReceiveAd
+    // sonrası) {width, height} dp taşır; dp WebView'da CSS px'e denk gelir.
+    // Eklenti gizlemede de 0 yükseklikli olay yayar — boşluk kendiliğinden kapanır.
+    let visible = false;
+    await AdMob.addListener(BannerAdPluginEvents.SizeChanged, (size: any) => {
+      const h = Number(size?.height) || 0;
+      setBannerHeight(visible ? h : 0);
+    });
     await AdMob.addListener(BannerAdPluginEvents.FailedToLoad, (err) => {
       log("banner yüklenemedi:", err);
-      setBannerClass(false);
+      setBannerHeight(0);
     });
 
-    // Tam sayfa yeniden yükleme sonrası ikinci kez çağrılırsa eklenti mevcut
-    // banner'ı günceller (BannerExecutor.showBanner) — banner ÜST ÜSTE binmez.
-    await AdMob.showBanner({
-      adId: unit,
-      adSize: BannerAdSize.ADAPTIVE_BANNER,
-      position: BannerAdPosition.BOTTOM_CENTER,
-      margin: 0,
-      isTesting,
-    });
+    let everShown = false;   // showBanner en az bir kez çağrıldı mı?
+
+    const show = async () => {
+      if (visible) return;
+      // DİKKAT: boyut olayı çağrının İÇİNDE gelebiliyor; bayrak önce set edilmezse
+      // olay "gizli" sanıp yüksekliği 0 bırakır ve alt bar bandın altında kalır.
+      visible = true;
+      try {
+        if (everShown) {
+          // İlan YENİDEN YÜKLENMEZ: var olan banner yeniden görünür yapılır.
+          await AdMob.resumeBanner();
+        } else {
+          await AdMob.showBanner({
+            adId: unit,
+            adSize: BannerAdSize.ADAPTIVE_BANNER,
+            position: BannerAdPosition.BOTTOM_CENTER,
+            margin: 0,
+            isTesting,
+          });
+          everShown = true;
+        }
+        // Yükseklik SizeChanged olayıyla gelir; olay gecikirse boşluk 0 kalır,
+        // reklam görünür ama düzen bozulmaz.
+      } catch (e) {
+        log("banner gösterilemedi:", e);
+        visible = false;
+        setBannerHeight(0);
+      }
+    };
+
+    const hide = async () => {
+      // Ölçüyü ÖNCE sıfırla: düzen beklemeden kapanır (anında his).
+      visible = false;
+      setBannerHeight(0);
+      if (!everShown) return;   // hiç gösterilmediyse hideBanner reddeder
+      try {
+        await AdMob.hideBanner();
+      } catch (e) {
+        log("banner gizlenemedi:", e);
+      }
+    };
+
+    bannerCtl = { hiddenPaths, show, hide };
+
+    // İlk karar mevcut sayfaya göre: oyun ekranındaysak banner HİÇ açılmaz
+    // (açıp hemen kapatma titremesi olmaz, boşuna ilan da yüklenmez).
+    await applyBannerForPath();
   } catch (e) {
     log("AdMob kurulumu başarısız:", e);
-    try { document.body.classList.remove(BANNER_BODY_CLASS); } catch {}
+    setBannerHeight(0);
   }
 }
 

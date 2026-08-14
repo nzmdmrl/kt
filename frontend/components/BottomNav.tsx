@@ -71,10 +71,11 @@ export default function BottomNav() {
   return (
     <>
       {/* Alt bar yüksekliği kadar boşluk (içerik gizlenmesin) — bar güvenli alan
-          kadar büyüdüğü için boşluk da aynı miktarda büyür */}
-      <div className="kt-bottom-nav" style={{ height: "calc(76px + var(--kt-safe-bottom))" }} />
-      <nav className="kt-bottom-nav" style={{
-        position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50,
+          ve native reklam bandı kadar büyüdüğü için boşluk da aynı miktarda
+          büyür. Ölçüler globals.css'te (.kt-bottom-nav-spacer / -bar). */}
+      <div className="kt-bottom-nav kt-bottom-nav-spacer" />
+      <nav className="kt-bottom-nav kt-bottom-nav-bar" style={{
+        position: "fixed", left: 0, right: 0, zIndex: 50,
         display: "flex", justifyContent: "space-around", alignItems: "flex-end",
         background: "var(--bg-panel)",
         borderTop: "1px solid var(--border-soft)",

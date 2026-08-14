@@ -58,6 +58,17 @@ CREATE TABLE IF NOT EXISTS app_settings (
 )
 """
 
+# Oyun ekranları: reklam bandı buralarda gösterilmez (oyun alanını kapatmasın).
+# Not: "/oda" 1v1 davet bağlantısıdır ve doğrudan düelloya yönlendirir.
+# Aynı liste migration'da da kullanılır (app/core/migrations.py) — tek kaynak.
+DEFAULT_BANNER_HIDDEN_PATHS: list[str] = [
+    "/oyna",            # 1v1 düello + 1vB pratik + özel oda
+    "/arena",           # arena + özel arena (/arena/ozel/{kod})
+    "/solo",            # Maraton
+    "/gunun-kelimesi",  # Günün Kelimesi
+    "/oda",             # oda daveti -> /oyna yönlendirmesi
+]
+
 # Startup'ta eksikse eklenen varsayılanlar (hepsi kapalı/boş).
 #   anahtar -> (varsayılan değer, is_public)
 DEFAULT_APP_SETTINGS: dict[str, tuple[dict, bool]] = {
@@ -72,9 +83,17 @@ DEFAULT_APP_SETTINGS: dict[str, tuple[dict, bool]] = {
     "ads.admob": (
         {
             "enabled": False,
+            # Ana anahtar açıkken banner ve geçiş reklamı AYRI AYRI kapatılabilir:
+            # banner sorun çıkarırsa interstitial'ı kaybetmeden kapatılır.
+            "banner_enabled": True,
+            "interstitial_enabled": True,
             "test_mode": True,
             "android": {"app_id": "", "banner": "", "interstitial": ""},
             "ios": {"app_id": "", "banner": "", "interstitial": ""},
+            # Banner'ın GÖSTERİLMEYECEĞİ yollar (oyun ekranları). Eşleşme: tam yol
+            # ya da alt yol ("/arena" -> "/arena/ozel/ABC" de kapsanır).
+            # Bu listeyi admin panelinden (Mobil & Reklam) değiştirebilirsin.
+            "banner_hidden_paths": DEFAULT_BANNER_HIDDEN_PATHS,
         },
         True,
     ),

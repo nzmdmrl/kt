@@ -1126,7 +1126,14 @@ function MusicSection({ sectionKey, label }: { sectionKey: string; label: string
 
 type AppSettingRow = { key: string; label: string; value: any; is_public: boolean; updated_at: string | null };
 
-type MobileField = { path: string; label: string; type?: "text" | "bool" | "list" | "number"; hint?: string };
+// "list"  -> tek satır, virgülle ayrılmış dizi
+// "lines" -> çok satırlı kutu, HER SATIR bir dizi elemanı (yol listeleri için)
+type MobileField = {
+  path: string;
+  label: string;
+  type?: "text" | "bool" | "list" | "lines" | "number";
+  hint?: string;
+};
 
 const MOBILE_FIELDS: Record<string, MobileField[]> = {
   "ads.adsense": [
@@ -1137,7 +1144,9 @@ const MOBILE_FIELDS: Record<string, MobileField[]> = {
     { path: "slots.footer", label: "Slot — alt (footer)" },
   ],
   "ads.admob": [
-    { path: "enabled", label: "AdMob reklamları açık", type: "bool" },
+    { path: "enabled", label: "AdMob reklamları açık (ana anahtar)", type: "bool" },
+    { path: "banner_enabled", label: "Banner (alt bant) gösterilsin", type: "bool" },
+    { path: "interstitial_enabled", label: "Geçiş (interstitial) reklamı açık", type: "bool" },
     { path: "test_mode", label: "Test modu (gerçek reklam gösterilmez)", type: "bool" },
     { path: "android.app_id", label: "Android — uygulama kimliği" },
     { path: "android.banner", label: "Android — banner birimi" },
@@ -1145,6 +1154,12 @@ const MOBILE_FIELDS: Record<string, MobileField[]> = {
     { path: "ios.app_id", label: "iOS — uygulama kimliği" },
     { path: "ios.banner", label: "iOS — banner birimi" },
     { path: "ios.interstitial", label: "iOS — geçiş (interstitial) birimi" },
+    {
+      path: "banner_hidden_paths",
+      label: "Banner'ın GİZLENECEĞİ sayfalar (her satıra bir yol)",
+      type: "lines",
+      hint: "/oyna\n/arena\n/solo\n/gunun-kelimesi\n/oda",
+    },
   ],
   "push.firebase": [
     { path: "web.apiKey", label: "Web — apiKey" },
@@ -1195,9 +1210,10 @@ function Mobile() {
         const texts: Record<string, string> = {};
         for (const r of list) {
           for (const f of MOBILE_FIELDS[r.key] || []) {
-            if (f.type !== "list") continue;
+            if (f.type !== "list" && f.type !== "lines") continue;
             const v = mobileGet(r.value, f.path);
-            texts[`${r.key}:${f.path}`] = Array.isArray(v) ? v.join(", ") : "";
+            const sep = f.type === "lines" ? "\n" : ", ";
+            texts[`${r.key}:${f.path}`] = Array.isArray(v) ? v.join(sep) : "";
           }
         }
         setListText(texts);
@@ -1213,9 +1229,10 @@ function Mobile() {
   async function save(row: AppSettingRow) {
     let value = row.value && typeof row.value === "object" ? { ...row.value } : {};
     for (const f of MOBILE_FIELDS[row.key] || []) {
-      if (f.type !== "list") continue;
+      if (f.type !== "list" && f.type !== "lines") continue;
       const raw = listText[`${row.key}:${f.path}`] ?? "";
-      value = mobileSet(value, f.path, raw.split(",").map((s) => s.trim()).filter(Boolean));
+      const parts = f.type === "lines" ? raw.split("\n") : raw.split(",");
+      value = mobileSet(value, f.path, parts.map((s) => s.trim()).filter(Boolean));
     }
     const res = await fetch(apiUrl(`/api/admin/app-settings/${row.key}`), {
       method: "PUT", headers: authHeaders(), body: JSON.stringify({ value }),
@@ -1233,7 +1250,10 @@ function Mobile() {
         <b> /api/app-config</b> ucundan (web / android / ios) okunur; değişiklik en geç
         60 saniye içinde yayılır.<br />
         • Alanları boş bırakırsan o özellik kapalı kalır — yanlışlıkla reklam çıkmaz.<br />
-        • AdMob&apos;da <b>Test modu</b> açıkken gerçek reklam gösterilmez.
+        • AdMob&apos;da <b>Test modu</b> açıkken gerçek reklam gösterilmez.<br />
+        • Banner ile geçiş reklamı ayrı anahtarlarda: banner&apos;ı kapatmak geçiş reklamını etkilemez.<br />
+        • <b>Gizlenecek sayfalar</b>: her satıra bir yol. Alt yollar da kapsanır
+        (<span className="brand-mono">/arena</span> yazmak <span className="brand-mono">/arena/ozel/ABC</span>&apos;yi de kapsar).
       </div>
       {msg && <p style={{ fontSize: 13, color: "var(--accent-hot)", margin: 0 }}>{msg}</p>}
 
@@ -1274,6 +1294,21 @@ function Mobile() {
                       patch(row.key, f.path, Number.isFinite(n) ? n : "");
                     }}
                     style={{ ...seoInput, maxWidth: 200 }}
+                  />
+                </div>
+              );
+            }
+            if (f.type === "lines") {
+              return (
+                <div key={f.path} style={{ display: "grid", gap: 4 }}>
+                  <span style={{ fontSize: 12, color: "var(--text-dim)" }}>{f.label}</span>
+                  <textarea
+                    value={listText[`${row.key}:${f.path}`] ?? ""}
+                    placeholder={f.hint || ""}
+                    rows={6}
+                    spellCheck={false}
+                    onChange={(e) => setListText((t) => ({ ...t, [`${row.key}:${f.path}`]: e.target.value }))}
+                    style={{ ...seoInput, minHeight: 120, resize: "vertical", fontFamily: "ui-monospace, monospace" }}
                   />
                 </div>
               );

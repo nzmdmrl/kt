@@ -101,7 +101,7 @@ export default function TutorialDemo({ onClose }: { onClose: () => void }) {
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 400, background: "var(--bg)", overflowY: "auto" }}>
-      <div style={{ maxWidth: 480, margin: "0 auto", padding: "calc(20px + var(--kt-safe-top)) 16px calc(40px + var(--kt-safe-bottom))", display: "grid", gap: 16 }}>
+      <div style={{ maxWidth: 480, margin: "0 auto", padding: "calc(20px + var(--kt-safe-top)) 16px calc(40px + var(--kt-safe-bottom) + var(--kt-banner-h, 0px))", display: "grid", gap: 16 }}>
         {/* Üst bar */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span className="brand-mono" style={{ fontSize: 18, color: "var(--accent)" }}>Nasıl Oynanır?</span>

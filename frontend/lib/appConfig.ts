@@ -26,9 +26,14 @@ export type AdSenseConfig = {
 
 export type AdMobConfig = {
   enabled: boolean;
+  /** Ana anahtar açıkken banner ayrıca kapatılabilir (geçiş reklamı etkilenmez). */
+  banner_enabled?: boolean;
+  interstitial_enabled?: boolean;
   test_mode: boolean;
   android?: { app_id: string; banner: string; interstitial: string };
   ios?: { app_id: string; banner: string; interstitial: string };
+  /** Banner'ın gizleneceği yollar (oyun ekranları) — admin panelinden düzenlenir. */
+  banner_hidden_paths?: string[];
 };
 
 export type StoresConfig = {

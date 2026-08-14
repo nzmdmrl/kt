@@ -20,9 +20,12 @@ Kodu bir daha DEĞİŞTİRME — kod, "uygulandı" kaydının anahtarıdır.
 
 from __future__ import annotations
 
+import json
+
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.routes.app_settings import DEFAULT_BANNER_HIDDEN_PATHS
 from app.core.database import engine
 
 _IS_PG = engine.dialect.name == "postgresql"
@@ -30,6 +33,17 @@ _NOW = "now()" if _IS_PG else "CURRENT_TIMESTAMP"
 _TS = "TIMESTAMPTZ" if _IS_PG else "TIMESTAMP"
 _TRUE = "TRUE" if _IS_PG else "1"
 _FALSE = "FALSE" if _IS_PG else "0"
+
+# ads.admob satırına sonradan eklenen anahtarlar (bkz. migration 6).
+# Yollar app_settings.py'deki tek kaynaktan gelir; JSON metnine gömülür.
+_ADMOB_NEW_KEYS_JSON = json.dumps(
+    {
+        "banner_enabled": True,
+        "interstitial_enabled": True,
+        "banner_hidden_paths": DEFAULT_BANNER_HIDDEN_PATHS,
+    },
+    ensure_ascii=True,   # tek tırnaklı SQL literali içine güvenle gömülsün
+)
 
 CREATE_MIGRATIONS_SQL = f"""
 CREATE TABLE IF NOT EXISTS applied_migrations (
@@ -139,6 +153,28 @@ DATA_MIGRATIONS: list[tuple[str, list[str]]] = [
     ("2026_08_push_log_mark_admin_tests", [
         f"UPDATE push_log SET is_test = {_TRUE}, type_code = 'admin_test' "
         "WHERE type_code = 'system_announcement' AND route = '/duyurular'",
+    ]),
+
+    # 6) ads.admob'a üç yeni anahtar: banner_enabled, interstitial_enabled ve
+    #    banner_hidden_paths. app_settings seed'i yalnızca SATIR YOKSA yazar
+    #    (ensure_app_settings_table -> "key in existing: continue"), yani canlıdaki
+    #    ads.admob satırına DEFAULT_APP_SETTINGS'teki yeni alanlar ASLA ulaşmaz.
+    #    Bu yüzden mevcut JSON'a birleştiriliyor.
+    #
+    #    Birleştirme yönü önemli: varsayılanlar SOLDA, mevcut değer SAĞDA ->
+    #    çakışan anahtarda MEVCUT değer kazanır. Böylece admin daha önce bir şey
+    #    değiştirdiyse migration onu ezmez, sadece eksik anahtarı ekler.
+    ("2026_08_admob_banner_flags", [
+        (
+            "UPDATE app_settings "
+            f"SET value = '{_ADMOB_NEW_KEYS_JSON}'::jsonb || value, updated_at = now() "
+            "WHERE key = 'ads.admob'"
+            if _IS_PG else
+            "UPDATE app_settings "
+            f"SET value = json_patch('{_ADMOB_NEW_KEYS_JSON}', value), "
+            "    updated_at = CURRENT_TIMESTAMP "
+            "WHERE key = 'ads.admob'"
+        ),
     ]),
 ]
 
