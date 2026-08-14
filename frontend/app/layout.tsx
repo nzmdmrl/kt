@@ -67,10 +67,11 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // Arka plan ayarı sunucuda okunur ve <html data-sky> olarak basılır — gökyüzü
   // zemini CSS'ten geldiği için sayfa yenilemede beyaz flaş olmaz (globals.css).
+  // Aynı istekten arayüz stili de gelir: <html data-style="stil1|stil2">.
   const sky = await fetchAppearance();
 
   return (
-    <html lang="tr" data-sky={sky.enabled ? sky.theme : undefined}>
+    <html lang="tr" data-sky={sky.enabled ? sky.theme : undefined} data-style={sky.style}>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />

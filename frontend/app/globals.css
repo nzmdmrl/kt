@@ -468,3 +468,17 @@ a { color: inherit; text-decoration: none; }
     left: calc(50vw - 296px);
   }
 }
+
+/* ============================================================
+   ARAYÜZ STİLİ 2 (yeni görünüm)
+   ------------------------------------------------------------
+   Admin → ⚙️ Ayarlar → "Arayüz stili" ile seçilir.
+   Uygulanma yolu:
+     • <html data-style="stil1|stil2">  (app/layout.tsx, sunucuda basılır)
+     • ana sayfa sarmalayıcısında .hm-s2 sınıfı (components/HomeModes.tsx)
+   KURAL: stil1 = mevcut/klasik görünüm; buraya HİÇBİR kural yazılmaz.
+   Yeni görünümün tüm farkları YALNIZCA aşağıdaki bloklara yazılır ki
+   admin "stil1"e döndüğünde eski hâl birebir geri gelsin.
+   ============================================================ */
+
+/* (stil2 kuralları buraya) */

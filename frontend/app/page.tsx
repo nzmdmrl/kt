@@ -6,6 +6,7 @@ import { fetchHomeBoards } from "@/lib/homeData";
 import HomeMusic from "@/components/HomeMusic";
 import TopBar from "@/components/TopBar";
 import Footer from "@/components/Footer";
+import { fetchAppearance } from "@/lib/appearance";
 
 // Ana sayfa: 1v1 modları tek bölümde gruplu (Oyna, 1vB Pratik, Özel Oda Kur, Katıl),
 // diğer modlar ayrı bölümde. Desktop + mobil ortak HomeModes bileşeni; masaüstünde
@@ -19,13 +20,16 @@ export async function generateMetadata(): Promise<Metadata> {
 export const revalidate = 30;
 
 export default async function Home() {
-  const boards = await fetchHomeBoards();
+  // Arayüz stili (stil1: klasik · stil2: yeni) admin ayarından gelir; HomeModes
+  // üst bölümü buna göre değişir. Sadece görünüm — oyun akışı ikisinde de aynı.
+  const [boards, appearance] = await Promise.all([fetchHomeBoards(), fetchAppearance()]);
+  const style = appearance.style;
 
   return (
     <main style={{ flex: 1, width: "100%" }}>
       {/* MOBİL */}
       <div className="home-mobile">
-        <HomeModes />
+        <HomeModes style={style} />
         <div style={{ maxWidth: 520, margin: "0 auto", padding: "0 16px 40px" }}>
           <HomeBoards initial={boards} />
         </div>
@@ -34,7 +38,7 @@ export default async function Home() {
       {/* MASAÜSTÜ */}
       <div className="home-desktop">
         <TopBar />
-        <HomeModes />
+        <HomeModes style={style} />
         <div style={{ maxWidth: 760, margin: "0 auto", padding: "0 18px 40px" }}>
           <HomeBoards initial={boards} />
         </div>

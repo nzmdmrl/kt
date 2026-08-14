@@ -150,6 +150,17 @@ function Settings() {
               <option value="1">1 · Klasik (1v1: 3 tur · Arena: 6 kelime)</option>
               <option value="2">2 · Hızlı (1v1: tek tur 5/6 harf · Arena: 5 kelime)</option>
             </select>
+          ) : s.key === "ui_style" ? (
+            /* Arayüz stili — sadece görünümü değiştirir, oyun mantığı aynıdır.
+               Değişiklik ana sayfa/kök layout ISR'ı (60 sn) sonrası yayına yansır. */
+            <select
+              value={s.value}
+              onChange={(e) => save(s.key, e.target.value)}
+              style={{ padding: "8px", borderRadius: 8, border: "1px solid var(--tile-border)", background: "var(--bg-elevated)", color: "var(--text-strong)" }}
+            >
+              <option value="stil1">🎨 Stil 1 · Klasik (eski görünüm)</option>
+              <option value="stil2">✨ Stil 2 · Yeni görünüm</option>
+            </select>
           ) : s.key === "night_bg_theme" ? (
             <select
               defaultValue={s.value}

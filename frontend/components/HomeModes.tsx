@@ -27,7 +27,11 @@ function saveHomeCache(uid: number, patch: any) {
 
 // Ana sayfa mod ekranı — desktop + mobil ortak. Sıralama: Arena/Özel Arena üstte,
 // sonra 1v1 Düello bölümü, sonra Maraton/Günün Kelimesi/Lig.
-export default function HomeModes() {
+//
+// `style` = arayüz stili (admin → ⚙️ Ayarlar → "Arayüz stili"):
+//   stil1 → klasik (eski) görünüm, stil2 → yeni görünüm.
+// Sadece GÖRÜNÜM değişir; modlar/rotalar/veri her iki stilde de aynıdır.
+export default function HomeModes({ style = "stil2" }: { style?: "stil1" | "stil2" }) {
   const { user, loading } = useAuth();
   const router = useRouter();
   const [lvl, setLvl] = useState<LevelInfo | null>(null);
@@ -92,7 +96,7 @@ export default function HomeModes() {
   ];
 
   return (
-    <div className="home-modes-wrap">
+    <div className={`home-modes-wrap${style === "stil2" ? " hm-s2" : ""}`}>
       {/* Profil / karşılama kartı — puan, madalya, rozet sayılarıyla */}
       {user ? (
         <div className="hm-profile-wrap">
