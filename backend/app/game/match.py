@@ -33,9 +33,23 @@ class MatchError(Exception):
 
 
 class Match:
-    def __init__(self, match_id: str, players: list[Player], lang: str = "tr"):
-        if len(players) != 2:
-            raise ValueError("Maç tam iki oyuncu ile başlar.")
+    """2-4 oyunculu buzzer maçı.
+
+    2 kişilik akış (klasik 1v1) DEĞİŞMEDİ: yanlış cevap / cevap süresi dolunca
+    sıra doğrudan rakibe geçer.
+
+    3-4 kişilik (özel oda) akışı:
+      * Turda ilk buzzer'ı kapan cevaplar.
+      * Bilemezse "bu döngüde hakkını kullandı" olur ve KALANLAR arasında yeni
+        bir buzzer yarışı başlar.
+      * Geriye tek kişi kalırsa buzzer'a gerek kalmaz, sıra doğrudan ona geçer.
+      * O da bilemezse döngü sıfırlanır ve herkes yeniden buzzer'a basabilir.
+    """
+
+    def __init__(self, match_id: str, players: list[Player], lang: str = "tr",
+                 round_plan_override: list[dict] | None = None):
+        if not 2 <= len(players) <= 4:
+            raise ValueError("Maç 2-4 oyuncu ile oynanır.")
         self.id = match_id
         self.lang = lang
         self.players: dict[str, Player] = {p.id: p for p in players}
@@ -44,7 +58,8 @@ class Match:
         self.round: Optional[RoundState] = None
         self.round_index: int = -1
         # Tur planı maç kurulurken sabitlenir (mod 1: 3 tur, mod 2: tek tur 5/6 harf).
-        self.round_plan: list[dict] = round_plan()
+        # Özel odada oda ayarındaki tur sayısı kullanılır (her tur 5/6 harf).
+        self.round_plan: list[dict] = round_plan_override or round_plan()
         # Doğru bilinen kelimeler: pid -> set(word) (toplanan kelime istatistiği için).
         self.solved_words: dict[str, set] = {p.id: set() for p in players}
         # Joker hakları (maç boyunca, oyuncu başına). Admin panelden ayarlanır.
@@ -61,8 +76,41 @@ class Match:
         }
 
     # ---- yardımcılar ----
+    @property
+    def is_multi(self) -> bool:
+        """3+ oyunculu (özel oda) maç mı?"""
+        return len(self.player_order) > 2
+
     def opponent_of(self, player_id: str) -> str:
         return self.player_order[1] if self.player_order[0] == player_id else self.player_order[0]
+
+    def _eligible_ids(self) -> list[str]:
+        """Bu döngüde hâlâ buzzer'a basabilecek oyuncular."""
+        r = self.round
+        assert r is not None
+        return [pid for pid in self.player_order if pid not in r.blocked_ids]
+
+    def _pass_turn_multi(self, spent_id: str) -> None:
+        """3-4 kişilik akış: hakkını kullanan oyuncuyu çıkar, sırayı yeniden dağıt."""
+        r = self.round
+        assert r is not None
+        if spent_id and spent_id not in r.blocked_ids:
+            r.blocked_ids.append(spent_id)
+        remaining = self._eligible_ids()
+        from app.game.settings_service import cached_int as _ci
+        if len(remaining) == 1:
+            # Son kalan kişi: buzzer'a gerek yok, doğrudan cevap hakkı.
+            r.turn_player_id = remaining[0]
+            r.answer_time_left = _ci("buzzer_answer_seconds", BUZZER_ANSWER_SECONDS)
+        elif len(remaining) == 0:
+            # Herkes denedi — döngü sıfırlanır, yarış yeniden başlar.
+            r.blocked_ids = []
+            r.turn_player_id = None
+            r.answer_time_left = 0
+        else:
+            # Kalanlar arasında yeni buzzer yarışı.
+            r.turn_player_id = None
+            r.answer_time_left = 0
 
     def _pick_word(self, length: int) -> str:
         return get_pool(length, self.lang).random_word()
@@ -102,6 +150,8 @@ class Match:
             raise MatchError("Sıra şu an başka oyuncuda.")
         if player_id not in self.players:
             raise MatchError("Oyuncu bu maçta değil.")
+        if player_id in r.blocked_ids:
+            raise MatchError("Bu turda hakkını kullandın, diğerlerini bekle.")
         r.turn_player_id = player_id
         from app.game.settings_service import cached_int as _ci; r.answer_time_left = _ci("buzzer_answer_seconds", BUZZER_ANSWER_SECONDS)
         if r.first_buzzer_id is None:
@@ -273,8 +323,12 @@ class Match:
             r.reveal_word = r.target   # doğru cevabı herkese göster
             round_over = True
             self.phase = MatchPhase.ROUND_OVER
+        elif self.is_multi:
+            # 3-4 kişilik: hakkını kullandı; kalanlar arasında yeni buzzer yarışı
+            # (tek kişi kaldıysa doğrudan ona sıra, kimse kalmadıysa yarış sıfırlanır).
+            self._pass_turn_multi(player_id)
         else:
-            # Yanlış: sıra DOĞRUDAN rakibe geçer (boşa bırakılmaz).
+            # 1v1: sıra DOĞRUDAN rakibe geçer (boşa bırakılmaz).
             # Rakip cevap penceresi içinde denemezse sıra geri döner (timer yönetir).
             opponent = self.opponent_of(player_id)
             r.turn_player_id = opponent
@@ -299,11 +353,13 @@ class Match:
         self._require_active()
         r = self.round
         assert r is not None
-        if r.turn_player_id is not None:
+        if r.turn_player_id is None:
+            r.answer_time_left = 0
+        elif self.is_multi:
+            self._pass_turn_multi(r.turn_player_id)
+        else:
             r.turn_player_id = self.opponent_of(r.turn_player_id)
             from app.game.settings_service import cached_int as _ci; r.answer_time_left = _ci("buzzer_answer_seconds", BUZZER_ANSWER_SECONDS)
-        else:
-            r.answer_time_left = 0
 
     def on_round_timeout(self) -> dict:
         """Tur toplam süresi bitti — kimse bilemediyse teselli puanı, tur kapanır."""
@@ -340,6 +396,7 @@ class Match:
             self.players[pid].score += pts
         r.finished = True
         r.turn_player_id = None
+        r.blocked_ids = []
         r.reveal_word = r.target   # doğru cevabı göster (kimse bilemedi)
         self.phase = MatchPhase.ROUND_OVER
         return True
@@ -350,16 +407,29 @@ class Match:
 
     # ---- sonuç ----
     def result(self) -> dict:
-        """Maç sonucu — kazanan, skorlar."""
+        """Maç sonucu — kazanan, skorlar, (çok kişilide) sıralama."""
         scores = {pid: p.score for pid, p in self.players.items()}
-        winner = None
-        a, b = self.player_order
-        if scores[a] > scores[b]:
-            winner = a
-        elif scores[b] > scores[a]:
-            winner = b
-        # eşitse winner = None (berabere)
-        return {"scores": scores, "winner": winner, "finished": self.phase == MatchPhase.FINISHED}
+        # Sıralama: puana göre azalan; eşit puanlar aynı sırayı paylaşır.
+        ordered = sorted(self.player_order, key=lambda pid: -scores[pid])
+        ranking = []
+        last_score = None
+        last_rank = 0
+        for i, pid in enumerate(ordered):
+            rank = last_rank if scores[pid] == last_score else i + 1
+            ranking.append({
+                "player_id": pid, "rank": rank,
+                "name": self.players[pid].name, "score": scores[pid],
+            })
+            last_score, last_rank = scores[pid], rank
+        top = [r for r in ranking if r["rank"] == 1]
+        winner = top[0]["player_id"] if len(top) == 1 else None   # eşitlik = berabere
+        return {
+            "scores": scores,
+            "winner": winner,
+            "ranking": ranking,
+            "player_count": len(self.player_order),
+            "finished": self.phase == MatchPhase.FINISHED,
+        }
 
     def to_public(self, viewer_id: Optional[str] = None) -> dict:
         """Tüm maç durumunun istemci-güvenli görünümü (hedef kelime yok)."""

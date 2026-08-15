@@ -137,6 +137,22 @@ Aşağıdakiler canlıda çalışıyor veya son push'a dahil. Detaylı geçmiş 
   yeşil/kırmızı + her harfte ses), podyum + tablo (✓ doğru / ⚡ hız / puan) sonuç ekranı, XP.
 - Özel Arena (arkadaşla, ödülsüz). Maraton (solo). Günün Kelimesi. Lig (günlük/aylık/tüm zamanlar).
 
+### Özel oda (1v1 + 3-4 kişilik)
+- **Kurulum ekranı** (`/oyna?mode=create`): kişi sayısı (2/3/4), tur sayısı (1-5),
+  bekleme süresi (1/2/5/10 dk). Her turda 5 veya 6 harfli RASTGELE kelime
+  (`custom_round_plan`). Oda dolunca maç otomatik başlar; süre dolarsa oda kapanır
+  (`Room.watch_expiry` → `room_expired` mesajı, kod geçersiz).
+  DİKKAT: `/room/create` **async** olmalı — senkron def'te `asyncio.create_task` çalışmaz.
+- **3-4 kişilik buzzer akışı** (`Match.is_multi`): ilk buzzer'ı kapan cevaplar; bilemezse
+  `blocked_ids`'e girer ve KALANLAR yarışır; tek kişi kalırsa ona doğrudan sıra; herkes
+  bilemezse liste sıfırlanır, yarış baştan başlar. **2 kişilik akış DEĞİŞMEDİ** (yanlış/timeout →
+  sıra doğrudan rakibe).
+- 3-4 kişilikte **ELO/XP/rozet/lig YOK** ve maç geçmişine yazılmaz (özel arena gibi):
+  `match.py` istatistik callback'i yalnız 2 kişilik maçlara bağlanır.
+- Arayüz: `MultiScoreBar` (üstte foto, altında kısa ad + puan, sıra/eleme durumu),
+  `MultiResult` (sıralama tablosu + paylaşım). Biri ayrılırsa maç devam eder (≥2 kişi).
+- Paylaşım grubu: `room` (win/podium/loss) — admin → 💬 Sonuç PM.
+
 ### Puan / ödül sistemi
 - ELO, XP, seviye. **20 unvan** (Çaylak→Ölümsüz, XP eşikli, admin düzenlenebilir DB'de).
 - **Rozetler** DB'de (admin düzenlenebilir): stat_key + threshold mantığı. Arena rozetleri:

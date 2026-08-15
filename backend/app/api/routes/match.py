@@ -240,16 +240,21 @@ async def match_ws(
         "code": room.code,
         "player_id": player_id,
         "players": [p.to_public() for p in room.players.values()],
+        "room": room.public_info(),
     })
     await room.broadcast({
         "type": "lobby",
         "players": [p.to_public() for p in room.players.values()],
         "ready": room.is_full,
+        "room": room.public_info(),
     })
 
-    # Oda doluysa ve maç başlamadıysa başlat (istatistik callback'i ile).
+    # Oda doluysa ve maç başlamadıysa başlat.
+    # 3-4 kişilik özel odada ELO/XP/rozet/lig İŞLENMEZ (özel arena gibi) —
+    # istatistik callback'i sadece 2 kişilik maçlara bağlanır.
     if room.is_full and room.match is None:
-        _attach_stats_callback(room)
+        if len(room.players) == 2:
+            _attach_stats_callback(room)
         await room.start_match()
 
     try:

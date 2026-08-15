@@ -39,6 +39,9 @@ SHARE_GROUPS: list[tuple[str, str, str]] = [
     ("arena", "loss", "🏟️ Arena — Podyum dışı"),
     ("daily", "win", "📅 Günün Kelimesi — Bildi"),
     ("daily", "loss", "📅 Günün Kelimesi — Bilemedi"),
+    ("room", "win", "🎪 Özel Oda (3-4 kişi) — 1. oldu"),
+    ("room", "podium", "🎪 Özel Oda (3-4 kişi) — 2. oldu"),
+    ("room", "loss", "🎪 Özel Oda (3-4 kişi) — Sonraki sıralar"),
     ("solo", "win", "🏃 Maraton — Bölüm geçildi"),
 ]
 
@@ -99,6 +102,27 @@ DEFAULT_SHARE_LINES: dict[tuple[str, str], list[str]] = {
         "🤔 Dilimin ucundaydı…",
         "🔁 Yarın yeni kelime, yeni şans.",
         "📚 Kelime dağarcığına bir tik daha.",
+    ],
+    ("room", "win"): [
+        "🎪 Arkadaşlarla özel odada kelime düellosu — kazanan benim!",
+        "👑 Masanın kralı belli oldu.",
+        "⚡ Buzzer'a en hızlı basan kazandı.",
+        "🧠 Kelime bilgisi konuştu.",
+        "🔥 Sıradaki rakip kim?",
+    ],
+    ("room", "podium"): [
+        "🎪 Özel odada kıl payı ikinci oldum!",
+        "🥈 Buzzer'da bir adım geride kaldım.",
+        "😤 Rövanşta zirve benim.",
+        "⚡ Az kalsın kazanıyordum.",
+        "🎮 Yine de keyifli bir düelloydu.",
+    ],
+    ("room", "loss"): [
+        "🎪 Arkadaşlarla özel odada kelime düellosu yaptık!",
+        "🎮 Kazanmak değil, buzzer'a basmak önemli.",
+        "😅 Kelimeler bugün benden yana değildi.",
+        "🔁 Rövanş sözü verildi.",
+        "🧠 Bir dahaki sefere daha hızlıyım.",
     ],
     ("solo", "win"): [
         "🏃 Maraton devam ediyor!",

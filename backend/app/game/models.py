@@ -29,6 +29,13 @@ ROUND_CONFIG = [
 MODE2_ROUND_LENGTHS = [5, 6]
 
 
+def custom_round_plan(rounds: int) -> list[dict]:
+    """Özel oda tur planı: `rounds` tur, her turda 5 veya 6 harfli rastgele kelime."""
+    import random
+    n = max(1, min(5, int(rounds or 1)))
+    return [{"length": random.choice(MODE2_ROUND_LENGTHS), "rows": 5} for _ in range(n)]
+
+
 def round_plan() -> list[dict]:
     """
     Maçın tur planı — admin'deki `game_mode` ayarına göre.
@@ -130,6 +137,10 @@ class RoundState:
     joker_greens: dict = field(default_factory=dict)   # {index: letter}
     joker_yellows: list = field(default_factory=list)  # [{"index": i, "letter": c}]
     joker_used_by: list = field(default_factory=list)  # turda joker kullananlar (oyuncu başına 1 hak)
+    # ÇOK KİŞİLİ (3-4) odalarda bu döngüde hakkını kullanmış oyuncular:
+    # yanlış cevap veren / cevap süresi dolan buraya girer ve sıradaki buzzer
+    # savaşına katılamaz. Herkes elenince liste sıfırlanır ve yarış yeniden başlar.
+    blocked_ids: list = field(default_factory=list)
 
     @property
     def first_letter(self) -> str:
@@ -173,4 +184,5 @@ class RoundState:
             "joker_greens": self.joker_greens,
             "joker_yellows": self.joker_yellows,
             "joker_used_by": self.joker_used_by,
+            "blocked_ids": self.blocked_ids,
         }

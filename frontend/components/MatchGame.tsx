@@ -8,10 +8,11 @@ import { playSound, initSound, startTicking, stopTicking, suppressUiClick } from
 import Grid from "./Grid";
 import MatchRewards from "./MatchRewards";
 import ResultShare from "./ResultShare";
-import { matchShareText, matchVariant } from "@/lib/shareText";
+import { matchShareText, matchVariant, roomShareText, roomVariant } from "@/lib/shareText";
 import TitleCelebration from "./TitleCelebration";
 import { useSectionMusic } from "@/lib/useSectionMusic";
 import ScoreBar from "./ScoreBar";
+import MultiScoreBar from "./MultiScoreBar";
 import RoomInvite from "./RoomInvite";
 
 export default function MatchGame({
@@ -35,7 +36,7 @@ export default function MatchGame({
   isGuest?: boolean;
   invitable?: boolean;    // özel oda: beklerken davet paneli (link + sosyal + arkadaşlar)
 }) {
-  const { connected, state, lastEvent, error, flash, buzzer, guess, emote, useJoker, jokers, rematchRequest, rematchAccept, rematchDecline } = useMatch(
+  const { connected, state, lastEvent, error, flash, buzzer, guess, emote, useJoker, jokers, room, expired, leftNotice, rematchRequest, rematchAccept, rematchDecline } = useMatch(
     code,
     playerId,
     name,
@@ -144,13 +145,40 @@ export default function MatchGame({
   const [emoteOpen, setEmoteOpen] = useState(false);          // yüzen emoji butonu açık mı
   const [hasFocus, setHasFocus] = useState(false); // input'ta focus var mı
 
+  // 3-4 kişilik odada biri ayrılınca kısa bildirim (maç devam eder).
+  const [leftToast, setLeftToast] = useState<string | null>(null);
+  const lastLeftRef = useRef<number>(0);
+  useEffect(() => {
+    if (leftNotice && leftNotice.at !== lastLeftRef.current) {
+      lastLeftRef.current = leftNotice.at;
+      setLeftToast(`${leftNotice.name} odadan ayrıldı`);
+      const t = setTimeout(() => setLeftToast(null), 3500);
+      return () => clearTimeout(t);
+    }
+  }, [leftNotice]);
+
   const round = state?.round ?? null;
   const myTurn = round?.turn_player_id === playerId;
-  const turnFree = round?.turn_player_id == null;
+  // 3-4 kişilik odada bu döngüde hakkını kullandıysam buzzer'a basamam.
+  const iAmBlocked = (round?.blocked_ids || []).includes(playerId);
+  const turnFree = round?.turn_player_id == null && !iAmBlocked;
   const phase = state?.phase;
 
   // 1v1 rakip aranırken/beklenirken müzik çal; maç başlayınca dur.
-  const matchWaiting = !state || phase === "waiting" || (state?.players?.length ?? 0) < 2;
+  const matchWaiting = !state || phase === "waiting" || (state?.players?.length ?? 0) < (room?.size ?? 2);
+
+  // Oda bekleme geri sayımı (özel oda): sunucudan gelen saniyeyi yerel olarak azalt.
+  const [waitLeft, setWaitLeft] = useState(0);
+  const lobbyCount = room?.player_count ?? 0;
+  useEffect(() => {
+    if (!room?.custom) return;
+    setWaitLeft(room.seconds_left ?? 0);
+  }, [room?.seconds_left, room?.custom]);
+  useEffect(() => {
+    if (!room?.custom || waitLeft <= 0 || !matchWaiting) return;
+    const t = setTimeout(() => setWaitLeft((v) => Math.max(0, v - 1)), 1000);
+    return () => clearTimeout(t);
+  }, [waitLeft, matchWaiting, room?.custom]);
   useSectionMusic("match_wait", matchWaiting);
   // Joker şimdi kullanılabilir mi: sıra boş (turun başı) ya da zaten bende, tur aktif.
   const canUseJokerNow = phase === "round_active" && !round?.finished && (turnFree || myTurn);
@@ -195,6 +223,7 @@ export default function MatchGame({
   const writeBlocked =
     locked ||
     phase !== "round_active" ||
+    iAmBlocked ||
     (!myTurn && !turnFree && !hasFocus);
 
   // Son tur mu? (mod 2'de tek tur var — "sonraki tur" yerine "sonuç" yazılır)
@@ -313,15 +342,34 @@ export default function MatchGame({
     );
   }
 
-  // Bekleme
-  if (!state || phase === "waiting" || state.players.length < 2) {
+  // Bekleme — oda `size` kişiye ulaşana kadar (özel odada 2-4 kişi olabilir)
+  const roomSize = room?.size ?? 2;
+  if (!state || phase === "waiting" || state.players.length < roomSize) {
     const isDuel = code?.startsWith("duel-");
+    const joined = state?.players?.length ?? lobbyCount;
     return (
       <div style={{ display: "grid", gap: 18, justifyItems: "center" }}>
+        {/* Oda süresi doldu */}
+        {expired && (
+          <div style={{
+            background: "var(--bg-panel)", border: "1px solid var(--accent-hot)", borderRadius: 12,
+            padding: "14px 18px", color: "var(--text-strong)", textAlign: "center", maxWidth: 360,
+          }}>
+            ⏳ {expired}
+          </div>
+        )}
         <Centered>
           <div className="brand-mono" style={{ fontSize: 22, marginBottom: 8 }}>
-            Rakip bekleniyor…
+            {roomSize > 2 ? `Oyuncular bekleniyor… (${joined}/${roomSize})` : "Rakip bekleniyor…"}
           </div>
+          {room?.custom && (
+            <p style={{ color: "var(--text-soft)", textAlign: "center", fontSize: 13.5, lineHeight: 1.6, marginBottom: 6 }}>
+              {room.size} kişilik · {room.rounds} tur · her turda 5 veya 6 harfli rastgele kelime
+              <br />
+              Oda dolunca maç otomatik başlar.
+              {waitLeft > 0 && <> Kalan süre: <strong style={{ color: "var(--accent)" }}>{fmtWait(waitLeft)}</strong> — dolmazsa oda kapanır.</>}
+            </p>
+          )}
           {isDuel ? (
             <p style={{ color: "var(--text-soft)", textAlign: "center" }}>
               Rakibin maça bağlanıyor…
@@ -355,7 +403,20 @@ export default function MatchGame({
     );
   }
 
-  // Maç bitti
+  // Maç bitti — 3-4 kişilik odada ayrı sonuç ekranı (sıralama tablosu)
+  if ((phase === "finished" || matchOverData) && state.players.length > 2) {
+    return (
+      <MultiResult
+        players={state.players}
+        result={matchOverData}
+        myId={playerId}
+        rounds={state.total_rounds ?? 1}
+        onExit={onLeave}
+      />
+    );
+  }
+
+  // Maç bitti (1v1)
   if (phase === "finished" || matchOverData) {
     const result = matchOverData;
     const players = state.players;
@@ -553,7 +614,17 @@ export default function MatchGame({
         ←
       </a>
 
-      <ScoreBar state={state} myId={playerId} />
+      {leftToast && (
+        <div style={{
+          position: "fixed", top: "calc(16px + var(--kt-safe-top))", left: "50%", transform: "translateX(-50%)",
+          zIndex: 500, background: "var(--bg-panel)", border: "1px solid var(--accent-hot)",
+          color: "var(--text-strong)", padding: "10px 18px", borderRadius: 12,
+          boxShadow: "0 6px 24px rgba(0,0,0,.35)", fontWeight: 600, fontSize: 14, maxWidth: "calc(100vw - 32px)",
+        }}>🚪 {leftToast}</div>
+      )}
+      {state.players.length > 2
+        ? <MultiScoreBar state={state} myId={playerId} />
+        : <ScoreBar state={state} myId={playerId} />}
 
       {/* Büyük, net sıra göstergesi */}
       <div
@@ -786,6 +857,104 @@ const secondaryLink: React.CSSProperties = {
   fontSize: 15,
   fontFamily: "var(--font-display)",
 };
+
+// 3-4 kişilik özel oda sonuç ekranı: sıralama tablosu + paylaşım.
+// ELO/XP/rozet VERİLMEZ (özel arena gibi) — sadece skor ve sıralama gösterilir.
+function MultiResult({ players, result, myId, rounds, onExit }: {
+  players: { id: string; name: string; score: number; avatar_url?: string | null }[];
+  result: any;
+  myId: string;
+  rounds: number;
+  onExit?: () => void;
+}) {
+  useEffect(() => { playSound("win"); }, []);
+  const ranking: { player_id: string; rank: number; name: string; score: number }[] =
+    result?.ranking ||
+    [...players].sort((a, b) => b.score - a.score).map((p, i) => ({ player_id: p.id, rank: i + 1, name: p.name, score: p.score }));
+  const mine = ranking.find((r) => r.player_id === myId);
+  const myRank = mine?.rank ?? 0;
+  const won = myRank === 1;
+  const avatarOf = (pid: string) => players.find((p) => p.id === pid)?.avatar_url || null;
+
+  return (
+    <div style={{ maxWidth: 520, margin: "0 auto", padding: "8px 4px 28px", display: "grid", gap: 14 }}>
+      <div style={{ textAlign: "center" }}>
+        <div style={{ fontSize: 42 }}>{won ? "🏆" : myRank === 2 ? "🥈" : myRank === 3 ? "🥉" : "🎮"}</div>
+        <div className="brand-mono" style={{ fontSize: 26, color: won ? "var(--tile-correct)" : "var(--text-strong)", marginTop: 4 }}>
+          {won ? "Kazandın!" : `${myRank}. oldun`}
+        </div>
+        <div style={{ color: "var(--text-dim)", fontSize: 13, marginTop: 2 }}>
+          {players.length} kişilik özel oda · {rounds} tur
+        </div>
+      </div>
+
+      {/* Sıralama tablosu */}
+      <div style={{ background: "var(--bg-panel)", borderRadius: 14, overflow: "hidden", border: "1px solid var(--border-soft)" }}>
+        {ranking.map((r) => {
+          const isMe = r.player_id === myId;
+          const medal = r.rank === 1 ? "🥇" : r.rank === 2 ? "🥈" : r.rank === 3 ? "🥉" : null;
+          return (
+            <div key={r.player_id} style={{
+              display: "flex", alignItems: "center", gap: 10, padding: "10px 14px",
+              borderBottom: "1px solid var(--border-soft)",
+              background: isMe ? "rgba(224,148,10,.10)" : "transparent",
+            }}>
+              <span style={{ width: 26, textAlign: "center", fontSize: medal ? 17 : 14, fontWeight: 800, color: "var(--text-soft)" }}>
+                {medal || `${r.rank}.`}
+              </span>
+              <img
+                src={avatarOf(r.player_id) || `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(r.name)}`}
+                alt="" style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--bg-elevated)" }}
+              />
+              <span style={{ flex: 1, minWidth: 0, fontWeight: isMe ? 800 : 600, fontSize: 14, color: isMe ? "var(--accent)" : "var(--text-strong)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {r.name}{isMe ? " (sen)" : ""}
+              </span>
+              <span className="brand-mono" style={{ fontSize: 18, fontWeight: 800, color: "var(--accent)" }}>{r.score}</span>
+            </div>
+          );
+        })}
+      </div>
+
+      <p style={{ color: "var(--text-dim)", fontSize: 12, textAlign: "center", lineHeight: 1.5 }}>
+        Özel odada ELO, XP ve kupa verilmez — sadece eğlence.
+      </p>
+
+      <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+        <a href="/oyna" style={{ ...secondaryLink, textAlign: "center" }}>🚪 Yeni Oda</a>
+        <a href="/" style={endLinkBtn}>🏠 Ana Sayfa</a>
+        {onExit && (
+          <button onClick={onExit} style={{ ...endLinkBtn, border: "1px solid var(--border-soft)", background: "transparent", cursor: "pointer" }}>
+            Geri
+          </button>
+        )}
+      </div>
+
+      {/* Sonuç paylaşımı — en altta */}
+      <ResultShare
+        text={roomShareText({
+          me: mine?.name || "Oyuncu",
+          rank: myRank,
+          score: mine?.score ?? 0,
+          players: players.length,
+          rounds,
+        })}
+        module="room"
+        variant={roomVariant(myRank)}
+        title="Kelime Tahmin — Özel Oda"
+      />
+    </div>
+  );
+}
+
+// Bekleme süresi gösterimi: 90 -> "1:30", 45 -> "45 sn"
+function fmtWait(sec: number): string {
+  if (sec >= 60) {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m}:${String(s).padStart(2, "0")}`;
+  }
+  return `${sec} sn`;
+}
 
 // Rakip beklenirken görünen "Geri" butonu (odadan çık).
 function BackButton({ onClick }: { onClick: () => void }) {

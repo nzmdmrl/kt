@@ -22,7 +22,7 @@ function getAnonId(): string {
   return id;
 }
 
-type Mode = "menu" | "searching" | "vs" | "match";
+type Mode = "menu" | "createSetup" | "searching" | "vs" | "match";
 
 export default function OynaPage() {
   const { user, loading: authLoading } = useAuth();
@@ -49,6 +49,10 @@ export default function OynaPage() {
   const fromHomeRef = useRef(false);
   // Özel oda akışı mı (oda kur / kodla katıl)? Sadece burada "Geri" butonu gösterilir.
   const [roomFlow, setRoomFlow] = useState(false);
+  // Özel oda ayarları (kişi sayısı · tur · bekleme süresi).
+  const [roomSize, setRoomSize] = useState(2);
+  const [roomRounds, setRoomRounds] = useState(1);
+  const [roomWait, setRoomWait] = useState(120);
 
   // Ses: rakip aranırken radar çal; VS/maç moduna geçince rakip bulundu sesi.
   useEffect(() => {
@@ -109,7 +113,7 @@ export default function OynaPage() {
       if (jc) { fromHomeRef.current = true; setBot(false); joinRoomWith(jc); return; }
       const m = params.get("mode");
       if (m === "bot") { fromHomeRef.current = true; setBot(true); setBotElo(elo); createBotSolo(); }
-      else if (m === "create") { fromHomeRef.current = true; createRoom(); }
+      else if (m === "create") { fromHomeRef.current = true; setMode("createSetup"); }
       else if (m === "search") { fromHomeRef.current = true; startSearch(); }
     }
   }, [playerId, gateReady, guestBlocked]);
@@ -196,7 +200,14 @@ export default function OynaPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         // Host adı: davet linki önizlemesinde "X ile kelime tahmin oyna" başlığı için.
-        body: JSON.stringify({ host: (user?.display_name || name || "").trim() }),
+        // size/rounds/wait_seconds: oda kurulum ekranındaki seçimler.
+        body: JSON.stringify({
+          host: (user?.display_name || name || "").trim(),
+          size: roomSize,
+          rounds: roomRounds,
+          wait_seconds: roomWait,
+          custom: true,
+        }),
       });
       const data = await res.json();
       setCode(data.code);
@@ -284,6 +295,82 @@ export default function OynaPage() {
     );
   }
 
+  // Özel oda kurulum ekranı: kişi sayısı · tur sayısı · bekleme süresi
+  if (mode === "createSetup") {
+    const sizeDesc: Record<number, string> = {
+      2: "Klasik düello: buzzer'ı kapan cevaplar, bilemezse sıra rakibe geçer.",
+      3: "İlk buzzer'ı kapan cevaplar; bilemezse kalan iki kişi yarışır, o da bilemezse son kişi cevaplar. Sonra herkes yeniden yarışır.",
+      4: "İlk buzzer'ı kapan cevaplar; bilemezse 3 kişi, sonra 2 kişi yarışır, en son kalan kişi cevaplar. Sonra yarış baştan başlar.",
+    };
+    return (
+      <main style={pageStyle}>
+        <div style={{ display: "grid", gap: 18, maxWidth: 420, margin: "0 auto" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <button onClick={() => (fromHomeRef.current ? router.push("/") : setMode("menu"))}
+              style={{ background: "var(--bg-panel)", border: "1px solid var(--border-soft)", borderRadius: "50%", width: 34, height: 34, cursor: "pointer", fontSize: 16, color: "var(--text-strong)" }}>←</button>
+            <h1 className="brand-mono" style={{ fontSize: 22, margin: 0 }}>🚪 Özel Oda Kur</h1>
+          </div>
+
+          {!user && (
+            <div>
+              <label style={labelStyle}>Görünen adın</label>
+              <input value={name} onChange={(e) => saveName(e.target.value)} placeholder="Adın" maxLength={24} style={inputStyle} />
+            </div>
+          )}
+
+          {/* Kişi sayısı */}
+          <div>
+            <label style={labelStyle}>Kaç kişilik?</label>
+            <div style={{ display: "flex", gap: 8 }}>
+              {[2, 3, 4].map((n) => (
+                <button key={n} onClick={() => setRoomSize(n)} style={chipStyle(roomSize === n)}>
+                  {n} kişi
+                </button>
+              ))}
+            </div>
+            <p style={{ color: "var(--text-dim)", fontSize: 12.5, lineHeight: 1.5, marginTop: 8 }}>
+              {sizeDesc[roomSize]}
+            </p>
+          </div>
+
+          {/* Tur sayısı */}
+          <div>
+            <label style={labelStyle}>Kaç tur?</label>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {[1, 2, 3, 4, 5].map((n) => (
+                <button key={n} onClick={() => setRoomRounds(n)} style={chipStyle(roomRounds === n)}>
+                  {n}
+                </button>
+              ))}
+            </div>
+            <p style={{ color: "var(--text-dim)", fontSize: 12.5, lineHeight: 1.5, marginTop: 8 }}>
+              Her turda <strong style={{ color: "var(--accent)" }}>5 veya 6 harfli rastgele</strong> bir kelime gelir.
+            </p>
+          </div>
+
+          {/* Bekleme süresi */}
+          <div>
+            <label style={labelStyle}>Bekleme süresi</label>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {[60, 120, 300, 600].map((sec) => (
+                <button key={sec} onClick={() => setRoomWait(sec)} style={chipStyle(roomWait === sec)}>
+                  {sec >= 60 ? `${sec / 60} dk` : `${sec} sn`}
+                </button>
+              ))}
+            </div>
+            <p style={{ color: "var(--text-dim)", fontSize: 12.5, lineHeight: 1.5, marginTop: 8 }}>
+              Oda {roomSize} kişiye ulaşınca maç <strong>otomatik başlar</strong>. Bu süre içinde
+              dolmazsa oda <strong>kapanır</strong> ve kod geçersiz olur.
+            </p>
+          </div>
+
+          <button onClick={createRoom} style={primaryBtn}>🚪 Odayı Kur</button>
+          {err && <p style={{ color: "var(--accent-hot)", fontSize: 14, textAlign: "center" }}>{err}</p>}
+        </div>
+      </main>
+    );
+  }
+
   if (mode === "searching") {
     return (
       <main style={pageStyle}>
@@ -353,7 +440,7 @@ export default function OynaPage() {
             <span style={{ flex: 1, height: 1, background: "var(--border-soft)" }} />
           </div>
 
-          <button onClick={createRoom} style={ghostBtn}>Özel Oda Kur</button>
+          <button onClick={() => { setErr(""); setMode("createSetup"); }} style={ghostBtn}>Özel Oda Kur</button>
           <div style={{ display: "flex", gap: 8 }}>
             <input
               value={joinCode}
@@ -395,6 +482,16 @@ const pageStyle: React.CSSProperties = {
   overflowX: "hidden",
   boxSizing: "border-box",
 };
+function chipStyle(active: boolean): React.CSSProperties {
+  return {
+    flex: 1, minWidth: 56, padding: "11px 10px", borderRadius: 11, cursor: "pointer",
+    border: active ? "2px solid var(--accent)" : "1px solid var(--border-soft)",
+    background: active ? "var(--accent)" : "var(--bg-panel)",
+    color: active ? "#1a1330" : "var(--text-soft)",
+    fontWeight: 800, fontSize: 15, fontFamily: "var(--font-body)",
+  };
+}
+
 const labelStyle: React.CSSProperties = { display: "block", fontSize: 13, color: "var(--text-soft)", marginBottom: 6 };
 const inputStyle: React.CSSProperties = {
   width: "100%", padding: "12px 14px", borderRadius: 10, border: "2px solid var(--tile-border)",

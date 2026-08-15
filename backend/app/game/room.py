@@ -29,10 +29,24 @@ from app.game.match import Match, MatchError
 from app.game.models import Player, MatchPhase
 
 
+# Özel oda varsayılanları (admin ayarı yok — oda kurulurken seçilir).
+DEFAULT_ROOM_SIZE = 2          # 2-4 kişi
+DEFAULT_ROOM_ROUNDS = 1        # 1-5 tur
+DEFAULT_ROOM_WAIT = 120        # saniye; bu sürede dolmazsa oda pasifleşir
+
+
 class Room:
     def __init__(self, code: str):
+        import time as _time
         self.code = code
         self.host_name: str = ""           # Odayı kuranın adı (davet linki OG başlığı için)
+        # Oda ayarları (özel oda kurulurken seçilir; "rakip bul"/bot akışında varsayılan).
+        self.size: int = DEFAULT_ROOM_SIZE          # kaç kişilik (2-4)
+        self.rounds: int = DEFAULT_ROOM_ROUNDS      # tur sayısı (1-5)
+        self.wait_seconds: int = DEFAULT_ROOM_WAIT  # dolması için tanınan süre
+        self.created_at: float = _time.time()
+        self.expired: bool = False                  # süre dolup pasifleştiyse
+        self.custom: bool = False                   # "özel oda kur" ile mi açıldı
         self.match: Optional[Match] = None
         self.sockets: dict[str, WebSocket] = {}   # player_id -> ws
         self.players: dict[str, Player] = {}
@@ -53,7 +67,41 @@ class Room:
 
     @property
     def is_full(self) -> bool:
-        return len(self.players) >= 2
+        return len(self.players) >= self.size
+
+    def seconds_left(self) -> int:
+        """Oda dolması için kalan süre (dolduysa/başladıysa 0)."""
+        import time as _time
+        if self.match or self.is_full:
+            return 0
+        return max(0, int(self.wait_seconds - (_time.time() - self.created_at)))
+
+    def configure(self, size: int | None = None, rounds: int | None = None,
+                  wait_seconds: int | None = None, custom: bool = False) -> None:
+        """Oda kurulurken ayarları uygular (sınırlar içinde kırpar)."""
+        if size is not None:
+            self.size = max(2, min(4, int(size)))
+        if rounds is not None:
+            self.rounds = max(1, min(5, int(rounds)))
+        if wait_seconds is not None:
+            self.wait_seconds = max(30, min(600, int(wait_seconds)))
+        if custom:
+            self.custom = True
+
+    def public_info(self) -> dict:
+        return {
+            "code": self.code,
+            "host_name": self.host_name,
+            "size": self.size,
+            "rounds": self.rounds,
+            "wait_seconds": self.wait_seconds,
+            "seconds_left": self.seconds_left(),
+            "player_count": len(self.players),
+            "is_full": self.is_full,
+            "match_started": self.match is not None,
+            "expired": self.expired,
+            "custom": self.custom,
+        }
 
     async def broadcast(self, message: dict) -> None:
         """Odadaki tüm bağlı oyunculara mesaj gönderir."""
@@ -98,7 +146,12 @@ class Room:
 
     async def start_match(self) -> None:
         players = list(self.players.values())
-        self.match = Match(self.code, players)
+        # Özel odada tur sayısı oda ayarından gelir (her tur 5/6 harf rastgele).
+        plan = None
+        if self.custom:
+            from app.game.models import custom_round_plan
+            plan = custom_round_plan(self.rounds)
+        self.match = Match(self.code, players, round_plan_override=plan)
         await self.broadcast({"type": "match_start", "state_players": [p.to_public() for p in players]})
         # Bot kontrolcülerini başlat (varsa).
         for bc in self._bot_controllers:
@@ -206,6 +259,24 @@ class Room:
         if self.match.phase == MatchPhase.FINISHED:
             return
 
+        # 3-4 kişilik odada biri ayrılırsa maç DEVAM eder (en az 2 kişi kaldıysa):
+        # ayrılan oyuncu turdaki sıradaysa sıra devredilir, skoru olduğu gibi kalır.
+        if len(self.match.player_order) > 2:
+            remaining_multi = [pid for pid in self.sockets.keys() if pid in self.match.players]
+            if len(remaining_multi) >= 2:
+                r = self.match.round
+                if r is not None and r.turn_player_id == left_player_id:
+                    self.match._pass_turn_multi(left_player_id)
+                if left_player_id in self.match.players:
+                    self.match.players[left_player_id].connected = False
+                await self.broadcast({
+                    "type": "player_left",
+                    "player_id": left_player_id,
+                    "name": self.match.players[left_player_id].name if left_player_id in self.match.players else "",
+                })
+                await self.broadcast_state()
+                return
+
         # Zamanlayıcıları durdur.
         if self._timer_task and not self._timer_task.done():
             self._timer_task.cancel()
@@ -297,6 +368,28 @@ class Room:
             if self._timer_task and not self._timer_task.done():
                 self._timer_task.cancel()
             await self._after_round()
+
+    async def watch_expiry(self) -> None:
+        """Oda süresinde dolmazsa pasifleştir ve bekleyenlere haber ver.
+
+        Özel odalarda çalışır; maç başlarsa/dolarsa kendiliğinden biter.
+        """
+        try:
+            while True:
+                await asyncio.sleep(1)
+                if self.match or self.is_full or self.expired:
+                    return
+                if self.seconds_left() > 0:
+                    continue
+                self.expired = True
+                await self.broadcast({
+                    "type": "room_expired",
+                    "message": "Süre doldu, kimse katılmadı. Oda kapatıldı.",
+                })
+                room_manager.remove(self.code)
+                return
+        except asyncio.CancelledError:
+            pass
 
     async def _send_error(self, player_id: str, message: str) -> None:
         ws = self.sockets.get(player_id)

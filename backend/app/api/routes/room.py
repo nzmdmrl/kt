@@ -16,18 +16,31 @@ router = APIRouter(prefix="/room", tags=["room"])
 
 
 class CreateRoomIn(BaseModel):
-    host: str = ""   # Odayı kuranın görünen adı (davet linki başlığı için)
+    host: str = ""            # Odayı kuranın görünen adı (davet linki başlığı için)
+    size: int = 2             # kaç kişilik oda (2-4)
+    rounds: int = 1           # tur sayısı (1-5) — her tur 5 veya 6 harfli rastgele kelime
+    wait_seconds: int = 120   # bu sürede dolmazsa oda pasifleşir (30-600)
+    custom: bool = False      # "Özel Oda Kur" akışı mı (tur/kişi ayarları geçerli)
 
 
 @router.post("/create")
-def create_room(data: Optional[CreateRoomIn] = None):
-    """Yeni bir oda kodu üretir. İki oyuncu bu kodla WebSocket'e bağlanır."""
+async def create_room(data: Optional[CreateRoomIn] = None):
+    """Yeni bir oda kodu üretir. Oyuncular bu kodla WebSocket'e bağlanır."""
+    import asyncio
     code = room_manager.new_code()
     # Odayı önden oluştur (ilk katılan beklemede kalır).
     room = room_manager.get_or_create(code)
-    if data and data.host:
-        room.host_name = data.host.strip()[:24]
-    return {"code": code, "host_name": room.host_name}
+    if data:
+        if data.host:
+            room.host_name = data.host.strip()[:24]
+        room.configure(size=data.size, rounds=data.rounds,
+                       wait_seconds=data.wait_seconds, custom=data.custom)
+        if data.custom:
+            # Süre dolarsa oda pasifleşsin (bekleyenlere bildirilir).
+            # NOT: bu uç async olmalı — senkron def threadpool'da çalışır ve
+            # get_running_loop() hata verip görev hiç başlamaz.
+            asyncio.create_task(room.watch_expiry())
+    return {**room.public_info(), "code": code, "host_name": room.host_name}
 
 
 class RoomInviteIn(BaseModel):
@@ -82,14 +95,8 @@ async def invite_to_room(data: RoomInviteIn, user=Depends(get_current_user), db=
 
 @router.get("/{code}")
 def room_status(code: str):
-    """Oda var mı, kaç kişi bağlı, dolu mu?"""
+    """Oda var mı, kaç kişi bağlı, dolu mu, kaç saniyesi kaldı?"""
     room = room_manager.rooms.get(code.upper())
     if not room:
         raise HTTPException(status_code=404, detail="Oda bulunamadı")
-    return {
-        "code": room.code,
-        "host_name": room.host_name,
-        "player_count": len(room.players),
-        "is_full": room.is_full,
-        "match_started": room.match is not None,
-    }
+    return room.public_info()

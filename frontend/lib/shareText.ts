@@ -61,6 +61,22 @@ export function arenaVariant(rank: number): string {
   return rank === 1 ? "win" : rank === 2 || rank === 3 ? "podium" : "loss";
 }
 
+/** 3-4 kişilik özel oda skor satırı. */
+export function roomShareText(o: {
+  me: string; rank: number; score: number; players: number; rounds: number;
+}): string {
+  const me = o.me || "Oyuncu";
+  const medal = o.rank === 1 ? "🥇" : o.rank === 2 ? "🥈" : o.rank === 3 ? "🥉" : "🎮";
+  const head = o.rank === 1
+    ? `🏆 ${me}, ${o.players} kişilik özel odada BİRİNCİ oldu! 🥇`
+    : `${medal} ${me}, ${o.players} kişilik özel odada ${o.rank}. oldu!`;
+  return `${head}\n⚡ ${o.score} puan · 🎯 ${o.rounds} tur · 🚪 Özel Oda`;
+}
+
+export function roomVariant(rank: number): string {
+  return rank === 1 ? "win" : rank === 2 ? "podium" : "loss";
+}
+
 /** Arena sonucu (5 kişilik hız yarışı). */
 export function arenaShareText(o: {
   me: string; rank: number; score: number; correct?: number; total?: number; players?: number;

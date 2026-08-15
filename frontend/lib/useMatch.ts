@@ -24,6 +24,7 @@ export type PublicPlayer = {
   score: number;
   connected: boolean;
   is_bot: boolean;
+  avatar_url?: string | null;
   trophies?: number;
   medals?: number;
   badges?: number;
@@ -43,6 +44,23 @@ export type RoundPublic = {
   joker_greens?: Record<string, string>;
   joker_yellows?: { index: number; letter: string }[];
   joker_used_by?: string[];
+  // 3-4 kişilik odada bu döngüde hakkını kullanmış oyuncular (buzzer'a basamaz).
+  blocked_ids?: string[];
+};
+
+// Oda bilgisi (özel oda): kaç kişilik, kaç tur, bekleme süresi.
+export type RoomInfo = {
+  code: string;
+  host_name?: string;
+  size: number;
+  rounds: number;
+  wait_seconds: number;
+  seconds_left: number;
+  player_count: number;
+  is_full: boolean;
+  match_started: boolean;
+  expired?: boolean;
+  custom?: boolean;
 };
 export type MatchState = {
   match_id: string;
@@ -71,6 +89,9 @@ export function useMatch(
   const [error, setError] = useState<string>("");
   const [flash, setFlash] = useState<string>(""); // geçici bildirim (buzzer, timeout)
   const [jokers, setJokers] = useState<any>(null); // oyuncu başına kalan joker hakları
+  const [room, setRoom] = useState<RoomInfo | null>(null);   // oda ayarları (özel oda)
+  const [expired, setExpired] = useState("");                // oda süresi doldu mesajı
+  const [leftNotice, setLeftNotice] = useState<{ name: string; at: number } | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
@@ -108,6 +129,17 @@ export function useMatch(
           setFlash("Süre doldu, sıra değişti");
           setTimeout(() => setFlash(""), 3400);
           break;
+        case "joined":
+        case "lobby":
+          if ((msg as any).room) setRoom((msg as any).room);
+          break;
+        case "room_expired":
+          setExpired(msg.message || "Süre doldu, oda kapandı.");
+          break;
+        case "player_left":
+          // 3-4 kişilik odada biri ayrıldı — maç devam eder.
+          setLeftNotice({ name: msg.name || "Bir oyuncu", at: Date.now() });
+          break;
         default:
           break;
       }
@@ -135,5 +167,9 @@ export function useMatch(
   const rematchAccept = useCallback(() => send({ action: "rematch_accept" }), [send]);
   const rematchDecline = useCallback(() => send({ action: "rematch_decline" }), [send]);
 
-  return { connected, state, lastEvent, error, flash, buzzer, guess, emote, useJoker, jokers, rematchRequest, rematchAccept, rematchDecline };
+  return {
+    connected, state, lastEvent, error, flash, buzzer, guess, emote, useJoker, jokers,
+    room, expired, leftNotice,
+    rematchRequest, rematchAccept, rematchDecline,
+  };
 }
