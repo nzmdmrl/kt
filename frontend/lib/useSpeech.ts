@@ -36,6 +36,7 @@
 import { useRef, useState, useCallback, useEffect } from "react";
 import { detectPlatform } from "@/lib/platform";
 import { loadAppConfig, type FlagsConfig, type MicConfig } from "@/lib/appConfig";
+import { maybeShowMicNotice, type MicNoticeSettings } from "@/lib/micNotice";
 
 // TypeScript için minimal tip tanımları (Web Speech API standart d.ts'de yok).
 type SpeechRecognitionType = any;
@@ -120,6 +121,9 @@ export function useSpeech(onResult: (text: string) => void, lang = "tr-TR") {
   const flagAllowedRef = useRef(flagAllowed);
   flagAllowedRef.current = flagAllowed;
 
+  /** Bilgilendirme balonu ayarları (yapılandırma gelince dolar). */
+  const noticeRef = useRef<MicNoticeSettings>({});
+
   useEffect(() => {
     const platform = detectPlatform();
     const next = platform === "web" ? "web" : "native";
@@ -156,6 +160,14 @@ export function useSpeech(onResult: (text: string) => void, lang = "tr-TR") {
       const old: FlagsConfig = (cfg?.["app.flags"] as FlagsConfig) || {};
       const webRaw = mic.web_enabled ?? old.mic_web_enabled;
       const appRaw = mic.app_enabled ?? old.mic_app_enabled;
+
+      // Bilgilendirme balonu ayarları — tanıma başarıyla başlayınca kullanılır.
+      noticeRef.current = {
+        enabled: mic.notice_enabled,
+        text: mic.notice_text,
+        times: mic.notice_times,
+        seconds: mic.notice_seconds,
+      };
 
       const web = webRaw !== false; // eksikse açık
       const app = appRaw === true;  // eksikse kapalı
@@ -466,7 +478,15 @@ export function useSpeech(onResult: (text: string) => void, lang = "tr-TR") {
       köprüdeKayıtlı: pluginRegistered(),
     });
     const p = backend === "native" ? startNative() : startWeb();
-    p.then((ok) => slog("start() sonucu =", ok));
+    p.then((ok) => {
+      slog("start() sonucu =", ok);
+      // Balon YALNIZCA tanıma gerçekten başlayınca çıkar: izin reddedilmişse
+      // ya da servis yoksa kullanıcıyı boşuna bilgilendirmeyelim.
+      if (ok) {
+        const shown = maybeShowMicNotice(noticeRef.current);
+        if (shown) slog("bilgilendirme balonu gösterildi");
+      }
+    });
     return p;
   }, [backend, startNative, startWeb]);
 

@@ -28,6 +28,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.routes.app_settings import (
     DEFAULT_BANNER_HIDDEN_PATHS,
     DEFAULT_INTERSTITIAL_RULES,
+    MIC_NOTICE_TEXT,
 )
 from app.core.database import engine
 
@@ -56,6 +57,19 @@ _ADMOB_MARGIN_KEYS_JSON = json.dumps(
 
 # Geçiş reklamı sıklık kuralları — sonradan eklenen anahtarlar (bkz. migration 8).
 _ADMOB_INTERSTITIAL_KEYS_JSON = json.dumps(DEFAULT_INTERSTITIAL_RULES, ensure_ascii=True)
+
+# Mikrofon bilgilendirme balonu — sonradan eklenen anahtarlar (bkz. migration 11).
+# ensure_ascii=True: Türkçe karakterler \uXXXX olarak kaçırılır, böylece metin tek
+# tırnaklı SQL literaline güvenle gömülür (metinde tırnak da olsa sorun çıkmaz).
+_MIC_NOTICE_KEYS_JSON = json.dumps(
+    {
+        "notice_enabled": True,
+        "notice_text": MIC_NOTICE_TEXT,
+        "notice_times": 2,
+        "notice_seconds": 5,
+    },
+    ensure_ascii=True,
+)
 
 # Mikrofon (sesli tahmin) bayrakları — sonradan eklenen anahtarlar (bkz. migration 9).
 # Uygulama tarafı BİLEREK kapalı: gerçek telefonda doğrulanınca panelden açılır.
@@ -311,6 +325,29 @@ DATA_MIGRATIONS: list[tuple[str, list[str]]] = [
             "SET value = json_remove(value, '$.mic_web_enabled', '$.mic_app_enabled'), "
             "    updated_at = CURRENT_TIMESTAMP "
             "WHERE key = 'app.flags'"
+        ),
+    ]),
+
+    # 11) Mikrofon bilgilendirme balonu anahtarları: notice_enabled / notice_text /
+    #     notice_times / notice_seconds.
+    #
+    #     'app.mic' satırı YENİ olduğu için normalde startup seed'i onu bu
+    #     anahtarlarla birlikte oluşturur ve buraya iş kalmaz. Ama satır ARADA bir
+    #     deploy'da (balon eklenmeden önceki sürümle) çoktan oluşmuş olabilir —
+    #     o zaman seed ona bir daha dokunmaz. Bu migration o durumu kapatır.
+    #
+    #     Birleştirme yönü öncekilerle aynı: varsayılanlar SOLDA, mevcut değer
+    #     SAĞDA -> adminin yazdığı metin/sayılar ezilmez.
+    ("2026_08_mic_notice", [
+        (
+            "UPDATE app_settings "
+            f"SET value = '{_MIC_NOTICE_KEYS_JSON}'::jsonb || value, updated_at = now() "
+            "WHERE key = 'app.mic'"
+            if _IS_PG else
+            "UPDATE app_settings "
+            f"SET value = json_patch('{_MIC_NOTICE_KEYS_JSON}', value), "
+            "    updated_at = CURRENT_TIMESTAMP "
+            "WHERE key = 'app.mic'"
         ),
     ]),
 ]

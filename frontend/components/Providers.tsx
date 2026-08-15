@@ -6,6 +6,7 @@ import HeartbeatPinger from "@/components/HeartbeatPinger";
 import ChallengeWatcher from "@/components/ChallengeWatcher";
 import UiClickSound from "@/components/UiClickSound";
 import NativeBootstrap from "@/components/NativeBootstrap";
+import MicNoticeHost from "@/lib/micNotice";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -19,6 +20,8 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         <UiClickSound />
         {/* Native kabuk: push + AdMob + geri tuşu. Tarayıcıda tamamen etkisiz. */}
         <NativeBootstrap />
+        {/* Mikrofon ilk kullanıldığında çıkan bilgilendirme balonu (useSpeech tetikler) */}
+        <MicNoticeHost />
         {children}
       </AuthProvider>
     </PlatformProvider>

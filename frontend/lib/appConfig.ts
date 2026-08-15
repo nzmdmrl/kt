@@ -68,6 +68,14 @@ export type MicConfig = {
    * bu kombinasyonu reddeder, bkz. backend app_settings.py).
    */
   app_enabled?: boolean;
+  /** Mikrofon ilk kullanıldığında bilgilendirme balonu çıksın mı. */
+  notice_enabled?: boolean;
+  /** Balon metni (admin panelden düzenlenir). */
+  notice_text?: string;
+  /** Balon cihaz başına kaç kez gösterilsin (0 = hiç). */
+  notice_times?: number;
+  /** Balon kaç saniye ekranda kalsın. */
+  notice_seconds?: number;
 };
 
 export type StoresConfig = {

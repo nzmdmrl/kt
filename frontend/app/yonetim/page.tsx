@@ -1698,11 +1698,14 @@ type AppSettingRow = { key: string; label: string; value: any; is_public: boolea
 
 // "list"  -> tek satır, virgülle ayrılmış dizi
 // "lines" -> çok satırlı kutu, HER SATIR bir dizi elemanı (yol listeleri için)
+// "textbox" -> çok satırlı kutu ama değer DÜZ METİN ("lines" gibi diziye çevrilmez)
 type MobileField = {
   path: string;
   label: string;
-  type?: "text" | "bool" | "list" | "lines" | "number";
+  type?: "text" | "bool" | "list" | "lines" | "number" | "textbox";
   hint?: string;
+  /** Bu yoldaki değer true DEĞİLSE alan gizlenir (ör. uyarı kutucuğuna bağlı alanlar). */
+  showIf?: string;
 };
 
 const MOBILE_FIELDS: Record<string, MobileField[]> = {
@@ -1837,6 +1840,33 @@ const MOBILE_FIELDS: Record<string, MobileField[]> = {
       type: "bool",
       hint: "Açmak için web'deki de açık olmalı — işaretlersen web otomatik açılır.",
     },
+    {
+      path: "notice_enabled",
+      label: "Uyarı balonu göster (mikrofon ilk kullanıldığında)",
+      type: "bool",
+      hint: "Kullanıcı mikrofona ilk bastığında kısa bir bilgi notu çıkar.",
+    },
+    {
+      path: "notice_text",
+      label: "Uyarı metni",
+      type: "textbox",
+      showIf: "notice_enabled",
+      hint: "Boş bırakırsan balon gösterilmez.",
+    },
+    {
+      path: "notice_times",
+      label: "Uyarı kaç kez gösterilsin",
+      type: "number",
+      showIf: "notice_enabled",
+      hint: "varsayılan 2 — cihaz başına sayılır (0 = hiç gösterme)",
+    },
+    {
+      path: "notice_seconds",
+      label: "Uyarı kaç saniye dursun",
+      type: "number",
+      showIf: "notice_enabled",
+      hint: "varsayılan 5 — 1 ile 30 arası",
+    },
   ],
 };
 
@@ -1939,6 +1969,10 @@ function Mobile() {
         &quot;yalnız uygulama&quot; yoktur (uygulama sitenin aynı kodunu çalıştırır).
         Kapalıyken mikrofon düğmesi ve ipucu hiç görünmez. Cihazda tanıma servisi
         yoksa kutu açık olsa bile düğme çıkmaz.<br />
+        • <b>Uyarı balonu</b>: mikrofon ilk kullanıldığında çıkan bilgi notu. Kaç kez
+        görüneceği <b>cihaz başına</b> sayılır (tarayıcı hafızası); süre dolunca
+        kendiliğinden kapanır. Balon tıklamayı engellemez — kullanıcı mikrofona basılı
+        tutmayı sürdürebilir.<br />
         • <b>Bant konumu</b>: uygulama bandı alt menünün üstüne kendi hesabıyla yerleştirir.
         <b> Sabit değer</b> 0&apos;dan büyükse hesaplama devre dışı kalır ve bant tam o yüksekliğe konur;
         0 ise <b>ek boşluk</b> hesaplanan değere eklenir. Değişiklik uygulamada bandın
@@ -1960,6 +1994,24 @@ function Mobile() {
 
           {(MOBILE_FIELDS[row.key] || []).map((f) => {
             const val = mobileGet(row.value, f.path);
+            // Bağlı alan: kutucuk işaretli değilse hiç çizme.
+            if (f.showIf && mobileGet(row.value, f.showIf) !== true) return null;
+            if (f.type === "textbox") {
+              return (
+                <div key={f.path} style={{ display: "grid", gap: 4, marginLeft: 24 }}>
+                  <span style={{ fontSize: 12, color: "var(--text-dim)" }}>{f.label}</span>
+                  <textarea
+                    value={typeof val === "string" ? val : ""}
+                    rows={3}
+                    onChange={(e) => patch(row.key, f.path, e.target.value)}
+                    style={{ ...seoInput, minHeight: 70, resize: "vertical" }}
+                  />
+                  {f.hint && (
+                    <span style={{ fontSize: 11, color: "var(--text-dim)" }}>{f.hint}</span>
+                  )}
+                </div>
+              );
+            }
             if (f.type === "bool") {
               const isMic = row.key === "app.mic";
               return (
@@ -1986,7 +2038,7 @@ function Mobile() {
             }
             if (f.type === "number") {
               return (
-                <div key={f.path} style={{ display: "grid", gap: 4 }}>
+                <div key={f.path} style={{ display: "grid", gap: 4, marginLeft: f.showIf ? 24 : 0 }}>
                   <span style={{ fontSize: 12, color: "var(--text-dim)" }}>{f.label}</span>
                   <input
                     type="number"

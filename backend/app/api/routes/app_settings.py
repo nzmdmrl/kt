@@ -92,6 +92,18 @@ DEFAULT_INTERSTITIAL_RULES: dict = {
     "interstitial_modes": DEFAULT_INTERSTITIAL_MODES,
 }
 
+# Mikrofon bilgilendirme balonunun VARSAYILAN metni. Admin panelden değiştirilir;
+# migration'da da kullanılır (app/core/migrations.py) — tek kaynak.
+MIC_NOTICE_TEXT = (
+    "Sesiniz karşı tarafa iletilmez, sadece söylediğiniz kelimenin kutuya "
+    "yazılmasını sağlar."
+)
+
+# Bilgilendirme balonu için kabul edilen sınırlar (admin panel + API).
+MIC_NOTICE_TIMES_MAX = 20      # 0 = hiç gösterme
+MIC_NOTICE_SECONDS_MIN = 1
+MIC_NOTICE_SECONDS_MAX = 30
+
 # Startup'ta eksikse eklenen varsayılanlar (hepsi kapalı/boş).
 #   anahtar -> (varsayılan değer, is_public)
 DEFAULT_APP_SETTINGS: dict[str, tuple[dict, bool]] = {
@@ -167,10 +179,19 @@ DEFAULT_APP_SETTINGS: dict[str, tuple[dict, bool]] = {
     # UYGULAMA VARSAYILAN KAPALI: gerçek telefonda doğrulanana kadar kapalı
     # çıksın, admin panelden açsın.
     # app_enabled, web_enabled'a BAĞIMLIDIR (aşağıdaki _mic_valid kuralı).
+    #
+    # notice_* : mikrofon İLK kullanıldığında çıkan bilgilendirme balonu.
+    # Kullanıcı "sesim rakibe gidiyor mu?" diye tereddüt ediyor; balon bunu
+    # yanıtlar, notice_times kez gösterilir (cihaz bazlı sayaç) ve
+    # notice_seconds sonra kendiliğinden kapanır.
     "app.mic": (
         {
             "web_enabled": True,
             "app_enabled": False,
+            "notice_enabled": True,
+            "notice_text": MIC_NOTICE_TEXT,
+            "notice_times": 2,
+            "notice_seconds": 5,
         },
         True,
     ),
@@ -224,6 +245,26 @@ MIC_KEY = "app.mic"
 
 def _mic_valid(value: dict) -> bool:
     return not (value.get("app_enabled") is True and value.get("web_enabled") is not True)
+
+
+def _mic_notice_error(value: dict) -> str | None:
+    """Balon ayarları için sınır kontrolü. Sorun varsa Türkçe mesaj döner."""
+    times = value.get("notice_times")
+    if times is not None:
+        if not isinstance(times, int) or isinstance(times, bool) or not (
+            0 <= times <= MIC_NOTICE_TIMES_MAX
+        ):
+            return f"Uyarı kaç kez gösterilsin: 0 ile {MIC_NOTICE_TIMES_MAX} arası bir sayı olmalı."
+    secs = value.get("notice_seconds")
+    if secs is not None:
+        if not isinstance(secs, int) or isinstance(secs, bool) or not (
+            MIC_NOTICE_SECONDS_MIN <= secs <= MIC_NOTICE_SECONDS_MAX
+        ):
+            return (
+                f"Uyarı kaç saniye dursun: {MIC_NOTICE_SECONDS_MIN} ile "
+                f"{MIC_NOTICE_SECONDS_MAX} arası bir sayı olmalı."
+            )
+    return None
 
 
 def _normalize_mic(value: dict) -> dict:
@@ -362,14 +403,18 @@ async def admin_update(
         raise HTTPException(status_code=404, detail="Bilinmeyen ayar anahtarı")
 
     # Mikrofon bağımlılık kuralı — panel dışı çağrılar da geçemez.
-    if key == MIC_KEY and not _mic_valid(body.value):
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                "Uygulamada sesli tahmin açıkken web'de de açık olmalı. "
-                "Önce “Web'de sesli tahmin” seçeneğini işaretle."
-            ),
-        )
+    if key == MIC_KEY:
+        if not _mic_valid(body.value):
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Uygulamada sesli tahmin açıkken web'de de açık olmalı. "
+                    "Önce “Web'de sesli tahmin” seçeneğini işaretle."
+                ),
+            )
+        notice_err = _mic_notice_error(body.value)
+        if notice_err:
+            raise HTTPException(status_code=400, detail=notice_err)
 
     params: dict[str, Any] = {"key": key, "value": json.dumps(body.value)}
     sets = [f"value = {_VALUE_BIND}", "updated_at = " + ("now()" if _IS_PG else "CURRENT_TIMESTAMP")]
