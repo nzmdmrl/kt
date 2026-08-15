@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth";
 import Logo from "@/components/Logo";
 import ShareButtons from "@/components/ShareButtons";
 import LinkCopyBox from "@/components/LinkCopyBox";
+import GuestJoin from "@/components/GuestJoin";
 import { SITE_URL } from "@/lib/site";
 
 type Friend = { id: number; username: string; display_name: string; avatar_url: string | null };
@@ -88,7 +89,18 @@ export default function OzelArenaPage() {
   }
 
   if (loading) return <Wrap><Center>Yükleniyor…</Center></Wrap>;
-  if (!user) return <Wrap><Center><a href="/giris" style={{ color: "var(--accent)" }}>Giriş yap →</a></Center></Wrap>;
+  if (!user) {
+    // Arena kurmak + arkadaş davet etmek için hesap gerekiyor (katılmak için gerekmiyor).
+    return (
+      <GuestJoin
+        allowed={false}
+        icon="🎪"
+        title="Özel Arena Kur"
+        subtitle="Arkadaşlarınla kendi arenanı kur, kodla davet et."
+        note="Arena kurmak ve arkadaş davet etmek için üyelik gerekiyor. Misafirler paylaşılan davet linkiyle katılabilir."
+      />
+    );
+  }
 
   // Lobi görünümü (oluşturulduktan sonra)
   if (created) {
