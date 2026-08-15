@@ -18,6 +18,7 @@ export default function ProfileEditModal({ onClose, onSaved }: { onClose: () => 
   const [email, setEmail] = useState("");
   const [curPw, setCurPw] = useState("");
   const [newPw, setNewPw] = useState("");
+  const [newPw2, setNewPw2] = useState("");   // yeni şifre doğrulama
 
   function token() { return typeof window !== "undefined" ? localStorage.getItem("kt_token") : null; }
   function headers() { return { "Content-Type": "application/json", Authorization: `Bearer ${token()}` }; }
@@ -227,16 +228,30 @@ export default function ProfileEditModal({ onClose, onSaved }: { onClose: () => 
         {data.has_password && (
           <input value={curPw} onChange={(e) => setCurPw(e.target.value)} type="password" placeholder="Mevcut şifre" style={{ ...input, marginBottom: 8 }} />
         )}
+        <input value={newPw} onChange={(e) => setNewPw(e.target.value)} type="password" placeholder="Yeni şifre" style={{ ...input, marginBottom: 8 }} />
         <div style={{ display: "flex", gap: 8 }}>
-          <input value={newPw} onChange={(e) => setNewPw(e.target.value)} type="password" placeholder="Yeni şifre" style={input} />
-          <button
-            onClick={async () => {
-              const ok = await post("/api/account/password", { current_password: curPw, new_password: newPw }, "Şifre güncellendi");
-              if (ok) { setCurPw(""); setNewPw(""); }
-            }}
-            style={btn}
-          >Kaydet</button>
+          <input value={newPw2} onChange={(e) => setNewPw2(e.target.value)} type="password" placeholder="Yeni şifre (tekrar)" style={input} />
+          {(() => {
+            // İki yeni şifre birbirini tutmuyorsa Kaydet çalışmaz.
+            const mismatch = !newPw || newPw !== newPw2;
+            return (
+              <button
+                disabled={mismatch}
+                onClick={async () => {
+                  if (mismatch) return;
+                  const ok = await post("/api/account/password", { current_password: curPw, new_password: newPw }, "Şifre güncellendi");
+                  if (ok) { setCurPw(""); setNewPw(""); setNewPw2(""); }
+                }}
+                style={{ ...btn, opacity: mismatch ? 0.55 : 1, cursor: mismatch ? "default" : "pointer" }}
+              >Kaydet</button>
+            );
+          })()}
         </div>
+        {newPw2.length > 0 && (
+          <p style={{ fontSize: 12, marginTop: 6, color: newPw === newPw2 ? "var(--tile-correct)" : "var(--accent-hot)" }}>
+            {newPw === newPw2 ? "✓ Şifreler eşleşiyor" : "Şifreler birbiriyle uyuşmuyor"}
+          </p>
+        )}
       </Section>
 
       {popup && <AlertPopup message={popup} onClose={() => setPopup("")} />}

@@ -15,6 +15,8 @@ export default function GirisPage() {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  // Kayıtta şifre iki kez yazılıp doğrulanır.
+  const [password2, setPassword2] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
@@ -46,6 +48,9 @@ export default function GirisPage() {
       .catch(() => setGoogleConfigured(false));
   }, []);
 
+  // Giriş/kayıt arasında geçişte tekrar alanı kalmasın.
+  useEffect(() => { setPassword2(""); }, [mode]);
+
   async function submit() {
     setErr("");
     setBusy(true);
@@ -56,6 +61,8 @@ export default function GirisPage() {
         if (!name) throw new Error("Bir görünen ad gir");
         if (name.length < lo) throw new Error(`Görünen ad en az ${lo} karakter olmalı (girdiğin: ${name.length}).`);
         if (name.length > hi) throw new Error(`Görünen ad en fazla ${hi} karakter olabilir (girdiğin: ${name.length}).`);
+        if (!password) throw new Error("Bir şifre gir");
+        if (password !== password2) throw new Error("Şifreler birbiriyle uyuşmuyor");
         if (captchaRequired && !captchaToken)
           throw new Error("Lütfen 'Ben robot değilim' kutusunu işaretle");
         await register(email, password, displayName, captchaToken);
@@ -129,8 +136,29 @@ export default function GirisPage() {
             onChange={setPassword}
             type="password"
             placeholder="••••••"
-            onEnter={submit}
+            onEnter={mode === "register" ? undefined : submit}
           />
+
+          {mode === "register" && (
+            <>
+              <Field
+                label="Şifre (tekrar)"
+                value={password2}
+                onChange={setPassword2}
+                type="password"
+                placeholder="••••••"
+                onEnter={submit}
+              />
+              {password2.length > 0 && (
+                <p style={{
+                  fontSize: 12, marginTop: -8,
+                  color: password === password2 ? "var(--tile-correct)" : "var(--accent-hot)",
+                }}>
+                  {password === password2 ? "✓ Şifreler eşleşiyor" : "Şifreler birbiriyle uyuşmuyor"}
+                </p>
+              )}
+            </>
+          )}
 
           {mode === "register" && (
             <Recaptcha
@@ -142,9 +170,15 @@ export default function GirisPage() {
 
           {err && <p style={{ color: "var(--accent-hot)", fontSize: 14 }}>{err}</p>}
 
-          <button onClick={submit} disabled={busy} style={primaryBtn}>
-            {busy ? "..." : mode === "login" ? "Giriş Yap" : "Hesap Oluştur"}
-          </button>
+          {(() => {
+            // Kayıtta şifreler eşleşmeden buton çalışmaz.
+            const pwMismatch = mode === "register" && (!password || password !== password2);
+            return (
+              <button onClick={submit} disabled={busy || pwMismatch} style={{ ...primaryBtn, opacity: busy || pwMismatch ? 0.55 : 1, cursor: busy || pwMismatch ? "default" : "pointer" }}>
+                {busy ? "..." : mode === "login" ? "Giriş Yap" : "Hesap Oluştur"}
+              </button>
+            );
+          })()}
 
           {mode === "register" && (
             <p style={{ fontSize: 12, color: "var(--text-dim)", textAlign: "center", lineHeight: 1.5 }}>
