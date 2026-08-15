@@ -42,6 +42,40 @@ const FINAL_GRACE_MS = 1500;
 const PERM_DENIED_MSG =
   "Mikrofon izni yok — telefon ayarlarından açabilirsin. Kelimeyi yazarak da oynayabilirsin.";
 
+// ----------------------------------------------------------- TANILAMA ----
+// GEÇİCİ: mikrofon düğmesinin uygulamada neden çıkmadığını bulmak için.
+// Sorun tespit edilince bu bloğu ve slog() çağrılarını sil.
+// Chrome'da chrome://inspect → konsol → filtre: [speech]
+
+function slog(...parts: any[]) {
+  try {
+    // eslint-disable-next-line no-console
+    console.log("[speech]", ...parts);
+  } catch {}
+}
+
+/** Hata nesnesini loga basılabilir hâle getirir. */
+function errInfo(e: any) {
+  if (!e) return "(hata yok)";
+  return {
+    message: e?.message ?? String(e),
+    code: e?.code,
+    name: e?.name,
+  };
+}
+
+/** Native köprüde plugin GERÇEKTEN kayıtlı mı (APK'da var mı)? */
+function pluginRegistered(): string {
+  try {
+    const cap = (window as any).Capacitor;
+    if (!cap) return "Capacitor yok";
+    if (typeof cap.isPluginAvailable !== "function") return "isPluginAvailable yok";
+    return String(cap.isPluginAvailable("SpeechRecognition"));
+  } catch (e: any) {
+    return "hata: " + (e?.message ?? String(e));
+  }
+}
+
 function getRecognition(): SpeechRecognitionType | null {
   if (typeof window === "undefined") return null;
   const SR =
@@ -62,9 +96,34 @@ export function useSpeech(onResult: (text: string) => void, lang = "tr-TR") {
   const onResultRef = useRef(onResult);
   onResultRef.current = onResult;
 
+  // GEÇİCİ tanılama: log satırlarında güncel değerleri okuyabilmek için
+  // (state'i bağımlılığa eklemiyoruz ki callback kimlikleri değişmesin).
+  const supportedRef = useRef(supported);
+  supportedRef.current = supported;
+  const listeningRef = useRef(listening);
+  listeningRef.current = listening;
+
   useEffect(() => {
-    setBackend(detectPlatform() === "web" ? "web" : "native");
+    const platform = detectPlatform();
+    const next = platform === "web" ? "web" : "native";
+    setBackend(next);
+    // GEÇİCİ tanılama
+    slog("mount:", {
+      platform,
+      backend: next,
+      isNative: platform !== "web",
+      pluginRegistered: pluginRegistered(),
+      webSpeechCtor:
+        typeof window !== "undefined" &&
+        !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition),
+      ua: typeof navigator !== "undefined" ? navigator.userAgent : "(yok)",
+    });
   }, []);
+
+  // GEÇİCİ tanılama: hook'un dışarı verdiği son `supported` değeri.
+  useEffect(() => {
+    slog("supported =", supported, "(backend:", backend + ")");
+  }, [supported, backend]);
 
   // ---------------------------------------------------------------- WEB ----
   // Bu bölüm bugüne kadar çalışan koddur; tek ekleme onstart (start() promise'i
@@ -135,7 +194,10 @@ export function useSpeech(onResult: (text: string) => void, lang = "tr-TR") {
   const startWeb = useCallback((): Promise<boolean> => {
     setError("");
     const rec = recRef.current;
-    if (!rec) return Promise.resolve(false);
+    if (!rec) {
+      slog("startWeb: Web Speech nesnesi yok → false");
+      return Promise.resolve(false);
+    }
     return new Promise<boolean>((resolve) => {
       settleStart(false); // önceki bekleyen promise varsa kapat
       startResolveRef.current = resolve;
@@ -198,10 +260,33 @@ export function useSpeech(onResult: (text: string) => void, lang = "tr-TR") {
         const { SpeechRecognition } = await import(
           "@capacitor-community/speech-recognition"
         );
-        const { available } = await SpeechRecognition.available();
+        // GEÇİCİ tanılama: JS nesnesi var mı, native köprüde kayıtlı mı?
+        // (JS nesnesi HER ZAMAN gelir — asıl soru köprüde kayıtlı olup olmadığı.
+        //  false ise plugin APK'ya girmemiş demektir: cap sync + yeni build gerek.)
+        slog("plugin JS nesnesi:", !!SpeechRecognition, "| köprüde kayıtlı:", pluginRegistered());
+
+        let available = false;
+        try {
+          const res = await SpeechRecognition.available();
+          available = res.available;
+          slog("available() =", res);
+        } catch (e) {
+          slog("available() HATASI:", errInfo(e));
+          throw e; // davranış aynı: hata → supported=false
+        }
+
+        // GEÇİCİ tanılama: yalnız OKUMA — izin diyaloğu çıkarmaz, akışı etkilemez.
+        try {
+          const perm = await SpeechRecognition.checkPermissions();
+          slog("checkPermissions() =", perm);
+        } catch (e) {
+          slog("checkPermissions() HATASI:", errInfo(e));
+        }
+
         if (cancelled) return;
         if (!available) {
           // Cihazda tanıma servisi yok → düğme hiç görünmesin.
+          slog("available=false → cihazda tanıma servisi yok, düğme gizlenecek");
           setSupported(false);
           return;
         }
@@ -221,8 +306,10 @@ export function useSpeech(onResult: (text: string) => void, lang = "tr-TR") {
 
         handle = h;
         pluginRef.current = SpeechRecognition;
+        slog("native kurulum TAMAM → supported=true");
         setSupported(true);
-      } catch {
+      } catch (e) {
+        slog("native kurulum HATASI → supported=false:", errInfo(e));
         if (!cancelled) setSupported(false);
       }
     })();
@@ -247,16 +334,22 @@ export function useSpeech(onResult: (text: string) => void, lang = "tr-TR") {
   const startNative = useCallback(async (): Promise<boolean> => {
     setError("");
     const plugin = pluginRef.current;
-    if (!plugin) return false;
+    if (!plugin) {
+      slog("startNative: plugin hazır DEĞİL (kurulum başarısız olmuştu) → false");
+      return false;
+    }
     if (nativeListeningRef.current) return true;
 
     try {
       // İzin İLK basışta istenir (uygulama açılışında değil).
       let perm = await plugin.checkPermissions();
+      slog("basışta checkPermissions() =", perm);
       if (perm.speechRecognition !== "granted") {
         perm = await plugin.requestPermissions();
+        slog("requestPermissions() =", perm);
       }
       if (perm.speechRecognition !== "granted") {
+        slog("izin verilmedi → false");
         setError(PERM_DENIED_MSG);
         return false;
       }
@@ -278,8 +371,10 @@ export function useSpeech(onResult: (text: string) => void, lang = "tr-TR") {
 
       nativeListeningRef.current = true;
       setListening(true);
+      slog("plugin.start() TAMAM → dinleniyor");
       return true;
-    } catch {
+    } catch (e) {
+      slog("plugin.start() HATASI:", errInfo(e));
       setError("Sesli tahmin başlatılamadı, tekrar dene");
       nativeListeningRef.current = false;
       setListening(false);
@@ -304,7 +399,17 @@ export function useSpeech(onResult: (text: string) => void, lang = "tr-TR") {
   // --------------------------------------------------------------- ORTAK ----
 
   const start = useCallback((): Promise<boolean> => {
-    return backend === "native" ? startNative() : startWeb();
+    // GEÇİCİ tanılama — her mikrofon basışında.
+    slog("BASILDI:", {
+      backend,
+      supported: supportedRef.current,
+      listening: listeningRef.current,
+      pluginHazır: !!pluginRef.current,
+      köprüdeKayıtlı: pluginRegistered(),
+    });
+    const p = backend === "native" ? startNative() : startWeb();
+    p.then((ok) => slog("start() sonucu =", ok));
+    return p;
   }, [backend, startNative, startWeb]);
 
   const stop = useCallback(() => {
