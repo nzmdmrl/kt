@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getJSON } from "@/lib/api";
+import { getJSON, apiUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import Logo from "@/components/Logo";
 import MiniAvatar from "@/components/MiniAvatar";
@@ -38,6 +38,7 @@ export default function LigPage() {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
+  const [myRank, setMyRank] = useState<{ rank?: number; score?: number; elo?: number } | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -49,6 +50,17 @@ export default function LigPage() {
   }, [scope]);
 
   const myEntry = user ? entries.find((e) => e.user_id === user.id) : null;
+
+  // İlk 100'ün dışındaysam gerçek sıramı ayrıca çek ("Sen 137. sıradasın").
+  useEffect(() => {
+    if (!user) { setMyRank(null); return; }
+    const token = typeof window !== "undefined" ? localStorage.getItem("kt_token") : null;
+    if (!token) return;
+    fetch(apiUrl(`/api/league/me?scope=${scope}`), { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.json())
+      .then((d) => setMyRank(d?.entry || null))
+      .catch(() => setMyRank(null));
+  }, [user, scope]);
 
   return (
     <main style={{ flex: 1, maxWidth: 640, width: "100%", margin: "0 auto", padding: "28px 18px 60px" }}>
@@ -111,11 +123,33 @@ export default function LigPage() {
         </div>
       )}
 
-      {/* Giriş yapmış kullanıcı listede yoksa alt bilgi */}
+      {/* Giriş yapmış kullanıcı ilk 100'de değilse: gerçek sırası ayrı satırda.
+          Puanı hiç yoksa "bir maç oyna" daveti. */}
       {user && !myEntry && !loading && (
-        <div style={{ marginTop: 16, padding: 14, background: "var(--bg-panel)", borderRadius: 12, textAlign: "center", color: "var(--text-soft)", fontSize: 14 }}>
-          Bu dönemde henüz puanın yok. <a href="/oyna" style={{ color: "var(--accent)" }}>Bir maç oyna!</a>
-        </div>
+        myRank?.rank ? (
+          <div style={{ marginTop: 16 }}>
+            <div style={{ fontSize: 12, color: "var(--text-dim)", textAlign: "center", marginBottom: 6 }}>
+              Senin sıran
+            </div>
+            <Row
+              entry={{
+                rank: myRank.rank,
+                user_id: user.id,
+                username: user.username,
+                display_name: user.display_name,
+                avatar_url: user.avatar_url,
+                name: user.display_name || user.username,
+                elo: myRank.elo ?? user.elo ?? 0,
+                score: myRank.score ?? 0,
+              }}
+              isMe
+            />
+          </div>
+        ) : (
+          <div style={{ marginTop: 16, padding: 14, background: "var(--bg-panel)", borderRadius: 12, textAlign: "center", color: "var(--text-soft)", fontSize: 14 }}>
+            Bu dönemde henüz puanın yok. <a href="/oyna" style={{ color: "var(--accent)" }}>Bir maç oyna!</a>
+          </div>
+        )
       )}
 
       {/* Önceki dönem kazananları + arşiv */}
@@ -196,8 +230,16 @@ function Row({ entry, isMe }: { entry: Entry; isMe: boolean }) {
         border: isMe ? "1px solid var(--accent)" : "1px solid transparent",
       }}
     >
-      <div style={{ width: 32, textAlign: "center", fontWeight: 700, fontSize: medal ? 20 : 16, color: "var(--text-soft)" }}>
-        {medal ?? entry.rank}
+      {/* Sıra: ilk 3 madalya, sonrası "23." — kendi satırında vurgulu */}
+      <div
+        className={medal ? undefined : "brand-mono"}
+        style={{
+          width: 42, flexShrink: 0, textAlign: "center", fontWeight: medal ? 700 : 800,
+          fontSize: medal ? 20 : 16,
+          color: medal ? "var(--text-soft)" : isMe ? "var(--accent)" : "var(--text-soft)",
+        }}
+      >
+        {medal ?? `${entry.rank}.`}
       </div>
       <MiniAvatar url={entry.avatar_url} name={entry.name || entry.display_name || entry.username} size={34} />
       <div style={{ flex: 1, minWidth: 0 }}>
