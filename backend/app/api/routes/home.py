@@ -24,10 +24,14 @@ async def appearance():
     """Public: gece arka plan animasyonu + arayüz stili ayarları (herkese açık)."""
     from app.game.settings_service import cached_bool, cached_str
     style = cached_str("ui_style", "stil2")
+    from app.game.settings_service import cached_int
     return {
         "night_bg_enabled": cached_bool("night_bg_enabled", True),
         "night_bg_theme": cached_str("night_bg_theme", "night"),
         "ui_style": style if style in ("stil1", "stil2") else "stil2",
+        # 1v1 tahmin satırındaki mini ad etiketinin en fazla kaç karakter
+        # olacağı (Grid.tsx okur; 0 = kesme).
+        "match_name_max_len": cached_int("match_name_max_len", 7),
     }
 
 

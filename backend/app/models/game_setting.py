@@ -87,4 +87,6 @@ DEFAULT_SETTINGS = {
     # sonra "…" ile kesilsin. Kesme sunucuda yapılır — dar ekranda skorun üstüne binmesin.
     "list_name_source": {"value": "display_name", "label": "Listelerde gösterilecek ad (display_name / username)", "type": "str", "group": "Adlar & Listeler"},
     "list_name_max_len": {"value": "14", "label": "Listelerde ad uzunluğu (aşarsa … ile kesilir · 0 = kesme)", "type": "int", "group": "Adlar & Listeler"},
+    # 1v1 tahmin satırının sağ üstündeki mini ad etiketi (Grid.tsx → Tag).
+    "match_name_max_len": {"value": "7", "label": "Maçlarda görünen ad uzunluğu (aşarsa … ile kesilir · 0 = kesme)", "type": "int", "group": "Adlar & Listeler"},
 }

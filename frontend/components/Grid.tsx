@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { RoundPublic, PublicPlayer } from "@/lib/useMatch";
 import { toUpperTr } from "@/lib/turkish";
+import { useMatchNameMax, shortMatchName } from "@/lib/uiSettings";
 
 const TILE: Record<string, string> = {
   correct: "var(--tile-correct)",
@@ -218,7 +219,9 @@ function tileStyle(bg: string, color: string, dim?: boolean): React.CSSPropertie
 
 function Tag({ children }: { children: React.ReactNode }) {
   // İsmi kısalt; satırın sağ-ÜST köşesine mini etiket (grid genişliğini aşmaz).
-  const text = typeof children === "string" ? children.split(" ")[0].slice(0, 8) : children;
+  // Uzunluk sınırı admin ayarından gelir: "Maçlarda görünen ad uzunluğu".
+  const max = useMatchNameMax();
+  const text = typeof children === "string" ? shortMatchName(children, max) : children;
   return (
     <span
       style={{
@@ -226,7 +229,9 @@ function Tag({ children }: { children: React.ReactNode }) {
         right: 2,
         top: -7,
         fontSize: 9,
-        color: "var(--text-dim)",
+        fontWeight: 700,
+        // Gece: beyaz · Gündüz: siyah (globals.css → --match-tag)
+        color: "var(--match-tag)",
         background: "var(--bg-deep)",
         padding: "0 4px",
         borderRadius: 4,

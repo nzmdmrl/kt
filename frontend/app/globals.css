@@ -28,6 +28,7 @@
   --border-soft: #2e2657;      /* ince ayraç */
 
   --text-strong: #f5f3ff;      /* ana metin */
+  --match-tag: #ffffff;        /* 1v1 tahmin satırındaki oyuncu adı (gece: beyaz) */
   --text-soft: #b4acd8;        /* ikincil metin */
   --text-dim: #7a719e;         /* soluk/etiket */
 
@@ -60,6 +61,7 @@
   --border-soft: #ddd6ee;      /* ince ayraç */
 
   --text-strong: #1c1638;      /* ana metin (koyu) */
+  --match-tag: #000000;        /* 1v1 tahmin satırındaki oyuncu adı (gündüz: siyah) */
   --text-soft: #4f4770;        /* ikincil metin */
   --text-dim: #8a83a8;         /* soluk/etiket */
 
