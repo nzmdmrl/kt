@@ -19,9 +19,10 @@
 //               düğmesini ve "🎤 basılı tut & söyle" ipucunu hiç basmaz; düğme
 //               görünmez, "görünür ama bozuk" olmaz.
 //
-//               Bayraklar: app_settings -> "app.flags" (admin → 📱 Mobil & Reklam)
-//                 mic_web_enabled -> tarayıcı  (eksik/okunamazsa AÇIK sayılır)
-//                 mic_app_enabled -> uygulama  (eksik/okunamazsa KAPALI sayılır)
+//               Bayraklar: app_settings -> "app.mic"
+//               (admin → 📱 Mobil & Reklam → 🎤 Mikrofon (sesli tahmin) kartı)
+//                 web_enabled -> tarayıcı  (eksik/okunamazsa AÇIK sayılır)
+//                 app_enabled -> uygulama  (eksik/okunamazsa KAPALI sayılır)
 //               Uygulama bayrağı web bayrağına BAĞIMLIDIR (web kapalıysa uygulama
 //               da kapalı) — aynı kural sunucuda da uygulanır.
 //   start()   — Promise<boolean>: tanıma GERÇEKTEN başladıysa true. 1v1'de söz
@@ -34,7 +35,7 @@
 
 import { useRef, useState, useCallback, useEffect } from "react";
 import { detectPlatform } from "@/lib/platform";
-import { loadAppConfig, type FlagsConfig } from "@/lib/appConfig";
+import { loadAppConfig, type FlagsConfig, type MicConfig } from "@/lib/appConfig";
 
 // TypeScript için minimal tip tanımları (Web Speech API standart d.ts'de yok).
 type SpeechRecognitionType = any;
@@ -148,16 +149,23 @@ export function useSpeech(onResult: (text: string) => void, lang = "tr-TR") {
 
     loadAppConfig(detectPlatform()).then((cfg) => {
       if (!alive) return;
-      const flags: FlagsConfig = (cfg?.["app.flags"] as FlagsConfig) || {};
-      const web = flags.mic_web_enabled !== false; // eksikse açık
-      const app = flags.mic_app_enabled === true;  // eksikse kapalı
+      const mic: MicConfig = (cfg?.["app.mic"] as MicConfig) || {};
+      // GEÇİŞ: ayar "app.flags" içinden "app.mic"e taşındı. Eski cache'lenmiş
+      // yapılandırmayı görmüş bir sekme yeni anahtarı bulamayabilir — o durumda
+      // eski alanlara düşülür. Bir sürüm sonra bu satırlar silinebilir.
+      const old: FlagsConfig = (cfg?.["app.flags"] as FlagsConfig) || {};
+      const webRaw = mic.web_enabled ?? old.mic_web_enabled;
+      const appRaw = mic.app_enabled ?? old.mic_app_enabled;
+
+      const web = webRaw !== false; // eksikse açık
+      const app = appRaw === true;  // eksikse kapalı
       // Bağımlılık kuralı burada da uygulanır: web kapalıysa uygulama da kapalı.
       const allowed = backend === "native" ? web && app : web;
       setFlagAllowed(allowed);
       slog("bayraklar:", {
         yapılandırmaGeldi: !!cfg,
-        mic_web_enabled: flags.mic_web_enabled,
-        mic_app_enabled: flags.mic_app_enabled,
+        "app.mic": mic,
+        eskiAlanlar: { mic_web_enabled: old.mic_web_enabled, mic_app_enabled: old.mic_app_enabled },
         backend,
         izinVar: allowed,
       });

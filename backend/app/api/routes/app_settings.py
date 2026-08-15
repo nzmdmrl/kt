@@ -155,17 +155,22 @@ DEFAULT_APP_SETTINGS: dict[str, tuple[dict, bool]] = {
     ),
     # Davranış bayrakları. challenge_ttl_seconds: maç teklifinin geçerlilik
     # süresi (app/game/challenge_service.py okur, 60 sn cache'li).
-    #
-    # Mikrofon (sesli tahmin) bayrakları — frontend/lib/useSpeech.ts okur:
-    #   mic_web_enabled -> tarayıcıda Web Speech API yolu
-    #   mic_app_enabled -> Capacitor uygulamasında native tanıma (plugin)
-    # UYGULAMA VARSAYILAN KAPALI: gerçek telefonda doğrulanana kadar kapalı
-    # çıksın, admin panelden açsın.
     "app.flags": (
         {
             "challenge_ttl_seconds": 120,
-            "mic_web_enabled": True,
-            "mic_app_enabled": False,
+        },
+        True,
+    ),
+    # Mikrofon / sesli tahmin — frontend/lib/useSpeech.ts okur.
+    #   web_enabled -> tarayıcıda Web Speech API yolu
+    #   app_enabled -> Capacitor uygulamasında native tanıma (plugin)
+    # UYGULAMA VARSAYILAN KAPALI: gerçek telefonda doğrulanana kadar kapalı
+    # çıksın, admin panelden açsın.
+    # app_enabled, web_enabled'a BAĞIMLIDIR (aşağıdaki _mic_valid kuralı).
+    "app.mic": (
+        {
+            "web_enabled": True,
+            "app_enabled": False,
         },
         True,
     ),
@@ -178,6 +183,7 @@ SETTING_LABELS: dict[str, str] = {
     "push.firebase": "Firebase / Push bildirim",
     "app.stores": "Uygulama mağaza rozetleri",
     "app.flags": "Davranış ayarları",
+    "app.mic": "🎤 Mikrofon (sesli tahmin)",
 }
 
 
@@ -198,7 +204,7 @@ def _as_dict(raw: Any) -> dict:
     return {}
 
 
-# --------------------------------------------- mikrofon bayrak kuralı
+# --------------------------------------------- mikrofon bayrak kuralı ("app.mic")
 #
 # Uygulama mikrofonu WEB mikrofonuna BAĞIMLIDIR:
 #   web açık  + uygulama açık   -> geçerli
@@ -213,21 +219,22 @@ def _as_dict(raw: Any) -> dict:
 # Panel bu kombinasyonu zaten üretmez (kutular birbirini otomatik ayarlar);
 # buradaki kontrol sunucu tarafı güvencesidir (doğrudan API çağrısı, curl vb.).
 
-def _mic_flags_valid(value: dict) -> bool:
-    return not (
-        value.get("mic_app_enabled") is True and value.get("mic_web_enabled") is not True
-    )
+MIC_KEY = "app.mic"
 
 
-def _normalize_mic_flags(value: dict) -> dict:
+def _mic_valid(value: dict) -> bool:
+    return not (value.get("app_enabled") is True and value.get("web_enabled") is not True)
+
+
+def _normalize_mic(value: dict) -> dict:
     """Geçersiz kombinasyon public yanıtta ASLA görünmesin.
 
     Satır elle (psql) düzenlenmiş olabilir; okuma tarafında da kuralı uygularız.
     """
-    if _mic_flags_valid(value):
+    if _mic_valid(value):
         return value
     out = dict(value)
-    out["mic_app_enabled"] = False
+    out["app_enabled"] = False
     return out
 
 
@@ -286,8 +293,8 @@ def _clear_cache() -> None:
 
 def _shape_for_platform(key: str, value: dict, platform: str) -> dict:
     """android/ios isteğinde admob'un sadece ilgili platform bloğunu bırak."""
-    if key == "app.flags":
-        return _normalize_mic_flags(value)
+    if key == MIC_KEY:
+        return _normalize_mic(value)
     if key != "ads.admob" or platform not in ("android", "ios"):
         return value
     out = copy.deepcopy(value)
@@ -355,7 +362,7 @@ async def admin_update(
         raise HTTPException(status_code=404, detail="Bilinmeyen ayar anahtarı")
 
     # Mikrofon bağımlılık kuralı — panel dışı çağrılar da geçemez.
-    if key == "app.flags" and not _mic_flags_valid(body.value):
+    if key == MIC_KEY and not _mic_valid(body.value):
         raise HTTPException(
             status_code=400,
             detail=(

@@ -52,14 +52,22 @@ export type AdMobConfig = {
 export type FlagsConfig = {
   /** Maç teklifinin geçerlilik süresi (saniye). */
   challenge_ttl_seconds?: number;
-  /** Tarayıcıda sesli tahmin — Web Speech API yolu. Eksikse AÇIK sayılır. */
+  /** ESKİ yer — mikrofon artık "app.mic" satırında. Yalnız geçiş için okunur. */
   mic_web_enabled?: boolean;
+  /** ESKİ yer — mikrofon artık "app.mic" satırında. Yalnız geçiş için okunur. */
+  mic_app_enabled?: boolean;
+};
+
+/** Mikrofon / sesli tahmin (backend: DEFAULT_APP_SETTINGS -> "app.mic"). */
+export type MicConfig = {
+  /** Tarayıcıda sesli tahmin — Web Speech API yolu. Eksikse AÇIK sayılır. */
+  web_enabled?: boolean;
   /**
    * Uygulamada sesli tahmin — native tanıma plugin'i. Eksikse KAPALI sayılır.
-   * Web bayrağına bağımlıdır: web kapalıyken uygulama açık olamaz (sunucu da
+   * web_enabled'a bağımlıdır: web kapalıyken uygulama açık olamaz (sunucu da
    * bu kombinasyonu reddeder, bkz. backend app_settings.py).
    */
-  mic_app_enabled?: boolean;
+  app_enabled?: boolean;
 };
 
 export type StoresConfig = {
@@ -76,6 +84,7 @@ export type AppConfig = {
   "push.firebase"?: Record<string, any>;
   "app.stores"?: StoresConfig;
   "app.flags"?: FlagsConfig;
+  "app.mic"?: MicConfig;
   [key: string]: any;
 };
 

@@ -264,6 +264,55 @@ DATA_MIGRATIONS: list[tuple[str, list[str]]] = [
             "WHERE key = 'app.flags'"
         ),
     ]),
+
+    # 10) Mikrofon bayrakları 'app.flags' içinden KENDİ satırına taşındı:
+    #     'app.mic' -> {web_enabled, app_enabled}. Gerekçe: panelde her
+    #     app_settings satırı ayrı bir kart olarak çizilir; mikrofon ayarı
+    #     "Davranış ayarları"nın içinde kaybolmak yerine kendi başlığını alsın.
+    #
+    #     'app.mic' satırını MIGRATION DEĞİL, startup seed'i oluşturur
+    #     (ensure_app_settings_table, main.py'de bu migration'lardan ÖNCE koşar) —
+    #     yeni anahtar olduğu için seed ona ulaşır. Buradaki iş yalnızca:
+    #       a) (9) ile yazılmış / adminin değiştirmiş olabileceği eski değerleri taşı,
+    #       b) eski anahtarları 'app.flags'ten sil (tek doğru kaynak kalsın).
+    #
+    #     Alt sorgu 'app.flags' yoksa NULL döner -> COALESCE ile seed değeri kalır.
+    ("2026_08_mic_own_key", [
+        (
+            "UPDATE app_settings SET value = value || jsonb_build_object("
+            "  'web_enabled', COALESCE("
+            "     (SELECT f.value->'mic_web_enabled' FROM app_settings f WHERE f.key='app.flags'),"
+            "     value->'web_enabled'),"
+            "  'app_enabled', COALESCE("
+            "     (SELECT f.value->'mic_app_enabled' FROM app_settings f WHERE f.key='app.flags'),"
+            "     value->'app_enabled')"
+            "), updated_at = now() WHERE key = 'app.mic'"
+            if _IS_PG else
+            # SQLite: json_extract mantıksal değeri 1/0 tamsayısına çevirir; CASE +
+            # json() ile GERÇEK json true/false yazıyoruz (Python tarafı `is True`
+            # karşılaştırması yapıyor, 1 bunu geçmez).
+            "UPDATE app_settings SET value = json_set(value,"
+            "  '$.web_enabled', json(CASE WHEN COALESCE("
+            "     (SELECT json_extract(f.value,'$.mic_web_enabled') FROM app_settings f WHERE f.key='app.flags'),"
+            "     json_extract(value,'$.web_enabled')) IN (1,'true')"
+            "   THEN 'true' ELSE 'false' END),"
+            "  '$.app_enabled', json(CASE WHEN COALESCE("
+            "     (SELECT json_extract(f.value,'$.mic_app_enabled') FROM app_settings f WHERE f.key='app.flags'),"
+            "     json_extract(value,'$.app_enabled')) IN (1,'true')"
+            "   THEN 'true' ELSE 'false' END)"
+            "), updated_at = CURRENT_TIMESTAMP WHERE key = 'app.mic'"
+        ),
+        (
+            "UPDATE app_settings "
+            "SET value = value - 'mic_web_enabled' - 'mic_app_enabled', updated_at = now() "
+            "WHERE key = 'app.flags'"
+            if _IS_PG else
+            "UPDATE app_settings "
+            "SET value = json_remove(value, '$.mic_web_enabled', '$.mic_app_enabled'), "
+            "    updated_at = CURRENT_TIMESTAMP "
+            "WHERE key = 'app.flags'"
+        ),
+    ]),
 ]
 
 
