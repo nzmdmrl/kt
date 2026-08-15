@@ -42,7 +42,7 @@ async def get_db() -> AsyncSession:
 async def init_models() -> None:
     """Tabloları oluştur (yoksa) + mevcut tablolara eksik sütunları ekle."""
     # Modellerin import edilmiş olması gerekir ki Base.metadata dolsun.
-    from app.models import user, bot, daily_score, league_award, game_setting, sound_asset, word, notification, match_history, solo, arena_history, friendship, friend_label, share_line, custom_arena, collected_word, title, badge_def, music_track, seo_page, username_change, daily_solve, site_page  # noqa: F401
+    from app.models import user, bot, daily_score, league_award, game_setting, sound_asset, word, notification, match_history, solo, arena_history, friendship, friend_label, share_line, home_button, custom_arena, collected_word, title, badge_def, music_track, seo_page, username_change, daily_solve, site_page  # noqa: F401
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
         # Hafif otomatik migration: create_all mevcut tabloya YENİ SÜTUN eklemez.

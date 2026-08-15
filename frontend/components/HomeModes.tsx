@@ -6,6 +6,7 @@ import { apiUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useIsoLayoutEffect } from "@/lib/useIsoLayoutEffect";
 import AnimatedWordmark from "@/components/AnimatedWordmark";
+import { HOME_BUTTON_DEFAULTS, type HomeButtons } from "@/lib/homeButtons";
 
 type LevelInfo = { level: number; xp: number; level_xp: number; level_need: number };
 type TitleInfo = {
@@ -32,7 +33,20 @@ function saveHomeCache(uid: number, patch: any) {
 // `style` = arayüz stili (admin → ⚙️ Ayarlar → "Arayüz stili"):
 //   stil1 → klasik (eski) görünüm, stil2 → yeni görünüm.
 // Sadece GÖRÜNÜM değişir; modlar/rotalar/veri her iki stilde de aynıdır.
-export default function HomeModes({ style = "stil2" }: { style?: "stil1" | "stil2" }) {
+export default function HomeModes({ style = "stil2", buttons }: {
+  style?: "stil1" | "stil2";
+  /** Admin → 🏠 Ana Sayfa: buton ikonları/renkleri. Verilmezse varsayılan tasarım. */
+  buttons?: HomeButtons;
+}) {
+  // Buton görünümü: admin ayarı > koddaki varsayılan.
+  const btn = (key: string) => ({ ...HOME_BUTTON_DEFAULTS[key], ...(buttons?.[key] || {}) });
+  // `bg` boşsa inline stil verilmez -> globals.css'teki varsayılan renk kalır.
+  const bgStyle = (key: string) => {
+    const b = btn(key).bg;
+    return b ? { background: b } : undefined;
+  };
+  // Arka plan (dekor) ikonu boşsa sol ikonun aynısı kullanılır.
+  const decoIcon = (key: string) => btn(key).deco_icon || btn(key).icon;
   const { user, loading } = useAuth();
   const router = useRouter();
   const [lvl, setLvl] = useState<LevelInfo | null>(null);
@@ -100,25 +114,23 @@ export default function HomeModes({ style = "stil2" }: { style?: "stil1" | "stil
 
   // Üst modlar: Arena + Özel Arena + Maraton (1v1'in üstünde)
   const topModes = [
-    { icon: "⚔️", label: "Arena", href: "/arena", desc: "Çok kişili yarış", bg: "linear-gradient(145deg,#e0940a,#c47a00)" },
-    { icon: "🎪", label: "Özel Arena", href: "/arena/ozel", desc: "Arkadaşlarınla", bg: "linear-gradient(145deg,#7b52c4,#5e3a9e)" },
-    { icon: "🏃", label: "Maraton", href: "/solo", desc: soloLevel != null ? `Bölüm ${soloLevel}` : "Bölüm bölüm ilerle", bg: "linear-gradient(145deg,#4a8fc4,#2e6da8)" },
+    { key: "arena", label: "Arena", href: "/arena", desc: "Çok kişili yarış" },
+    { key: "custom_arena", label: "Özel Arena", href: "/arena/ozel", desc: "Arkadaşlarınla" },
+    { key: "marathon", label: "Maraton", href: "/solo", desc: soloLevel != null ? `Bölüm ${soloLevel}` : "Bölüm bölüm ilerle" },
   ];
   // Alt modlar: Günün Kelimesi, Lig (başlıksız).
   // desc2: canlı veri satırı (aynı punto). Mobilde SADECE bu satır görünür,
   // üstteki sabit açıklama (desc) gizlenir — yer kazanmak için.
   const bottomModes = [
     {
-      icon: "📅", label: "Günün Kelimesi", href: "/gunun-kelimesi",
+      key: "daily", label: "Günün Kelimesi", href: "/gunun-kelimesi",
       desc: "Günlük bulmaca",
       desc2: dailySolved != null ? `Bugün ${dailySolved.toLocaleString("tr")} kişi çözdü` : "",
-      bg: "linear-gradient(145deg,#c44a7e,#a23763)",
     },
     {
-      icon: "🏆", label: "Lig", href: "/lig",
+      key: "league", label: "Lig", href: "/lig",
       desc: "Sıralamalar",
       desc2: dailyRank ? `Günlük ${dailyRank}. sıradasın` : "1v1 maç yap, lige katıl",
-      bg: "linear-gradient(145deg,#3a7fc4,#2868a8)",
     },
   ];
 
@@ -216,13 +228,13 @@ export default function HomeModes({ style = "stil2" }: { style?: "stil1" | "stil
       {/* ARENA + ÖZEL ARENA (en üstte) */}
       <div className="hm-modes-grid hm-top-modes">
         {topModes.map((m) => (
-          <button key={m.href} className="hm-mode" onClick={() => router.push(m.href)} style={{ background: m.bg }}>
-            <span className="hm-mode-icon">{m.icon}</span>
+          <button key={m.href} className="hm-mode" onClick={() => router.push(m.href)} style={bgStyle(m.key)}>
+            <span className="hm-mode-icon">{btn(m.key).icon}</span>
             <span className="hm-mode-text">
               <span className="hm-mode-label">{m.label}</span>
               <span className="hm-mode-desc">{m.desc}</span>
             </span>
-            {deco(m.icon)}
+            {deco(decoIcon(m.key))}
           </button>
         ))}
       </div>
@@ -231,28 +243,28 @@ export default function HomeModes({ style = "stil2" }: { style?: "stil1" | "stil
       <section className="hm-section">
         <h2 className="hm-h2">🎮 1v1 Düello</h2>
 
-        <button className="hm-hero-btn" onClick={() => router.push("/oyna?mode=search")}>
-          <span className="hm-hero-icon">🎮</span>
+        <button className="hm-hero-btn" onClick={() => router.push("/oyna?mode=search")} style={bgStyle("duel")}>
+          <span className="hm-hero-icon">{btn("duel").icon}</span>
           <span className="hm-hero-text">
             <span className="hm-hero-title">Oyna</span>
             <span className="hm-hero-sub">1v1 Düello · Rakip bul</span>
           </span>
           <span className="hm-hero-arrow">→</span>
-          {deco("🎮")}
+          {deco(decoIcon("duel"))}
         </button>
 
         <div className="hm-1v1-grid">
-          <button className="hm-tile hm-tile-bot" onClick={() => router.push("/oyna?mode=bot")}>
-            <span className="hm-tile-icon">🤖</span>
+          <button className="hm-tile hm-tile-bot" onClick={() => router.push("/oyna?mode=bot")} style={bgStyle("bot")}>
+            <span className="hm-tile-icon">{btn("bot").icon}</span>
             <span className="hm-tile-label">1vB Pratik</span>
             <span className="hm-tile-desc">Bota karşı</span>
-            {deco("🤖")}
+            {deco(decoIcon("bot"))}
           </button>
-          <button className="hm-tile hm-tile-room" onClick={() => router.push("/oyna?mode=create")}>
-            <span className="hm-tile-icon">🚪</span>
+          <button className="hm-tile hm-tile-room" onClick={() => router.push("/oyna?mode=create")} style={bgStyle("room")}>
+            <span className="hm-tile-icon">{btn("room").icon}</span>
             <span className="hm-tile-label">Özel Oda Kur</span>
             <span className="hm-tile-desc">Arkadaşını davet et</span>
-            {deco("🚪")}
+            {deco(decoIcon("room"))}
           </button>
         </div>
 
@@ -273,14 +285,14 @@ export default function HomeModes({ style = "stil2" }: { style?: "stil1" | "stil
       {/* GÜNÜN KELİMESİ / LİG (başlıksız) */}
       <div className="hm-modes-grid hm-bottom-modes">
         {bottomModes.map((m) => (
-          <button key={m.href} className="hm-mode" onClick={() => router.push(m.href)} style={{ background: m.bg }}>
-            <span className="hm-mode-icon">{m.icon}</span>
+          <button key={m.href} className="hm-mode" onClick={() => router.push(m.href)} style={bgStyle(m.key)}>
+            <span className="hm-mode-icon">{btn(m.key).icon}</span>
             <span className="hm-mode-text">
               <span className="hm-mode-label">{m.label}</span>
               <span className="hm-mode-desc hm-desc-static">{m.desc}</span>
               {m.desc2 && <span className="hm-mode-desc">{m.desc2}</span>}
             </span>
-            {deco(m.icon)}
+            {deco(decoIcon(m.key))}
           </button>
         ))}
       </div>

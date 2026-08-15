@@ -155,6 +155,17 @@ Aşağıdakiler canlıda çalışıyor veya son push'a dahil. Detaylı geçmiş 
 - Profil aksiyon satırı: çevrimiçi rozeti + arkadaşlık + maç teklifi TEK satırda, aynı
   yükseklikte (`profRowBtn`, `PresenceBadge pill`). "🤝 Arkadaşın" butonu arkadaşlıktan çıkarır.
 
+### Ana sayfa buton görünümü (admin)
+- Admin → **🏠 Ana Sayfa** sekmesi: her mod butonunun **sol ikonu**, **arka plan (dekor) ikonu**
+  ve **rengi** ayrı ayrı düzenlenir + "Varsayılana dön". 8 buton: arena, custom_arena, marathon,
+  duel (hero), bot, room, daily, league.
+- Model `app/models/home_button.py` (DEFAULT_HOME_BUTTONS = MEVCUT tasarım), uçlar
+  `app/api/routes/home_buttons.py` (public `GET /api/home/buttons`).
+- Arka plan ikonu boşsa sol ikonun aynısı kullanılır. **`bg` boşsa** buton rengi
+  globals.css'teki varsayılan kalır — duel/bot/room bilerek boştur (stil2 tonları bozulmasın).
+- Frontend: `lib/homeButtons.ts` (DEFAULTS burada da var, ikisi birlikte güncellenmeli);
+  `app/page.tsx` sunucuda çekip `HomeModes buttons={...}` ile verir (ISR 60 sn, titreme yok).
+
 ### Sonuç paylaşımı
 - `components/ResultShare.tsx`: metin önizlemesi + WhatsApp · X · Telegram · Facebook · 📋 Kopyala
   (+ mobilde native paylaşım). 1v1, Arena, Günün Kelimesi ve Maraton sonuç ekranlarında.

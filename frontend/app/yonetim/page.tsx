@@ -20,6 +20,7 @@ const TABS = [
   { key: "titles", label: "🏅 Unvanlar" },
   { key: "badges", label: "🎖️ Rozetler" },
   { key: "music", label: "🎵 Müzik" },
+  { key: "homebtn", label: "🏠 Ana Sayfa" },
   { key: "sharepm", label: "💬 Sonuç PM" },
   { key: "seo", label: "🔍 SEO" },
   { key: "mobile", label: "📱 Mobil & Reklam" },
@@ -59,6 +60,7 @@ export default function AdminPage() {
       {tab === "titles" && <Titles />}
       {tab === "badges" && <Badges />}
       {tab === "music" && <MusicPools />}
+      {tab === "homebtn" && <HomeButtons />}
       {tab === "sharepm" && <SharePM />}
       {tab === "seo" && <Seo />}
       {tab === "mobile" && <Mobile />}
@@ -785,6 +787,164 @@ function Stat({ label, value, accent }: { label: string; value: any; accent?: bo
     </div>
   );
 }
+
+// ---- 🏠 Ana Sayfa: mod butonlarının ikon + renkleri --------------------
+// Renk alanı boşsa buton globals.css'teki varsayılan görünümünü korur
+// (1v1 hero butonu ve ikili kartlar varsayılan olarak böyle).
+type HomeBtn = {
+  key: string; label: string; icon: string; deco_icon: string; bg: string;
+  default: { icon: string; deco_icon: string; bg: string };
+};
+
+// "linear-gradient(145deg,#aabbcc,#112233)" -> ["#aabbcc", "#112233"]
+function gradColors(bg: string): [string, string] {
+  const m = (bg || "").match(/#[0-9a-fA-F]{6}/g);
+  if (m && m.length >= 2) return [m[0], m[1]];
+  if (m && m.length === 1) return [m[0], m[0]];
+  return ["#e0940a", "#c47a00"];
+}
+function makeGradient(a: string, b: string) {
+  return `linear-gradient(145deg,${a},${b})`;
+}
+
+function HomeButtons() {
+  const [items, setItems] = useState<HomeBtn[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const [saved, setSaved] = useState("");
+  const [popup, setPopup] = useState("");
+
+  function load() {
+    fetch(apiUrl("/api/admin/home-buttons"), { headers: authHeaders() })
+      .then((r) => r.json())
+      .then((d) => { setItems(d.buttons || []); setLoaded(true); })
+      .catch(() => setLoaded(true));
+  }
+  useEffect(load, []);
+
+  function patchLocal(key: string, patch: Partial<HomeBtn>) {
+    setItems((xs) => xs.map((x) => (x.key === key ? { ...x, ...patch } : x)));
+  }
+
+  async function save(key: string, patch: Partial<HomeBtn>) {
+    patchLocal(key, patch);
+    const r = await fetch(apiUrl(`/api/admin/home-buttons/${key}`), {
+      method: "PUT", headers: authHeaders(),
+      body: JSON.stringify({ icon: patch.icon, deco_icon: patch.deco_icon, bg: patch.bg }),
+    });
+    if (!r.ok) { setPopup("Kaydedilemedi."); load(); return; }
+    setSaved(key); setTimeout(() => setSaved(""), 1200);
+  }
+
+  async function reset(key: string) {
+    const r = await fetch(apiUrl(`/api/admin/home-buttons/${key}/reset`), { method: "POST", headers: authHeaders() });
+    if (!r.ok) { setPopup("Sıfırlanamadı."); return; }
+    const d = await r.json();
+    patchLocal(key, { icon: d.button.icon, deco_icon: d.button.deco_icon, bg: d.button.bg });
+    setSaved(key); setTimeout(() => setSaved(""), 1200);
+  }
+
+  if (!loaded) return <p style={{ color: "var(--text-soft)" }}>Yükleniyor…</p>;
+
+  return (
+    <div style={{ display: "grid", gap: 12 }}>
+      {popup && <AlertPopup message={popup} onClose={() => setPopup("")} />}
+      <p style={{ color: "var(--text-dim)", fontSize: 13, lineHeight: 1.6 }}>
+        Ana sayfadaki mod butonlarının <strong>sol ikonu</strong>, <strong>arka plan ikonu</strong> ve
+        <strong> rengi</strong>. Arka plan ikonu boş bırakılırsa sol ikonun aynısı kullanılır.
+        Renk alanı boşsa buton varsayılan tema rengini korur. Değişiklik ana sayfaya en geç 1 dakikada yansır.
+      </p>
+
+      {items.map((b) => {
+        const [c1, c2] = gradColors(b.bg || b.default.bg);
+        const previewBg = b.bg || "var(--bg-elevated)";
+        return (
+          <div key={b.key} style={{ background: "var(--bg-panel)", borderRadius: 12, padding: 14 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-strong)", flex: 1 }}>{b.label}</span>
+              {saved === b.key && <span style={{ color: "var(--tile-correct)", fontSize: 13 }}>✓ kaydedildi</span>}
+              <button onClick={() => reset(b.key)} style={miniBtn}>Varsayılana dön</button>
+            </div>
+
+            {/* Önizleme — ana sayfadaki kartın küçük hâli */}
+            <div style={{
+              position: "relative", overflow: "hidden", borderRadius: 14, padding: "12px 14px",
+              background: previewBg, border: "1px solid var(--border-soft)", marginBottom: 10,
+              display: "flex", alignItems: "center", gap: 10, minHeight: 56,
+            }}>
+              <span style={{ fontSize: 26, position: "relative", zIndex: 1 }}>{b.icon}</span>
+              <span style={{ fontWeight: 800, color: b.bg ? "#fff" : "var(--text-strong)", fontSize: 15, position: "relative", zIndex: 1 }}>
+                {b.label}
+              </span>
+              <span aria-hidden style={{
+                position: "absolute", right: -6, top: "50%", fontSize: 64, lineHeight: 1, opacity: .2,
+                transform: "translateY(-50%) perspective(420px) rotateY(16deg) rotate(-15deg)",
+              }}>{b.deco_icon || b.icon}</span>
+            </div>
+
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-end" }}>
+              <FieldBox label="Sol ikon">
+                <input
+                  value={b.icon}
+                  onChange={(e) => patchLocal(b.key, { icon: e.target.value })}
+                  onBlur={(e) => save(b.key, { icon: e.target.value })}
+                  maxLength={8}
+                  style={{ width: 64, textAlign: "center", padding: "9px 6px", borderRadius: 9, border: "1px solid var(--tile-border)", background: "var(--bg-elevated)", color: "var(--text-strong)", fontSize: 20 }}
+                />
+              </FieldBox>
+              <FieldBox label="Arka plan ikonu">
+                <input
+                  value={b.deco_icon}
+                  onChange={(e) => patchLocal(b.key, { deco_icon: e.target.value })}
+                  onBlur={(e) => save(b.key, { deco_icon: e.target.value })}
+                  placeholder="="
+                  maxLength={8}
+                  style={{ width: 64, textAlign: "center", padding: "9px 6px", borderRadius: 9, border: "1px solid var(--tile-border)", background: "var(--bg-elevated)", color: "var(--text-strong)", fontSize: 20 }}
+                />
+              </FieldBox>
+              <FieldBox label="Renk (üst · alt)">
+                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  <input type="color" value={c1}
+                    onChange={(e) => save(b.key, { bg: makeGradient(e.target.value, c2) })}
+                    style={colorInput} />
+                  <input type="color" value={c2}
+                    onChange={(e) => save(b.key, { bg: makeGradient(c1, e.target.value) })}
+                    style={colorInput} />
+                  {b.bg && (
+                    <button onClick={() => save(b.key, { bg: "" })} style={miniBtn} title="Rengi kaldır (tema varsayılanı)">
+                      temizle
+                    </button>
+                  )}
+                </div>
+              </FieldBox>
+            </div>
+
+            <input
+              value={b.bg}
+              onChange={(e) => patchLocal(b.key, { bg: e.target.value })}
+              onBlur={(e) => save(b.key, { bg: e.target.value })}
+              placeholder="Boş = tema varsayılanı · ör. linear-gradient(145deg,#e0940a,#c47a00)"
+              style={{ width: "100%", marginTop: 10, padding: "9px 11px", borderRadius: 9, border: "1px solid var(--tile-border)", background: "var(--bg-elevated)", color: "var(--text-soft)", fontSize: 12.5 }}
+            />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function FieldBox({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <div style={{ fontSize: 11.5, color: "var(--text-dim)", marginBottom: 4, fontWeight: 600 }}>{label}</div>
+      {children}
+    </div>
+  );
+}
+
+const colorInput: React.CSSProperties = {
+  width: 44, height: 38, padding: 2, borderRadius: 9,
+  border: "1px solid var(--tile-border)", background: "var(--bg-elevated)", cursor: "pointer",
+};
 
 // ---- 💬 Sonuç PM: sonuç paylaşım metinleri ------------------------------
 // Paylaşım metni = sabit skor satırı + BURADAN rastgele yorum satırı + footer.
