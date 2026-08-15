@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <!-- Bildirim siluetinin tint rengi (logodaki yeşil).
+         AndroidManifest'teki com.google.firebase.messaging.default_notification_color
+         bu kaydı gösterir; Android beyaz silueti bu renge boyar. -->
+    <color name="notification_color">#4CAF50</color>
+</resources>
