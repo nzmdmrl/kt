@@ -148,6 +148,12 @@ Aşağıdakiler canlıda çalışıyor veya son push'a dahil. Detaylı geçmiş 
 ### Bildirimler
 - `/bildirimler` sayfası. Arkadaşlık, unvan (`title_up`), arena madalya (`arena_medal`) bildirimleri.
 - Link'li bildirimler tıklanınca profil/arenaya gider.
+- **Silme**: tek (✕), toplu (☑️ Seç → Seçilenleri Sil) ve Tümünü Sil (onay modalı).
+  Uçlar: `DELETE /notifications/{id}`, `POST /notifications/delete {ids}`, `DELETE /notifications`.
+- **Otomatik temizlik**: `notification_retention_days` (admin ⚙️ Ayarlar → Sosyal, varsayılan 30,
+  0 = kapalı) günden eski bildirimler 6 saatte bir silinir
+  (`app/services/notification_cleanup.py`, startup'ta task). Süre `GET /notifications` yanıtında
+  `retention_days` olarak döner ve sayfanın altında kullanıcıya yazılır.
 
 ### Misafir (üye olmayan ziyaretçi) erişimi
 - **1v1**: misafir oynayabilir. Maç kaydedilir ama misafir adı gizli → "Misafir" olarak yazılır.

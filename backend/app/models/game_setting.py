@@ -68,6 +68,9 @@ DEFAULT_SETTINGS = {
     "xp_solo_level": {"value": "30", "label": "XP: Maraton bölüm geçme", "type": "int", "group": "XP"},
     "xp_daily_solved": {"value": "40", "label": "XP: Günün kelimesi çözme", "type": "int", "group": "XP"},
     "friend_request_hourly_limit": {"value": "5", "label": "Saatlik arkadaşlık isteği limiti", "type": "int", "group": "Sosyal"},
+    # Bu süreyi aşan bildirimler otomatik silinir (6 saatte bir çalışan görev).
+    # Kullanıcıya bildirim sayfasında bu süre yazılır. 0 = otomatik silme kapalı.
+    "notification_retention_days": {"value": "30", "label": "Bildirim saklama süresi (gün · 0 = sınırsız)", "type": "int", "group": "Sosyal"},
     # Misafir (üye olmayan ziyaretçi) erişimi. Kapatılırsa ilgili moda girişte
     # "üye ol" ekranı çıkar; sunucu tarafında da engellenir.
     # Not: panelin aç/kapa düğmesi "true"/"false" yazar — varsayılanlar da öyle.

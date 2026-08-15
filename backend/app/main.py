@@ -271,6 +271,13 @@ async def on_startup():
         _asyncio.create_task(league_scheduler_loop())
     except Exception as e:
         print(f"[startup] Lig scheduler atlandı: {e}")
+    # Eski bildirimleri temizleyen döngü (varsayılan: 30 günden eskiler).
+    try:
+        import asyncio as _asyncio
+        from app.services.notification_cleanup import notification_cleanup_loop
+        _asyncio.create_task(notification_cleanup_loop())
+    except Exception as e:
+        print(f"[startup] Bildirim temizlik görevi atlandı: {e}")
     # Oyun ayarlarını cache'e yükle (admin panelden değişebilir).
     try:
         from app.core.database import AsyncSessionLocal
