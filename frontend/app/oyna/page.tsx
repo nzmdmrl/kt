@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import { apiUrl } from "@/lib/api";
 import { startRadar, stopRadar, playSound, initSound } from "@/lib/sound";
 import { useAuth } from "@/lib/auth";
+import { useGuestAccess } from "@/lib/guestAccess";
 import Logo from "@/components/Logo";
 import MatchGame from "@/components/MatchGame";
+import GuestJoin from "@/components/GuestJoin";
 import VsScreen from "@/components/VsScreen";
 import TutorialDemo from "@/components/TutorialDemo";
 
@@ -23,8 +25,12 @@ function getAnonId(): string {
 type Mode = "menu" | "searching" | "vs" | "match";
 
 export default function OynaPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  // Misafir 1v1 erişimi admin ayarıyla kapatılabilir (guest_match_enabled).
+  const access = useGuestAccess();
+  const guestBlocked = !user && access !== null && !access.match;
+  const gateReady = !authLoading && (!!user || access !== null);
   const [playerId, setPlayerId] = useState("");
   const [name, setName] = useState("");
   const [elo, setElo] = useState(1000);
@@ -81,7 +87,7 @@ export default function OynaPage() {
 
   // Maç teklifi kabul edildiyse URL'de ?duel=CODE ile gelinir -> direkt o odaya bağlan.
   useEffect(() => {
-    if (!playerId) return;
+    if (!playerId || !gateReady || guestBlocked) return;
     const params = new URLSearchParams(window.location.search);
     // Ana sayfadan ?ogretici=1 ile gelince öğreticiyi aç.
     if (params.get("ogretici") === "1") {
@@ -106,7 +112,7 @@ export default function OynaPage() {
       else if (m === "create") { fromHomeRef.current = true; createRoom(); }
       else if (m === "search") { fromHomeRef.current = true; startSearch(); }
     }
-  }, [playerId]);
+  }, [playerId, gateReady, guestBlocked]);
 
   // --- Rakip Bul (matchmaking) ---
   const startSearch = useCallback(async () => {
@@ -123,6 +129,11 @@ export default function OynaPage() {
         body: JSON.stringify({ player_id: playerId, name, elo }),
       });
       const data = await res.json();
+      // Misafir 1v1 erişimi kapalıysa sunucu da engeller.
+      if (data.guest_blocked) {
+        setErr(data.message || "1v1 düello için giriş yapmalısın.");
+        return;
+      }
       // Terk cezası: engelliyse aramaya girme, uyar.
       if (data.banned) {
         setErr(data.message || "Şu an eşleştirme engellisin. Bota karşı oynayabilirsin.");
@@ -217,6 +228,20 @@ export default function OynaPage() {
   }
 
   // --- render ---
+  if (!gateReady) {
+    return <main style={pageStyle}><div style={{ display: "grid", placeItems: "center", minHeight: "50vh", color: "var(--text-soft)" }}>Yükleniyor…</div></main>;
+  }
+  // Misafir 1v1 kapalıysa: üyelik ekranı.
+  if (guestBlocked) {
+    return (
+      <GuestJoin
+        allowed={false}
+        icon="🎮"
+        title="1v1 Düello"
+        subtitle="Düello şu an sadece üyelere açık."
+      />
+    );
+  }
   // Öğretici demo: her şeyin üstünde, maçtan bağımsız.
   if (showTutorial) {
     return <TutorialDemo onClose={() => setShowTutorial(false)} />;

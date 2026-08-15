@@ -14,17 +14,27 @@ from __future__ import annotations
 import hashlib
 from datetime import date
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.deps import get_optional_user
 from app.models.daily_solve import DailySolve
 from app.words.word_service import get_pool
 from app.core.config import get_settings
 
 router = APIRouter(prefix="/daily", tags=["daily"])
 settings = get_settings()
+
+
+def _guard_guest(user) -> None:
+    """Misafir erişimi admin ayarıyla kapalıysa engelle."""
+    if user:
+        return
+    from app.game.settings_service import cached_bool
+    if not cached_bool("guest_daily_enabled", True):
+        raise HTTPException(401, "Günün kelimesi için giriş yapmalısın.")
 
 
 def _solver_key(request: Request, cid: str) -> str:
@@ -55,8 +65,9 @@ def word_of_day(d: date | None = None, length: int = 5, lang: str = "tr") -> str
 
 
 @router.get("/word")
-async def get_daily_word(length: int = Query(5, ge=4, le=6)):
+async def get_daily_word(length: int = Query(5, ge=4, le=6), user=Depends(get_optional_user)):
     """Günün kelimesini döner (ÇÖZÜM AÇIK DEĞİL — sadece uzunluk ve ilk harf)."""
+    _guard_guest(user)
     lang = settings.GAME_LANG
     word = word_of_day(length=length, lang=lang)
     return {
@@ -85,12 +96,14 @@ async def check_daily_guess(
     length: int = Query(5, ge=4, le=6),
     cid: str = Query("", description="Misafir istemci anahtarı (tekilleştirme)"),
     db: AsyncSession = Depends(get_db),
+    user=Depends(get_optional_user),
 ):
     """Günün kelimesi tahminini değerlendirir (Wordle renkleri).
 
     Tahmin doğruysa çözüm sayacına tek satır yazılır (aynı kişi tekrar çözerse
     sayaç artmaz).
     """
+    _guard_guest(user)
     from app.game.word_engine import normalize, evaluate_guess, is_correct, is_valid_word_shape
     lang = settings.GAME_LANG
     target = word_of_day(length=length, lang=lang)

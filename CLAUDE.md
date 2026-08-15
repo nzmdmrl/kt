@@ -149,10 +149,19 @@ Aşağıdakiler canlıda çalışıyor veya son push'a dahil. Detaylı geçmiş 
 - `/bildirimler` sayfası. Arkadaşlık, unvan (`title_up`), arena madalya (`arena_medal`) bildirimleri.
 - Link'li bildirimler tıklanınca profil/arenaya gider.
 
-### Misafir maçları
-- Misafir 1v1 oynayabilir. Maç kaydedilir ama misafir adı gizli → "Misafir" olarak yazılır.
-- Üye + misafir maçında ÜYE elo/xp alır (misafir hiçbir şey kazanmaz).
-- Misafir sonuç ekranında "Ücretsiz Üye Ol" teşviki.
+### Misafir (üye olmayan ziyaretçi) erişimi
+- **1v1**: misafir oynayabilir. Maç kaydedilir ama misafir adı gizli → "Misafir" olarak yazılır.
+  Üye + misafir maçında ÜYE elo/xp alır (misafir hiçbir şey kazanmaz).
+- **Arena**: misafir isim yazıp katılır (normal arena + özel arena). Üyenin beklediği lobiye
+  yer varsa doğrudan girer; yoksa yeni lobi açılır ve botlarla oynar. WS: `/api/ws/arena?gid=&name=`,
+  pid = `g{gid}` — `u` ile başlamadığı için `_persist_results` ödül/XP/kupa vermez.
+- **Günün Kelimesi**: misafir çözebilir (zaten auth'suz; sayaçta `g{cid}` ile tekilleştirilir).
+- Maç ve arena sonuç ekranlarında "Ücretsiz Üye Ol / Puanların kaydedilsin" teşviki (`GuestJoin.tsx`
+  giriş kartı, `ArenaGame`/`MatchGame` sonuç kartı).
+- **Admin ayarı** (⚙️ Ayarlar → 👤 Misafir): `guest_match_enabled`, `guest_arena_enabled`,
+  `guest_daily_enabled`. Kapatılırsa arayüzde "sadece üyelere açık" ekranı çıkar; sunucu da
+  (WS + `/mm/join` + `/daily/*`) ayrıca engeller. Arayüz bunları `GET /api/home/guest-access`
+  (public) ile okur — `frontend/lib/guestAccess.ts`.
 
 ### Görsel / ses
 - **Gece/gündüz gökyüzü animasyonu** (NightBackground): parlayan yıldızlar + ağır bulutlar (gece),

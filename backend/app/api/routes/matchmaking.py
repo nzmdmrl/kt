@@ -33,6 +33,16 @@ class JoinIn(BaseModel):
 
 @router.post("/join")
 async def join_queue(data: JoinIn, user: User | None = Depends(get_optional_user), db: AsyncSession = Depends(get_db)):
+    # Misafir 1v1 erişimi admin ayarıyla kapatılmış olabilir.
+    if not user:
+        from app.game.settings_service import cached_bool
+        if not cached_bool("guest_match_enabled", True):
+            return {
+                "player_id": data.player_id,
+                "in_queue": False,
+                "guest_blocked": True,
+                "message": "1v1 düello için giriş yapmalısın.",
+            }
     # Terk cezası: engelli kullanıcı eşleştirmeye giremez.
     if user:
         from app.game.abandon_service import is_matchmaking_banned

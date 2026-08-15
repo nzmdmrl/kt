@@ -68,6 +68,12 @@ DEFAULT_SETTINGS = {
     "xp_solo_level": {"value": "30", "label": "XP: Maraton bölüm geçme", "type": "int", "group": "XP"},
     "xp_daily_solved": {"value": "40", "label": "XP: Günün kelimesi çözme", "type": "int", "group": "XP"},
     "friend_request_hourly_limit": {"value": "5", "label": "Saatlik arkadaşlık isteği limiti", "type": "int", "group": "Sosyal"},
+    # Misafir (üye olmayan ziyaretçi) erişimi. Kapatılırsa ilgili moda girişte
+    # "üye ol" ekranı çıkar; sunucu tarafında da engellenir.
+    # Not: panelin aç/kapa düğmesi "true"/"false" yazar — varsayılanlar da öyle.
+    "guest_match_enabled": {"value": "true", "label": "Misafirler 1v1 düello oynayabilsin", "type": "bool", "group": "Misafir"},
+    "guest_arena_enabled": {"value": "true", "label": "Misafirler arenaya katılabilsin", "type": "bool", "group": "Misafir"},
+    "guest_daily_enabled": {"value": "true", "label": "Misafirler günün kelimesini çözebilsin", "type": "bool", "group": "Misafir"},
     # Ad kuralları — kayıt ve profil düzenlemede geçerli (hem sunucu hem arayüz uyar).
     # Sunucu sınırı: kullanıcı adı en fazla 32, görünen ad en fazla 48 karakter (DB sütunu).
     "username_min_len": {"value": "3", "label": "Kullanıcı adı: en az karakter", "type": "int", "group": "Adlar & Listeler"},

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useArena, ArenaPlayer, RevealPlayer } from "@/lib/useArena";
+import { guestPid } from "@/lib/guestAccess";
 import { useSectionMusic } from "@/lib/useSectionMusic";
 import { toUpperTr } from "@/lib/turkish";
 import { playSound, initSound, stopTicking, suppressUiClick } from "@/lib/sound";
@@ -9,8 +10,10 @@ import TitleCelebration from "./TitleCelebration";
 import { useSpeech } from "@/lib/useSpeech";
 
 // Arena maç ekranı — eşleşme, senkron sorular (anagram), sonuç.
-export default function ArenaGame({ onExit, customCode }: { onExit: () => void; customCode?: string }) {
-  const { state, connected, answer } = useArena(true, customCode);
+// guestName verilirse üye olmayan ziyaretçi olarak bağlanılır (ödül/XP yok).
+export default function ArenaGame({ onExit, customCode, guestName }: { onExit: () => void; customCode?: string; guestName?: string }) {
+  const { state, connected, answer } = useArena(true, customCode, guestName);
+  const isGuest = !!guestName;
   const [picked, setPicked] = useState<number[]>([]);   // seçilen karışık harf indexleri (sırayla)
   const [typed, setTyped] = useState("");                // klavye/ses ile yazılan
   const [useKeyboard, setUseKeyboard] = useState(false);
@@ -169,6 +172,21 @@ export default function ArenaGame({ onExit, customCode }: { onExit: () => void; 
     </div>
   ) : null;
 
+  // Sunucu hatası (ör. arena dolu / misafir girişi kapalı)
+  if (state.error) {
+    return (
+      <div style={{ display: "grid", placeItems: "center", minHeight: "70vh", padding: 20 }}>
+        <div style={{ textAlign: "center", maxWidth: 340 }}>
+          <div style={{ fontSize: 40, marginBottom: 10 }}>😕</div>
+          <p style={{ color: "var(--text-soft)", marginBottom: 18 }}>{state.error}</p>
+          <button onClick={onExit} style={{ padding: "12px 22px", borderRadius: 11, border: "none", background: "var(--accent)", color: "#1a1330", fontWeight: 800, fontSize: 15, cursor: "pointer" }}>
+            Ana Sayfa
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // Eşleşme / lobi
   if (state.phase === "connecting" || state.phase === "lobby") {
     return (
@@ -234,7 +252,7 @@ export default function ArenaGame({ onExit, customCode }: { onExit: () => void; 
   if (state.phase === "finished") {
     return (
       <>
-        <ArenaResult ranking={state.ranking} rewards={state.rewards} onExit={onExit} />
+        <ArenaResult ranking={state.ranking} rewards={state.rewards} onExit={onExit} isGuest={isGuest} />
         <TitleCelebration title={celebrateTitle} onClose={() => setCelebrateTitle(null)} />
       </>
     );
@@ -496,12 +514,12 @@ function ArenaShell({ children, onExit, players, answers, showResults, fillTo }:
 }
 
 // Sonuç ekranı — podyum (ilk 3 kürsü) + detaylı sıralama tablosu (✓ doğru / ⚡ hız / puan).
-function ArenaResult({ ranking, rewards, onExit }: { ranking: ArenaPlayer[]; rewards: { xp_gained: number; rank: number; won: boolean } | null; onExit: () => void }) {
+function ArenaResult({ ranking, rewards, onExit, isGuest }: { ranking: ArenaPlayer[]; rewards: { xp_gained: number; rank: number; won: boolean } | null; onExit: () => void; isGuest?: boolean }) {
   useEffect(() => { playSound("win"); }, []);
-  const showXp = !!rewards && rewards.xp_gained > 0;
+  const showXp = !isGuest && !!rewards && rewards.xp_gained > 0;
 
   const myUid = typeof window !== "undefined" ? localStorage.getItem("kt_uid") : null;
-  const myPid = myUid ? `u${myUid}` : null;
+  const myPid = isGuest ? guestPid() : myUid ? `u${myUid}` : null;
   const iWon = rewards?.won || (ranking[0]?.rank === 1 && ranking[0]?.pid === myPid);
 
   const first = ranking.find((p) => p.rank === 1);
@@ -593,6 +611,28 @@ function ArenaResult({ ranking, rewards, onExit }: { ranking: ArenaPlayer[]; rew
           );
         })}
       </div>
+
+      {/* Misafir teşviki: üye olursa XP/kupa/madalya profiline işlensin */}
+      {isGuest && (
+        <div style={{
+          marginTop: 16, padding: "18px 18px", borderRadius: 14,
+          background: "linear-gradient(135deg, rgba(224,148,10,.15), rgba(196,74,126,.12))",
+          border: "1px solid var(--accent)", textAlign: "center",
+        }}>
+          <div style={{ fontSize: 28, marginBottom: 6 }}>🎁</div>
+          <div style={{ fontWeight: 800, color: "var(--text-strong)", fontSize: 16, marginBottom: 4 }}>
+            Puanların kaydedilsin!
+          </div>
+          <div style={{ color: "var(--text-soft)", fontSize: 14, lineHeight: 1.5, marginBottom: 14 }}>
+            Üye olursan arenada kazandığın XP, kupa ve madalyalar profiline işlenir; lig sıralamasında yer alırsın.
+          </div>
+          <a href="/giris" style={{
+            display: "inline-block", padding: "12px 28px", borderRadius: 11, border: "none",
+            background: "var(--accent)", color: "#1a1330", fontWeight: 800, fontSize: 15,
+            textDecoration: "none",
+          }}>Ücretsiz Üye Ol →</a>
+        </div>
+      )}
 
       <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 16, flexWrap: "wrap" }}>
         <button onClick={() => window.location.reload()} style={{ padding: "12px 22px", borderRadius: 11, border: "none", background: "var(--accent)", color: "#1a1330", fontWeight: 700, fontSize: 15, cursor: "pointer" }}>Tekrar Arena'ya Gir</button>

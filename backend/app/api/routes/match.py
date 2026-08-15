@@ -196,6 +196,15 @@ async def match_ws(
     bot_elo: int = Query(1000),
 ):
     await websocket.accept()
+
+    # Misafir (pid 'u' ile başlamayan) erişimi admin ayarıyla kapatılabilir.
+    if not player_id.startswith("u"):
+        from app.game.settings_service import cached_bool
+        if not cached_bool("guest_match_enabled", True):
+            await websocket.send_json({"type": "error", "message": "1v1 düello için giriş yapmalısın."})
+            await websocket.close()
+            return
+
     room = room_manager.get_or_create(code.upper())
 
     # Oda dolu ve bu oyuncu içeride değilse reddet.

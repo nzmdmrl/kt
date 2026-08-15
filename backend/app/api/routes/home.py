@@ -31,6 +31,21 @@ async def appearance():
     }
 
 
+@router.get("/guest-access")
+async def guest_access():
+    """Public: misafirin (üye olmayan) hangi modlara girebildiği — admin ayarları.
+
+    Arayüz bu uca bakıp misafire ya "isim yaz & katıl" kartını ya da "üye ol"
+    ekranını gösterir. Sunucu tarafı da aynı ayarları ayrıca kontrol eder.
+    """
+    from app.game.settings_service import cached_bool
+    return {
+        "match": cached_bool("guest_match_enabled", True),
+        "arena": cached_bool("guest_arena_enabled", True),
+        "daily": cached_bool("guest_daily_enabled", True),
+    }
+
+
 @router.get("/recent-matches")
 async def recent_matches(db: AsyncSession = Depends(get_db), limit: int = 10):
     """Son maçlar — gösterilecek ad (`p1_display`/`p2_display`) ve mini avatar dahil.

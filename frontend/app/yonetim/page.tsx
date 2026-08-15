@@ -267,6 +267,7 @@ const SETTING_GROUPS: [string, string][] = [
   ["Görünüm", "🎨"],
   ["Ses", "🔊"],
   ["Sosyal", "🤝"],
+  ["Misafir", "👤"],
   ["Diğer", "📦"],
 ];
 

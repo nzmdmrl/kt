@@ -27,16 +27,23 @@ from sqlalchemy import select
 from pydantic import BaseModel
 
 from app.core.database import AsyncSessionLocal, get_db
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, get_optional_user
 from app.core.security import decode_token
 from app.core.config import get_settings
 from app.models.user import User
 from app.game.arena import ArenaMatch, FLASH_SECONDS, default_question_plan
 from app.game.arena_manager import arena_manager, ARENA_SIZE, WAIT_SECONDS
-from app.game.settings_service import cached_int
+from app.game.settings_service import cached_int, cached_bool
 from app.words.word_service import get_pool
 
 router = APIRouter()
+
+
+def _guest_identity(gid: str, name: str) -> tuple[str, str]:
+    """Misafir için (pid, ad). pid 'g' ile başlar — 'u{id}' olmadığı için ödül almaz."""
+    clean_gid = "".join(ch for ch in (gid or "") if ch.isalnum())[:32]
+    clean_name = (name or "").strip()[:24] or "Misafir"
+    return (f"g{clean_gid}" if clean_gid else "", clean_name)
 
 
 # ============ ÖZEL ARENA ============
@@ -128,8 +135,13 @@ async def custom_arena_public(code: str):
 
 
 @router.get("/arena/custom/{code}")
-async def custom_arena_info(code: str, user=Depends(get_current_user)):
-    """Bir özel arena lobisinin bilgisi (davet linkiyle girince)."""
+async def custom_arena_info(code: str, user=Depends(get_optional_user)):
+    """Bir özel arena lobisinin bilgisi (davet linkiyle girince).
+
+    Misafirler de görebilir (admin ayarı açıksa) — özel arenada ödül yok.
+    """
+    if not user and not cached_bool("guest_arena_enabled", True):
+        raise HTTPException(401, "Arena için giriş yapmalısın.")
     lobby = arena_manager.custom_lobby(code)
     if not lobby:
         raise HTTPException(404, "Arena bulunamadı veya süresi doldu.")
@@ -507,7 +519,13 @@ async def _persist_results(match: ArenaMatch) -> dict:
 
 
 @router.websocket("/ws/arena")
-async def arena_ws(websocket: WebSocket, token: str = Query(default=""), custom: str = Query(default="")):
+async def arena_ws(
+    websocket: WebSocket,
+    token: str = Query(default=""),
+    custom: str = Query(default=""),
+    gid: str = Query(default=""),
+    name: str = Query(default=""),
+):
     await websocket.accept()
 
     # Kimlik doğrula
@@ -519,14 +537,24 @@ async def arena_ws(websocket: WebSocket, token: str = Query(default=""), custom:
                 user = (await db.execute(select(User).where(User.id == uid))).scalar_one_or_none()
     except Exception:
         user = None
-    if not user:
-        await _send(websocket, {"type": "error", "message": "Giriş gerekli."})
-        await websocket.close()
-        return
 
-    pid = f"u{user.id}"
-    name = user.username or user.display_name or "Oyuncu"
-    avatar = user.avatar_url or ""
+    if user:
+        pid = f"u{user.id}"
+        name = user.username or user.display_name or "Oyuncu"
+        avatar = user.avatar_url or ""
+    else:
+        # Misafir katılımı (admin ayarıyla açılır). Ödül/XP/kupa verilmez —
+        # pid 'u' ile başlamadığı için _persist_results bu oyuncuyu atlar.
+        if not cached_bool("guest_arena_enabled", True):
+            await _send(websocket, {"type": "error", "message": "Arena için giriş yapmalısın."})
+            await websocket.close()
+            return
+        pid, name = _guest_identity(gid, name)
+        if not pid:
+            await _send(websocket, {"type": "error", "message": "Misafir bilgisi eksik."})
+            await websocket.close()
+            return
+        avatar = ""
 
     # ---- ÖZEL ARENA ----
     if custom:

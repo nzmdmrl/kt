@@ -2,12 +2,15 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSectionMusic } from "@/lib/useSectionMusic";
-import { apiUrl, getJSON } from "@/lib/api";
+import { apiUrl } from "@/lib/api";
 import { toUpperTr } from "@/lib/turkish";
 import { playSound, initSound } from "@/lib/sound";
 import { useSpeech } from "@/lib/useSpeech";
 import Logo from "@/components/Logo";
 import SoundToggle from "@/components/SoundToggle";
+import GuestJoin from "@/components/GuestJoin";
+import { useAuth } from "@/lib/auth";
+import { useGuestAccess } from "@/lib/guestAccess";
 
 type Tile = { letter: string; state: "correct" | "present" | "absent" };
 type DailyInfo = { date: string; length: number; first_letter: string };
@@ -37,16 +40,25 @@ export default function DailyPage() {
   const [draft, setDraft] = useState("");
   const [status, setStatus] = useState<"playing" | "won" | "lost">("playing");
   const [err, setErr] = useState("");
+  // Misafir erişimi admin ayarıyla kapatılabilir (guest_daily_enabled).
+  const { user, loading: authLoading } = useAuth();
+  const access = useGuestAccess();
+  const guestBlocked = !user && access !== null && !access.daily;
+  const gateReady = !authLoading && (!!user || access !== null);
 
   // Günün kelimesi müziği (oynarken).
   useSectionMusic("daily", status === "playing");
 
   useEffect(() => {
+    if (!gateReady || guestBlocked) return;
     initSound(true, 70);
-    getJSON<DailyInfo>("/api/daily/word?length=5")
-      .then((d) => { setInfo(d); setDraft(""); })
+    // Üyede token gider: misafir erişimi kapalı olsa da üye oynayabilsin.
+    const token = typeof window !== "undefined" ? localStorage.getItem("kt_token") : null;
+    fetch(apiUrl("/api/daily/word?length=5"), token ? { headers: { Authorization: `Bearer ${token}` } } : undefined)
+      .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
+      .then((d: DailyInfo) => { setInfo(d); setDraft(""); })
       .catch(() => setErr("Günün kelimesi yüklenemedi"));
-  }, []);
+  }, [gateReady, guestBlocked]);
 
   const submit = useCallback(async () => {
     if (!info || status !== "playing") return;
@@ -110,6 +122,17 @@ export default function DailyPage() {
     else if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => alert("Panoya kopyalandı!"));
   }
 
+  if (!gateReady) return <Wrap><Centered>Yükleniyor…</Centered></Wrap>;
+  if (guestBlocked) {
+    return (
+      <GuestJoin
+        allowed={false}
+        icon="📅"
+        title="Günün Kelimesi"
+        subtitle="Günün kelimesi şu an sadece üyelere açık."
+      />
+    );
+  }
   if (err && !info) return <Wrap><Centered>{err}</Centered></Wrap>;
   if (!info) return <Wrap><Centered>Yükleniyor…</Centered></Wrap>;
 

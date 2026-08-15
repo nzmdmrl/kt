@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { API_BASE } from "./api";
+import { guestId } from "./guestAccess";
 
 function wsBase(): string {
   if (API_BASE) return API_BASE.replace(/^http/, "ws");
@@ -43,6 +44,7 @@ export type ArenaState = {
   ranking: ArenaPlayer[];
   leftNotice: { name: string; at: number } | null;   // "xxx arenadan çıktı" popup
   rewards: { xp_gained: number; rank: number; won: boolean; new_title?: { name: string; icon: string } | null } | null;
+  error: string | null;              // sunucudan gelen hata (ör. misafir girişi kapalı)
 };
 
 const initialState: ArenaState = {
@@ -63,9 +65,10 @@ const initialState: ArenaState = {
   ranking: [],
   leftNotice: null,
   rewards: null,
+  error: null,
 };
 
-export function useArena(enabled: boolean, customCode?: string) {
+export function useArena(enabled: boolean, customCode?: string, guestName?: string) {
   const [state, setState] = useState<ArenaState>(initialState);
   const [connected, setConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
@@ -73,9 +76,13 @@ export function useArena(enabled: boolean, customCode?: string) {
   useEffect(() => {
     if (!enabled) return;
     const token = typeof window !== "undefined" ? localStorage.getItem("kt_token") : null;
-    if (!token) return;
+    // Üye: token ile. Misafir: gid + ad ile (admin ayarı açıksa sunucu kabul eder).
+    if (!token && !guestName) return;
 
-    let url = `${wsBase()}/api/ws/arena?token=${encodeURIComponent(token)}`;
+    let url = `${wsBase()}/api/ws/arena?`;
+    url += token
+      ? `token=${encodeURIComponent(token)}`
+      : `gid=${encodeURIComponent(guestId())}&name=${encodeURIComponent(guestName || "Misafir")}`;
     if (customCode) url += `&custom=${encodeURIComponent(customCode)}`;
     const ws = new WebSocket(url);
     wsRef.current = ws;
@@ -138,6 +145,9 @@ export function useArena(enabled: boolean, customCode?: string) {
         case "finished":
           setState((s) => ({ ...s, phase: "finished", ranking: msg.ranking || [], rewards: msg.rewards || null }));
           break;
+        case "error":
+          setState((s) => ({ ...s, error: msg.message || "Arenaya bağlanılamadı." }));
+          break;
         case "player_left":
           setState((s) => ({
             ...s,
@@ -150,7 +160,7 @@ export function useArena(enabled: boolean, customCode?: string) {
     };
 
     return () => { try { ws.close(); } catch {} wsRef.current = null; };
-  }, [enabled, customCode]);
+  }, [enabled, customCode, guestName]);
 
   const answer = useCallback((guess: string) => {
     const ws = wsRef.current;
