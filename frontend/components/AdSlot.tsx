@@ -19,6 +19,7 @@
 import { useEffect, useRef, useState } from "react";
 import { usePlatform } from "@/lib/platform";
 import { useAppConfig } from "@/lib/appConfig";
+import { useAdFree } from "@/lib/auth";
 
 export type AdSlotName = "header" | "in_content" | "footer";
 
@@ -46,13 +47,18 @@ export default function AdSlot({
 }) {
   const { isNative } = usePlatform();
   const config = useAppConfig();
+  // Reklamsız hesap: hiç render edilmez. Hak DURUMU NETLEŞENE KADAR da basılmaz
+  // (bkz. useAdFree) — reklam bir kez basılırsa GÖSTERİM sayılır, geri alınamaz.
+  const { adFree, ready: adFreeReady } = useAdFree();
+
   const insRef = useRef<HTMLModElement>(null);
   const pushed = useRef(false);
 
   const ads = config?.["ads.adsense"];
   const client = (ads?.client || "").trim();
   const slotId = (ads?.slots?.[slot] || "").trim();
-  const active = !isNative && !!ads?.enabled && !!client && !!slotId;
+  const active =
+    !isNative && adFreeReady && !adFree && !!ads?.enabled && !!client && !!slotId;
 
   useEffect(() => {
     if (!active || pushed.current || !insRef.current) return;

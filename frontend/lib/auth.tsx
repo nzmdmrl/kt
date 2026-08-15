@@ -21,6 +21,10 @@ export type AuthUser = {
   email?: string | null;
   has_password?: boolean;
   google_linked?: boolean;
+  /** Reklamsız hak — tüm reklam yolları buna bakar (AdSlot, AdMob bandı, geçiş). */
+  ad_free?: boolean;
+  /** manual | play | apple | web */
+  ad_free_source?: string | null;
 };
 
 type AuthContextType = {
@@ -55,6 +59,29 @@ function writeCachedUser(u: AuthUser | null) {
     if (u) localStorage.setItem(USER_CACHE_KEY, JSON.stringify(u));
     else localStorage.removeItem(USER_CACHE_KEY);
   } catch {}
+}
+
+/**
+ * Reklamsız (ad-free) hak — TÜM reklam yolları bunu kullanır.
+ *
+ * `ready` false iken hiçbir reklam AÇILMAMALIDIR. Üç belirsiz durum var:
+ *   1) oturum henüz çözülmedi (loading),
+ *   2) önbellekten gelen kullanıcı nesnesi ESKİ ve `ad_free` alanını hiç
+ *      taşımıyor (bu alan eklenmeden önce yazılmış önbellek) — /auth/me
+ *      yanıtı gelene kadar bilinmiyor sayılır,
+ *   3) token var ama kullanıcı henüz yok.
+ * Bu durumlarda çağıran taraf reklamı GÖSTERMEZ: hak sahibine yanlışlıkla
+ * reklam basmaktansa sıradan kullanıcıya bir saniye gecikmeli göstermek yeğdir
+ * (AdSense'te basılan reklam GÖSTERİM sayılır, geri alınamaz).
+ *
+ * Çıkış yapmış ziyaretçi reklamsız DEĞİLDİR.
+ */
+export function useAdFree(): { adFree: boolean; ready: boolean } {
+  const { user, token, loading } = useAuth();
+  if (loading) return { adFree: false, ready: false };
+  if (!token) return { adFree: false, ready: true };
+  if (!user || user.ad_free === undefined) return { adFree: false, ready: false };
+  return { adFree: !!user.ad_free, ready: true };
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {

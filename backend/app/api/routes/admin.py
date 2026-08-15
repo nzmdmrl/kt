@@ -15,6 +15,7 @@ Admin uçları — TÜMÜ get_admin_user ile korunur (sadece is_admin=True).
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, Query, HTTPException
@@ -456,3 +457,91 @@ async def remove_word(data: WordIn, admin: User = Depends(get_admin_user), db: A
     await db.commit()
     await refresh_pools(db)
     return {"ok": True, "removed": w}
+
+
+# ---------------------------------------------------------------- reklamsız (ad-free)
+#
+# ÖDEME ENTEGRASYONU YOK. Bugün bu bayrağı yalnızca admin elle açar/kapatır;
+# mağaza aboneliği (play/apple) ya da site satışı (web) eklendiğinde aynı alanlar
+# ad_free_source ile işaretlenir.
+#
+# Arayüz notu: panelde henüz genel bir kullanıcı yönetim ekranı YOK. Bu uçlar o
+# ekran eklendiğinde doğrudan kullanılabilir; şimdilik elle çağrılabilir.
+
+AD_FREE_SOURCES = {"manual", "play", "apple", "web"}
+
+
+@router.get("/users/search")
+async def search_users(
+    q: str = Query("", min_length=0, max_length=64),
+    limit: int = Query(20, ge=1, le=50),
+    admin: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Kullanıcı adı / görünen ad / e-posta içinde arar (admin)."""
+    term = (q or "").strip()
+    stmt = select(User)
+    if term:
+        like = f"%{term.lower()}%"
+        stmt = stmt.where(
+            func.lower(User.username).like(like)
+            | func.lower(User.display_name).like(like)
+            | func.lower(func.coalesce(User.email, "")).like(like)
+        )
+    rows = (await db.execute(stmt.order_by(User.id.desc()).limit(limit))).scalars().all()
+    return {
+        "users": [
+            {
+                "id": u.id,
+                "username": u.username,
+                "display_name": u.display_name,
+                "email": u.email,
+                "avatar_url": u.public_avatar,
+                "ad_free": bool(u.ad_free),
+                "ad_free_source": u.ad_free_source,
+                "ad_free_since": u.ad_free_since.isoformat() if u.ad_free_since else None,
+            }
+            for u in rows
+        ]
+    }
+
+
+class AdFreeIn(BaseModel):
+    ad_free: bool
+    source: str = "manual"
+
+
+@router.post("/users/{user_id}/ad-free")
+async def set_ad_free(
+    user_id: int,
+    data: AdFreeIn,
+    admin: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Kullanıcının reklamsız hakkını açar/kapatır."""
+    if data.source not in AD_FREE_SOURCES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Geçersiz kaynak. Şunlardan biri olmalı: {', '.join(sorted(AD_FREE_SOURCES))}",
+        )
+    user = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
+
+    user.ad_free = bool(data.ad_free)
+    if data.ad_free:
+        # Hak yeniden veriliyorsa tarihi tazele; zaten açıksa ilk tarihi koru.
+        if user.ad_free_since is None:
+            user.ad_free_since = datetime.now(timezone.utc)
+        user.ad_free_source = data.source
+    else:
+        # Kapatınca geçmişi silmiyoruz — ne zaman/nereden verildiği kayıtlı kalsın.
+        pass
+    await db.commit()
+    return {
+        "ok": True,
+        "user_id": user.id,
+        "ad_free": user.ad_free,
+        "ad_free_source": user.ad_free_source,
+        "ad_free_since": user.ad_free_since.isoformat() if user.ad_free_since else None,
+    }

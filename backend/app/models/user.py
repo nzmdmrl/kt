@@ -89,6 +89,15 @@ class User(Base):
     # Yetki
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
 
+    # Reklamsız (ad-free) hak sahipliği.
+    # ÖDEME ENTEGRASYONU YOK — bu yalnızca bayraktır; şu an sadece admin elle açar.
+    # ad_free_source: manual | play | apple | web
+    #   manual -> admin verdi, play/apple -> mağaza aboneliği, web -> site üzerinden
+    # Sütunlar başlangıçta otomatik eklenir (app/core/database.py, DEFAULT FALSE).
+    ad_free: Mapped[bool] = mapped_column(Boolean, default=False)
+    ad_free_since: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    ad_free_source: Mapped[str | None] = mapped_column(String(24), nullable=True)
+
     # Terk (maç bırakma) davranışı — ceza sistemi
     abandons: Mapped[int] = mapped_column(Integer, default=0)          # toplam terk sayısı
     matchmaking_banned_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -139,4 +148,8 @@ class User(Base):
         data["email"] = self.email
         data["has_password"] = self.password_hash is not None
         data["google_linked"] = self.google_sub is not None
+        # Reklamsız hak: istemci reklam yollarını buna göre kapatır (AdSense,
+        # AdMob bandı, geçiş reklamı). Herkese açık görünümde YER ALMAZ.
+        data["ad_free"] = bool(self.ad_free)
+        data["ad_free_source"] = self.ad_free_source
         return data

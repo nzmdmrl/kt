@@ -55,6 +55,18 @@ type Rules = {
 let runtime: Runtime | null = null;
 let rules: Rules | null = null;
 
+/**
+ * Reklamsız (ad-free) hesap. NativeBootstrap, oturum durumu netleşince yazar.
+ * Açıkken hem gösterim kapanır HEM DE maç sayacı artmaz: hak sona ererse
+ * kullanıcı "birikmiş" bir sayaçla karşılaşıp hemen reklam görmesin.
+ * Çıkış yapmış ziyaretçi reklamsız DEĞİLDİR (bayrak false kalır).
+ */
+let adFree = false;
+
+export function setInterstitialAdFree(value: boolean) {
+  adFree = !!value;
+}
+
 /** Native köprü + admin kuralları — yalnızca NativeBootstrap çağırır. */
 export function configureInterstitial(next: { runtime: Runtime; rules: Rules }) {
   runtime = next.runtime;
@@ -90,12 +102,16 @@ export function matchCount(): number {
  * okurken hazır olur, çıkışta bekleme olmaz.
  */
 export function noteMatchFinished(_mode: AdMode) {
+  // Reklamsız hesapta sayaç BİLE artmaz ve ilan önceden yüklenmez.
+  if (adFree) return;
   writeInt(COUNT_KEY, matchCount() + 1);
   void runtime?.prepare().catch(() => {});
 }
 
 /** Reklam gösterilebilir mi — TÜM koşullar sağlanmalı. */
 function eligible(mode: AdMode): boolean {
+  // Reklamsız hesap — hiçbir koşula bakılmadan kapalı.
+  if (adFree) return false;
   // isNative + ads.enabled + interstitial_enabled + dolu birim kimliği:
   // hepsi sağlanmazsa NativeBootstrap runtime'ı hiç kurmaz.
   if (!runtime || !rules) return false;

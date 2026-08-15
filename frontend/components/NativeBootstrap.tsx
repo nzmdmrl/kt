@@ -33,10 +33,10 @@
 import { useCallback, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { apiUrl } from "@/lib/api";
-import { useAuth } from "@/lib/auth";
+import { useAuth, useAdFree } from "@/lib/auth";
 import { usePlatform, type Platform } from "@/lib/platform";
 import { loadAppConfig, type AdMobConfig } from "@/lib/appConfig";
-import { configureInterstitial, type AdMode } from "@/lib/interstitial";
+import { configureInterstitial, setInterstitialAdFree, type AdMode } from "@/lib/interstitial";
 import { showToast } from "@/lib/webpush";
 
 /**
@@ -442,6 +442,15 @@ type BannerControl = {
 
 let bannerCtl: BannerControl | null = null;
 let currentPath = "/";
+
+/**
+ * Reklamsız (ad-free) hesap. Oturum durumu netleşince applyAdFree ile yazılır.
+ * AÇIKKEN: AdMob hiç kurulmaz, bant hiç gösterilmez, bant yüksekliği 0 kalır —
+ * yani navLift ve arka şerit de 0 olur (alt bar web'deki yerinde durur).
+ */
+let adFreeActive = false;
+/** setupAdMob bir kez çağrılsın diye (oturum değişiminde yeniden denenir). */
+let adMobSetupStarted = false;
 /** Hızlı gezinmede göster/gizle çağrıları birbirine karışmasın diye sıraya alınır. */
 let bannerQueue: Promise<void> = Promise.resolve();
 
@@ -451,7 +460,8 @@ function applyBannerForPath(): Promise<void> {
   if (!ctl) {
     return Promise.resolve();
   }
-  const shouldHide = pathHidden(currentPath, ctl.hiddenPaths);
+  // Reklamsız hesapta yol ne olursa olsun bant kapalı.
+  const shouldHide = adFreeActive || pathHidden(currentPath, ctl.hiddenPaths);
   bannerQueue = bannerQueue
     .then(() => (shouldHide ? ctl.hide() : ctl.show()))
     .catch(() => {});
@@ -479,6 +489,9 @@ function normalizeRoute(raw: unknown): string | null {
 export default function NativeBootstrap() {
   const { platform, isNative, ready } = usePlatform();
   const { token: authToken } = useAuth();
+  // Reklamsız hak. Durum netleşene kadar (ready=false) reklam AÇILMAZ —
+  // hak sahibine bir an bile reklam çıkmasın (bkz. lib/auth.tsx → useAdFree).
+  const { adFree, ready: adFreeReady } = useAdFree();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -610,9 +623,26 @@ export default function NativeBootstrap() {
     bootstrapped = true;
 
     void setupPush(platform, go, () => syncRef.current(), pushTokenRef);
-    void setupAdMob(platform);
     void setupBackButton();
+    // AdMob BURADA kurulmaz: reklamsız hak netleşmeden reklam açılmasın diye
+    // aşağıdaki effect'e taşındı.
   }, [ready, isNative, platform, go, syncPushToken]);
+
+  // --- reklamsız hak -------------------------------------------------------
+  // Geçiş reklamı sayacı tarayıcıda da tutulduğu için bu effect isNative'e
+  // BAKMAZ: web'de de sayaç artmasın.
+  // Durum netleşmemişse de bastırılır (fail-closed): en kötü ihtimalle sıradan
+  // kullanıcı ilk saniyede bir maç sayacı kaçırır.
+  useEffect(() => {
+    setInterstitialAdFree(!adFreeReady || adFree);
+  }, [adFreeReady, adFree]);
+
+  // AdMob (bant + geçiş köprüsü): oturum durumu çözülmeden başlatılmaz; giriş /
+  // çıkış olduğunda yeniden değerlendirilir.
+  useEffect(() => {
+    if (!ready || !isNative || !adFreeReady) return;
+    void applyAdFree(adFree, platform);
+  }, [ready, isNative, platform, adFreeReady, adFree]);
 
   return null;
 }
@@ -714,8 +744,38 @@ async function setupPush(
 
 // ---------------------------------------------------------------- ADMOB
 
+/**
+ * Reklamsız durumunu uygular. Oturum değişince de çağrılır (giriş/çıkış):
+ *  - açıldıysa: bandı gizle, yüksekliği 0'a çek (navLift + şerit kendiliğinden 0),
+ *  - kapandıysa: AdMob daha önce kurulmadıysa şimdi kur, kurulduysa yola göre uygula.
+ */
+async function applyAdFree(next: boolean, platform: Platform) {
+  const changed = adFreeActive !== next;
+  adFreeActive = next;
+  setInterstitialAdFree(next);
+
+  if (next) {
+    if (changed) log("reklamsız hesap — reklam yolları kapatıldı");
+    setBannerHeight(0);
+    try {
+      await bannerCtl?.hide();
+    } catch {}
+    return;
+  }
+
+  if (!adMobSetupStarted) {
+    adMobSetupStarted = true;
+    await setupAdMob(platform);
+    return;
+  }
+  // Zaten kurulmuştu (ör. reklamsız hesaptan çıkış yapıldı) — bandı geri getir.
+  await applyBannerForPath();
+}
+
 async function setupAdMob(platform: Platform) {
   try {
+    // Reklamsız hesapta AdMob SDK'sı hiç başlatılmaz, tek istek gitmez.
+    if (adFreeActive) return;
     const config = await loadAppConfig(platform);
     const admob = config?.["ads.admob"];
     if (!admob?.enabled) { return; }
