@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useArena, ArenaPlayer, RevealPlayer } from "@/lib/useArena";
 import { guestPid } from "@/lib/guestAccess";
+import ResultShare from "./ResultShare";
+import { arenaShareText } from "@/lib/shareText";
 import { useSectionMusic } from "@/lib/useSectionMusic";
 import { toUpperTr } from "@/lib/turkish";
 import { playSound, initSound, stopTicking, suppressUiClick } from "@/lib/sound";
@@ -252,7 +254,7 @@ export default function ArenaGame({ onExit, customCode, guestName }: { onExit: (
   if (state.phase === "finished") {
     return (
       <>
-        <ArenaResult ranking={state.ranking} rewards={state.rewards} onExit={onExit} isGuest={isGuest} />
+        <ArenaResult ranking={state.ranking} rewards={state.rewards} onExit={onExit} isGuest={isGuest} totalWords={state.revealTotal || state.totalQuestions} />
         <TitleCelebration title={celebrateTitle} onClose={() => setCelebrateTitle(null)} />
       </>
     );
@@ -514,7 +516,7 @@ function ArenaShell({ children, onExit, players, answers, showResults, fillTo }:
 }
 
 // Sonuç ekranı — podyum (ilk 3 kürsü) + detaylı sıralama tablosu (✓ doğru / ⚡ hız / puan).
-function ArenaResult({ ranking, rewards, onExit, isGuest }: { ranking: ArenaPlayer[]; rewards: { xp_gained: number; rank: number; won: boolean } | null; onExit: () => void; isGuest?: boolean }) {
+function ArenaResult({ ranking, rewards, onExit, isGuest, totalWords }: { ranking: ArenaPlayer[]; rewards: { xp_gained: number; rank: number; won: boolean } | null; onExit: () => void; isGuest?: boolean; totalWords?: number }) {
   useEffect(() => { playSound("win"); }, []);
   const showXp = !isGuest && !!rewards && rewards.xp_gained > 0;
 
@@ -522,6 +524,8 @@ function ArenaResult({ ranking, rewards, onExit, isGuest }: { ranking: ArenaPlay
   const myPid = isGuest ? guestPid() : myUid ? `u${myUid}` : null;
   const iWon = rewards?.won || (ranking[0]?.rank === 1 && ranking[0]?.pid === myPid);
 
+  // Paylaşım için kendi satırım (misafirde g..., üyede u{id}).
+  const mine = ranking.find((p) => p.pid === myPid);
   const first = ranking.find((p) => p.rank === 1);
   const second = ranking.find((p) => p.rank === 2);
   const third = ranking.find((p) => p.rank === 3);
@@ -631,6 +635,23 @@ function ArenaResult({ ranking, rewards, onExit, isGuest }: { ranking: ArenaPlay
             background: "var(--accent)", color: "#1a1330", fontWeight: 800, fontSize: 15,
             textDecoration: "none",
           }}>Ücretsiz Üye Ol →</a>
+        </div>
+      )}
+
+      {/* Sonuç paylaşımı — "🥈 Nazım arenada 2. oldu!" + sosyal butonlar */}
+      {mine && (
+        <div style={{ marginTop: 16 }}>
+          <ResultShare
+            text={arenaShareText({
+              me: mine.name,
+              rank: mine.rank ?? 0,
+              score: mine.score ?? 0,
+              correct: mine.correct_count,
+              total: totalWords,
+              players: ranking.length,
+            })}
+            title="Kelime Tahmin — Arena"
+          />
         </div>
       )}
 

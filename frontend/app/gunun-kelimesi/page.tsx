@@ -10,6 +10,8 @@ import Logo from "@/components/Logo";
 import SoundToggle from "@/components/SoundToggle";
 import GuestJoin from "@/components/GuestJoin";
 import TapHint from "@/components/TapHint";
+import ResultShare from "@/components/ResultShare";
+import { dailyShareText } from "@/lib/shareText";
 import { useAuth } from "@/lib/auth";
 import { useGuestAccess } from "@/lib/guestAccess";
 
@@ -153,16 +155,6 @@ export default function DailyPage() {
     saveState({ date: info.date, length: info.length, status: "playing", rows: [] });
   }
 
-  function share() {
-    const emojiGrid = rows.map((row) =>
-      row.map((t) => (t.state === "correct" ? "🟩" : t.state === "present" ? "🟨" : "⬛")).join("")
-    ).join("\n");
-    const result = status === "won" ? `${rows.length}/${MAX_ROWS}` : "X/6";
-    const text = `Kelime Tahmin — Günün Kelimesi ${result}\n${emojiGrid}\nkelimetahmin.com`;
-    if (navigator.share) navigator.share({ text }).catch(() => {});
-    else if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => alert("Panoya kopyalandı!"));
-  }
-
   if (!gateReady) return <Wrap><Centered>Yükleniyor…</Centered></Wrap>;
   if (guestBlocked) {
     return (
@@ -284,11 +276,12 @@ export default function DailyPage() {
             </p>
           )}
           {rows.length > 0 && (
-            <button onClick={share} style={{
-              marginTop: 12, padding: "12px 28px", borderRadius: 12, border: "none",
-              background: "var(--accent)", color: "#1a1330", fontWeight: 700, fontSize: 16,
-              cursor: "pointer", fontFamily: "var(--font-display)",
-            }}>📤 Sonucu Paylaş</button>
+            <div style={{ marginTop: 14 }}>
+              <ResultShare
+                text={dailyShareText({ rows, maxRows: MAX_ROWS, won: status === "won" })}
+                title="Kelime Tahmin — Günün Kelimesi"
+              />
+            </div>
           )}
           {/* Bilemediyse bugünkü kelimeyi yeniden deneyebilir (çözdüyse kilitli). */}
           {status === "lost" && (

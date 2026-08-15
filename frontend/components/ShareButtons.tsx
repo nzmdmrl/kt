@@ -1,14 +1,21 @@
 "use client";
 
 /**
- * Mini sosyal medya paylaşım butonları (WhatsApp / Facebook / X / LinkedIn).
- * url: paylaşılacak tam adres, title: paylaşım metni (OG başlığıyla aynı).
+ * Mini sosyal medya paylaşım butonları (WhatsApp / Facebook / X / Telegram / LinkedIn).
+ *
+ * url   : paylaşılacak tam adres
+ * title : kısa başlık (native paylaşımda ve yedek metin olarak)
+ * text  : gönderilecek tam metin (çok satırlı olabilir — sonuç paylaşımları).
+ *         Verilmezse title kullanılır. Facebook metni taşımaz (kısıtı).
+ * networks: hangi ağlar, hangi sırayla (varsayılan: davet kutularındaki dörtlü)
  */
 
 type Props = {
   url: string;
   title: string;
+  text?: string;
   label?: string;
+  networks?: string[];
 };
 
 const NETWORKS = [
@@ -41,6 +48,16 @@ const NETWORKS = [
     ),
   },
   {
+    key: "telegram",
+    name: "Telegram",
+    color: "#229ED9",
+    href: (u: string, t: string) =>
+      `https://t.me/share/url?url=${encodeURIComponent(u)}&text=${encodeURIComponent(t)}`,
+    icon: (
+      <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm4.64 6.8-1.55 7.32c-.12.52-.42.65-.85.4l-2.35-1.73-1.13 1.09c-.13.13-.24.24-.48.24l.17-2.4 4.38-3.96c.19-.17-.04-.26-.3-.09l-5.41 3.4-2.33-.73c-.51-.16-.52-.51.1-.75l9.11-3.51c.42-.15.79.1.65.72Z" />
+    ),
+  },
+  {
     key: "linkedin",
     name: "LinkedIn",
     color: "#0A66C2",
@@ -51,7 +68,13 @@ const NETWORKS = [
   },
 ];
 
-export default function ShareButtons({ url, title, label = "Davet et" }: Props) {
+const DEFAULT_NETWORKS = ["whatsapp", "facebook", "twitter", "linkedin"];
+
+export default function ShareButtons({ url, title, text, label = "Davet et", networks }: Props) {
+  const msg = text || title;
+  const keys = networks && networks.length ? networks : DEFAULT_NETWORKS;
+  const shown = keys.map((k) => NETWORKS.find((n) => n.key === k)).filter(Boolean) as typeof NETWORKS;
+
   function open(href: string) {
     window.open(href, "_blank", "noopener,noreferrer,width=640,height=620");
   }
@@ -62,10 +85,10 @@ export default function ShareButtons({ url, title, label = "Davet et" }: Props) 
         <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-soft)" }}>{label}</span>
       )}
       <div style={{ display: "flex", gap: 8 }}>
-        {NETWORKS.map((n) => (
+        {shown.map((n) => (
           <button
             key={n.key}
-            onClick={() => open(n.href(url, title))}
+            onClick={() => open(n.href(url, msg))}
             title={`${n.name} ile paylaş`}
             aria-label={`${n.name} ile paylaş`}
             style={{
@@ -87,7 +110,7 @@ export default function ShareButtons({ url, title, label = "Davet et" }: Props) 
         ))}
         {typeof navigator !== "undefined" && (navigator as any).share && (
           <button
-            onClick={() => (navigator as any).share({ title, text: title, url }).catch(() => {})}
+            onClick={() => (navigator as any).share({ title, text: msg, url }).catch(() => {})}
             title="Diğer uygulamalarla paylaş"
             aria-label="Diğer uygulamalarla paylaş"
             style={{

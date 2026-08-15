@@ -6,6 +6,8 @@ import { toUpperTr } from "@/lib/turkish";
 import { playSound, initSound, startTicking, stopTicking, suppressUiClick } from "@/lib/sound";
 import { useSpeech } from "@/lib/useSpeech";
 import TapHint from "./TapHint";
+import ResultShare from "./ResultShare";
+import { soloShareText } from "@/lib/shareText";
 
 type Tile = { letter: string; state: "correct" | "present" | "absent" };
 type StartInfo = { level: number; length: number; first_letter: string; seconds: number; joker_count: number; replay: boolean };
@@ -268,7 +270,14 @@ export default function SoloGame({ level, onExit, onComplete }: {
               <span key={s} style={{ fontSize: 44, filter: s <= result.stars ? "none" : "grayscale(1) opacity(0.3)" }}>⭐</span>
             ))}
           </div>
-          <p style={{ color: "var(--text-soft)", marginBottom: 18 }}>Toplam yıldız: {result.total}</p>
+          <p style={{ color: "var(--text-soft)", marginBottom: 14 }}>Toplam yıldız: {result.total}</p>
+          <div style={{ marginBottom: 16 }}>
+            <ResultShare
+              text={soloShareText({ level, stars: result.stars, total: result.total })}
+              title="Kelime Tahmin — Maraton"
+              compact
+            />
+          </div>
           <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
             <button onClick={() => { stopTicking(); onComplete(result.stars, result.next); }} style={btnPrimary}>Sonraki Bölüm →</button>
             <button onClick={() => { stopTicking(); onExit(); }} style={btnGhost}>Haritaya Dön</button>

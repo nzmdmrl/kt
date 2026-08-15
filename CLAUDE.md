@@ -145,6 +145,15 @@ Aşağıdakiler canlıda çalışıyor veya son push'a dahil. Detaylı geçmiş 
   "Kupalar & Madalyalar" bölümünde gösterilir.
 - Maç sonu kazanım animasyonu (elo/xp/rozet sayaç + ses). Unvan kutlama modalı (konfeti + müzik).
 
+### Sonuç paylaşımı
+- `components/ResultShare.tsx`: metin önizlemesi + WhatsApp · X · Telegram · Facebook · 📋 Kopyala
+  (+ mobilde native paylaşım). 1v1, Arena, Günün Kelimesi ve Maraton sonuç ekranlarında.
+- Metinler `lib/shareText.ts` içinde üretilir: "🏆 Nazım, Ahmet'i 200-0 yendi!",
+  "🥈 Nazım arenada 2. oldu!" vb. Türkçe belirtme eki `acc()` ile ("Ayşe'yi", "Nazım'ı").
+- Paylaşılan adres bulunulan sayfadır (`pageUrl()` — sorgu parametreleri atılır).
+  Facebook metni taşımaz (kendi kısıtı), sadece sayfanın OG başlığını gösterir → OG metinleri
+  admin → 🔍 SEO'dan zengin tutulmalı.
+
 ### Bildirimler
 - `/bildirimler` sayfası. Arkadaşlık, unvan (`title_up`), arena madalya (`arena_medal`) bildirimleri.
 - Link'li bildirimler tıklanınca profil/arenaya gider.

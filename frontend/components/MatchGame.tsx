@@ -7,6 +7,8 @@ import { useSpeech } from "@/lib/useSpeech";
 import { playSound, initSound, startTicking, stopTicking, suppressUiClick } from "@/lib/sound";
 import Grid from "./Grid";
 import MatchRewards from "./MatchRewards";
+import ResultShare from "./ResultShare";
+import { matchShareText } from "@/lib/shareText";
 import TitleCelebration from "./TitleCelebration";
 import { useSectionMusic } from "@/lib/useSectionMusic";
 import ScoreBar from "./ScoreBar";
@@ -471,11 +473,18 @@ export default function MatchGame({
               🔄 Rövanş İste
             </button>
           )}
+          {/* Sonuç paylaşımı — "🏆 Nazım, Ahmet'i 200-0 yendi!" + sosyal butonlar */}
+          <ResultShare
+            text={matchShareText({
+              me: me?.name || "Oyuncu",
+              opp: opp?.name || "Rakip",
+              myScore, oppScore, won, draw,
+            })}
+            title="Kelime Tahmin — 1v1 Düello"
+          />
+
           <div style={{ display: "flex", gap: 10 }}>
-            <a href="/oyna" style={{ ...secondaryLink, flex: 1 }}>Yeni Rakip</a>
-            <button onClick={() => shareResult(won, draw, myScore, oppScore)} style={{ ...secondaryLink, flex: 1, border: "1px solid var(--border-soft)", background: "transparent", cursor: "pointer", fontFamily: "var(--font-body)" }}>
-              📤 Paylaş
-            </button>
+            <a href="/oyna" style={{ ...secondaryLink, flex: 1, textAlign: "center" }}>Yeni Rakip</a>
           </div>
           <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap", marginTop: 4 }}>
             <a href="/" style={endLinkBtn}>🏠 Ana Sayfa</a>
@@ -775,17 +784,6 @@ const secondaryLink: React.CSSProperties = {
   fontSize: 15,
   fontFamily: "var(--font-display)",
 };
-
-// Sonuç paylaşımı — Web Share API (mobilde native paylaşım), yoksa panoya kopyala.
-function shareResult(won: boolean, draw: boolean, myScore: number, oppScore: number) {
-  const outcome = draw ? "berabere kaldım" : won ? "kazandım" : "kaybettim";
-  const text = `Kelime Tahmin'de ${myScore}-${oppScore} ${outcome}! 🎯 Sen de dene: kelimetahmin.com`;
-  if (navigator.share) {
-    navigator.share({ title: "Kelime Tahmin", text, url: "https://kelimetahmin.com" }).catch(() => {});
-  } else if (navigator.clipboard) {
-    navigator.clipboard.writeText(text).then(() => alert("Sonuç panoya kopyalandı!")).catch(() => {});
-  }
-}
 
 // Rakip beklenirken görünen "Geri" butonu (odadan çık).
 function BackButton({ onClick }: { onClick: () => void }) {
