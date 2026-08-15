@@ -271,6 +271,8 @@ export default function OynaPage() {
           isGuest={!user}
           invitable={roomFlow && !bot}
           onLeave={roomFlow ? leaveRoom : undefined}
+          // Geçiş reklamı mod anahtarı (admin panelinden ayrı ayrı kapatılabilir).
+          adMode={bot ? "pratik" : roomFlow ? "oda" : "duello"}
           onRematch={() => {
             // Rövanş: aynı rakip tipiyle (bot/insan) yeni oda + yeni maç.
             // Yeni oda kodu + VS ekranı; key={code} sayesinde MatchGame sıfırdan kurulur.

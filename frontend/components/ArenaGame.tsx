@@ -10,6 +10,7 @@ import { toUpperTr } from "@/lib/turkish";
 import { playSound, initSound, stopTicking, suppressUiClick } from "@/lib/sound";
 import TitleCelebration from "./TitleCelebration";
 import { useSpeech } from "@/lib/useSpeech";
+import { exitWithAd, noteMatchFinished, type AdMode } from "@/lib/interstitial";
 
 // Arena maç ekranı — eşleşme, senkron sorular (anagram), sonuç.
 // guestName verilirse üye olmayan ziyaretçi olarak bağlanılır (ödül/XP yok).
@@ -24,6 +25,19 @@ export default function ArenaGame({ onExit, customCode, guestName }: { onExit: (
 
   // Ses sistemi + arena boyunca global arayüz tıklama sesini sustur.
   useEffect(() => { initSound(true, 70); return suppressUiClick(); }, []);
+
+  // Özel arena ayrı anahtar (varsayılan reklamsız): ödül vermiyor, arkadaş modu.
+  const adMode: AdMode = customCode ? "ozel_arena" : "arena";
+
+  // Arena TAMAMEN bitti (sıralama geldi) -> 1 maç. Sorular arası "reveal"
+  // ekranında ve yarıda çıkışta ÇALIŞMAZ. Ref ile bir kez.
+  const countedRef = useRef(false);
+  useEffect(() => {
+    if (countedRef.current) return;
+    if (state.phase !== "finished") return;
+    countedRef.current = true;
+    noteMatchFinished(adMode);
+  }, [state.phase, adMode]);
 
   // Arena rakip aranırken (bekleme fazı) müzik çal; maç başlayınca dur.
   const isWaiting = state.phase === "connecting" || state.phase === "lobby";
@@ -254,7 +268,7 @@ export default function ArenaGame({ onExit, customCode, guestName }: { onExit: (
   if (state.phase === "finished") {
     return (
       <>
-        <ArenaResult ranking={state.ranking} rewards={state.rewards} onExit={onExit} isGuest={isGuest} totalWords={state.revealTotal || state.totalQuestions} />
+        <ArenaResult ranking={state.ranking} rewards={state.rewards} onExit={onExit} adMode={adMode} isGuest={isGuest} totalWords={state.revealTotal || state.totalQuestions} />
         <TitleCelebration title={celebrateTitle} onClose={() => setCelebrateTitle(null)} />
       </>
     );
@@ -516,7 +530,7 @@ function ArenaShell({ children, onExit, players, answers, showResults, fillTo }:
 }
 
 // Sonuç ekranı — podyum (ilk 3 kürsü) + detaylı sıralama tablosu (✓ doğru / ⚡ hız / puan).
-function ArenaResult({ ranking, rewards, onExit, isGuest, totalWords }: { ranking: ArenaPlayer[]; rewards: { xp_gained: number; rank: number; won: boolean } | null; onExit: () => void; isGuest?: boolean; totalWords?: number }) {
+function ArenaResult({ ranking, rewards, onExit, adMode, isGuest, totalWords }: { ranking: ArenaPlayer[]; rewards: { xp_gained: number; rank: number; won: boolean } | null; onExit: () => void; adMode: AdMode; isGuest?: boolean; totalWords?: number }) {
   useEffect(() => { playSound("win"); }, []);
   const showXp = !isGuest && !!rewards && rewards.xp_gained > 0;
 
@@ -639,8 +653,10 @@ function ArenaResult({ ranking, rewards, onExit, isGuest, totalWords }: { rankin
       )}
 
       <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 16, flexWrap: "wrap" }}>
+        {/* "Tekrar Arena'ya Gir" = oynamaya devam -> reklam ASLA çıkmaz. */}
         <button onClick={() => window.location.reload()} style={{ padding: "12px 22px", borderRadius: 11, border: "none", background: "var(--accent)", color: "#1a1330", fontWeight: 700, fontSize: 15, cursor: "pointer" }}>Tekrar Arena'ya Gir</button>
-        <button onClick={onExit} style={{ padding: "12px 20px", borderRadius: 11, border: "1px solid var(--border-soft)", background: "transparent", color: "var(--text-soft)", fontWeight: 600, fontSize: 15, cursor: "pointer" }}>Ana Sayfa</button>
+        {/* Ana sayfa = oyun akışından çıkış -> koşullar tutarsa geçiş reklamı. */}
+        <button onClick={() => void exitWithAd(adMode, onExit)} style={{ padding: "12px 20px", borderRadius: 11, border: "1px solid var(--border-soft)", background: "transparent", color: "var(--text-soft)", fontWeight: 600, fontSize: 15, cursor: "pointer" }}>Ana Sayfa</button>
       </div>
 
       {/* Sonuç paylaşımı — her zaman EN ALTTA */}

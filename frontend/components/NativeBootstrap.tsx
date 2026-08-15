@@ -35,7 +35,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { apiUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { usePlatform, type Platform } from "@/lib/platform";
-import { loadAppConfig } from "@/lib/appConfig";
+import { loadAppConfig, type AdMobConfig } from "@/lib/appConfig";
+import { configureInterstitial, type AdMode } from "@/lib/interstitial";
 import { showToast } from "@/lib/webpush";
 
 /**
@@ -102,6 +103,21 @@ const TEST_AD_UNITS = {
  * backend/app/api/routes/app_settings.py → DEFAULT_BANNER_HIDDEN_PATHS ile aynı.
  */
 const FALLBACK_BANNER_HIDDEN_PATHS = ["/oyna", "/arena", "/solo", "/gunun-kelimesi", "/oda"];
+
+/**
+ * Geçiş reklamının mod bazlı aç/kapası — ayar okunamazsa kullanılır.
+ * backend/app/api/routes/app_settings.py → DEFAULT_INTERSTITIAL_MODES ile aynı.
+ * ÖZEL ARENA VARSAYILAN KAPALI (ödülsüz, arkadaş modu).
+ */
+const FALLBACK_INTERSTITIAL_MODES: Record<string, boolean> = {
+  gunun_kelimesi: true,
+  maraton: true,
+  pratik: true,
+  duello: true,
+  arena: true,
+  oda: true,
+  ozel_arena: false,
+};
 
 /** Kurulum belge başına bir kez çalışsın (dev StrictMode çift render'ı dahil). */
 let bootstrapped = false;
@@ -703,31 +719,9 @@ async function setupAdMob(platform: Platform) {
     const config = await loadAppConfig(platform);
     const admob = config?.["ads.admob"];
     if (!admob?.enabled) { return; }
-    // banner_enabled ayrı anahtar: banner kapatılsa da geçiş reklamı kalır.
-    // Alan hiç yoksa (migration öncesi kayıt) eskisi gibi AÇIK sayılır.
-    if (admob.banner_enabled === false) { return; }
-
-    const configuredUnit = (
-      (platform === "ios" ? admob.ios?.banner : admob.android?.banner) || ""
-    ).trim();
-    // Yapılandırılmış birim boşsa reklam AÇILMAZ (test modunda bile): "ayar yoksa
-    // reklam yok" kuralı korunuyor.
-    if (!configuredUnit) { return; }
-
-    // Test modunda Google'ın test birimi kullanılır (bkz. TEST_AD_UNITS).
-    const useTestUnit = !!admob.test_mode;
-    const unit = useTestUnit ? TEST_AD_UNITS.banner : configuredUnit;
-    const unitKind = useTestUnit ? "GOOGLE TEST BİRİMİ" : "gerçek birim";
-
-    const hiddenPaths = Array.isArray(admob.banner_hidden_paths)
-      ? admob.banner_hidden_paths.filter((p): p is string => typeof p === "string" && !!p.trim())
-      : FALLBACK_BANNER_HIDDEN_PATHS;
 
     const { AdMob, BannerAdSize, BannerAdPosition, BannerAdPluginEvents } =
       await import("@capacitor-community/admob");
-    try {
-      const { Capacitor } = await import("@capacitor/core");
-    } catch {}
 
     const isTesting = !!admob.test_mode;
     // DİKKAT: initialize Play Services olmayan emülatörde HİÇ ÇÖZÜLMEYEBİLİR.
@@ -745,6 +739,31 @@ async function setupAdMob(platform: Platform) {
         log("ATT izni sorulamadı:", e);
       }
     }
+
+    // Geçiş reklamı BANNER'DAN BAĞIMSIZ kurulur: banner kapalı olsa da ya da
+    // banner birimi girilmemiş olsa da interstitial çalışmaya devam eder.
+    setupInterstitial(platform, admob, AdMob, isTesting);
+
+    // --- bundan sonrası SADECE banner ---------------------------------------
+    // banner_enabled ayrı anahtar; alan hiç yoksa (migration öncesi kayıt)
+    // eskisi gibi AÇIK sayılır.
+    if (admob.banner_enabled === false) { return; }
+
+    const configuredUnit = (
+      (platform === "ios" ? admob.ios?.banner : admob.android?.banner) || ""
+    ).trim();
+    // Yapılandırılmış birim boşsa reklam AÇILMAZ (test modunda bile): "ayar yoksa
+    // reklam yok" kuralı korunuyor.
+    if (!configuredUnit) { return; }
+
+    // Test modunda Google'ın test birimi kullanılır (bkz. TEST_AD_UNITS).
+    const useTestUnit = !!admob.test_mode;
+    const unit = useTestUnit ? TEST_AD_UNITS.banner : configuredUnit;
+    const unitKind = useTestUnit ? "GOOGLE TEST BİRİMİ" : "gerçek birim";
+
+    const hiddenPaths = Array.isArray(admob.banner_hidden_paths)
+      ? admob.banner_hidden_paths.filter((p): p is string => typeof p === "string" && !!p.trim())
+      : FALLBACK_BANNER_HIDDEN_PATHS;
 
     // --- banner durumu ---------------------------------------------------
     // Native tarafta banner nesnesinin gerçek hâli. Yanlış durumda çağrı yapmak
@@ -874,6 +893,85 @@ async function setupAdMob(platform: Platform) {
   } catch (e) {
     log("AdMob kurulumu başarısız:", e);
     setBannerHeight(0);
+  }
+}
+
+// ------------------------------------------------------ GEÇİŞ (INTERSTITIAL)
+//
+// Buradaki tek iş native köprüyü kurmaktır: NE ZAMAN gösterileceğine dair TÜM
+// kurallar lib/interstitial.ts'te (yerleşim, sayaç, sıklık). Bu ayrım bilinçli:
+// oyun ekranları Capacitor'a hiç dokunmadan exitWithAd/noteMatchFinished çağırır,
+// tarayıcıda ise köprü hiç kurulmadığı için tüm kapılar kapalı kalır.
+
+type AdMobModule = (typeof import("@capacitor-community/admob"))["AdMob"];
+
+/** Sayı ayarı: geçersizse varsayılan, 0 ise GERÇEKTEN 0 (kasıtlı olabilir). */
+function numSetting(value: unknown, fallback: number): number {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function setupInterstitial(
+  platform: Platform,
+  admob: AdMobConfig,
+  AdMob: AdMobModule,
+  isTesting: boolean,
+) {
+  try {
+    // Alan hiç yoksa (migration öncesi kayıt) AÇIK sayılır — banner'daki kuralla aynı.
+    if (admob.interstitial_enabled === false) return;
+
+    const configured = (
+      (platform === "ios" ? admob.ios?.interstitial : admob.android?.interstitial) || ""
+    ).trim();
+    // "Ayar yoksa reklam yok": birim girilmemişse test modunda bile açılmaz.
+    if (!configured) return;
+    const unit = isTesting ? TEST_AD_UNITS.interstitial : configured;
+
+    const modesCfg = admob.interstitial_modes;
+    const modes = (modesCfg && typeof modesCfg === "object" ? modesCfg : FALLBACK_INTERSTITIAL_MODES) as
+      Partial<Record<AdMode, boolean>>;
+
+    // --- ilanı ÖNCEDEN yükle: çıkışta bekleme olmasın ---------------------
+    // prepared = elde gösterilmeyi bekleyen ilan var. Gösterilen ilan tüketilir,
+    // yenisi hemen yüklenmeye başlar (lib/interstitial.ts show sonrası prepare der).
+    let prepared = false;
+    let preparing: Promise<void> | null = null;
+
+    const prepare = (): Promise<void> => {
+      if (prepared) return Promise.resolve();
+      if (preparing) return preparing;
+      preparing = AdMob.prepareInterstitial({ adId: unit, isTesting })
+        .then(() => { prepared = true; })
+        .catch((e) => {
+          // No fill / ağ hatası: sessizce geç, bir sonraki denemede tekrar yüklenir.
+          log("interstitial hazırlanamadı:", e);
+          throw e;
+        })
+        .finally(() => { preparing = null; });
+      return preparing;
+    };
+
+    const show = async (): Promise<void> => {
+      if (!prepared) throw new Error("interstitial hazır değil");
+      prepared = false;   // bu ilan tüketildi; sonraki için yeniden prepare gerekir
+      await AdMob.showInterstitial();
+    };
+
+    configureInterstitial({
+      runtime: { prepare, show, isReady: () => prepared },
+      rules: {
+        everyN: numSetting(admob.interstitial_every_n_matches, 5),
+        minSeconds: numSetting(admob.interstitial_min_seconds, 90),
+        skipFirstN: numSetting(admob.interstitial_skip_first_n, 3),
+        modes,
+      },
+    });
+
+    // İlk ilanı şimdiden yükle — kullanıcı ilk maçını bitirmeden hazır olsun.
+    void prepare().catch(() => {});
+  } catch (e) {
+    log("interstitial kurulumu başarısız:", e);
   }
 }
 

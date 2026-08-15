@@ -14,6 +14,7 @@ import { useSectionMusic } from "@/lib/useSectionMusic";
 import ScoreBar from "./ScoreBar";
 import MultiScoreBar from "./MultiScoreBar";
 import RoomInvite from "./RoomInvite";
+import { adExitProps, noteMatchFinished, type AdMode } from "@/lib/interstitial";
 
 export default function MatchGame({
   code,
@@ -25,6 +26,7 @@ export default function MatchGame({
   onLeave,
   isGuest,
   invitable,
+  adMode = "duello",
 }: {
   code: string;
   playerId: string;
@@ -35,6 +37,8 @@ export default function MatchGame({
   onLeave?: () => void;   // rakip beklerken "Geri" (oda kur/katıl akışı)
   isGuest?: boolean;
   invitable?: boolean;    // özel oda: beklerken davet paneli (link + sosyal + arkadaşlar)
+  /** Geçiş reklamı mod anahtarı: pratik (bota karşı) / oda (özel oda) / duello. */
+  adMode?: AdMode;
 }) {
   const { connected, state, lastEvent, error, flash, buzzer, guess, emote, useJoker, jokers, room, expired, leftNotice, rematchRequest, rematchAccept, rematchDecline } = useMatch(
     code,
@@ -166,6 +170,17 @@ export default function MatchGame({
 
   // 1v1 rakip aranırken/beklenirken müzik çal; maç başlayınca dur.
   const matchWaiting = !state || phase === "waiting" || (state?.players?.length ?? 0) < (room?.size ?? 2);
+
+  // OTURUM tamamen bitti -> 1 maç. "round_over" (tur arası) SAYILMAZ: çok turlu
+  // özel odada 3 tur 1 maçtır. Yarıda terk edilirse phase "finished" olmadığı için
+  // hiç çalışmaz. Rövanşta MatchGame key={code} ile sıfırdan kurulur, ref tazelenir.
+  const countedRef = useRef(false);
+  useEffect(() => {
+    if (countedRef.current) return;
+    if (phase !== "finished" && !matchOverData) return;
+    countedRef.current = true;
+    noteMatchFinished(adMode);
+  }, [phase, matchOverData, adMode]);
 
   // Oda bekleme geri sayımı (özel oda): sunucudan gelen saniyeyi yerel olarak azalt.
   const [waitLeft, setWaitLeft] = useState(0);
@@ -412,6 +427,7 @@ export default function MatchGame({
         myId={playerId}
         rounds={state.total_rounds ?? 1}
         onExit={onLeave}
+        adMode={adMode}
       />
     );
   }
@@ -534,12 +550,14 @@ export default function MatchGame({
               🔄 Rövanş İste
             </button>
           )}
+          {/* "Yeni Rakip" = oynamaya devam (lobiye dönüş) -> reklam ASLA çıkmaz. */}
           <div style={{ display: "flex", gap: 10 }}>
             <a href="/oyna" style={{ ...secondaryLink, flex: 1, textAlign: "center" }}>Yeni Rakip</a>
           </div>
+          {/* Ana sayfa / Lig = oyun olmayan hedef -> koşullar tutarsa geçiş reklamı. */}
           <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap", marginTop: 4 }}>
-            <a href="/" style={endLinkBtn}>🏠 Ana Sayfa</a>
-            <a href="/lig" style={endLinkBtn}>🏆 Lig</a>
+            <a {...adExitProps(adMode, "/")} style={endLinkBtn}>🏠 Ana Sayfa</a>
+            <a {...adExitProps(adMode, "/lig")} style={endLinkBtn}>🏆 Lig</a>
           </div>
 
           {/* Sonuç paylaşımı — her zaman EN ALTTA */}
@@ -860,12 +878,13 @@ const secondaryLink: React.CSSProperties = {
 
 // 3-4 kişilik özel oda sonuç ekranı: sıralama tablosu + paylaşım.
 // ELO/XP/rozet VERİLMEZ (özel arena gibi) — sadece skor ve sıralama gösterilir.
-function MultiResult({ players, result, myId, rounds, onExit }: {
+function MultiResult({ players, result, myId, rounds, onExit, adMode }: {
   players: { id: string; name: string; score: number; avatar_url?: string | null }[];
   result: any;
   myId: string;
   rounds: number;
   onExit?: () => void;
+  adMode: AdMode;
 }) {
   useEffect(() => { playSound("win"); }, []);
   const ranking: { player_id: string; rank: number; name: string; score: number }[] =
@@ -920,8 +939,10 @@ function MultiResult({ players, result, myId, rounds, onExit }: {
       </p>
 
       <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+        {/* "Yeni Oda" = oynamaya devam -> reklam ASLA. "Geri" onExit ile oyna
+            menüsüne dönebiliyor (oyun hedefi), o yüzden o da reklamsız. */}
         <a href="/oyna" style={{ ...secondaryLink, textAlign: "center" }}>🚪 Yeni Oda</a>
-        <a href="/" style={endLinkBtn}>🏠 Ana Sayfa</a>
+        <a {...adExitProps(adMode, "/")} style={endLinkBtn}>🏠 Ana Sayfa</a>
         {onExit && (
           <button onClick={onExit} style={{ ...endLinkBtn, border: "1px solid var(--border-soft)", background: "transparent", cursor: "pointer" }}>
             Geri

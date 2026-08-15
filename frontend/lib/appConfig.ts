@@ -38,6 +38,14 @@ export type AdMobConfig = {
   banner_margin_extra?: number;
   /** 0'dan büyükse navLift hesabı yok sayılır, alt bar tam bu yüksekliğe konur. */
   banner_margin_override?: number;
+  /** Geçiş reklamı: her kaç TAMAMLANMIŞ maçta bir gösterilsin (0 = kapalı). */
+  interstitial_every_n_matches?: number;
+  /** İki geçiş reklamı arasında en az kaç saniye geçmeli. */
+  interstitial_min_seconds?: number;
+  /** Yeni kullanıcının ilk kaç maçı reklamsız (cihaz bazlı). */
+  interstitial_skip_first_n?: number;
+  /** Mod bazlı aç/kapa — anahtarlar lib/interstitial.ts → AdMode. */
+  interstitial_modes?: Record<string, boolean>;
 };
 
 export type StoresConfig = {

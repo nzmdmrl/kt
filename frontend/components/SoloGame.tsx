@@ -8,6 +8,7 @@ import { useSpeech } from "@/lib/useSpeech";
 import TapHint from "./TapHint";
 import ResultShare from "./ResultShare";
 import { soloShareText } from "@/lib/shareText";
+import { exitWithAd, noteMatchFinished } from "@/lib/interstitial";
 
 type Tile = { letter: string; state: "correct" | "present" | "absent" };
 type StartInfo = { level: number; length: number; first_letter: string; seconds: number; joker_count: number; replay: boolean };
@@ -40,6 +41,16 @@ export default function SoloGame({ level, onExit, onComplete }: {
 
   // Oyun ekranı boyunca global arayüz tıklama sesini sustur.
   useEffect(() => suppressUiClick(), []);
+
+  // Bölüm TAMAMEN bitti (kazandı ya da süre doldu) -> 1 maç. Yarıda çıkışta
+  // (üstteki ←) çalışmaz. Ref ile bir kez: yeniden render sayacı şişirmesin.
+  const countedRef = useRef(false);
+  useEffect(() => {
+    if (countedRef.current) return;
+    if (status !== "won" && status !== "timeout") return;
+    countedRef.current = true;
+    noteMatchFinished("maraton");
+  }, [status]);
 
   // Level başlat.
   useEffect(() => {
@@ -273,7 +284,7 @@ export default function SoloGame({ level, onExit, onComplete }: {
           <p style={{ color: "var(--text-soft)", marginBottom: 14 }}>Toplam yıldız: {result.total}</p>
           <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
             <button onClick={() => { stopTicking(); onComplete(result.stars, result.next); }} style={btnPrimary}>Sonraki Bölüm →</button>
-            <button onClick={() => { stopTicking(); onExit(); }} style={btnGhost}>Haritaya Dön</button>
+            <button onClick={() => { stopTicking(); void exitWithAd("maraton", onExit); }} style={btnGhost}>Haritaya Dön</button>
           </div>
 
           {/* Sonuç paylaşımı — en altta */}
@@ -296,7 +307,7 @@ export default function SoloGame({ level, onExit, onComplete }: {
           <div className="brand-mono" style={{ fontSize: 20, color: "var(--accent-hot)", margin: "8px 0 16px" }}>Süre doldu!</div>
           <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
             <button onClick={() => window.location.reload()} style={btnPrimary}>Tekrar Dene</button>
-            <button onClick={() => { stopTicking(); onExit(); }} style={btnGhost}>Haritaya Dön</button>
+            <button onClick={() => { stopTicking(); void exitWithAd("maraton", onExit); }} style={btnGhost}>Haritaya Dön</button>
           </div>
         </div>
       )}

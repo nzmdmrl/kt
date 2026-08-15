@@ -14,6 +14,7 @@ import ResultShare from "@/components/ResultShare";
 import { dailyShareText } from "@/lib/shareText";
 import { useAuth } from "@/lib/auth";
 import { useGuestAccess } from "@/lib/guestAccess";
+import { adExitProps, noteMatchFinished } from "@/lib/interstitial";
 
 type Tile = { letter: string; state: "correct" | "present" | "absent" };
 type DailyInfo = { date: string; length: number; first_letter: string; solved?: boolean };
@@ -65,6 +66,9 @@ export default function DailyPage() {
   const [err, setErr] = useState("");
   // Sunucuya göre bugünkü kelime zaten çözülmüş mü (başka cihazda/oturumda).
   const [alreadySolved, setAlreadySolved] = useState(false);
+  // Bu ziyarette gerçekten bir oturum tamamlandı mı? Çıkışta geçiş reklamının
+  // gösterilebilmesi için ŞART (zaten çözülmüş sayfaya girip çıkmak sayılmaz).
+  const [finishedNow, setFinishedNow] = useState(false);
   // Oyuncu giriş alanına dokundu mu (ilk kez oynayanlara ok ipucu için).
   const [touched, setTouched] = useState(false);
   // Misafir erişimi admin ayarıyla kapatılabilir (guest_daily_enabled).
@@ -120,6 +124,14 @@ export default function DailyPage() {
       const nextStatus: "playing" | "won" | "lost" =
         data.correct ? "won" : newRows.length >= MAX_ROWS ? "lost" : "playing";
       setStatus(nextStatus);
+      // Oturum BU ZİYARETTE tamamlandı -> 1 maç. Burada olması bilinçli: sayfa
+      // yenilenip kayıtlı "won" geri yüklendiğinde ya da bugünkü kelime zaten
+      // çözülmüşken (alreadySolved) girildiğinde oturum OYNANMADIĞI için sayaç
+      // artmaz — bu yollar submit'ten geçmez.
+      if (nextStatus !== "playing") {
+        setFinishedNow(true);
+        noteMatchFinished("gunun_kelimesi");
+      }
       saveState({ date: info.date, length: info.length, status: nextStatus, rows: newRows });
       if (nextStatus === "won") setTimeout(() => playSound("win"), afterTiles);
       else if (nextStatus === "lost") setTimeout(() => playSound("lose"), afterTiles);
@@ -152,6 +164,8 @@ export default function DailyPage() {
     setDraft("");
     setErr("");
     setStatus("playing");
+    // Yeniden oynuyor: bitmiş oturum yok, çıkışta reklam da yok.
+    setFinishedNow(false);
     saveState({ date: info.date, length: info.length, status: "playing", rows: [] });
   }
 
@@ -170,7 +184,7 @@ export default function DailyPage() {
   if (!info) return <Wrap><Centered>Yükleniyor…</Centered></Wrap>;
 
   return (
-    <Wrap>
+    <Wrap adExit={finishedNow}>
       <div style={{ textAlign: "center", marginBottom: 20 }}>
         <h1 className="brand-mono" style={{ fontSize: 26 }}>Günün Kelimesi</h1>
         <p style={{ color: "var(--text-soft)", fontSize: 14 }}>
@@ -308,11 +322,18 @@ export default function DailyPage() {
   );
 }
 
-function Wrap({ children }: { children: React.ReactNode }) {
+/**
+ * adExit: bu ziyarette bir oturum tamamlandıysa true. Bu ekranda "Ana Sayfa"
+ * butonu yok — oyun akışından tek çıkış üstteki logo. Yalnızca oturum bitmişse
+ * reklamlı çıkışa çevrilir; oyun sürerken ya da zaten çözülmüş sayfada normal
+ * bağlantı olarak kalır.
+ */
+function Wrap({ children, adExit }: { children: React.ReactNode; adExit?: boolean }) {
+  const homeLink = adExit ? adExitProps("gunun_kelimesi", "/") : { href: "/" };
   return (
     <main style={{ flex: 1, maxWidth: 520, width: "100%", margin: "0 auto", padding: "24px 18px 60px" }}>
       <div style={{ marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <a href="/"><Logo size={36} /></a>
+        <a {...homeLink}><Logo size={36} /></a>
         <SoundToggle />
       </div>
       {children}

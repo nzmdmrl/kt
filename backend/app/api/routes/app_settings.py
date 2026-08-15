@@ -69,6 +69,29 @@ DEFAULT_BANNER_HIDDEN_PATHS: list[str] = [
     "/oda",             # oda daveti -> /oyna yönlendirmesi
 ]
 
+# Geçiş (interstitial) reklamının mod bazlı aç/kapası.
+# ÖZEL ARENA VARSAYILAN KAPALI: ödül vermiyor ve arkadaşların birlikte oynadığı
+# mod — admin isterse panelden açar.
+# Aynı sözlük migration'da da kullanılır (app/core/migrations.py) — tek kaynak.
+DEFAULT_INTERSTITIAL_MODES: dict[str, bool] = {
+    "gunun_kelimesi": True,
+    "maraton": True,
+    "pratik": True,     # 1vB (bota karşı)
+    "duello": True,     # 1v1 rakip bul
+    "arena": True,
+    "oda": True,        # özel oda (2 / 3-4 kişilik)
+    "ozel_arena": False,
+}
+
+# Geçiş reklamı sıklık kuralları — ayrıntı: frontend/lib/interstitial.ts.
+# Aynı sözlük migration'da da kullanılır — tek kaynak.
+DEFAULT_INTERSTITIAL_RULES: dict = {
+    "interstitial_every_n_matches": 5,
+    "interstitial_min_seconds": 90,
+    "interstitial_skip_first_n": 3,
+    "interstitial_modes": DEFAULT_INTERSTITIAL_MODES,
+}
+
 # Startup'ta eksikse eklenen varsayılanlar (hepsi kapalı/boş).
 #   anahtar -> (varsayılan değer, is_public)
 DEFAULT_APP_SETTINGS: dict[str, tuple[dict, bool]] = {
@@ -102,6 +125,15 @@ DEFAULT_APP_SETTINGS: dict[str, tuple[dict, bool]] = {
             #   banner_margin_override -> 0'dan büyükse hesap YOK SAYILIR, navLift = bu
             "banner_margin_extra": 0,
             "banner_margin_override": 0,
+            # Geçiş (interstitial) reklamı sıklığı. Reklam YALNIZCA oyun akışından
+            # OYUN OLMAYAN bir hedefe çıkarken gösterilir (ana sayfa, /lig, profil,
+            # maraton haritası); "tekrar oyna / rövanş / sonraki bölüm / yeni rakip"
+            # gibi devam eylemlerinde ASLA gösterilmez.
+            #   interstitial_every_n_matches -> her kaç maçta bir
+            #   interstitial_min_seconds     -> iki reklam arası en az kaç saniye
+            #   interstitial_skip_first_n    -> yeni kullanıcının ilk N maçı reklamsız
+            #   interstitial_modes           -> mod bazlı aç/kapa
+            **DEFAULT_INTERSTITIAL_RULES,
         },
         True,
     ),

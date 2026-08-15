@@ -25,7 +25,10 @@ import json
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.routes.app_settings import DEFAULT_BANNER_HIDDEN_PATHS
+from app.api.routes.app_settings import (
+    DEFAULT_BANNER_HIDDEN_PATHS,
+    DEFAULT_INTERSTITIAL_RULES,
+)
 from app.core.database import engine
 
 _IS_PG = engine.dialect.name == "postgresql"
@@ -50,6 +53,9 @@ _ADMOB_MARGIN_KEYS_JSON = json.dumps(
     {"banner_margin_extra": 0, "banner_margin_override": 0},
     ensure_ascii=True,
 )
+
+# Geçiş reklamı sıklık kuralları — sonradan eklenen anahtarlar (bkz. migration 8).
+_ADMOB_INTERSTITIAL_KEYS_JSON = json.dumps(DEFAULT_INTERSTITIAL_RULES, ensure_ascii=True)
 
 CREATE_MIGRATIONS_SQL = f"""
 CREATE TABLE IF NOT EXISTS applied_migrations (
@@ -194,6 +200,34 @@ DATA_MIGRATIONS: list[tuple[str, list[str]]] = [
             if _IS_PG else
             "UPDATE app_settings "
             f"SET value = json_patch('{_ADMOB_MARGIN_KEYS_JSON}', value), "
+            "    updated_at = CURRENT_TIMESTAMP "
+            "WHERE key = 'ads.admob'"
+        ),
+    ]),
+
+    # 8) Geçiş (interstitial) reklamı sıklık kuralları:
+    #    interstitial_every_n_matches / _min_seconds / _skip_first_n / _modes.
+    #    Birleştirme yönü (6) ve (7) ile aynı: varsayılanlar SOLDA, mevcut değer
+    #    SAĞDA -> adminin girdiği değerler ezilmez, yalnızca eksik anahtar eklenir.
+    #
+    #    DİKKAT — interstitial_modes bir NESNE ve iki motor farklı davranır:
+    #      PostgreSQL `||`  : SIĞ. Satırda interstitial_modes zaten varsa nesnenin
+    #                         TAMAMI mevcut hâliyle kalır; varsayılandaki yeni mod
+    #                         anahtarları EKLENMEZ.
+    #      SQLite json_patch: DERİN (RFC 7396). Eksik mod anahtarları eklenir,
+    #                         mevcut olanlar korunur.
+    #    Burada sorun çıkarmaz: canlıdaki satırlarda interstitial_modes HİÇ YOK,
+    #    dolayısıyla iki motorda da varsayılan nesnenin tamamı yazılır. Ama ileride
+    #    YENİ bir mod anahtarı eklenirse PostgreSQL için onu taşıyan AYRI bir
+    #    migration (jsonb_set ya da value->'interstitial_modes' birleştirmesi) şart.
+    ("2026_08_admob_interstitial_rules", [
+        (
+            "UPDATE app_settings "
+            f"SET value = '{_ADMOB_INTERSTITIAL_KEYS_JSON}'::jsonb || value, updated_at = now() "
+            "WHERE key = 'ads.admob'"
+            if _IS_PG else
+            "UPDATE app_settings "
+            f"SET value = json_patch('{_ADMOB_INTERSTITIAL_KEYS_JSON}', value), "
             "    updated_at = CURRENT_TIMESTAMP "
             "WHERE key = 'ads.admob'"
         ),
