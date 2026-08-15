@@ -15,6 +15,9 @@ export default function ScoreBar({
   const turnId = round?.turn_player_id ?? null;
   const timeLeft = round?.time_left ?? 0;
   const answerLeft = round?.answer_time_left ?? 0;
+  // Sıra bende mi? Cevap süresi (sağdaki saniye) bu durumda BELİRGİN gösterilir —
+  // soldaki tur süresiyle karışmasın, oyuncu kendi süresini kaçırmasın.
+  const myTurn = !!turnId && turnId === myId;
   // Tek turluk modda (mod 2) "Tur 1/1" yazmak anlamsız — sadece harf sayısı gösterilir.
   const totalRounds = state.total_rounds ?? 3;
 
@@ -31,7 +34,7 @@ export default function ScoreBar({
           orta blok kalan alanı doldurur ve hep ortada durur. */}
       <div style={{ display: "flex", alignItems: "center", gap: 6, width: "100%" }}>
         {/* Sol: tur saniyesi — sabit genişlik, sola hizalı */}
-        <div style={{ width: 60, flexShrink: 0, display: "flex", alignItems: "baseline", gap: 3 }}>
+        <div style={{ width: 78, flexShrink: 0, display: "flex", alignItems: "baseline", gap: 3 }}>
           <span className="brand-mono" style={{ fontSize: 26, lineHeight: 1, fontWeight: 700, color: timeLeft <= 10 ? "var(--accent-hot)" : "var(--accent)" }}>{timeLeft}</span>
           <span style={{ fontSize: 10, color: "var(--text-dim)" }}>sn</span>
         </div>
@@ -41,22 +44,50 @@ export default function ScoreBar({
           {round ? (totalRounds > 1 ? `Tur ${round.index + 1}/${totalRounds} · ${round.length} harf` : `${round.length} harf`) : ""}
         </div>
 
-        {/* Sağ: cevap süresi — sabit genişlik, sağa hizalı */}
-        <div style={{ width: 60, flexShrink: 0, textAlign: "right" }}>
+        {/* Sağ: CEVAP süresi — dolu hap rozet. Sıra bendeyse renkli zemin +
+            son 5 sn'de nabız; rakipteyken sönük (bilgi amaçlı). */}
+        <div style={{ width: 78, flexShrink: 0, display: "flex", justifyContent: "flex-end" }}>
           {turnId && answerLeft > 0 ? (
-            <span style={{ fontSize: 13, color: answerLeft <= 5 ? "var(--accent-hot)" : "var(--accent)", fontWeight: 600, whiteSpace: "nowrap" }}>
-              {answerLeft}s
+            <span
+              title={myTurn ? "Cevap süren" : "Rakibin cevap süresi"}
+              className="brand-mono"
+              style={{
+                display: "inline-flex", alignItems: "baseline", gap: 3,
+                padding: "4px 11px", borderRadius: 999, whiteSpace: "nowrap", lineHeight: 1,
+                fontWeight: 800,
+                background: myTurn ? (answerLeft <= 5 ? "var(--accent-hot)" : "var(--accent)") : "var(--bg-elevated)",
+                color: myTurn ? "#1a1330" : (answerLeft <= 5 ? "var(--accent-hot)" : "var(--text-soft)"),
+                border: myTurn ? "none" : "1px solid var(--border-soft)",
+                boxShadow: myTurn ? "0 0 16px var(--accent-glow)" : "none",
+                animation: myTurn && answerLeft <= 5 ? "sb-pulse .7s ease-in-out infinite" : undefined,
+                transition: "background .3s, color .3s",
+              }}
+            >
+              <span style={{ fontSize: 20 }}>{answerLeft}</span>
+              <span style={{ fontSize: 10, opacity: .85 }}>sn</span>
             </span>
           ) : null}
         </div>
       </div>
 
-      {/* Satır 3: zaman çizgisi (cevap penceresi) */}
+      {/* Satır 3: zaman çizgisi (cevap penceresi) — sıra bendeyse daha kalın/parlak */}
       {turnId && answerLeft > 0 && (
-        <div style={{ height: 6, borderRadius: 3, background: "var(--bg-elevated)", overflow: "hidden" }}>
-          <div style={{ height: "100%", width: `${Math.min(100, (answerLeft / 20) * 100)}%`, background: answerLeft <= 5 ? "var(--accent-hot)" : "var(--accent)", transition: "width 1s linear, background .3s" }} />
+        <div style={{
+          height: myTurn ? 8 : 6, borderRadius: 4, background: "var(--bg-elevated)", overflow: "hidden",
+          border: myTurn ? "1px solid var(--accent-glow)" : "none",
+          transition: "height .2s",
+        }}>
+          <div style={{
+            height: "100%", width: `${Math.min(100, (answerLeft / 20) * 100)}%`,
+            background: answerLeft <= 5 ? "var(--accent-hot)" : "var(--accent)",
+            boxShadow: myTurn ? "0 0 10px var(--accent-glow)" : "none",
+            transition: "width 1s linear, background .3s",
+          }} />
         </div>
       )}
+
+      <style>{`@keyframes sb-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.09)}}
+        @media (prefers-reduced-motion: reduce){@keyframes sb-pulse{0%,100%{transform:none}50%{transform:none}}}`}</style>
     </div>
   );
 }
