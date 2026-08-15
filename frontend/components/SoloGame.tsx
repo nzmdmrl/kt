@@ -27,6 +27,10 @@ export default function SoloGame({ level, onExit, onComplete }: {
   const [err, setErr] = useState("");
   const [secondsLeft, setSecondsLeft] = useState(120);
   const [status, setStatus] = useState<"loading" | "playing" | "won" | "timeout">("loading");
+  // Bölüm yüklenince süre HEMEN işlemez: oyuncu "Başla" deyince (ya da yazmaya
+  // başlayınca) başlar. Mobilde klavye açılıp ekranı kapatmasın, oyuncu önce
+  // ızgarayı/ipucunu görsün diye.
+  const [started, setStarted] = useState(false);
   const [result, setResult] = useState<{ stars: number; total: number; next: number } | null>(null);
 
   function token() { return typeof window !== "undefined" ? localStorage.getItem("kt_token") : null; }
@@ -44,25 +48,26 @@ export default function SoloGame({ level, onExit, onComplete }: {
         setInfo(d);
         setSecondsLeft(d.seconds);
         setStatus("playing");
+        setStarted(false);
       })
       .catch(() => setErr("Bölüm başlatılamadı"));
   }, [level]);
 
-  // Geri sayım.
+  // Geri sayım — sadece oyuncu başladıktan sonra işler.
   useEffect(() => {
-    if (status !== "playing") return;
+    if (status !== "playing" || !started) return;
     if (secondsLeft <= 0) { setStatus("timeout"); playSound("lose"); return; }
     const t = setTimeout(() => setSecondsLeft((s) => s - 1), 1000);
     return () => clearTimeout(t);
-  }, [status, secondsLeft]);
+  }, [status, started, secondsLeft]);
 
   // Son 10 saniyede tik sesi.
   useEffect(() => {
-    if (status === "playing" && secondsLeft <= 10 && secondsLeft > 0) playSound("tick");
-  }, [secondsLeft, status]);
+    if (started && status === "playing" && secondsLeft <= 10 && secondsLeft > 0) playSound("tick");
+  }, [secondsLeft, status, started]);
 
   const submit = useCallback(async () => {
-    if (!info || status !== "playing") return;
+    if (!info || status !== "playing" || !started) return;
     if (draft.length !== info.length) return;
     // İlk harf ipucu olarak veriliyor — farklı harfle başlanamaz.
     if (draft[0] !== info.first_letter) {
@@ -106,10 +111,15 @@ export default function SoloGame({ level, onExit, onComplete }: {
     } catch {
       setErr("Bağlantı hatası");
     }
-  }, [info, status, draft, rows, level, secondsLeft]);
+  }, [info, status, started, draft, rows, level, secondsLeft]);
 
   const micRef = useRef<any>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Süreyi başlat (bir kez). "Başla" butonu, giriş alanına dokunma ve mikrofon
+  // aynı kapıdan geçer — hangisiyle başlarsa başlasın süre o an işlemeye başlar.
+  const ensureStarted = useCallback(() => setStarted(true), []);
 
   // Otomatik alta kaydırma: SADECE grid uzayıp taşmaya başlayınca (5+ tahmin).
   // İlk girişte / yeni levelde grid kısa olduğu için kaydırma yapılmaz (üst kutular görünür).
@@ -208,12 +218,13 @@ export default function SoloGame({ level, onExit, onComplete }: {
         <div style={{ display: "grid", gap: 10, justifyItems: "center" }}>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <input
+              ref={inputRef}
               value={draft}
-              onChange={(e) => setDraft(toUpperTr(e.target.value).replace(/[^A-ZÇĞİÖŞÜI]/g, "").slice(0, info.length))}
+              onFocus={ensureStarted}
+              onChange={(e) => { ensureStarted(); setDraft(toUpperTr(e.target.value).replace(/[^A-ZÇĞİÖŞÜI]/g, "").slice(0, info.length)); }}
               onKeyDown={(e) => e.key === "Enter" && submit()}
               placeholder={`${info.first_letter} ile başla`}
               maxLength={info.length}
-              autoFocus
               style={{
                 padding: "12px 14px", borderRadius: 10, border: "2px solid var(--tile-border)",
                 background: "var(--bg-elevated)", color: "var(--text-strong)", fontSize: 19,
@@ -223,7 +234,7 @@ export default function SoloGame({ level, onExit, onComplete }: {
             />
             {micSupported && (
               <button
-                onPointerDown={(e) => { e.preventDefault(); micStart(); }}
+                onPointerDown={(e) => { e.preventDefault(); ensureStarted(); micStart(); }}
                 onPointerUp={(e) => { e.preventDefault(); stopMicDelayed(); }}
                 onPointerLeave={() => { if (listening) stopMicDelayed(); }}
                 onContextMenu={(e) => e.preventDefault()}
@@ -236,12 +247,30 @@ export default function SoloGame({ level, onExit, onComplete }: {
                 }}
               >🎤</button>
             )}
-            <button onClick={submit} disabled={draft.length !== info.length} style={{
+            <button onClick={submit} disabled={!started || draft.length !== info.length} style={{
               padding: "12px 18px", borderRadius: 10, border: "none", background: "var(--accent)",
               color: "#1a1330", fontWeight: 700, fontSize: 15, cursor: "pointer", flexShrink: 0,
-              opacity: draft.length === info.length ? 1 : 0.5,
+              opacity: started && draft.length === info.length ? 1 : 0.5,
             }}>Dene</button>
           </div>
+
+          {/* Süre başlamadan önce: oyuncu ekranı görsün, hazır olunca başlasın */}
+          {!started && (
+            <>
+              <button
+                onClick={() => { ensureStarted(); inputRef.current?.focus(); }}
+                style={{
+                  width: "100%", maxWidth: 300, padding: "15px", borderRadius: 13, border: "none",
+                  cursor: "pointer", background: "linear-gradient(135deg, var(--accent), var(--accent-hot))",
+                  color: "#1a1330", fontWeight: 900, fontSize: 17,
+                  boxShadow: "0 8px 22px var(--accent-glow)",
+                }}
+              >▶ Başla</button>
+              <p style={{ color: "var(--text-dim)", fontSize: 12.5, textAlign: "center", lineHeight: 1.5, maxWidth: 300 }}>
+                Süre sen başlayınca işlemeye başlar. Kelime <strong style={{ color: "var(--accent)" }}>{info.first_letter}</strong> harfiyle başlıyor, {info.length} harfli.
+              </p>
+            </>
+          )}
           {err && <p style={{ color: "var(--accent-hot)", fontSize: 14 }}>{err}</p>}
         </div>
       )}
