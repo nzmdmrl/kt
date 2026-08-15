@@ -2,6 +2,7 @@
 
 import { MatchState } from "@/lib/useMatch";
 import { toUpperTr } from "@/lib/turkish";
+import { useMatchNameMax, shortMatchName } from "@/lib/uiSettings";
 
 export default function ScoreBar({
   state,
@@ -107,6 +108,11 @@ function PlayerChip({
     return <div style={{ flex: 1, color: "var(--text-dim)" }}>bekleniyor…</div>;
   }
   const isMe = player.id === myId;
+  // Ad, tahmin satırındaki etiketle AYNI kuralla kısalır (admin: "Maçlarda
+  // görünen ad uzunluğu"): ilk kelime + BÜYÜK harfte 7, normal yazımda 9.
+  // Uzun adlar mobilde rakibin kartını ekran dışına itmesin.
+  const nameMax = useMatchNameMax();
+  const shortName = shortMatchName(player.name, nameMax);
   return (
     <div
       style={{
@@ -149,9 +155,12 @@ function PlayerChip({
           toUpperTr(player.name.charAt(0))
         )}
       </div>
-      <div style={{ textAlign: right ? "right" : "left", minWidth: 0 }}>
-        <div style={{ fontSize: 13, color: "var(--text-strong)", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-          {player.name}
+      <div style={{ textAlign: right ? "right" : "left", flex: 1, minWidth: 0 }}>
+        <div
+          title={player.name}
+          style={{ fontSize: 13, color: "var(--text-strong)", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
+        >
+          {shortName}
           {isMe && <span style={{ color: "var(--text-dim)" }}> (sen)</span>}
         </div>
         {/* Başarı özeti: kupa / madalya / rozet (0 olanlar gizli) — mobilde de sığar */}

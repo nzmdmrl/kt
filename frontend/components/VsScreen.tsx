@@ -122,7 +122,7 @@ function PlayerCard({ player, side }: { player: VsPlayer; side: "left" | "right"
           </span>
         )}
       </div>
-      <div style={{ fontWeight: 600, color: "var(--text-strong)", fontSize: 16 }}>
+      <div title={player.name} style={{ fontWeight: 600, color: "var(--text-strong)", fontSize: 16, maxWidth: 140, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
         {player.name}
       </div>
       <div className="brand-mono" style={{ fontSize: 20, color: "var(--accent)", marginTop: 4 }}>

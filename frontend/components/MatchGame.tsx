@@ -399,12 +399,12 @@ export default function MatchGame({
           {/* Skor karşılaştırması */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 20, margin: "20px 0" }}>
             <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 13, color: "var(--text-soft)", marginBottom: 4 }}>{me?.name}</div>
+              <div title={me?.name} style={{ fontSize: 13, color: "var(--text-soft)", marginBottom: 4, maxWidth: 130, margin: "0 auto 4px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{me?.name}</div>
               <div className="brand-mono" style={{ fontSize: 36, color: won ? "var(--tile-correct)" : "var(--text-strong)" }}>{myScore}</div>
             </div>
             <div style={{ fontSize: 20, color: "var(--text-dim)" }}>—</div>
             <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 13, color: "var(--text-soft)", marginBottom: 4 }}>{opp?.name}</div>
+              <div title={opp?.name} style={{ fontSize: 13, color: "var(--text-soft)", marginBottom: 4, maxWidth: 130, margin: "0 auto 4px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{opp?.name}</div>
               <div className="brand-mono" style={{ fontSize: 36, color: !won && !draw ? "var(--accent-hot)" : "var(--text-strong)" }}>{oppScore}</div>
             </div>
           </div>
