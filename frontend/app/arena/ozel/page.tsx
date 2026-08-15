@@ -10,7 +10,7 @@ import LinkCopyBox from "@/components/LinkCopyBox";
 import GuestJoin from "@/components/GuestJoin";
 import { SITE_URL } from "@/lib/site";
 
-type Friend = { id: number; username: string; display_name: string; avatar_url: string | null };
+import { FRIEND_LABELS, type Friend, type FriendLabelKey } from "@/lib/friendLabels";
 type SavedArena = { id: number; name: string; size: number; wait_seconds: number; bots_enabled: boolean; word_plan: number[] };
 
 export default function OzelArenaPage() {
@@ -29,6 +29,8 @@ export default function OzelArenaPage() {
   // Oluşturulan lobi
   const [created, setCreated] = useState<{ code: string; name: string } | null>(null);
   const [friends, setFriends] = useState<Friend[]>([]);
+  // Davet listesi etiket süzgeci (aile / iş / diğer) — /arkadaslar sayfasından etiketlenir.
+  const [labelFilter, setLabelFilter] = useState<"" | FriendLabelKey>("");
   const [invited, setInvited] = useState<Set<number>>(new Set());
   const [saved, setSaved] = useState<SavedArena[]>([]);
 
@@ -134,14 +136,40 @@ export default function OzelArenaPage() {
 
         {/* Arkadaş davet */}
         <h2 style={{ fontSize: 15, color: "var(--text-soft)", marginBottom: 10 }}>Arkadaşları davet et</h2>
+        {friends.length > 0 && (
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+            <LabelChip active={labelFilter === ""} onClick={() => setLabelFilter("")} label={`Tümü (${friends.length})`} />
+            {FRIEND_LABELS.map((l) => {
+              const n = friends.filter((f) => f.label === l.key).length;
+              if (n === 0) return null;
+              return (
+                <LabelChip
+                  key={l.key}
+                  active={labelFilter === l.key}
+                  color={l.color}
+                  onClick={() => setLabelFilter(labelFilter === l.key ? "" : l.key)}
+                  label={`${l.icon} ${l.name} (${n})`}
+                />
+              );
+            })}
+            <a href="/arkadaslar" style={{ alignSelf: "center", fontSize: 12.5, color: "var(--text-dim)", textDecoration: "none" }}>etiketle →</a>
+          </div>
+        )}
         {friends.length === 0 ? (
           <p style={{ color: "var(--text-dim)", fontSize: 14 }}>Henüz arkadaşın yok. Linki paylaşarak davet edebilirsin.</p>
         ) : (
           <div style={{ display: "grid", gap: 8 }}>
-            {friends.map((f) => (
+            {friends.filter((f) => !labelFilter || f.label === labelFilter).map((f) => (
               <div key={f.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: "var(--bg-panel)", borderRadius: 10 }}>
                 <img src={f.avatar_url || `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(f.display_name)}`} alt="" style={{ width: 36, height: 36, borderRadius: "50%", background: "var(--bg-elevated)" }} />
-                <span style={{ flex: 1, color: "var(--text-strong)", fontWeight: 600, fontSize: 14 }}>{f.display_name}</span>
+                <span style={{ flex: 1, minWidth: 0, color: "var(--text-strong)", fontWeight: 600, fontSize: 14, display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.display_name}</span>
+                  {f.label && (
+                    <span style={{ fontSize: 11, flexShrink: 0 }}>
+                      {FRIEND_LABELS.find((l) => l.key === f.label)?.icon}
+                    </span>
+                  )}
+                </span>
                 <button onClick={() => invite(f.id)} disabled={invited.has(f.id)}
                   style={{ padding: "7px 14px", borderRadius: 8, border: "none", fontSize: 13, fontWeight: 700, cursor: invited.has(f.id) ? "default" : "pointer", background: invited.has(f.id) ? "var(--bg-elevated)" : "var(--accent)", color: invited.has(f.id) ? "var(--text-dim)" : "#1a1330" }}>
                   {invited.has(f.id) ? "✓ Davet edildi" : "Davet et"}
@@ -247,6 +275,20 @@ function pill(active: boolean): React.CSSProperties {
 function Label({ children }: { children: React.ReactNode }) {
   return <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-soft)", marginBottom: 8 }}>{children}</div>;
 }
+function LabelChip({ active, onClick, label, color }: { active: boolean; onClick: () => void; label: string; color?: string }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        padding: "6px 12px", borderRadius: 20, cursor: "pointer", fontSize: 12.5, fontWeight: 700,
+        border: `1px solid ${active ? (color || "var(--accent)") : "var(--border-soft)"}`,
+        background: active ? (color || "var(--accent)") : "var(--bg-panel)",
+        color: active ? "#fff" : "var(--text-soft)",
+      }}
+    >{label}</button>
+  );
+}
+
 function Wrap({ children }: { children: React.ReactNode }) {
   return <main style={{ maxWidth: 520, margin: "0 auto", padding: "24px 18px 40px", minHeight: "60vh" }}><div style={{ marginBottom: 16 }}><a href="/"><Logo size={32} /></a></div>{children}</main>;
 }

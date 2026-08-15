@@ -145,6 +145,16 @@ Aşağıdakiler canlıda çalışıyor veya son push'a dahil. Detaylı geçmiş 
   "Kupalar & Madalyalar" bölümünde gösterilir.
 - Maç sonu kazanım animasyonu (elo/xp/rozet sayaç + ses). Unvan kutlama modalı (konfeti + müzik).
 
+### Arkadaşlar
+- `/arkadaslar` sayfası (kendi profilindeki "🤝 N arkadaş" çipinden ve menüden): arkadaşı
+  **aile / iş / diğer** diye etiketle, listeden **çıkar** (onaylı). Etiket KİŞİYE ÖZELdir —
+  ayrı tablo `friend_labels` (owner_id → friend_id), `app/models/friend_label.py`.
+- Uçlar: `PUT /friends/label/{id}` (boş = etiketi kaldır), `POST /friends/remove/{id}`.
+  `GET /friends` artık `label` + `status` (çevrimiçi/maçta/çevrimdışı) da döner.
+- Özel arena davetinde etiket süzgeci (Tümü / Aile / İş / Diğer).
+- Profil aksiyon satırı: çevrimiçi rozeti + arkadaşlık + maç teklifi TEK satırda, aynı
+  yükseklikte (`profRowBtn`, `PresenceBadge pill`). "🤝 Arkadaşın" butonu arkadaşlıktan çıkarır.
+
 ### Sonuç paylaşımı
 - `components/ResultShare.tsx`: metin önizlemesi + WhatsApp · X · Telegram · Facebook · 📋 Kopyala
   (+ mobilde native paylaşım). 1v1, Arena, Günün Kelimesi ve Maraton sonuç ekranlarında.

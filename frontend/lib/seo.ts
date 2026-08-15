@@ -101,6 +101,7 @@ const FALLBACK: Record<string, { title: string; description: string; path: strin
   },
   history: { title: "Maç Geçmişim", description: "Oynadığın maçların sonuçları ve kazandığın puanlar.", path: "/gecmis", indexable: false },
   notifications: { title: "Bildirimler", description: "Arkadaşlık istekleri, yeni unvanlar ve arena ödüllerin.", path: "/bildirimler", indexable: false },
+  friends: { title: "Arkadaşlarım", description: "Arkadaşlarını aile / iş / diğer diye etiketle, listeni düzenle.", path: "/arkadaslar", indexable: false },
   announcements: {
     title: "Duyurular — Kelime Tahmin Haberleri",
     description: "Kelime Tahmin'deki yenilikler, güncellemeler ve etkinlik duyuruları.",

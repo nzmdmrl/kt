@@ -64,6 +64,7 @@ export default function ProfilePage({ params }: { params: { username: string } }
   const [friendStatus, setFriendStatus] = useState<string>("none");
   const [friendBusy, setFriendBusy] = useState(false);
   const [friendErr, setFriendErr] = useState("");
+  const [unfriendOpen, setUnfriendOpen] = useState(false);
 
   // profile yüklenince arkadaşlık durumunu al
   useEffect(() => {
@@ -207,7 +208,14 @@ export default function ProfilePage({ params }: { params: { username: string } }
             {profile.level_info && <span className="hm-badge hm-badge--row">Lv {profile.level_info.level}</span>}
             <span className="prof-username">@{profile.username}</span>
             {typeof profile.friend_count === "number" && (
-              <span className="hm-chip prof-friends" title="Arkadaş">🤝 {profile.friend_count} arkadaş</span>
+              // Kendi profilimde tıklanabilir: arkadaşları etiketleme/çıkarma sayfası.
+              isMe ? (
+                <a href="/arkadaslar" className="hm-chip prof-friends" title="Arkadaşlarımı yönet" style={{ textDecoration: "none", cursor: "pointer" }}>
+                  🤝 {profile.friend_count} arkadaş →
+                </a>
+              ) : (
+                <span className="hm-chip prof-friends" title="Arkadaş">🤝 {profile.friend_count} arkadaş</span>
+              )
             )}
           </div>
           {/* Unvan gelişimi — XP'nin yanında unvan (ana sayfayla aynı) */}
@@ -242,59 +250,96 @@ export default function ProfilePage({ params }: { params: { username: string } }
         </div>
       </div>
 
-      {/* Durum + arkadaşlık / maç teklifi aksiyonları */}
+      {/* Durum + arkadaşlık + maç teklifi — hepsi TEK SATIRDA, aynı yükseklikte,
+          farklı renklerde (dar ekranda alta sarar). */}
       {!isMe && (
         <div style={{ marginTop: -8, marginBottom: 24 }}>
-          <PresenceBadge userId={profile.id} onStatus={(s, allow) => { setOppStatus(s); setOppAllow(allow); }} />
-          {/* Arkadaşlık butonu / durumu */}
-          <div style={{ marginTop: 10 }}>
-              {friendStatus === "friends" && (
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 10, background: "rgba(63,185,80,.15)", color: "var(--tile-correct)", fontWeight: 700, fontSize: 14, border: "1px solid rgba(63,185,80,.3)" }}>
-                  🤝 Arkadaşın
-                </span>
-              )}
-              {friendStatus === "none" && (
-                <button onClick={() => friendAction(`/api/friends/request/${profile.id}`, "request_sent")} disabled={friendBusy}
-                  style={{ padding: "9px 18px", fontSize: 14, fontWeight: 700, background: "var(--accent)", color: "#1a1330", border: "none", borderRadius: 10, cursor: "pointer" }}>
-                  🤝 Arkadaş Ekle
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "stretch" }}>
+            {/* 1) Çevrimiçi / çevrimdışı */}
+            <PresenceBadge userId={profile.id} pill onStatus={(st, allow) => { setOppStatus(st); setOppAllow(allow); }} />
+
+            {/* 2) Arkadaşlık durumu / butonu */}
+            {friendStatus === "friends" && (
+              <button
+                onClick={() => setUnfriendOpen(true)}
+                title="Arkadaşlıktan çıkar"
+                style={{ ...profRowBtn, background: "rgba(63,185,80,.15)", color: "var(--tile-correct)", border: "1px solid rgba(63,185,80,.35)" }}
+              >🤝 Arkadaşın</button>
+            )}
+            {friendStatus === "none" && (
+              <button onClick={() => friendAction(`/api/friends/request/${profile.id}`, "request_sent")} disabled={friendBusy}
+                style={{ ...profRowBtn, background: "var(--accent)", color: "#1a1330", border: "none" }}>
+                🤝 Arkadaş Ekle
+              </button>
+            )}
+            {friendStatus === "request_sent" && (
+              <span style={{ ...profRowBtn, background: "var(--bg-elevated)", color: "var(--text-dim)", border: "1px solid var(--border-soft)", cursor: "default" }}>
+                ⏳ İstek gönderildi
+              </span>
+            )}
+            {friendStatus === "request_received" && (
+              <>
+                <button onClick={() => friendAction(`/api/friends/accept/${profile.id}`, "friends")} disabled={friendBusy}
+                  style={{ ...profRowBtn, background: "var(--tile-correct)", color: "#fff", border: "none" }}>
+                  ✅ Kabul et
                 </button>
-              )}
-              {friendStatus === "request_sent" && (
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 10, background: "var(--bg-elevated)", color: "var(--text-dim)", fontSize: 14 }}>
-                  ⏳ İstek gönderildi
-                </span>
-              )}
-              {friendStatus === "request_received" && (
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button onClick={() => friendAction(`/api/friends/accept/${profile.id}`, "friends")} disabled={friendBusy}
-                    style={{ padding: "9px 16px", fontSize: 14, fontWeight: 700, background: "var(--tile-correct)", color: "#fff", border: "none", borderRadius: 10, cursor: "pointer" }}>
-                    ✅ Kabul et
-                  </button>
-                  <button onClick={() => friendAction(`/api/friends/reject/${profile.id}`, "none")} disabled={friendBusy}
-                    style={{ padding: "9px 16px", fontSize: 14, fontWeight: 600, background: "var(--bg-elevated)", color: "var(--accent-hot)", border: "1px solid var(--border-soft)", borderRadius: 10, cursor: "pointer" }}>
-                    ❌ Reddet
-                  </button>
-                </div>
-              )}
-              {friendErr && (
-                <div style={{ marginTop: 8, fontSize: 13, color: "var(--accent-hot)" }}>{friendErr}</div>
-              )}
+                <button onClick={() => friendAction(`/api/friends/reject/${profile.id}`, "none")} disabled={friendBusy}
+                  style={{ ...profRowBtn, background: "var(--bg-elevated)", color: "var(--accent-hot)", border: "1px solid var(--border-soft)" }}>
+                  ❌ Reddet
+                </button>
+              </>
+            )}
+
+            {/* 3) Maç teklifi — rakip çevrimiçi ve tekliflere açıksa */}
+            {oppStatus === "online" && oppAllow && (
+              <button
+                onClick={sendChallenge}
+                disabled={challengeSent}
+                style={{
+                  ...profRowBtn,
+                  background: challengeSent ? "var(--bg-elevated)" : "var(--accent-hot)",
+                  color: challengeSent ? "var(--text-dim)" : "#fff",
+                  border: challengeSent ? "1px solid var(--border-soft)" : "none",
+                  cursor: challengeSent ? "default" : "pointer",
+                }}
+              >
+                {challengeSent ? "⏳ Teklif gönderildi" : "⚔️ Maç Teklifi"}
+              </button>
+            )}
           </div>
-          {oppStatus === "online" && oppAllow && (
-            <button
-              onClick={sendChallenge}
-              disabled={challengeSent}
-              style={{
-                marginTop: 10, padding: "10px 20px", fontSize: 14, fontWeight: 700,
-                background: challengeSent ? "var(--bg-elevated)" : "var(--accent)",
-                color: challengeSent ? "var(--text-dim)" : "#1a1330",
-                border: "none", borderRadius: 10, cursor: challengeSent ? "default" : "pointer",
-              }}
-            >
-              {challengeSent ? "⏳ Teklif gönderildi, bekleniyor…" : "⚔️ Maç Teklifi Gönder"}
-            </button>
-          )}
+
+          {friendErr && <div style={{ marginTop: 8, fontSize: 13, color: "var(--accent-hot)" }}>{friendErr}</div>}
           {challengeErr && <div style={{ marginTop: 8, fontSize: 13, color: "var(--accent-hot)" }}>{challengeErr}</div>}
+
+          {/* Arkadaşlıktan çıkarma onayı */}
+          {unfriendOpen && (
+            <div onClick={() => setUnfriendOpen(false)}
+              style={{ position: "fixed", inset: 0, zIndex: 900, background: "rgba(0,0,0,.55)", display: "grid", placeItems: "center", padding: 20 }}>
+              <div onClick={(e) => e.stopPropagation()} style={{
+                background: "var(--bg-panel)", border: "1px solid var(--border-soft)",
+                borderRadius: 16, padding: "22px 20px", maxWidth: 340, width: "100%", textAlign: "center",
+              }}>
+                <div style={{ fontSize: 34, marginBottom: 8 }}>🚪</div>
+                <div style={{ fontWeight: 800, color: "var(--text-strong)", fontSize: 17, marginBottom: 6 }}>
+                  {profile.display_name} arkadaşlıktan çıkarılsın mı?
+                </div>
+                <p style={{ color: "var(--text-soft)", fontSize: 14, lineHeight: 1.5, marginBottom: 18 }}>
+                  İstersen sonra tekrar ekleyebilirsin.
+                </p>
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button onClick={() => setUnfriendOpen(false)} style={{
+                    flex: 1, padding: "12px", borderRadius: 11, cursor: "pointer",
+                    border: "1px solid var(--border-soft)", background: "transparent",
+                    color: "var(--text-strong)", fontWeight: 700, fontSize: 15,
+                  }}>Vazgeç</button>
+                  <button onClick={() => { setUnfriendOpen(false); friendAction(`/api/friends/remove/${profile.id}`, "none"); }} style={{
+                    flex: 1, padding: "12px", borderRadius: 11, border: "none", cursor: "pointer",
+                    background: "var(--accent-hot)", color: "#fff", fontWeight: 800, fontSize: 15,
+                  }}>Çıkar</button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -538,6 +583,15 @@ const profActionBtn: React.CSSProperties = {
   padding: "7px 14px", fontSize: 13, fontWeight: 600,
   background: "var(--bg-elevated)", color: "var(--text-strong)",
   border: "1px solid var(--border-soft)", borderRadius: 9, cursor: "pointer",
+};
+
+// Profil aksiyon satırı: çevrimiçi rozeti + arkadaşlık + maç teklifi.
+// Üçü de AYNI yükseklik/biçim, sadece renkleri farklı.
+const profRowBtn: React.CSSProperties = {
+  display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
+  minHeight: 40, padding: "0 16px", borderRadius: 12,
+  fontSize: 14, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap",
+  fontFamily: "var(--font-body)",
 };
 
 const awardBox: React.CSSProperties = {

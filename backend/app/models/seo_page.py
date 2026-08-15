@@ -206,6 +206,16 @@ SEO_PAGES: list[dict] = [
         "keywords": "",
     },
     {
+        "key": "friends",
+        "path": "/arkadaslar",
+        "label": "Arkadaşlarım (/arkadaslar)",
+        "indexable": False,
+        "priority": 0.2,
+        "title": "Arkadaşlarım",
+        "description": "Arkadaşlarını aile / iş / diğer diye etiketle, listeni düzenle.",
+        "keywords": "",
+    },
+    {
         "key": "announcements",
         "path": "/duyurular",
         "label": "Duyurular (/duyurular)",

@@ -9,9 +9,12 @@ import { apiUrl } from "@/lib/api";
 export default function PresenceBadge({
   userId,
   onStatus,
+  pill = false,
 }: {
   userId: number;
   onStatus?: (status: string, allowChallenges: boolean) => void;
+  /** true: profil aksiyon satırındaki butonlarla aynı yükseklikte hap rozet. */
+  pill?: boolean;
 }) {
   const [status, setStatus] = useState<string>("");
   const [loaded, setLoaded] = useState(false);
@@ -42,6 +45,22 @@ export default function PresenceBadge({
     offline: { color: "var(--text-dim)", label: "Çevrimdışı" },
   };
   const s = map[status] || map.offline;
+
+  const text = status === "online" ? "Çevrimiçi" : s.label;
+
+  if (pill) {
+    return (
+      <span style={{
+        display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7,
+        minHeight: 40, padding: "0 14px", borderRadius: 12,
+        background: "var(--bg-elevated)", border: "1px solid var(--border-soft)",
+        color: "var(--text-soft)", fontSize: 14, fontWeight: 700, whiteSpace: "nowrap",
+      }}>
+        <span style={{ width: 9, height: 9, borderRadius: "50%", background: s.color, flexShrink: 0 }} />
+        {text}
+      </span>
+    );
+  }
 
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>

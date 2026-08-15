@@ -5,7 +5,8 @@ Arkadaşlık API'si.
 - POST /friends/accept/{user_id}    : gelen teklifi kabul et (gönderene bildirim)
 - POST /friends/reject/{user_id}    : gelen teklifi reddet (gönderene bildirim)
 - POST /friends/remove/{user_id}    : arkadaşlıktan çıkar
-- GET  /friends                     : arkadaş listesi
+- PUT  /friends/label/{user_id}     : arkadaşı etiketle (aile / is / diger · boş = kaldır)
+- GET  /friends                     : arkadaş listesi (etiket + çevrimiçi durumu ile)
 - GET  /friends/requests            : bana gelen bekleyen teklifler
 - GET  /friends/status/{user_id}    : iki kullanıcı arası durum
 
@@ -16,11 +17,13 @@ status değerleri (status/{user_id} için):
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy import select, or_, and_, delete
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.models.friendship import Friendship
+from app.models.friend_label import FriendLabel, FRIEND_LABELS
 from app.models.notification import Notification
 from app.models.user import User
 from app.services.push import send_to_user_bg
@@ -167,8 +170,45 @@ async def remove_friend(other_id: int, user: User = Depends(get_current_user), d
     if not f:
         raise HTTPException(404, "Arkadaş değilsiniz.")
     await db.delete(f)
+    # İki taraftaki etiketler de anlamsız kalır — temizle.
+    await db.execute(delete(FriendLabel).where(or_(
+        and_(FriendLabel.owner_id == user.id, FriendLabel.friend_id == other_id),
+        and_(FriendLabel.owner_id == other_id, FriendLabel.friend_id == user.id),
+    )))
     await db.commit()
     return {"ok": True, "status": "none"}
+
+
+class LabelIn(BaseModel):
+    label: str = ""
+
+
+@router.put("/label/{friend_id}")
+async def set_friend_label(friend_id: int, data: LabelIn, user: User = Depends(get_current_user), db=Depends(get_db)):
+    """Arkadaşı etiketle: aile / is / diger. Boş gönderilirse etiket kaldırılır.
+
+    Etiket kişiye özeldir (karşı taraf görmez); özel arena davetinde filtre olur.
+    """
+    label = (data.label or "").strip().lower()
+    if label and label not in FRIEND_LABELS:
+        raise HTTPException(400, "Geçersiz etiket.")
+    f = await _friendship_between(db, user.id, friend_id)
+    if not f or f.status != "accepted":
+        raise HTTPException(404, "Arkadaş değilsiniz.")
+    row = (await db.execute(select(FriendLabel).where(and_(
+        FriendLabel.owner_id == user.id, FriendLabel.friend_id == friend_id,
+    )))).scalar_one_or_none()
+    if not label:
+        if row:
+            await db.delete(row)
+            await db.commit()
+        return {"ok": True, "label": ""}
+    if row:
+        row.label = label
+    else:
+        db.add(FriendLabel(owner_id=user.id, friend_id=friend_id, label=label))
+    await db.commit()
+    return {"ok": True, "label": label}
 
 
 @router.get("")
@@ -181,11 +221,22 @@ async def list_friends(user: User = Depends(get_current_user), db=Depends(get_db
     friend_ids = [r.addressee_id if r.requester_id == user.id else r.requester_id for r in rows]
     friends = []
     if friend_ids:
+        from app.game import presence_service
+        labels = {
+            r.friend_id: r.label
+            for r in (await db.execute(select(FriendLabel).where(and_(
+                FriendLabel.owner_id == user.id, FriendLabel.friend_id.in_(friend_ids),
+            )))).scalars().all()
+        }
         users = (await db.execute(select(User).where(User.id.in_(friend_ids)))).scalars().all()
         friends = [{
             "id": u.id, "username": u.username, "display_name": u.display_name,
             "avatar_url": u.avatar_url,
+            "label": labels.get(u.id, ""),
+            # Gizlilik: show_online kapalıysa herkese çevrimdışı görünür.
+            "status": presence_service.get_status(u.id) if u.show_online else "offline",
         } for u in users]
+        friends.sort(key=lambda f: (f["display_name"] or "").lower())
     return {"friends": friends}
 
 
