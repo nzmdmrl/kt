@@ -65,15 +65,36 @@ def word_of_day(d: date | None = None, length: int = 5, lang: str = "tr") -> str
 
 
 @router.get("/word")
-async def get_daily_word(length: int = Query(5, ge=4, le=6), user=Depends(get_optional_user)):
-    """Günün kelimesini döner (ÇÖZÜM AÇIK DEĞİL — sadece uzunluk ve ilk harf)."""
+async def get_daily_word(
+    request: Request,
+    length: int = Query(5, ge=4, le=6),
+    cid: str = Query("", description="Misafir istemci anahtarı (tekilleştirme)"),
+    db: AsyncSession = Depends(get_db),
+    user=Depends(get_optional_user),
+):
+    """Günün kelimesini döner (ÇÖZÜM AÇIK DEĞİL — sadece uzunluk ve ilk harf).
+
+    `solved`: bu kişi bugünkü kelimeyi çözmüş mü (üyede hesabına, misafirde cid'ine
+    bağlı). Arayüz tekrar girildiğinde "bugünkü kelimeyi çözdün" ekranını gösterir.
+    """
     _guard_guest(user)
     lang = settings.GAME_LANG
     word = word_of_day(length=length, lang=lang)
+    solved = False
+    solver = _solver_key(request, cid)
+    if solver:
+        solved = (await db.execute(
+            select(DailySolve.id).where(
+                DailySolve.solve_date == date.today(),
+                DailySolve.length == length,
+                DailySolve.solver == solver,
+            )
+        )).scalar_one_or_none() is not None
     return {
         "date": date.today().isoformat(),
         "length": length,
         "first_letter": word[0] if word else "",
+        "solved": solved,
         # Not: tam kelime İSTEMCİYE GÖNDERİLMEZ; tahmin sunucuda doğrulanır.
     }
 

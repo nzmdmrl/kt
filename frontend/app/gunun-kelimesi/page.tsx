@@ -14,7 +14,27 @@ import { useAuth } from "@/lib/auth";
 import { useGuestAccess } from "@/lib/guestAccess";
 
 type Tile = { letter: string; state: "correct" | "present" | "absent" };
-type DailyInfo = { date: string; length: number; first_letter: string };
+type DailyInfo = { date: string; length: number; first_letter: string; solved?: boolean };
+
+// Günün ilerlemesi tarayıcıda saklanır: sayfayı yenileyince tahminler kaybolmasın,
+// çözdüyse "bugünkü kelimeyi çözdün" ekranı gelsin. Üyede sunucu da bilir
+// (/api/daily/word -> solved), bu yüzden başka cihazda da doğru ekran çıkar.
+const STATE_KEY = "kt_daily_state";
+type SavedState = { date: string; length: number; status: "playing" | "won" | "lost"; rows: Tile[][] };
+
+function loadState(date: string, length: number): SavedState | null {
+  try {
+    const raw = localStorage.getItem(STATE_KEY);
+    if (!raw) return null;
+    const s = JSON.parse(raw) as SavedState;
+    if (s.date !== date || s.length !== length) return null;
+    return s;
+  } catch { return null; }
+}
+
+function saveState(s: SavedState) {
+  try { localStorage.setItem(STATE_KEY, JSON.stringify(s)); } catch {}
+}
 
 const MAX_ROWS = 6;
 
@@ -41,6 +61,8 @@ export default function DailyPage() {
   const [draft, setDraft] = useState("");
   const [status, setStatus] = useState<"playing" | "won" | "lost">("playing");
   const [err, setErr] = useState("");
+  // Sunucuya göre bugünkü kelime zaten çözülmüş mü (başka cihazda/oturumda).
+  const [alreadySolved, setAlreadySolved] = useState(false);
   // Oyuncu giriş alanına dokundu mu (ilk kez oynayanlara ok ipucu için).
   const [touched, setTouched] = useState(false);
   // Misafir erişimi admin ayarıyla kapatılabilir (guest_daily_enabled).
@@ -57,9 +79,16 @@ export default function DailyPage() {
     initSound(true, 70);
     // Üyede token gider: misafir erişimi kapalı olsa da üye oynayabilsin.
     const token = typeof window !== "undefined" ? localStorage.getItem("kt_token") : null;
-    fetch(apiUrl("/api/daily/word?length=5"), token ? { headers: { Authorization: `Bearer ${token}` } } : undefined)
+    fetch(apiUrl(`/api/daily/word?length=5&cid=${dailyClientId()}`), token ? { headers: { Authorization: `Bearer ${token}` } } : undefined)
       .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
-      .then((d: DailyInfo) => { setInfo(d); setDraft(""); })
+      .then((d: DailyInfo) => {
+        setInfo(d);
+        setDraft("");
+        // Bugüne ait kayıtlı ilerleme varsa geri yükle.
+        const saved = loadState(d.date, d.length);
+        if (saved) { setRows(saved.rows || []); setStatus(saved.status); }
+        if (d.solved) { setAlreadySolved(true); setStatus("won"); }
+      })
       .catch(() => setErr("Günün kelimesi yüklenemedi"));
   }, [gateReady, guestBlocked]);
 
@@ -86,13 +115,12 @@ export default function DailyPage() {
         }, idx * 140);
       });
       const afterTiles = data.tiles.length * 140 + 200;
-      if (data.correct) {
-        setStatus("won");
-        setTimeout(() => playSound("win"), afterTiles);
-      } else if (newRows.length >= MAX_ROWS) {
-        setStatus("lost");
-        setTimeout(() => playSound("lose"), afterTiles);
-      }
+      const nextStatus: "playing" | "won" | "lost" =
+        data.correct ? "won" : newRows.length >= MAX_ROWS ? "lost" : "playing";
+      setStatus(nextStatus);
+      saveState({ date: info.date, length: info.length, status: nextStatus, rows: newRows });
+      if (nextStatus === "won") setTimeout(() => playSound("win"), afterTiles);
+      else if (nextStatus === "lost") setTimeout(() => playSound("lose"), afterTiles);
     } catch {
       setErr("Bağlantı hatası");
     }
@@ -114,6 +142,16 @@ export default function DailyPage() {
     if (micStopTimer.current) clearTimeout(micStopTimer.current);
     micStopTimer.current = setTimeout(() => micStop(), 1000);
   }, [micStop]);
+
+  // Bilemedi: bugünkü kelimeyi baştan dener (tahmin tahtası temizlenir).
+  function retry() {
+    if (!info) return;
+    setRows([]);
+    setDraft("");
+    setErr("");
+    setStatus("playing");
+    saveState({ date: info.date, length: info.length, status: "playing", rows: [] });
+  }
 
   function share() {
     const emojiGrid = rows.map((row) =>
@@ -148,7 +186,8 @@ export default function DailyPage() {
         </p>
       </div>
 
-      {/* Izgara */}
+      {/* Izgara — başka cihazda çözülmüşse (tahmin geçmişi yoksa) boş tahta gösterme */}
+      {!(status === "won" && rows.length === 0) && (
       <div style={{ display: "grid", gap: 6, justifyContent: "center", marginBottom: 20 }}>
         {Array.from({ length: MAX_ROWS }).map((_, i) => {
           const row = rows[i];
@@ -179,6 +218,7 @@ export default function DailyPage() {
           );
         })}
       </div>
+      )}
 
       {status === "playing" && (
         <div style={{ display: "grid", gap: 10, justifyItems: "center" }}>
@@ -234,13 +274,32 @@ export default function DailyPage() {
         <div style={{ textAlign: "center", background: "var(--bg-panel)", borderRadius: 16, padding: 24 }}>
           <div style={{ fontSize: 40 }}>{status === "won" ? "🎉" : "😔"}</div>
           <div className="brand-mono" style={{ fontSize: 24, color: status === "won" ? "var(--tile-correct)" : "var(--accent-hot)", margin: "8px 0" }}>
-            {status === "won" ? `Bildin! ${rows.length}/${MAX_ROWS}` : "Bilemedin"}
+            {status === "won"
+              ? (rows.length > 0 ? `Bildin! ${rows.length}/${MAX_ROWS}` : "Bugünkü kelimeyi çözdün")
+              : "Bilemedin"}
           </div>
-          <button onClick={share} style={{
-            marginTop: 12, padding: "12px 28px", borderRadius: 12, border: "none",
-            background: "var(--accent)", color: "#1a1330", fontWeight: 700, fontSize: 16,
-            cursor: "pointer", fontFamily: "var(--font-display)",
-          }}>📤 Sonucu Paylaş</button>
+          {status === "won" && (
+            <p style={{ color: "var(--text-soft)", fontSize: 14, marginBottom: 4 }}>
+              Bugünkü kelimeyi çözdün — yarın yeni kelime seni bekliyor.
+            </p>
+          )}
+          {rows.length > 0 && (
+            <button onClick={share} style={{
+              marginTop: 12, padding: "12px 28px", borderRadius: 12, border: "none",
+              background: "var(--accent)", color: "#1a1330", fontWeight: 700, fontSize: 16,
+              cursor: "pointer", fontFamily: "var(--font-display)",
+            }}>📤 Sonucu Paylaş</button>
+          )}
+          {/* Bilemediyse bugünkü kelimeyi yeniden deneyebilir (çözdüyse kilitli). */}
+          {status === "lost" && (
+            <div style={{ marginTop: 12 }}>
+              <button onClick={retry} style={{
+                padding: "12px 28px", borderRadius: 12, border: "1px solid var(--border-soft)",
+                background: "transparent", color: "var(--text-strong)", fontWeight: 700, fontSize: 15,
+                cursor: "pointer",
+              }}>🔄 Tekrar Dene</button>
+            </div>
+          )}
           <p style={{ color: "var(--text-dim)", fontSize: 13, marginTop: 14 }}>Yarın yeni kelime!</p>
         </div>
       )}
