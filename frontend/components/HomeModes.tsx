@@ -202,7 +202,14 @@ export default function HomeModes({ style = "stil2" }: { style?: "stil1" | "stil
         <div className="hm-guest">
           {/* Stil 2'de site adını zaten animasyonlu kutu logosu gösteriyor */}
           {!s2 && <div className="brand-mono hm-guest-title">Kelime Tahmin</div>}
-          <a href="/giris" className="hm-guest-cta">Giriş yap / Kayıt ol →</a>
+          <a href="/giris" className="hm-guest-cta">
+            <span className="hm-guest-cta-icon">🔑</span>
+            <span className="hm-guest-cta-text">
+              <span className="hm-guest-cta-title">Giriş Yap / Kayıt Ol</span>
+              <span className="hm-guest-cta-sub">Ücretsiz üye ol · puanların, rozetlerin kaydedilsin</span>
+            </span>
+            <span className="hm-guest-cta-arrow">→</span>
+          </a>
         </div>
       )}
 
