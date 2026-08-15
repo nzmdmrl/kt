@@ -1,8 +1,8 @@
 """
 Lig uçları.
 
-GET /api/league/leaderboard?scope=daily|monthly|yearly|all&limit=100
-    -> sıralı liste
+GET /api/league/leaderboard?scope=daily|monthly|yearly|all&limit=100&offset=0
+    -> sıralı liste + toplam oyuncu sayısı (100'er 100'er "daha fazla göster")
 GET /api/league/me?scope=...   -> giriş yapmış kullanıcının sırası
 GET /api/league/awards/{user_id} -> kullanıcının kup/madalyaları
 """
@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
-from app.game.league_service import leaderboard, user_rank
+from app.game.league_service import leaderboard, leaderboard_count, user_rank
 from app.models.user import User
 from app.models.league_award import LeagueAward
 
@@ -27,13 +27,15 @@ VALID_SCOPES = {"daily", "monthly", "yearly", "all"}
 @router.get("/leaderboard")
 async def get_leaderboard(
     scope: str = Query("daily"),
-    limit: int = Query(100, le=500),
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(get_db),
 ):
     if scope not in VALID_SCOPES:
         scope = "daily"
-    board = await leaderboard(db, scope=scope, limit=limit)
-    return {"scope": scope, "entries": board}
+    board = await leaderboard(db, scope=scope, limit=limit, offset=offset)
+    total = await leaderboard_count(db, scope=scope)
+    return {"scope": scope, "entries": board, "total": total, "offset": offset, "limit": limit}
 
 
 @router.get("/me")

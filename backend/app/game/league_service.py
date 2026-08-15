@@ -71,10 +71,12 @@ async def leaderboard(
     scope: str = "daily",
     limit: int = 100,
     ref: date | None = None,
+    offset: int = 0,
 ) -> list[dict]:
     """
     Sıralı liderlik tablosu döner: [{rank, user_id, username, elo, score}, ...]
     scope: daily | monthly | yearly | all
+    offset: sayfalama (rank = offset + sıra) — "daha fazla göster" için.
     """
     start, end = _period_bounds(scope, ref)
 
@@ -99,7 +101,7 @@ async def leaderboard(
     if scope != "daily":
         q = q.group_by(DailyScore.user_id, User.username, User.display_name, User.avatar_url, User.elo)
     q = q.order_by(func.sum(DailyScore.best_score).desc() if scope != "daily" else DailyScore.best_score.desc())
-    q = q.limit(limit)
+    q = q.limit(limit).offset(offset)
 
     res = await db.execute(q)
     rows = res.all()
@@ -107,7 +109,7 @@ async def leaderboard(
     out = []
     for i, r in enumerate(rows):
         out.append({
-            "rank": i + 1,
+            "rank": offset + i + 1,
             "user_id": r.user_id,
             "username": r.username,
             "display_name": r.display_name,
@@ -118,6 +120,15 @@ async def leaderboard(
             "score": int(r.score or 0),
         })
     return out
+
+
+async def leaderboard_count(db: AsyncSession, scope: str = "daily", ref: date | None = None) -> int:
+    """Bir kapsamdaki toplam oyuncu sayısı (sayfalama için)."""
+    start, end = _period_bounds(scope, ref)
+    q = select(func.count(func.distinct(DailyScore.user_id)))
+    if start is not None:
+        q = q.where(DailyScore.score_date >= start, DailyScore.score_date <= end)
+    return int((await db.execute(q)).scalar_one() or 0)
 
 
 async def user_rank(db: AsyncSession, user_id: int, scope: str = "daily", ref: date | None = None) -> dict | None:

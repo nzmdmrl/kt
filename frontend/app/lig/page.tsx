@@ -39,15 +39,35 @@ export default function LigPage() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
   const [myRank, setMyRank] = useState<{ rank?: number; score?: number; elo?: number } | null>(null);
+  // Sayfalama: 100'er 100'er "Daha fazla göster".
+  const [total, setTotal] = useState(0);
+  const [more, setMore] = useState(false);
 
+  const PAGE = 100;
+
+  // Sekme değişince listeyi sıfırdan yükle.
   useEffect(() => {
     setLoading(true);
     setErr("");
-    getJSON<{ entries: Entry[] }>(`/api/league/leaderboard?scope=${scope}&limit=100`)
-      .then((d) => setEntries(d.entries))
+    setEntries([]);
+    getJSON<{ entries: Entry[]; total: number }>(`/api/league/leaderboard?scope=${scope}&limit=${PAGE}&offset=0`)
+      .then((d) => { setEntries(d.entries); setTotal(d.total ?? d.entries.length); })
       .catch(() => setErr("Sıralama yüklenemedi"))
       .finally(() => setLoading(false));
   }, [scope]);
+
+  // Sonraki 100 kaydı listenin altına ekle.
+  function loadMore() {
+    if (more) return;
+    setMore(true);
+    getJSON<{ entries: Entry[]; total: number }>(`/api/league/leaderboard?scope=${scope}&limit=${PAGE}&offset=${entries.length}`)
+      .then((d) => {
+        setEntries((xs) => [...xs, ...d.entries]);
+        if (typeof d.total === "number") setTotal(d.total);
+      })
+      .catch(() => {})
+      .finally(() => setMore(false));
+  }
 
   const myEntry = user ? entries.find((e) => e.user_id === user.id) : null;
 
@@ -120,6 +140,31 @@ export default function LigPage() {
           {entries.map((e) => (
             <Row key={e.user_id} entry={e} isMe={user?.id === e.user_id} />
           ))}
+        </div>
+      )}
+
+      {/* Sayfalama: 100'er 100'er */}
+      {!loading && !err && entries.length > 0 && (
+        <div style={{ marginTop: 14, textAlign: "center" }}>
+          {entries.length < total ? (
+            <>
+              <button
+                onClick={loadMore}
+                disabled={more}
+                style={{
+                  padding: "12px 24px", borderRadius: 12, border: "1px solid var(--border-soft)",
+                  background: "var(--bg-panel)", color: "var(--text-strong)",
+                  fontWeight: 700, fontSize: 15, cursor: more ? "default" : "pointer",
+                }}
+              >
+                {more ? "Yükleniyor…" : `Daha fazla göster (${entries.length}/${total})`}
+              </button>
+            </>
+          ) : (
+            <span style={{ color: "var(--text-dim)", fontSize: 13 }}>
+              Toplam {total.toLocaleString("tr")} oyuncu
+            </span>
+          )}
         </div>
       )}
 
