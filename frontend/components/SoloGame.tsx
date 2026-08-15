@@ -28,10 +28,9 @@ export default function SoloGame({ level, onExit, onComplete }: {
   const [err, setErr] = useState("");
   const [secondsLeft, setSecondsLeft] = useState(120);
   const [status, setStatus] = useState<"loading" | "playing" | "won" | "timeout">("loading");
-  // Bölüm yüklenince süre HEMEN işlemez: oyuncu "Başla" deyince (ya da yazmaya
-  // başlayınca) başlar. Mobilde klavye açılıp ekranı kapatmasın, oyuncu önce
-  // ızgarayı/ipucunu görsün diye.
-  const [started, setStarted] = useState(false);
+  // Oyuncu giriş alanına dokundu mu? Süreyi DEĞİL, sadece ilk kez oynayanlara
+  // gösterilen ok ipucunu kontrol eder (süre bölüme girer girmez işler).
+  const [touched, setTouched] = useState(false);
   const [result, setResult] = useState<{ stars: number; total: number; next: number } | null>(null);
 
   function token() { return typeof window !== "undefined" ? localStorage.getItem("kt_token") : null; }
@@ -49,26 +48,26 @@ export default function SoloGame({ level, onExit, onComplete }: {
         setInfo(d);
         setSecondsLeft(d.seconds);
         setStatus("playing");
-        setStarted(false);
+        setTouched(false);
       })
       .catch(() => setErr("Bölüm başlatılamadı"));
   }, [level]);
 
-  // Geri sayım — sadece oyuncu başladıktan sonra işler.
+  // Geri sayım — bölüme girer girmez işler.
   useEffect(() => {
-    if (status !== "playing" || !started) return;
+    if (status !== "playing") return;
     if (secondsLeft <= 0) { setStatus("timeout"); playSound("lose"); return; }
     const t = setTimeout(() => setSecondsLeft((s) => s - 1), 1000);
     return () => clearTimeout(t);
-  }, [status, started, secondsLeft]);
+  }, [status, secondsLeft]);
 
   // Son 10 saniyede tik sesi.
   useEffect(() => {
-    if (started && status === "playing" && secondsLeft <= 10 && secondsLeft > 0) playSound("tick");
-  }, [secondsLeft, status, started]);
+    if (status === "playing" && secondsLeft <= 10 && secondsLeft > 0) playSound("tick");
+  }, [secondsLeft, status]);
 
   const submit = useCallback(async () => {
-    if (!info || status !== "playing" || !started) return;
+    if (!info || status !== "playing") return;
     if (draft.length !== info.length) return;
     // İlk harf ipucu olarak veriliyor — farklı harfle başlanamaz.
     if (draft[0] !== info.first_letter) {
@@ -112,15 +111,13 @@ export default function SoloGame({ level, onExit, onComplete }: {
     } catch {
       setErr("Bağlantı hatası");
     }
-  }, [info, status, started, draft, rows, level, secondsLeft]);
+  }, [info, status, draft, rows, level, secondsLeft]);
 
   const micRef = useRef<any>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Süreyi başlat (bir kez). "Başla" butonu, giriş alanına dokunma ve mikrofon
-  // aynı kapıdan geçer — hangisiyle başlarsa başlasın süre o an işlemeye başlar.
-  const ensureStarted = useCallback(() => setStarted(true), []);
+  const markTouched = useCallback(() => setTouched(true), []);
 
   // Otomatik alta kaydırma: SADECE grid uzayıp taşmaya başlayınca (5+ tahmin).
   // İlk girişte / yeni levelde grid kısa olduğu için kaydırma yapılmaz (üst kutular görünür).
@@ -221,8 +218,8 @@ export default function SoloGame({ level, onExit, onComplete }: {
             <input
               ref={inputRef}
               value={draft}
-              onFocus={ensureStarted}
-              onChange={(e) => { ensureStarted(); setDraft(toUpperTr(e.target.value).replace(/[^A-ZÇĞİÖŞÜI]/g, "").slice(0, info.length)); }}
+              onFocus={markTouched}
+              onChange={(e) => { markTouched(); setDraft(toUpperTr(e.target.value).replace(/[^A-ZÇĞİÖŞÜI]/g, "").slice(0, info.length)); }}
               onKeyDown={(e) => e.key === "Enter" && submit()}
               placeholder={`${info.first_letter} ile başla`}
               maxLength={info.length}
@@ -235,7 +232,7 @@ export default function SoloGame({ level, onExit, onComplete }: {
             />
             {micSupported && (
               <button
-                onPointerDown={(e) => { e.preventDefault(); ensureStarted(); micStart(); }}
+                onPointerDown={(e) => { e.preventDefault(); markTouched(); micStart(); }}
                 onPointerUp={(e) => { e.preventDefault(); stopMicDelayed(); }}
                 onPointerLeave={() => { if (listening) stopMicDelayed(); }}
                 onContextMenu={(e) => e.preventDefault()}
@@ -248,16 +245,16 @@ export default function SoloGame({ level, onExit, onComplete }: {
                 }}
               >🎤</button>
             )}
-            <button onClick={submit} disabled={!started || draft.length !== info.length} style={{
+            <button onClick={submit} disabled={draft.length !== info.length} style={{
               padding: "12px 18px", borderRadius: 10, border: "none", background: "var(--accent)",
               color: "#1a1330", fontWeight: 700, fontSize: 15, cursor: "pointer", flexShrink: 0,
-              opacity: started && draft.length === info.length ? 1 : 0.5,
+              opacity: draft.length === info.length ? 1 : 0.5,
             }}>Dene</button>
           </div>
 
-          {/* Süre, oyuncu giriş alanına dokunana (ya da mikrofona basana) kadar
-              işlemez. İlk kez oynayanlara animasyonlu ok ipucu gösterilir. */}
-          <TapHint show={!started} storageKey="kt_hint_solo" />
+          {/* İlk kez oynayanlara: giriş alanını gösteren animasyonlu ok.
+              (Klavye kendiliğinden açılmıyor — mobilde ekranı kapatmasın diye.) */}
+          <TapHint show={!touched} storageKey="kt_hint_solo" />
           {err && <p style={{ color: "var(--accent-hot)", fontSize: 14 }}>{err}</p>}
         </div>
       )}
