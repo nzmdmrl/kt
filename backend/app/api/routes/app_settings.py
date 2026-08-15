@@ -94,9 +94,12 @@ DEFAULT_APP_SETTINGS: dict[str, tuple[dict, bool]] = {
             # ya da alt yol ("/arena" -> "/arena/ozel/ABC" de kapsanır).
             # Bu listeyi admin panelinden (Mobil & Reklam) değiştirebilirsin.
             "banner_hidden_paths": DEFAULT_BANNER_HIDDEN_PATHS,
-            # Bant konumu ince ayarı (cihazda deneyip kaydetmek için — deploy gerekmez):
-            #   banner_margin_extra    -> hesaplanan margin'e EKLENİR
-            #   banner_margin_override -> 0'dan büyükse hesaplanan margin YOK SAYILIR
+            # ALT BAR kaldırma ince ayarı (cihazda deneyip kaydetmek için — deploy
+            # gerekmez). DİKKAT: bunlar showBanner'ın margin'ine GİTMEZ; bant her
+            # zaman ekranın dibindedir (margin 0), oynayan şey alt bardır.
+            #   banner_margin_extra    -> navLift'e EKLENİR
+            #                             (navLift = bant + güvenli alan + extra)
+            #   banner_margin_override -> 0'dan büyükse hesap YOK SAYILIR, navLift = bu
             "banner_margin_extra": 0,
             "banner_margin_override": 0,
         },

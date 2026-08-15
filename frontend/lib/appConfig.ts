@@ -34,9 +34,9 @@ export type AdMobConfig = {
   ios?: { app_id: string; banner: string; interstitial: string };
   /** Banner'ın gizleneceği yollar (oyun ekranları) — admin panelinden düzenlenir. */
   banner_hidden_paths?: string[];
-  /** Hesaplanan bant margin'ine eklenecek px. */
+  /** ALT BARIN kaldırma miktarına (navLift) eklenecek px — bandın margin'i DEĞİL. */
   banner_margin_extra?: number;
-  /** 0'dan büyükse hesaplanan margin yok sayılır, bu değer kullanılır. */
+  /** 0'dan büyükse navLift hesabı yok sayılır, alt bar tam bu yüksekliğe konur. */
   banner_margin_override?: number;
 };
 

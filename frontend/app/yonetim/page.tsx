@@ -1732,15 +1732,15 @@ const MOBILE_FIELDS: Record<string, MobileField[]> = {
     },
     {
       path: "banner_margin_extra",
-      label: "Bant konumu — ek boşluk (px)",
+      label: "Alt bar kaldırma — ek boşluk (px)",
       type: "number",
-      hint: "0 = dokunma; hesaplanan mesafeye eklenir (eksi değer bandı aşağı indirir)",
+      hint: "Bant ekranın dibinde SABİT durur; oynayan şey alt bardır. 0 = dokunma. Bar, bant + güvenli alan + bu değer kadar yukarı kalkar (eksi değer aşağı indirir)",
     },
     {
       path: "banner_margin_override",
-      label: "Bant konumu — sabit değer (px)",
+      label: "Alt bar kaldırma — sabit değer (px)",
       type: "number",
-      hint: "0 = kapalı. 0'dan büyükse hesaplama YOK SAYILIR, bant tam bu yüksekliğe konur",
+      hint: "0 = kapalı. 0'dan büyükse hesaplama YOK SAYILIR, alt bar tam bu yüksekliğe konur",
     },
   ],
   "push.firebase": [

@@ -14,6 +14,12 @@
      Tarayıcıda HER ZAMAN 0px kalır — web düzeni hiç etkilenmez. */
   --kt-banner-h: 0px;
 
+  /* ALT BARIN ekranın dibinden yüksekliği (navLift) =
+       bant + güvenli alan + admin "ek boşluk"   (ya da admin "sabit değer").
+     NativeBootstrap barın KENDİSİNE satır içi `bottom: Npx !important` olarak da
+     yazar; bu değişken yalnızca yedektir. Tarayıcıda hep 0px. */
+  --kt-nav-lift: 0px;
+
   /* Bandın AKIŞTAKİ içerikten çaldığı yer = boşluk + bant yüksekliği.
      Bant, AdMob'un kendi margin seçeneğiyle alt navigasyonun ÜSTÜNE konuyor
      (alt bar hiç oynatılmaz, web'deki gibi bottom: 0'da kalır), ama içeriğin
@@ -247,12 +253,14 @@ a { color: inherit; text-decoration: none; }
 .kt-bottom-nav-spacer { height: calc(76px + var(--kt-safe-bottom)); }
 
 /* NATIVE BANT VARKEN YIĞIN (ekran altından yukarı):
-     [ güvenli alan ] [ BANT ] [ ALT BAR ] [ içerik ]
-   Barı bandın üstüne çıkaran kural BUDUR — bant native katman olduğu için
-   sayfadan konumlandırılamaz, bar ona göre kalkar. --kt-banner-h'yi yalnızca
-   components/NativeBootstrap.tsx yazar; tarayıcıda hep 0px, sınıf hiç eklenmez. */
+     [ güvenli alan ] [ BANT ] [ (admin ek boşluk) ] [ ALT BAR ] [ içerik ]
+   Bant native katman: ekranın dibine SABİT (showBanner margin: 0), sayfadan
+   konumlandırılamaz — oynayan tek şey bardır. Kaldırma miktarını
+   components/NativeBootstrap.tsx hesaplar ve barın satır içi stiline
+   `bottom: Npx !important` olarak yazar; aşağıdaki kural yalnızca YEDEKtir
+   (satır içi stil !important ile bunu zaten ezer). Tarayıcıda sınıf hiç eklenmez. */
 body.has-native-banner .kt-bottom-nav-bar {
-  bottom: calc(var(--kt-banner-h, 0px) + var(--kt-safe-bottom));
+  bottom: var(--kt-nav-lift, 0px);
 }
 
 /* Bar artık ekranın dibinde değil (altında bant var): kendi güvenli alan

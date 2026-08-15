@@ -17,11 +17,12 @@
  *  - Push: Android bildirim kanalları (grup başına bir kanal), izin, kayıt,
  *    token'ın /api/devices/register'a gönderilmesi, bildirime tıklayınca
  *    yönlendirme, uygulama açıkken hafif iç uyarı (toast).
- *  - AdMob: /api/app-config'teki ayara göre alt banner. Bant ekranın DİBİNE
- *    sabitlenir (margin = güvenli alan), ALT BAR onun üstüne kalkar: bandın
- *    GERÇEK yüksekliği --kt-banner-h'ye yazılır, barın bottom'ını bu değişken
- *    belirler (globals.css). Akışta bırakılacak yer --kt-banner-space'e yazılır
- *    (= bar + bant + güvenli alan, ÖLÇÜLEREK) + gövdeye "has-native-banner"
+ *  - AdMob: /api/app-config'teki ayara göre alt banner. Bant HER ZAMAN ekranın
+ *    DİBİNDEDİR (showBanner margin: 0 — SABİT, asla değiştirilmez), ALT BAR
+ *    onun üstüne kalkar. Kaldırma miktarı (navLift) barın kendisine satır içi
+ *    `bottom` + !important olarak yazılır; admin alanları (ek boşluk / sabit
+ *    değer) BU değeri ayarlar. Akışta bırakılacak yer --kt-banner-space'e
+ *    yazılır (ÖLÇÜLEREK) + gövdeye "has-native-banner"
  *    sınıfı eklenir. Oyun ekranlarında
  *    (ads.admob.banner_hidden_paths) banner gizlenir; ilan YENİDEN YÜKLENMEZ,
  *    aynı banner gizlenip gösterilir (hideBanner/resumeBanner).
@@ -61,28 +62,21 @@ const NAV_PRESENT_CLASS = "has-bottom-nav";
 const BANNER_HEIGHT_VAR = "--kt-banner-h";
 /**
  * Ekranın altından, akıştaki içeriğin bitmesi gereken çizgiye olan mesafe.
- * Alt bar basılıysa = bant + güvenli alan + BAR yüksekliği (yani barın üst kenarı),
- * bar yoksa = bant + güvenli alan.
+ * Alt bar basılıysa = navLift + BAR yüksekliği (yani barın üst kenarı),
+ * bar yoksa = navLift.
  */
 const BANNER_SPACE_VAR = "--kt-banner-space";
+/**
+ * ALT BARIN ekranın dibinden yüksekliği (navLift). Satır içi stille birlikte
+ * yazılır; satır içi stil bir şekilde barı bulamazsa CSS bu değişkenden okur.
+ */
+const NAV_LIFT_VAR = "--kt-nav-lift";
 
 /** Alt bar ölçülemezse kullanılacak yükseklik (globals.css'teki spacer değeri). */
 const NAV_HEIGHT_FALLBACK = 76;
 
-/**
- * CSS px -> eklentinin margin biriminde katsayı.
- *
- * ARİTMETİK: eklenti margin'i px'e şöyle çeviriyor (BannerExecutor.java):
- *     fiziksel_px = margin * density
- * WebView'da ise
- *     fiziksel_px = css_px * devicePixelRatio
- * Android'de density == devicePixelRatio olduğu sürece (bu cihazda 2.75) 1 CSS px
- * = 1 dp olur ve katsayı 1'dir.
- *
- * CİHAZDA DOĞRULANDI: 2400 fiziksel / 2.625 = 915 CSS px genişlik, yani 1 dp =
- * 1 CSS px; margin 112 = nav 97 + boşluk 15 doğru karşılık buldu. Katsayı 1 kalıyor.
- */
-const MARGIN_DP_FACTOR = 1;
+/** Alt barı basan eleman — satır içi stil buraya yazılır. */
+const NAV_SELECTOR = ".kt-bottom-nav-bar";
 
 /**
  * GOOGLE'IN RESMİ TEST REKLAM BİRİMLERİ — tek yer burası, başka yere kopyalama.
@@ -135,15 +129,21 @@ function measureSafeBottom(): number {
  * YIĞIN (ekranın altından yukarı doğru):
  *
  *     [ güvenli alan (gesture bar) ]   <- şerit doldurur
- *     [ BANT — ekranın dibine sabit ]  <- native katman, gerçek bildirilen yükseklik
- *     [ ALT BAR — bandın tam üstünde ] <- bottom: bant + güvenli alan (globals.css)
- *     [ sayfa içeriği ]                <- altında bar + bant kadar yer ayrılır
+ *     [ BANT — ekranın dibine SABİT ]  <- native katman, margin HER ZAMAN 0
+ *     [ (admin ek boşluk) ]            <- şerit doldurur
+ *     [ ALT BAR ]                      <- bottom = navLift (satır içi, !important)
+ *     [ sayfa içeriği ]                <- altında bar + navLift kadar yer ayrılır
  *
- * Bant artık YUKARI İTİLMİYOR: eklentiye verilen margin yalnızca güvenli alan
- * kadar (çoğu cihazda 0). Barı kaldıran şey CSS: --kt-banner-h yazıldığında
- * `body.has-native-banner .kt-bottom-nav-bar` kuralı barın bottom'ını bandın
- * üstüne taşır. ESKİ KURGU (bar sabit, bant margin ile yüzer) TERK EDİLDİ —
- * bar oynamadığı için bant barın ikonlarının üstüne biniyordu.
+ * TEK OYNAYAN ŞEY ALT BARDIR. Bant hiç kımıldamaz: showBanner'a verilen margin
+ * Android tarafında yok sayılıyor (BannerExecutor bottom hizalı AdView koyuyor),
+ * bu yüzden admin alanları oraya bağlanırsa hiçbir etkisi olmaz. Admin alanları
+ * artık navLift'i belirler:
+ *
+ *     navLift = bant yüksekliği + güvenli alan + banner_margin_extra
+ *     banner_margin_override > 0 ise  navLift = banner_margin_override
+ *
+ * Aynı navLift üç yere birden uygulanır: barın satır içi `bottom`u, arkadaki
+ * dolgu şeridinin yüksekliği ve içerik rezervi (--kt-banner-space, ÖLÇÜLEREK).
  */
 
 /** O anki gerçek ölçüler — hiçbiri sabit değil, hepsi çalışma anında okunur. */
@@ -164,7 +164,7 @@ function measureNav(): NavMetrics {
   const safe = measureSafeBottom();
   const innerHeight = window.innerHeight;
   try {
-    const bar = document.querySelector<HTMLElement>(".kt-bottom-nav-bar");
+    const bar = document.querySelector<HTMLElement>(NAV_SELECTOR);
     if (bar) {
       // getBoundingClientRect bekleyen düzeni zorlar: --kt-banner-h yeni
       // yazıldıysa bile buradaki değerler kaldırma SONRASI hâli gösterir.
@@ -183,7 +183,7 @@ function measureNav(): NavMetrics {
       }
     }
   } catch {}
-  // Bar bu sayfada basılı değil (ör. /giris, oyun ekranı): yalnızca bant + güvenli alan.
+  // Bar bu sayfada basılı değil (ör. /giris, oyun ekranı): yalnızca navLift.
   return {
     safe,
     innerHeight,
@@ -192,29 +192,27 @@ function measureNav(): NavMetrics {
     navTop: innerHeight,
     navBottom: innerHeight,
     navComputedBottom: "-",
-    space: bannerHeightPx > 0 ? bannerHeightPx + safe : 0,
+    space: navLiftPx,
   };
 }
 
 /**
- * Eklentiye geçilecek margin: bant ekranın DİBİNE otursun, sadece sistem çubuğu
- * payı kadar yukarıda dursun. Admin alanları (ek boşluk / sabit değer) ince ayar
- * için duruyor; ikisi de 0 iken sonuç = güvenli alan (çoğu Android'de 0).
- */
-function bannerMargin(extra: number, override: number): number {
-  if (override > 0) return override;
-  return Math.round((measureSafeBottom() + extra) * MARGIN_DP_FACTOR);
-}
-
-/**
  * Bandın gerçek yüksekliğini uygular. TEK KAYNAK burasıdır:
- *  - --kt-banner-h yazılır  -> alt bar CSS ile bandın üstüne kalkar (globals.css),
- *                              dolgu şeridi bu yüksekliği alır,
+ *  - --kt-banner-h yazılır (bilgi amaçlı; konumlandırma navLift'ten gelir),
  *  - has-native-banner sınıfı açılır/kapanır,
- *  - rezerv (--kt-banner-space) yeniden ölçülür.
+ *  - navLift ve rezerv (--kt-banner-space) yeniden hesaplanır.
  * Bant yokken değişkenler 0px'e döner → düzen web'dekiyle birebir aynı.
  */
 let bannerHeightPx = 0;
+
+/** Alt barın ekranın dibinden yüksekliği — hesaplanan ve UYGULANAN değer. */
+let navLiftPx = 0;
+
+/** Admin → Mobil & Reklam ayarları (setupAdMob doldurur). */
+let adminLiftExtra = 0;
+let adminLiftOverride = 0;
+/** Konsoldan elle deneme (bkz. __ktBanner.lift) — kaydetmeden önce denemek için. */
+let consoleLift: number | null = null;
 
 function setBannerHeight(px: number) {
   try {
@@ -226,25 +224,48 @@ function setBannerHeight(px: number) {
 }
 
 /**
- * Banda GERÇEKTEN geçilen margin. Bant bir kez konumlandıktan sonra native tarafta
- * sabit kaldığı için rezerv hesabı bu değeri izler (yeniden hesaplananı değil).
+ * navLift = bant + güvenli alan + admin ek boşluk; admin "sabit değer" > 0 ise
+ * doğrudan o. Bant yokken/gizliyken 0 → bar web'deki gibi ekranın dibine döner.
  */
-let activeMargin: number | null = null;
+function computeNavLift(safe: number): number {
+  if (bannerHeightPx <= 0) return 0;
+  if (consoleLift !== null) return Math.max(0, Math.round(consoleLift));
+  if (adminLiftOverride > 0) return Math.round(adminLiftOverride);
+  return Math.max(0, Math.round(bannerHeightPx + safe + adminLiftExtra));
+}
+
+/**
+ * navLift'i barın KENDİSİNE yazar: satır içi stil + !important, yani hem
+ * globals.css hem de React'in style prop'u yenilse bile ezilemez. React bu
+ * özelliği hiç yönetmediği için yeniden render'da silinmez; bar unmount olup
+ * geri geldiğinde applyBannerSpace tekrar çağrıldığı için yeniden yazılır.
+ */
+function applyNavLift(lift: number) {
+  navLiftPx = lift;
+  document.documentElement.style.setProperty(NAV_LIFT_VAR, `${lift}px`);
+  try {
+    const bar = document.querySelector<HTMLElement>(NAV_SELECTOR);
+    if (!bar) return;
+    if (lift > 0) bar.style.setProperty("bottom", `${lift}px`, "important");
+    else bar.style.removeProperty("bottom");
+  } catch {}
+}
 
 /**
  * --kt-banner-space = ekranın altından, içeriğin bitmesi gereken çizgiye mesafe.
  * TAHMİN YOK, ölçülür: bar kalktıktan SONRAKİ rect'inin üst kenarı okunur, yani
- *     space = innerHeight - navRect.top = bar yüksekliği + bant + güvenli alan.
- * Bar basılı değilse (ör. /giris) = bant + güvenli alan.
+ *     space = innerHeight - navRect.top = bar yüksekliği + navLift.
+ * Bar basılı değilse (ör. /giris) = navLift.
  *  - bar varsa spacer'ın yüksekliği doğrudan bu olur (globals.css),
  *  - yoksa aynı değer gövde dolgusuna gider.
- * Bant yüksekliği yükleme başına değişebildiği için (50 → 60 → 64) HER boyut
- * olayında ve her gezinmede yeniden yazılır.
+ *
+ * SIRA ÖNEMLİ: önce navLift uygulanır, sonra şerit büyütülür, EN SON ölçülür —
+ * böylece okunan rect nihai düzeni gösterir.
  */
 function applyBannerSpace() {
   try {
-    // Önce şerit güncellensin (yüksekliği --kt-banner-h'den gelir), sonra ölçüm:
-    // böylece aşağıdaki rect okuması nihai düzeni görür.
+    const safe = measureSafeBottom();
+    applyNavLift(computeNavLift(safe));
     syncBannerFill();
     const m = measureNav();
     const space = bannerHeightPx > 0 ? m.space : 0;
@@ -257,30 +278,54 @@ function applyBannerSpace() {
 }
 
 /**
- * Kaldırmanın GERÇEKTEN uygulandığının kanıtı — her boyut olayında ve her
- * gezinmede basılır. Stillediğimiz elemanı ve uygulandıktan SONRAKİ hesaplanmış
- * bottom'ını gösterir; ayrıca üç değişmezi kendisi denetler.
+ * Kaldırmanın GERÇEKTEN uygulandığının kanıtı — TEK SATIR, her boyut olayında ve
+ * her gezinmede basılır: girdiler, hesaplanan navLift ve UYGULANDIKTAN SONRA
+ * elemandan geri okunan computed bottom.
+ *
+ * Geri okunan değer navLift'e eşit değilse stil barı bulamıyor demektir; o zaman
+ * ekranın dibindeki sabit konumlu elemanlar dökülür ki barı gerçekte hangi
+ * elemanın bastığı görülsün.
  */
 function logBannerLayout(m: NavMetrics) {
   try {
     const fill = document.getElementById(BANNER_FILL_ID);
     const fillH = fill ? Math.round(fill.getBoundingClientRect().height) : 0;
-    const beklenenFill = bannerHeightPx > 0 ? bannerHeightPx + m.safe : 0;
-    const beklenenNavBottom = bannerHeightPx > 0 ? bannerHeightPx + m.safe : 0;
-    const gercekNavBottom = m.navPresent ? m.innerHeight - m.navBottom : 0;
-    const ok = (a: number, b: number) => (Math.abs(a - b) <= 1 ? "OK" : "HATA");
+    const rectAlt = m.navPresent ? m.innerHeight - m.navBottom : 0;
+    const okStr = (a: number, b: number) => (Math.abs(a - b) <= 1 ? "OK" : "HATA");
+    const kaynak = consoleLift !== null ? "konsol" : adminLiftOverride > 0 ? "sabit" : "hesap";
     console.log(
-      "[native] bant yerleşimi\n" +
-      `  element              : ${m.navPresent ? "nav.kt-bottom-nav-bar" : "(bar bu sayfada yok)"}\n` +
-      `  nav computed bottom  : ${m.navComputedBottom}\n` +
-      `  nav rect.top/bottom  : ${m.navTop} / ${m.navBottom}   (yükseklik ${m.navHeight})\n` +
-      `  nav ekran altı payı  : ${gercekNavBottom}  beklenen ${beklenenNavBottom}  ${ok(gercekNavBottom, beklenenNavBottom)}\n` +
-      `  şerit yüksekliği     : ${fillH}  beklenen ${beklenenFill}  ${ok(fillH, beklenenFill)}\n` +
-      `  bant yüksekliği      : ${bannerHeightPx}   güvenli alan: ${m.safe}   margin: ${activeMargin ?? "-"}\n` +
-      `  rezerv (space)       : ${m.space}  beklenen ${m.navPresent ? m.navHeight + bannerHeightPx + m.safe : beklenenFill}  ` +
-      `${ok(m.space, m.navPresent ? m.navHeight + bannerHeightPx + m.safe : beklenenFill)}\n` +
-      `  innerHeight          : ${m.innerHeight}`,
+      `[native] navLift bant:${bannerHeightPx} güvenli:${m.safe} ek:${adminLiftExtra} ` +
+      `sabit:${adminLiftOverride} (${kaynak}) → navLift:${navLiftPx} | ` +
+      `nav computed bottom:${m.navComputedBottom} rect payı:${rectAlt} ` +
+      `${m.navPresent ? okStr(rectAlt, navLiftPx) : "(bar yok)"} | ` +
+      `şerit:${fillH}/${navLiftPx} ${okStr(fillH, navLiftPx)} | ` +
+      `rezerv:${m.space} | navH:${m.navHeight} innerH:${m.innerHeight}`,
     );
+    if (m.navPresent && Math.abs(rectAlt - navLiftPx) > 1) dumpBottomFixed();
+  } catch {}
+}
+
+/**
+ * Stil barı tutmuyorsa: ekranın dibine yapışık sabit/yapışkan elemanları döker.
+ * Alt bar gerçekte hangi eleman tarafından basılıyorsa burada görünür.
+ */
+function dumpBottomFixed() {
+  try {
+    const ih = window.innerHeight;
+    const rows: string[] = [];
+    document.querySelectorAll<HTMLElement>("body *").forEach((el) => {
+      if (rows.length >= 12) return;
+      const cs = getComputedStyle(el);
+      if (cs.position !== "fixed" && cs.position !== "sticky") return;
+      const r = el.getBoundingClientRect();
+      if (r.height < 20 || r.bottom < ih - 260) return;
+      rows.push(
+        `${el.tagName.toLowerCase()}${el.id ? "#" + el.id : ""}` +
+        `${el.className && typeof el.className === "string" ? "." + el.className.trim().split(/\s+/).join(".") : ""} ` +
+        `bottom:${cs.bottom} z:${cs.zIndex} rect:${Math.round(r.top)}-${Math.round(r.bottom)}`,
+      );
+    });
+    console.warn("[native] navLift TUTMADI — dipteki sabit elemanlar:\n  " + rows.join("\n  "));
   } catch {}
 }
 
@@ -294,8 +339,8 @@ function logBannerLayout(m: NavMetrics) {
 // Kurallar:
 //  - yalnızca native'de ve bant GÖRÜNÜRKEN var; bant gizlenince/kapalıyken
 //    DOM'dan tamamen silinir (setBannerHeight(0) → syncBannerFill).
-//  - yükseklik = calc(--kt-banner-h + --kt-safe-bottom), FAZLASI DEĞİL. Değişken
-//    her boyut olayında yeniden yazıldığı için kendiliğinden güncellenir.
+//  - yükseklik = navLift, yani barın ALTINDA kalan her şey (bant + güvenli alan
+//    + admin ek boşluk). Her boyut olayında/gezinmede yeniden yazılır.
 //  - z-index alt barın (50) altında, pointer-events yok → dokunuşu ASLA yemez.
 //  - renk SABİT DEĞİL: alt barın hesaplanmış stilinden kopyalanır; bar yoksa
 //    (ör. /giris) barın kullandığı --bg-panel belirtecine düşer.
@@ -348,9 +393,10 @@ function syncBannerFill() {
       });
     }
 
-    // TAM bandın boyu + altındaki güvenli alan. Barın yeri buraya DAHİL DEĞİL:
-    // bar bu şeridin üstünde, kendi zeminiyle duruyor.
-    el.style.height = `calc(var(${BANNER_HEIGHT_VAR}, 0px) + var(--kt-safe-bottom, 0px))`;
+    // TAM olarak barın altında kalan boşluk = navLift (bant + güvenli alan +
+    // admin ek boşluk). Barın yeri buraya DAHİL DEĞİL: bar bu şeridin üstünde,
+    // kendi zeminiyle duruyor. Admin ek boşluğu büyüdükçe şerit de büyür.
+    el.style.height = `${navLiftPx}px`;
 
     const bg = navBackground();
     el.style.backgroundColor = bg.color;
@@ -427,11 +473,19 @@ export default function NativeBootstrap() {
     currentPath = pathname || "/";
     void applyBannerForPath();
 
-    // Bar bu sayfada var mı yok mu değişmiş olabilir → içerik rezervini tazele.
-    const raf = requestAnimationFrame(() => {
-      applyBannerSpace();
-    });
-    return () => cancelAnimationFrame(raf);
+    // Bar bu sayfada var mı yok mu değişmiş olabilir → satır içi kaldırmayı ve
+    // içerik rezervini tazele. Bar yeni monte olduysa satır içi stili kaybolur;
+    // bu yüzden ilk kareden sonra bir de gecikmeli tekrar uygulanır.
+    const raf = requestAnimationFrame(() => applyBannerSpace());
+    const late = window.setTimeout(() => applyBannerSpace(), 300);
+    // Klavye açılması / döndürme: ölçüler değişir, kaldırma yeniden yazılır.
+    const onResize = () => applyBannerSpace();
+    window.addEventListener("resize", onResize);
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(late);
+      window.removeEventListener("resize", onResize);
+    };
   }, [pathname, ready, isNative]);
 
   // --- yönlendirme kuyruğu -------------------------------------------------
@@ -704,11 +758,11 @@ async function setupAdMob(platform: Platform) {
     // sonraki gösterimde resumeBanner değil, YENİ showBanner çağrılır.
     let bannerState: "yok" | "gorunur" | "gizli" = "yok";
 
-    // Admin panelinden bant konumu ince ayarı (Mobil & Reklam sekmesi).
-    const adminExtra = Number(admob.banner_margin_extra) || 0;
-    const adminOverride = Number(admob.banner_margin_override) || 0;
-    // Konsoldan elle deneme (bkz. __ktBanner.retry) — kaydetmeden önce denemek için.
-    let marginOverride: number | null = null;
+    // Admin panelinden ALT BAR kaldırma ince ayarı (Mobil & Reklam sekmesi).
+    // DİKKAT: bunlar showBanner'ın margin'ine GİTMEZ — Android orayı yok sayıyor.
+    // Yalnızca navLift'i belirler (bkz. computeNavLift).
+    adminLiftExtra = Number(admob.banner_margin_extra) || 0;
+    adminLiftOverride = Number(admob.banner_margin_override) || 0;
 
     // --- yükseklik: TAHMİN YOK, eklentinin bildirdiği gerçek ölçü kullanılır ---
     // SizeChanged (Android: bannerViewChangeSize, iOS: bannerViewDidReceiveAd
@@ -723,7 +777,6 @@ async function setupAdMob(platform: Platform) {
       // AdMob hata kodları: 0 iç hata, 1 geçersiz istek, 2 ağ, 3 stok yok (no fill).
       // Eklenti AdView'i yok etti: durumu "yok"a çek, yoksa hideBanner patlar.
       bannerState = "yok";
-      activeMargin = null;
       log("banner yüklenemedi:", err);
       setBannerHeight(0);
     });
@@ -739,28 +792,17 @@ async function setupAdMob(platform: Platform) {
           // İlan YENİDEN YÜKLENMEZ: var olan banner yeniden görünür yapılır.
           await AdMob.resumeBanner();
         } else {
-          // Bant ekranın DİBİNDE kalır (yalnızca güvenli alan kadar yukarıda);
-          // alt barı bandın üstüne çıkaran şey CSS (bkz. globals.css).
-          //
-          // Öncelik: konsoldan elle verilen değer > admin "sabit değer" >
-          //          güvenli alan + admin "ek boşluk".
-          const margin = marginOverride ?? bannerMargin(adminExtra, adminOverride);
-          activeMargin = margin;
-          applyBannerSpace();   // rezerv kullanılan margin'i izlesin
-
-          console.log(
-            "[native] banner margin — güvenli alan:", measureSafeBottom(),
-            "| ek (admin):", adminExtra,
-            "| sabit (admin):", adminOverride,
-            "| konsol:", marginOverride ?? "-",
-            "| KULLANILAN:", margin,
-          );
-
+          // ==================================================================
+          // margin: 0 — SABİT. ASLA DEĞİŞTİRME, hiçbir ayara bağlama.
+          // Android bu değeri yok sayıyor (bant her hâlükârda ekranın dibine
+          // bottom hizalı konuyor), buraya bağlanan admin alanı ÖLÜDÜR.
+          // Konumu ayarlayan tek şey navLift'tir → computeNavLift/applyNavLift.
+          // ==================================================================
           await AdMob.showBanner({
             adId: unit,
             adSize: BannerAdSize.ADAPTIVE_BANNER,
             position: BannerAdPosition.BOTTOM_CENTER,
-            margin,
+            margin: 0,
             isTesting,
           });
         }
@@ -795,30 +837,32 @@ async function setupAdMob(platform: Platform) {
 
     /**
      * Cihazda deneme kancası (chrome://inspect konsolu):
-     *   __ktBanner.retry(220)  -> bandı 220 px margin ile sıfırdan kur
-     *   __ktBanner.retry()     -> admin ayarları + hesaplama ile sıfırdan kur
-     *   __ktBanner.info()      -> hesaplanan margin ve o anki ölçüler
-     * Beğendiğin sayıyı /yonetim → Mobil & Reklam → "Bant konumu — sabit değer"
-     * alanına yazınca kalıcı olur. Margin yalnızca bant SIFIRDAN kurulurken
-     * uygulandığı için önce removeBanner çağrılıyor.
+     *   __ktBanner.lift(220)  -> alt barı 220 px'e kaldır (ANINDA görünür)
+     *   __ktBanner.lift()     -> konsol denemesini bırak, admin ayarına dön
+     *   __ktBanner.retry()    -> bandı sıfırdan kur (margin her zaman 0)
+     *   __ktBanner.info()     -> o anki tek satır ölçüm dökümü
+     * Beğendiğin sayıyı /yonetim → Mobil & Reklam → "Alt bar kaldırma — sabit
+     * değer" alanına yazınca kalıcı olur.
      */
     (window as any).__ktBanner = {
-      async retry(margin?: number) {
+      /** Barın yüksekliğini anında dener — bant yeniden yüklenmez. */
+      lift(px?: number) {
+        consoleLift = typeof px === "number" ? px : null;
+        applyBannerSpace();
+      },
+      async retry() {
         try {
-          marginOverride = typeof margin === "number" ? margin : null;
           await AdMob.removeBanner().catch(() => {});
           bannerState = "yok";
-          activeMargin = null;
           setBannerHeight(0);
           await show();
         } catch (e) {
           log("banner retry başarısız:", e);
         }
       },
-      /** Ölçüm tablosunu istediğin an bastırır (aynısı her boyut olayında da düşer). */
+      /** Ölçüm satırını istediğin an bastırır (aynısı her boyut olayında da düşer). */
       info() {
         logBannerLayout(measureNav());
-        console.log("[native] admin ek/sabit:", adminExtra, "/", adminOverride);
       },
     };
 
