@@ -147,7 +147,7 @@ export default function DailyPage() {
     if (clean.length > 0) setDraft(clean);
   }, [info, status]);
 
-  const { supported: micSupported, listening, start: micStart, stop: micStop } =
+  const { supported: micSupported, listening, error: micError, start: micStart, stop: micStop } =
     useSpeech(onVoiceResult, "tr-TR");
 
   // Bırakınca 1 sn sonra durdur — son heceler de alınsın (maçtaki fix ile aynı).
@@ -270,6 +270,9 @@ export default function DailyPage() {
 
           {micSupported && (
             <p style={{ color: "var(--text-dim)", fontSize: 12 }}>🎤 basılı tut & kelimeyi söyle</p>
+          )}
+          {!listening && micError && (
+            <p style={{ color: "var(--accent-hot)", fontSize: 12 }}>{micError}</p>
           )}
           {err && <p style={{ color: "var(--accent-hot)", fontSize: 14 }}>{err}</p>}
           <p style={{ color: "var(--text-dim)", fontSize: 13 }}>{rows.length}/{MAX_ROWS} hak kullanıldı</p>

@@ -772,10 +772,13 @@ export default function MatchGame({
                   e.preventDefault();
                   if (writeBlocked && !turnFree) return;
                   setVoiceHint("");
-                  // Sıra boşsa MİKROFONDAN ÖNCE buzzer al — böylece ilk kelime de yazılır
-                  // (buzzer state'i otururken konuşma tamamlanır).
-                  if (turnFree) buzzer();
-                  micStart();
+                  // Söz hakkı (buzzer) SADECE tanıma gerçekten başladıktan SONRA alınır.
+                  // Aksi hâlde mikrofon izni reddedildiğinde ya da tanıma servisi
+                  // yanıt vermediğinde oyuncu sırasını tek harf yazamadan harcıyordu.
+                  const wantBuzzer = turnFree;
+                  micStart().then((ok) => {
+                    if (ok && wantBuzzer) buzzer();
+                  });
                 }}
                 onPointerUp={(e) => { e.preventDefault(); stopMicDelayed(); }}
                 onPointerLeave={() => { if (listening) stopMicDelayed(); }}

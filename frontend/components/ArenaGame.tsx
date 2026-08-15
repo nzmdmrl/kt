@@ -139,7 +139,7 @@ export default function ArenaGame({ onExit, customCode, guestName }: { onExit: (
     const clean = toUpperTr(text).replace(/[^A-ZÇĞİÖŞÜI]/g, "").slice(0, q.length);
     setTyped(clean); setUseKeyboard(true);
   }, [q]);
-  const { supported: micSupported, listening, start: micStart, stop: micStop } = useSpeech(onVoice, "tr-TR");
+  const { supported: micSupported, listening, error: micError, start: micStart, stop: micStop } = useSpeech(onVoice, "tr-TR");
   const micTimer = useRef<any>(null);
   const stopMicDelayed = useCallback(() => {
     if (micTimer.current) clearTimeout(micTimer.current);
@@ -454,6 +454,9 @@ export default function ArenaGame({ onExit, customCode, guestName }: { onExit: (
 
               {listening && (
                 <p style={{ fontSize: 13, color: "var(--accent-hot)", fontWeight: 600 }}>🔴 Dinliyorum… kelimeyi söyle</p>
+              )}
+              {!listening && micError && (
+                <p style={{ fontSize: 12, color: "var(--accent-hot)" }}>{micError}</p>
               )}
               <p style={{ color: "var(--text-dim)", fontSize: 12 }}>
                 İpucu: kelime <strong style={{ color: "var(--accent)" }}>{q.first_letter}</strong> harfiyle başlıyor

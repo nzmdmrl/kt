@@ -26,12 +26,13 @@ yayınlamak sadece native tarafta (plugin ekleme, ikon, izin) bir şey değişin
 
 `@capacitor/app`, `@capacitor/push-notifications`, `@capacitor/splash-screen`,
 `@capacitor/status-bar`, `@capacitor/share`, `@capacitor/browser`,
-`@capacitor/preferences`, `@capacitor-community/admob`
+`@capacitor/preferences`, `@capacitor-community/admob`,
+`@capacitor-community/speech-recognition`
 
 Capacitor sürümü: **7.6.8** (core / cli / android). Sürüm hattı bilinçli olarak 7.x'te
 tutuldu; 8.x'e geçilecekse tüm eklentiler birlikte yükseltilmeli.
 
-Uygulama kimliği: `com.kelimetahmin.app` · `versionCode 1` / `versionName "1.0"`
+Uygulama kimliği: `com.kelimetahmin.app` · `versionCode 2` / `versionName "1.1"`
 (`android/app/build.gradle`) · minSdk 23 · compileSdk 35
 
 ---
@@ -73,6 +74,18 @@ npx cap open ios
 
 `capacitor.config.ts` içindeki `ios` bloğu (user-agent + `contentInset: "always"`)
 zaten hazır bekliyor.
+
+> **iOS eklenince ZORUNLU — sesli tahmin izin metinleri.** `Info.plist` içine şu iki
+> anahtar yazılmadan uygulama, mikrofona ilk basışta **çöker** (iOS izin metni olmayan
+> API çağrısını sonlandırır):
+>
+> | Anahtar | Ne için |
+> |---|---|
+> | `NSSpeechRecognitionUsageDescription` | Konuşmanın metne çevrilmesi (SFSpeechRecognizer) |
+> | `NSMicrophoneUsageDescription` | Ses kaydı için mikrofon erişimi |
+>
+> Örnek metin: "Kelimeyi klavye yerine söyleyerek tahmin edebilmen için mikrofon
+> kullanılıyor." Bu görevde iOS projesi **açılmadı**, bu yüzden anahtarlar da eklenmedi.
 
 ---
 
@@ -147,3 +160,33 @@ alanını doldurursan da orayı referans/kayıt amaçlı tutmuş olursun.
 
 iOS eklendiğinde karşılığı `Info.plist` içindeki `GADApplicationIdentifier`
 anahtarıdır; o da aynı şekilde build-time'dır.
+
+---
+
+## Sesli tahmin (mikrofon)
+
+Sitedeki 🎤 "basılı tut & söyle" düğmesi **Android System WebView'de çalışmaz**:
+WebView, Chrome'un aksine Web Speech API'yi (`webkitSpeechRecognition`) getirmez.
+Bu yüzden uygulamada tanıma native tarafa devredildi —
+`@capacitor-community/speech-recognition` (Android `SpeechRecognizer`, iOS
+`SFSpeechRecognizer`).
+
+Web kodu tek yerden ayrım yapar: `frontend/lib/useSpeech.ts`. Native ise plugin,
+tarayıcıda ise eski Web Speech API yolu çalışır; dört oyun ekranı (arena, 1v1,
+maraton, günün kelimesi) farkı bilmez. Plugin JS'i **dinamik `import()`** ile
+yüklenir, yani normal tarayıcıda paket hiç indirilmez.
+
+Manifest'te elle tutulan iki kayıt var (`android/app/src/main/AndroidManifest.xml`):
+
+| Kayıt | Neden gerekli |
+|---|---|
+| `<uses-permission android:name="android.permission.RECORD_AUDIO" />` | Mikrofon. İzin **uygulama açılışında değil**, kullanıcı mikrofona ilk basınca istenir |
+| `<queries><intent><action android:name="android.speech.RecognitionService" /></intent></queries>` | Android 11+ paket görünürlüğü. Bu blok olmadan sistem tanıma servisi görünmez, `available()` false döner ve düğme hiç çıkmaz |
+
+Davranış: cihazda tanıma servisi yoksa (ör. Google uygulaması devre dışı) mikrofon
+düğmesi **görünmez** — bozuk düğme gösterilmez. Kullanıcı izni reddederse kısa bir
+uyarı çıkar ve oyun klavyeyle tam olarak oynanmaya devam eder.
+
+Play Store'da uygulama, mikrofon izni yüzünden **veri güvenliği formunda** ses
+kullanımını beyan etmeni isteyebilir: ses yalnızca cihazdaki tanıma servisine gider,
+kelimetahmin.com sunucularına **ses gönderilmez** (yalnız tanınan metin oyuna yazılır).

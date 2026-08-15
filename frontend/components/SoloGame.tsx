@@ -151,7 +151,7 @@ export default function SoloGame({ level, onExit, onComplete }: {
     const clean = toUpperTr(text).replace(/[^A-ZÇĞİÖŞÜI]/g, "").slice(0, info.length);
     if (clean.length > 0) setDraft(clean);
   }, [info, status]);
-  const { supported: micSupported, listening, start: micStart, stop: micStop } = useSpeech(onVoiceResult, "tr-TR");
+  const { supported: micSupported, listening, error: micError, start: micStart, stop: micStop } = useSpeech(onVoiceResult, "tr-TR");
   const stopMicDelayed = useCallback(() => {
     if (micRef.current) clearTimeout(micRef.current);
     micRef.current = setTimeout(() => micStop(), 1000);
@@ -268,6 +268,9 @@ export default function SoloGame({ level, onExit, onComplete }: {
           {/* İlk kez oynayanlara: giriş alanını gösteren animasyonlu ok.
               (Klavye kendiliğinden açılmıyor — mobilde ekranı kapatmasın diye.) */}
           <TapHint show={!touched} storageKey="kt_hint_solo" />
+          {!listening && micError && (
+            <p style={{ color: "var(--accent-hot)", fontSize: 12 }}>{micError}</p>
+          )}
           {err && <p style={{ color: "var(--accent-hot)", fontSize: 14 }}>{err}</p>}
         </div>
       )}
