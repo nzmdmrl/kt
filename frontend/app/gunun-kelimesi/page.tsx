@@ -9,6 +9,7 @@ import { useSpeech } from "@/lib/useSpeech";
 import Logo from "@/components/Logo";
 import SoundToggle from "@/components/SoundToggle";
 import GuestJoin from "@/components/GuestJoin";
+import TapHint from "@/components/TapHint";
 import { useAuth } from "@/lib/auth";
 import { useGuestAccess } from "@/lib/guestAccess";
 
@@ -40,6 +41,8 @@ export default function DailyPage() {
   const [draft, setDraft] = useState("");
   const [status, setStatus] = useState<"playing" | "won" | "lost">("playing");
   const [err, setErr] = useState("");
+  // Oyuncu giriş alanına dokundu mu (ilk kez oynayanlara ok ipucu için).
+  const [touched, setTouched] = useState(false);
   // Misafir erişimi admin ayarıyla kapatılabilir (guest_daily_enabled).
   const { user, loading: authLoading } = useAuth();
   const access = useGuestAccess();
@@ -182,11 +185,11 @@ export default function DailyPage() {
           <div style={{ display: "flex", gap: 8 }}>
             <input
               value={draft}
-              onChange={(e) => setDraft(toUpperTr(e.target.value).replace(/[^A-ZÇĞİÖŞÜI]/g, "").slice(0, info.length))}
+              onFocus={() => setTouched(true)}
+              onChange={(e) => { setTouched(true); setDraft(toUpperTr(e.target.value).replace(/[^A-ZÇĞİÖŞÜI]/g, "").slice(0, info.length)); }}
               onKeyDown={(e) => e.key === "Enter" && submit()}
               placeholder={`${info.first_letter} ile başla`}
               maxLength={info.length}
-              autoFocus
               style={{
                 padding: "12px 16px", borderRadius: 10, border: "2px solid var(--tile-border)",
                 background: "var(--bg-elevated)", color: "var(--text-strong)", fontSize: 20,
@@ -196,7 +199,7 @@ export default function DailyPage() {
             />
             {micSupported && (
               <button
-                onPointerDown={(e) => { e.preventDefault(); micStart(); }}
+                onPointerDown={(e) => { e.preventDefault(); setTouched(true); micStart(); }}
                 onPointerUp={(e) => { e.preventDefault(); stopMicDelayed(); }}
                 onPointerLeave={() => { if (listening) stopMicDelayed(); }}
                 onContextMenu={(e) => e.preventDefault()}
@@ -215,6 +218,10 @@ export default function DailyPage() {
               fontFamily: "var(--font-display)", opacity: draft.length === info.length ? 1 : 0.5,
             }}>Dene</button>
           </div>
+
+          {/* İlk kez oynayanlara: giriş alanını gösteren animasyonlu ok */}
+          <TapHint show={!touched} storageKey="kt_hint_daily" />
+
           {micSupported && (
             <p style={{ color: "var(--text-dim)", fontSize: 12 }}>🎤 basılı tut & kelimeyi söyle</p>
           )}

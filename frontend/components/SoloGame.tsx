@@ -5,6 +5,7 @@ import { apiUrl } from "@/lib/api";
 import { toUpperTr } from "@/lib/turkish";
 import { playSound, initSound, startTicking, stopTicking, suppressUiClick } from "@/lib/sound";
 import { useSpeech } from "@/lib/useSpeech";
+import TapHint from "./TapHint";
 
 type Tile = { letter: string; state: "correct" | "present" | "absent" };
 type StartInfo = { level: number; length: number; first_letter: string; seconds: number; joker_count: number; replay: boolean };
@@ -254,23 +255,9 @@ export default function SoloGame({ level, onExit, onComplete }: {
             }}>Dene</button>
           </div>
 
-          {/* Süre başlamadan önce: oyuncu ekranı görsün, hazır olunca başlasın */}
-          {!started && (
-            <>
-              <button
-                onClick={() => { ensureStarted(); inputRef.current?.focus(); }}
-                style={{
-                  width: "100%", maxWidth: 300, padding: "15px", borderRadius: 13, border: "none",
-                  cursor: "pointer", background: "linear-gradient(135deg, var(--accent), var(--accent-hot))",
-                  color: "#1a1330", fontWeight: 900, fontSize: 17,
-                  boxShadow: "0 8px 22px var(--accent-glow)",
-                }}
-              >▶ Başla</button>
-              <p style={{ color: "var(--text-dim)", fontSize: 12.5, textAlign: "center", lineHeight: 1.5, maxWidth: 300 }}>
-                Süre sen başlayınca işlemeye başlar. Kelime <strong style={{ color: "var(--accent)" }}>{info.first_letter}</strong> harfiyle başlıyor, {info.length} harfli.
-              </p>
-            </>
-          )}
+          {/* Süre, oyuncu giriş alanına dokunana (ya da mikrofona basana) kadar
+              işlemez. İlk kez oynayanlara animasyonlu ok ipucu gösterilir. */}
+          <TapHint show={!started} storageKey="kt_hint_solo" />
           {err && <p style={{ color: "var(--accent-hot)", fontSize: 14 }}>{err}</p>}
         </div>
       )}
