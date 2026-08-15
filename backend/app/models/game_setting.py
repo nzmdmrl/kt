@@ -88,5 +88,6 @@ DEFAULT_SETTINGS = {
     "list_name_source": {"value": "display_name", "label": "Listelerde gösterilecek ad (display_name / username)", "type": "str", "group": "Adlar & Listeler"},
     "list_name_max_len": {"value": "14", "label": "Listelerde ad uzunluğu (aşarsa … ile kesilir · 0 = kesme)", "type": "int", "group": "Adlar & Listeler"},
     # 1v1 tahmin satırının sağ üstündeki mini ad etiketi (Grid.tsx → Tag).
-    "match_name_max_len": {"value": "7", "label": "Maçlarda görünen ad uzunluğu (BÜYÜK harf adlarda bu değer, normal yazımda +2 · 0 = kesme)", "type": "int", "group": "Adlar & Listeler"},
+    "match_name_max_len": {"value": "7", "label": "Maçlarda görünen ad — MOBİL (BÜYÜK harfte bu değer, normal yazımda +2 · 0 = kesme)", "type": "int", "group": "Adlar & Listeler"},
+    "match_name_max_len_desktop": {"value": "14", "label": "Maçlarda görünen ad — MASAÜSTÜ (BÜYÜK harfte bu değer, normal yazımda +2 · 0 = kesme)", "type": "int", "group": "Adlar & Listeler"},
 }

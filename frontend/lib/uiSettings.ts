@@ -3,38 +3,61 @@
 /**
  * İstemci tarafında okunan public arayüz ayarları (GET /api/home/appearance).
  *
- * Şimdilik tek kullanım: 1v1 tahmin satırının sağ üstündeki mini ad
- * etiketinin en fazla kaç karakter olacağı (admin → ⚙️ Ayarlar →
- * "Maçlarda görünen ad uzunluğu"). Ayar gelene kadar varsayılan kullanılır.
+ * Kullanım: 1v1'de görünen oyuncu adının (skor barı + tahmin satırı etiketi)
+ * en fazla kaç karakter olacağı. Mobil ve masaüstü AYRI ayarlanır:
+ * admin → ⚙️ Ayarlar → "Maçlarda görünen ad — MOBİL / MASAÜSTÜ".
+ * Ayar gelene kadar varsayılan kullanılır.
  */
 
 import { useEffect, useState } from "react";
 import { getJSON } from "./api";
 
-export const DEFAULT_MATCH_NAME_MAX = 7;
+export const DEFAULT_MATCH_NAME_MAX = 7;          // mobil
+export const DEFAULT_MATCH_NAME_MAX_DESKTOP = 14; // masaüstü
 
-let cached: number | null = null;
-let inflight: Promise<number> | null = null;
+// globals.css ile aynı kırılım noktası: 721px ve üzeri masaüstü sayılır.
+const DESKTOP_MIN_WIDTH = 721;
 
-function fetchMatchNameMax(): Promise<number> {
-  if (cached != null) return Promise.resolve(cached);
+type NameMax = { mobile: number; desktop: number };
+const FALLBACK: NameMax = { mobile: DEFAULT_MATCH_NAME_MAX, desktop: DEFAULT_MATCH_NAME_MAX_DESKTOP };
+
+let cached: NameMax | null = null;
+let inflight: Promise<NameMax> | null = null;
+
+function fetchNameMax(): Promise<NameMax> {
+  if (cached) return Promise.resolve(cached);
   if (!inflight) {
-    inflight = getJSON<{ match_name_max_len?: number }>("/api/home/appearance")
-      .then((d) => (typeof d.match_name_max_len === "number" ? d.match_name_max_len : DEFAULT_MATCH_NAME_MAX))
-      .catch(() => DEFAULT_MATCH_NAME_MAX)
-      .then((n) => { cached = n; inflight = null; return n; });
+    inflight = getJSON<{ match_name_max_len?: number; match_name_max_len_desktop?: number }>("/api/home/appearance")
+      .then((d) => ({
+        mobile: typeof d.match_name_max_len === "number" ? d.match_name_max_len : FALLBACK.mobile,
+        desktop: typeof d.match_name_max_len_desktop === "number" ? d.match_name_max_len_desktop : FALLBACK.desktop,
+      }))
+      .catch(() => FALLBACK)
+      .then((v) => { cached = v; inflight = null; return v; });
   }
   return inflight;
 }
 
+/**
+ * Ekran genişliğine göre geçerli sınır. SSR/ilk boyamada mobil değer kullanılır
+ * (dar ekran güvenli taraf), mount sonrası gerçek genişliğe göre güncellenir.
+ */
 export function useMatchNameMax(): number {
-  const [n, setN] = useState<number>(cached ?? DEFAULT_MATCH_NAME_MAX);
+  const [limits, setLimits] = useState<NameMax>(cached ?? FALLBACK);
+  const [isDesktop, setIsDesktop] = useState(false);
+
   useEffect(() => {
     let alive = true;
-    fetchMatchNameMax().then((v) => { if (alive) setN(v); });
-    return () => { alive = false; };
+    fetchNameMax().then((v) => { if (alive) setLimits(v); });
+
+    const mq = window.matchMedia(`(min-width: ${DESKTOP_MIN_WIDTH}px)`);
+    const apply = () => { if (alive) setIsDesktop(mq.matches); };
+    apply();
+    mq.addEventListener("change", apply);
+    return () => { alive = false; mq.removeEventListener("change", apply); };
   }, []);
-  return n;
+
+  return isDesktop ? limits.desktop : limits.mobile;
 }
 
 /**

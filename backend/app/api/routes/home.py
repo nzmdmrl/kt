@@ -29,9 +29,10 @@ async def appearance():
         "night_bg_enabled": cached_bool("night_bg_enabled", True),
         "night_bg_theme": cached_str("night_bg_theme", "night"),
         "ui_style": style if style in ("stil1", "stil2") else "stil2",
-        # 1v1 tahmin satırındaki mini ad etiketinin en fazla kaç karakter
-        # olacağı (Grid.tsx okur; 0 = kesme).
+        # 1v1'de görünen ad etiketinin en fazla kaç karakter olacağı
+        # (Grid.tsx + ScoreBar.tsx okur; 0 = kesme). Mobil ve masaüstü ayrı.
         "match_name_max_len": cached_int("match_name_max_len", 7),
+        "match_name_max_len_desktop": cached_int("match_name_max_len_desktop", 14),
     }
 
 
