@@ -20,6 +20,8 @@ const TABS = [
   { key: "titles", label: "🏅 Unvanlar" },
   { key: "badges", label: "🎖️ Rozetler" },
   { key: "music", label: "🎵 Müzik" },
+  { key: "photomod", label: "🖼️ Foto Mod" },
+  { key: "namemod", label: "🏷️ Ad Mod" },
   { key: "homebtn", label: "🏠 Ana Sayfa" },
   { key: "sharepm", label: "💬 Sonuç PM" },
   { key: "seo", label: "🔍 SEO" },
@@ -33,6 +35,21 @@ export default function AdminPage() {
   const { user, loading } = useAuth();
   const [tab, setTab] = useState("dashboard");
   const [denied, setDenied] = useState(false);
+  // Sekme rozetleri: bekleyen fotoğraf / ad sayısı.
+  const [modCounts, setModCounts] = useState<{ avatars: number; names: number }>({ avatars: 0, names: 0 });
+
+  function loadCounts() {
+    fetch(apiUrl("/api/admin/moderation/counts"), { headers: authHeaders() })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d) setModCounts({ avatars: d.avatars || 0, names: d.names || 0 }); })
+      .catch(() => {});
+  }
+  useEffect(() => {
+    if (!user) return;
+    loadCounts();
+    const iv = setInterval(loadCounts, 60000);
+    return () => clearInterval(iv);
+  }, [user]);
 
   if (loading) return <Wrap><Centered>Yükleniyor…</Centered></Wrap>;
   if (!user) return <Wrap><Centered>Bu sayfa için giriş yapmalısın. <a href="/giris" style={{ color: "var(--accent)" }}>Giriş →</a></Centered></Wrap>;
@@ -42,14 +59,27 @@ export default function AdminPage() {
     <Wrap>
       <h1 className="brand-mono" style={{ fontSize: 26, marginBottom: 16 }}>Yönetim Paneli</h1>
       <div style={{ display: "flex", gap: 6, marginBottom: 20, flexWrap: "wrap" }}>
-        {TABS.map((t) => (
-          <button key={t.key} onClick={() => setTab(t.key)} style={{
-            padding: "10px 14px", borderRadius: 10, border: "none", cursor: "pointer",
-            fontWeight: 600, fontSize: 14, fontFamily: "var(--font-display)",
-            background: tab === t.key ? "var(--accent)" : "var(--bg-panel)",
-            color: tab === t.key ? "#1a1330" : "var(--text-soft)",
-          }}>{t.label}</button>
-        ))}
+        {TABS.map((t) => {
+          const badge = t.key === "photomod" ? modCounts.avatars : t.key === "namemod" ? modCounts.names : 0;
+          return (
+            <button key={t.key} onClick={() => setTab(t.key)} style={{
+              padding: "10px 14px", borderRadius: 10, border: "none", cursor: "pointer",
+              fontWeight: 600, fontSize: 14, fontFamily: "var(--font-display)", position: "relative",
+              background: tab === t.key ? "var(--accent)" : "var(--bg-panel)",
+              color: tab === t.key ? "#1a1330" : "var(--text-soft)",
+            }}>
+              {t.label}
+              {badge > 0 && (
+                <span style={{
+                  position: "absolute", top: -6, right: -6, minWidth: 20, height: 20, padding: "0 5px",
+                  borderRadius: 10, background: "var(--accent-hot)", color: "#fff",
+                  fontSize: 11, fontWeight: 800, display: "grid", placeItems: "center",
+                  border: "2px solid var(--bg-deep)",
+                }}>{badge > 99 ? "99+" : badge}</span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {tab === "dashboard" && <Dashboard onDenied={() => setDenied(true)} />}
@@ -60,6 +90,8 @@ export default function AdminPage() {
       {tab === "titles" && <Titles />}
       {tab === "badges" && <Badges />}
       {tab === "music" && <MusicPools />}
+      {tab === "photomod" && <PhotoMod onChanged={loadCounts} />}
+      {tab === "namemod" && <NameMod onChanged={loadCounts} />}
       {tab === "homebtn" && <HomeButtons />}
       {tab === "sharepm" && <SharePM />}
       {tab === "seo" && <Seo />}
@@ -784,6 +816,153 @@ function Stat({ label, value, accent }: { label: string; value: any; accent?: bo
     <div style={{ background: "var(--bg-panel)", borderRadius: 12, padding: 16, textAlign: "center", border: accent ? "1px solid var(--accent)" : "none" }}>
       <div className="brand-mono" style={{ fontSize: 26, color: "var(--accent)" }}>{value}</div>
       <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{label}</div>
+    </div>
+  );
+}
+
+// ---- 🖼️ Foto Mod: yüklenen profil fotoğraflarının onayı ----------------
+// Onaylanana kadar fotoğrafı yalnızca sahibi görür; onaylanınca herkes görür.
+function PhotoMod({ onChanged }: { onChanged: () => void }) {
+  const [users, setUsers] = useState<any[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const [busy, setBusy] = useState<number | null>(null);
+
+  function load() {
+    fetch(apiUrl("/api/admin/moderation/avatars"), { headers: authHeaders() })
+      .then((r) => r.json())
+      .then((d) => { setUsers(d.users || []); setLoaded(true); })
+      .catch(() => setLoaded(true));
+  }
+  useEffect(load, []);
+
+  async function act(id: number, action: "approve" | "reject") {
+    setBusy(id);
+    await fetch(apiUrl(`/api/admin/moderation/avatars/${id}/${action}`), { method: "POST", headers: authHeaders() }).catch(() => {});
+    setUsers((xs) => xs.filter((u) => u.id !== id));
+    setBusy(null);
+    onChanged();
+  }
+
+  if (!loaded) return <p style={{ color: "var(--text-soft)" }}>Yükleniyor…</p>;
+  if (users.length === 0) return <p style={{ color: "var(--text-dim)" }}>Onay bekleyen fotoğraf yok. ✅</p>;
+
+  return (
+    <div style={{ display: "grid", gap: 12 }}>
+      <p style={{ color: "var(--text-dim)", fontSize: 13, lineHeight: 1.6 }}>
+        Onaylanana kadar fotoğrafı <strong>sadece sahibi</strong> görür. Reddedersen yükleme silinir,
+        kullanıcıya bildirim gider ve eski avatarı kalır.
+      </p>
+      {users.map((u) => (
+        <div key={u.id} style={{
+          display: "flex", alignItems: "center", gap: 14, background: "var(--bg-panel)",
+          borderRadius: 12, padding: 12, flexWrap: "wrap",
+        }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={u.pending_photo} alt="" style={{ width: 84, height: 84, borderRadius: 12, objectFit: "cover", background: "var(--bg-elevated)", flexShrink: 0 }} />
+          <div style={{ flex: 1, minWidth: 140 }}>
+            <div style={{ fontWeight: 700, color: "var(--text-strong)", fontSize: 15 }}>{u.display_name}</div>
+            <a href={`/profil/${u.username}`} target="_blank" rel="noreferrer" style={{ color: "var(--accent)", fontSize: 13, textDecoration: "none" }}>@{u.username} ↗</a>
+            <div style={{ color: "var(--text-dim)", fontSize: 12, marginTop: 2 }}>
+              {u.pending_at ? new Date(u.pending_at).toLocaleString("tr") : ""}
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button disabled={busy === u.id} onClick={() => act(u.id, "approve")} style={{
+              padding: "10px 16px", borderRadius: 10, border: "none", cursor: "pointer",
+              background: "var(--tile-correct)", color: "#fff", fontWeight: 800, fontSize: 14,
+            }}>✅ Onayla</button>
+            <button disabled={busy === u.id} onClick={() => act(u.id, "reject")} style={{
+              padding: "10px 16px", borderRadius: 10, cursor: "pointer",
+              border: "1px solid var(--border-soft)", background: "var(--bg-elevated)",
+              color: "var(--accent-hot)", fontWeight: 700, fontSize: 14,
+            }}>🚫 Reddet</button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ---- 🏷️ Ad Mod: görünen ad + kullanıcı adı onayı -----------------------
+// Reddedilirse ad "user123456" biçimine döner ve kullanıcıya bildirim gider.
+function NameMod({ onChanged }: { onChanged: () => void }) {
+  const [users, setUsers] = useState<any[]>([]);
+  const [status, setStatus] = useState<"pending" | "approved" | "rejected">("pending");
+  const [loaded, setLoaded] = useState(false);
+  const [busy, setBusy] = useState<number | null>(null);
+
+  function load(st = status) {
+    setLoaded(false);
+    fetch(apiUrl(`/api/admin/moderation/names?status=${st}`), { headers: authHeaders() })
+      .then((r) => r.json())
+      .then((d) => { setUsers(d.users || []); setLoaded(true); })
+      .catch(() => setLoaded(true));
+  }
+  useEffect(() => { load(status); /* eslint-disable-next-line */ }, [status]);
+
+  async function act(id: number, action: "approve" | "reject") {
+    setBusy(id);
+    await fetch(apiUrl(`/api/admin/moderation/names/${id}/${action}`), { method: "POST", headers: authHeaders() }).catch(() => {});
+    setUsers((xs) => xs.filter((u) => u.id !== id));
+    setBusy(null);
+    onChanged();
+  }
+
+  return (
+    <div style={{ display: "grid", gap: 12 }}>
+      <p style={{ color: "var(--text-dim)", fontSize: 13, lineHeight: 1.6 }}>
+        Yeni kayıtlar ve ad değişiklikleri burada listelenir. <strong>Reddedersen</strong> görünen ad ve
+        kullanıcı adı <code>user123456</code> biçimine döner ve kullanıcıya bildirim gider.
+      </p>
+
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        {(["pending", "approved", "rejected"] as const).map((st) => (
+          <button key={st} onClick={() => setStatus(st)} style={{
+            padding: "8px 14px", borderRadius: 20, cursor: "pointer", fontSize: 13, fontWeight: 700,
+            border: `1px solid ${status === st ? "var(--accent)" : "var(--border-soft)"}`,
+            background: status === st ? "var(--accent)" : "var(--bg-panel)",
+            color: status === st ? "#1a1330" : "var(--text-soft)",
+          }}>
+            {st === "pending" ? "Bekleyen" : st === "approved" ? "Onaylı" : "Reddedilen"}
+          </button>
+        ))}
+      </div>
+
+      {!loaded ? (
+        <p style={{ color: "var(--text-soft)" }}>Yükleniyor…</p>
+      ) : users.length === 0 ? (
+        <p style={{ color: "var(--text-dim)" }}>Bu listede kullanıcı yok.</p>
+      ) : (
+        <div style={{ display: "grid", gap: 8 }}>
+          {users.map((u) => (
+            <div key={u.id} style={{
+              display: "flex", alignItems: "center", gap: 12, background: "var(--bg-panel)",
+              borderRadius: 12, padding: "10px 12px", flexWrap: "wrap",
+            }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={u.avatar_url || `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(u.display_name || "?")}`}
+                alt="" style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--bg-elevated)", flexShrink: 0 }} />
+              <div style={{ flex: 1, minWidth: 140 }}>
+                <div style={{ fontWeight: 700, color: "var(--text-strong)", fontSize: 14 }}>{u.display_name}</div>
+                <a href={`/profil/${u.username}`} target="_blank" rel="noreferrer" style={{ color: "var(--accent)", fontSize: 12.5, textDecoration: "none" }}>@{u.username} ↗</a>
+              </div>
+              {status === "pending" && (
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button disabled={busy === u.id} onClick={() => act(u.id, "approve")} style={{
+                    padding: "8px 14px", borderRadius: 10, border: "none", cursor: "pointer",
+                    background: "var(--tile-correct)", color: "#fff", fontWeight: 800, fontSize: 13,
+                  }}>✅ Onayla</button>
+                  <button disabled={busy === u.id} onClick={() => act(u.id, "reject")} style={{
+                    padding: "8px 14px", borderRadius: 10, cursor: "pointer",
+                    border: "1px solid var(--border-soft)", background: "var(--bg-elevated)",
+                    color: "var(--accent-hot)", fontWeight: 700, fontSize: 13,
+                  }}>🚫 Reddet</button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

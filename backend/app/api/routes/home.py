@@ -80,7 +80,7 @@ async def recent_matches(db: AsyncSession = Depends(get_db), limit: int = 10):
             u = users.get(uname) if uname else None
             # Üye ise güncel adları, değilse (misafir/bot) maçtaki kayıtlı adı kullan.
             d[f"{side}_display"] = public_name(u.display_name if u else stored, uname)
-            d[f"{side}_avatar"] = (u.avatar_url if u else None) or ""
+            d[f"{side}_avatar"] = (u.public_avatar if u else None) or ""
             # Avatarı olmayanda hangi varsayılan çizilecek (misafir 👤 / bot 🤖).
             d[f"{side}_kind"] = "user" if uname else ("guest" if stored == "Misafir" else ("bot" if m.has_bot else "guest"))
         out.append(d)

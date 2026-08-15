@@ -60,8 +60,8 @@ async def _fill_achievements(player, player_id: str) -> None:
             u = (await db.execute(select(User).where(User.id == uid))).scalar_one_or_none()
             if u:
                 # Avatar'ı DB'den doldur (en güncel seçili avatar).
-                if u.avatar_url:
-                    player.avatar_url = u.avatar_url
+                if u.public_avatar:
+                    player.avatar_url = u.public_avatar
                 stats = {
                     "wins": u.wins, "matches_played": u.matches_played,
                     "words_solved": u.words_solved, "total_score": u.total_score,

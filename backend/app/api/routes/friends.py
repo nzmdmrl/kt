@@ -231,7 +231,7 @@ async def list_friends(user: User = Depends(get_current_user), db=Depends(get_db
         users = (await db.execute(select(User).where(User.id.in_(friend_ids)))).scalars().all()
         friends = [{
             "id": u.id, "username": u.username, "display_name": u.display_name,
-            "avatar_url": u.avatar_url,
+            "avatar_url": u.public_avatar,
             "label": labels.get(u.id, ""),
             # Gizlilik: show_online kapalıysa herkese çevrimdışı görünür.
             "status": presence_service.get_status(u.id) if u.show_online else "offline",
@@ -254,7 +254,7 @@ async def list_requests(user: User = Depends(get_current_user), db=Depends(get_d
         for r in rows:
             u = users.get(r.requester_id)
             if u:
-                reqs.append({"id": u.id, "username": u.username, "display_name": u.display_name, "avatar_url": u.avatar_url})
+                reqs.append({"id": u.id, "username": u.username, "display_name": u.display_name, "avatar_url": u.public_avatar})
     return {"requests": reqs}
 
 

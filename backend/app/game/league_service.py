@@ -91,6 +91,7 @@ async def leaderboard(
             User.username,
             User.display_name,
             User.avatar_url,
+            User.avatar_photo,
             User.elo,
             (DailyScore.best_score if scope == "daily" else func.sum(DailyScore.best_score)).label("score"),
         )
@@ -99,7 +100,7 @@ async def leaderboard(
     if start is not None:
         q = q.where(DailyScore.score_date >= start, DailyScore.score_date <= end)
     if scope != "daily":
-        q = q.group_by(DailyScore.user_id, User.username, User.display_name, User.avatar_url, User.elo)
+        q = q.group_by(DailyScore.user_id, User.username, User.display_name, User.avatar_url, User.avatar_photo, User.elo)
     q = q.order_by(func.sum(DailyScore.best_score).desc() if scope != "daily" else DailyScore.best_score.desc())
     q = q.limit(limit).offset(offset)
 
@@ -113,7 +114,8 @@ async def leaderboard(
             "user_id": r.user_id,
             "username": r.username,
             "display_name": r.display_name,
-            "avatar_url": r.avatar_url,
+            # Onaylı yüklenen foto varsa o gösterilir.
+            "avatar_url": r.avatar_photo or r.avatar_url,
             # Listede gösterilecek ad — admin ayarına göre seçilir ve kısaltılır.
             "name": public_name(r.display_name, r.username),
             "elo": r.elo,

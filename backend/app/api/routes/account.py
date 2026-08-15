@@ -71,7 +71,12 @@ async def account_me(user: User = Depends(get_current_user), db: AsyncSession = 
         "username": user.username,
         "email": user.email,
         "display_name": user.display_name,
-        "avatar_url": user.avatar_url,
+        # Sahibi bekleyen fotoğrafını da görür.
+        "avatar_url": user.avatar_pending or user.avatar_photo or user.avatar_url,
+        "dicebear_url": user.avatar_url,
+        "photo_pending": bool(user.avatar_pending),
+        "has_photo": bool(user.avatar_photo or user.avatar_pending),
+        "name_status": user.name_status or "pending",
         "show_online": user.show_online,
         "allow_challenges": user.allow_challenges,
         "has_password": bool(user.password_hash),
@@ -94,6 +99,8 @@ async def change_display_name(data: DisplayNameIn, user: User = Depends(get_curr
     except name_rules.NameError_ as e:
         raise HTTPException(400, str(e))
     user.display_name = name
+    # Ad değişti — yeniden moderasyona düşer (admin → 🏷️ Ad Mod).
+    user.name_status = "pending"
     await db.commit()
     return {"ok": True, "display_name": name}
 
@@ -136,6 +143,7 @@ async def change_username(data: UsernameIn, user: User = Depends(get_current_use
         )
 
     user.username = uname
+    user.name_status = "pending"   # yeni ad admin onayına düşer
     db.add(UsernameChange(user_id=user.id, old_username=old, new_username=uname))
     # Maç geçmişindeki bağlantı alanları username tutuyor — eski ad kalırsa
     # geçmiş maçlar profilden ve karşılıklı skordan düşerdi; birlikte taşı.
@@ -200,6 +208,45 @@ async def change_avatar(data: AvatarIn, user: User = Depends(get_current_user), 
     user.avatar_url = url
     await db.commit()
     return {"ok": True, "avatar_url": url}
+
+
+class PhotoIn(BaseModel):
+    # 200x200 JPEG data URI ("data:image/jpeg;base64,...") — küçültme İSTEMCİDE
+    # yapılır, orijinal dosya sunucuya hiç gelmez (dolayısıyla saklanmaz).
+    photo: str
+
+
+# 200x200 orta kaliteli JPEG ~10-25 KB; base64 ile ~1.35x. Güvenli üst sınır.
+MAX_PHOTO_CHARS = 400_000
+
+
+@router.post("/photo")
+async def upload_photo(data: PhotoIn, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    """Profil fotoğrafı yükle — ADMİN ONAYINA düşer.
+
+    Onaylanana kadar fotoğrafı yalnızca sahibi görür (to_private), diğerlerine
+    eski/onaylı avatar gösterilir (to_public).
+    """
+    photo = (data.photo or "").strip()
+    if not photo.startswith("data:image/jpeg;base64,"):
+        raise HTTPException(400, "Fotoğraf JPEG olmalı.")
+    if len(photo) > MAX_PHOTO_CHARS:
+        raise HTTPException(400, "Fotoğraf çok büyük.")
+    from datetime import datetime as _dt, timezone as _tz
+    user.avatar_pending = photo
+    user.avatar_pending_at = _dt.now(_tz.utc)
+    await db.commit()
+    return {"ok": True, "avatar_url": photo, "pending": True}
+
+
+@router.delete("/photo")
+async def delete_photo(user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    """Yüklenen fotoğrafı kaldır (bekleyen + onaylı) — DiceBear avatarına döner."""
+    user.avatar_pending = None
+    user.avatar_pending_at = None
+    user.avatar_photo = None
+    await db.commit()
+    return {"ok": True, "avatar_url": user.public_avatar}
 
 
 class PrivacyIn(BaseModel):

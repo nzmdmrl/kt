@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
 from app.core.database import init_models
-from app.api.routes import health, words, room, match, auth, matchmaking, league, profile, daily, admin, sounds, notifications, home, account, presence, challenge, solo, arena, friends, music, seo, app_settings, notification_prefs, announcements, devices, pages, share_texts, home_buttons
+from app.api.routes import health, words, room, match, auth, matchmaking, league, profile, daily, admin, sounds, notifications, home, account, presence, challenge, solo, arena, friends, music, seo, app_settings, notification_prefs, announcements, devices, pages, share_texts, home_buttons, moderation
 
 settings = get_settings()
 
@@ -62,6 +62,7 @@ app.include_router(notifications.router, prefix="/api")
 app.include_router(home.router, prefix="/api")
 app.include_router(share_texts.router, prefix="/api")
 app.include_router(home_buttons.router, prefix="/api")
+app.include_router(moderation.router, prefix="/api")
 app.include_router(account.router, prefix="/api")
 app.include_router(presence.router, prefix="/api")
 app.include_router(challenge.router, prefix="/api")

@@ -192,9 +192,10 @@ export default function ProfilePage({ params }: { params: { username: string } }
         )}
         {/* Avatar + seviye rozeti (mobilde avatarın altında ortalı) */}
         <div className="hm-avatar-col">
-          {profile.avatar_url ? (
+          {/* Kendi profilimde onay bekleyen fotoğrafımı da görürüm (auth'tan gelir). */}
+          {(isMe && user?.avatar_url ? user.avatar_url : profile.avatar_url) ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={profile.avatar_url} alt="" className="hm-avatar" />
+            <img src={(isMe && user?.avatar_url ? user.avatar_url : profile.avatar_url) || undefined} alt="" className="hm-avatar" />
           ) : (
             <div className="hm-avatar prof-avatar-fallback">
               <span className="brand-mono">{profile.display_name.charAt(0).toUpperCase()}</span>

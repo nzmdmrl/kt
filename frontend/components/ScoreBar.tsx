@@ -3,6 +3,7 @@
 import { MatchState } from "@/lib/useMatch";
 import { toUpperTr } from "@/lib/turkish";
 import { useMatchNameMax, shortMatchName } from "@/lib/uiSettings";
+import { useAuth } from "@/lib/auth";
 
 export default function ScoreBar({
   state,
@@ -108,6 +109,10 @@ function PlayerChip({
     return <div style={{ flex: 1, color: "var(--text-dim)" }}>bekleniyor…</div>;
   }
   const isMe = player.id === myId;
+  // Kendi satırımda kendi avatarımı gösteririm — onay bekleyen fotoğrafı
+  // sunucu başkalarına göndermez ama sahibi maçta da görsün.
+  const { user } = useAuth();
+  const avatar = isMe && user?.avatar_url ? user.avatar_url : player.avatar_url;
   // Ad, tahmin satırındaki etiketle AYNI kuralla kısalır (admin: "Maçlarda
   // görünen ad uzunluğu"): ilk kelime + BÜYÜK harfte 7, normal yazımda 9.
   // Uzun adlar mobilde rakibin kartını ekran dışına itmesin.
@@ -148,9 +153,9 @@ function PlayerChip({
           flexShrink: 0,
         }}
       >
-        {player.avatar_url ? (
+        {avatar ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={player.avatar_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          <img src={avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
         ) : (
           toUpperTr(player.name.charAt(0))
         )}

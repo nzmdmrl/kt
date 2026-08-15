@@ -11,6 +11,7 @@
 import { MatchState } from "@/lib/useMatch";
 import { toUpperTr } from "@/lib/turkish";
 import { useMatchNameMax, shortMatchName } from "@/lib/uiSettings";
+import { useAuth } from "@/lib/auth";
 
 export default function MultiScoreBar({ state, myId }: { state: MatchState; myId: string }) {
   const round = state.round;
@@ -21,6 +22,8 @@ export default function MultiScoreBar({ state, myId }: { state: MatchState; myId
   const totalRounds = state.total_rounds ?? 1;
   const myTurn = !!turnId && turnId === myId;
   const nameMax = useMatchNameMax();
+  // Kendi satırımda onay bekleyen fotoğrafımı da görürüm (başkaları görmez).
+  const { user } = useAuth();
 
   return (
     <div
@@ -61,9 +64,9 @@ export default function MultiScoreBar({ state, myId }: { state: MatchState; myId
                 fontSize: "clamp(14px, 4vw, 18px)", flexShrink: 0,
                 position: "relative",
               }}>
-                {p.avatar_url ? (
+                {(isMe && user?.avatar_url ? user.avatar_url : p.avatar_url) ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={p.avatar_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  <img src={(isMe && user?.avatar_url ? user.avatar_url : p.avatar_url) || undefined} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                 ) : (
                   toUpperTr(p.name.charAt(0))
                 )}

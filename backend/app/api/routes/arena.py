@@ -79,7 +79,7 @@ async def create_custom_arena(data: CustomArenaIn, user=Depends(get_current_user
         bots_enabled=data.bots_enabled, word_plan=plan,
     )
     # Sahibi otomatik katılır
-    lobby.add(owner_pid, user.display_name or user.username, user.avatar_url or "")
+    lobby.add(owner_pid, user.display_name or user.username, user.public_avatar or "")
 
     # "Önceki arenalarım" için kaydet
     rec = CustomArena(
@@ -541,7 +541,7 @@ async def arena_ws(
     if user:
         pid = f"u{user.id}"
         name = user.username or user.display_name or "Oyuncu"
-        avatar = user.avatar_url or ""
+        avatar = user.public_avatar or ""
     else:
         # Misafir katılımı (admin ayarıyla açılır). Ödül/XP/kupa verilmez —
         # pid 'u' ile başlamadığı için _persist_results bu oyuncuyu atlar.

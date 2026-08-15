@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { apiUrl } from "@/lib/api";
 import AlertPopup from "@/components/AlertPopup";
+import PhotoUpload from "@/components/PhotoUpload";
 
 // Profil düzenleme modalı: görünen ad/username/email/şifre + gizlilik ayarları.
 export default function ProfileEditModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
@@ -119,13 +120,40 @@ export default function ProfileEditModal({ onClose, onSaved }: { onClose: () => 
       {msg && <div style={notice("var(--tile-correct)")}>{msg}</div>}
       {err && <div style={notice("var(--accent-hot)")}>{err}</div>}
 
-      {/* Avatar galerisi */}
-      <Section title="Profil Fotoğrafı">
-        <AvatarPicker
+      {/* Kendi fotoğrafını yükle — admin onayına düşer */}
+      <Section title="Profil Fotoğrafı Yükle">
+        <PhotoUpload
           current={data.avatar_url}
+          pending={!!data.photo_pending}
+          onUploaded={async (dataUrl) => {
+            const ok = await post("/api/account/photo", { photo: dataUrl }, "Fotoğraf yüklendi — onay bekliyor");
+            if (ok) {
+              setData((d: any) => ({ ...d, avatar_url: dataUrl, photo_pending: true, has_photo: true }));
+              onSaved();
+            }
+            return !!ok;
+          }}
+          onRemoved={data.has_photo ? async () => {
+            const r = await fetch(apiUrl("/api/account/photo"), { method: "DELETE", headers: headers() });
+            if (r.ok) {
+              const d = await r.json();
+              setData((x: any) => ({ ...x, avatar_url: d.avatar_url, photo_pending: false, has_photo: false }));
+              onSaved();
+            }
+          } : undefined}
+        />
+      </Section>
+
+      {/* Hazır avatar galerisi */}
+      <Section title="Profil Fotoğrafı (Avatar)">
+        <AvatarPicker
+          current={data.dicebear_url || data.avatar_url}
           onPick={async (url) => {
             const ok = await post("/api/account/avatar", { avatar_url: url }, "Avatar güncellendi");
-            if (ok) { setData((d: any) => ({ ...d, avatar_url: url })); onSaved(); }
+            if (ok) {
+              setData((d: any) => ({ ...d, dicebear_url: url, avatar_url: d.has_photo ? d.avatar_url : url }));
+              onSaved();
+            }
           }}
         />
       </Section>

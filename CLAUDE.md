@@ -197,6 +197,20 @@ Aşağıdakiler canlıda çalışıyor veya son push'a dahil. Detaylı geçmiş 
   Facebook metni taşımaz (kendi kısıtı), sadece sayfanın OG başlığını gösterir → OG metinleri
   admin → 🔍 SEO'dan zengin tutulmalı.
 
+### Profil fotoğrafı & moderasyon
+- **Yükleme**: profil düzenle → "Profil Fotoğrafı Yükle" (sürükle-bırak / göz at). Küçültme
+  TARAYICIDA: kareye kırp → 200×200 → orta kaliteli JPEG (`PhotoUpload.tsx`). Orijinal dosya
+  sunucuya hiç gitmez. İstemci sınırı 15 MB, sunucu sınırı 400.000 karakter (`/account/photo`).
+- **Görünürlük**: `User.avatar_photo` = ONAYLI foto (herkese), `User.avatar_pending` = onay bekleyen
+  (yalnız sahibine). `User.public_avatar` = `avatar_photo or avatar_url` — tüm public uçlar bunu
+  kullanır (profil, lig, arkadaşlar, son maçlar, arena, maç). Sahibi kendi bekleyen fotoğrafını
+  profilinde ve maç barlarında görür (istemci `useAuth().user.avatar_url` ile kendi satırını basar).
+- **Admin → 🖼️ Foto Mod**: bekleyen fotoğraflar, Onayla/Reddet; ikisi de bildirim gönderir.
+- **Admin → 🏷️ Ad Mod**: `User.name_status` (pending/approved/rejected). Yeni kayıt ve her ad/kullanıcı
+  adı değişikliği pending'e düşer. Reddedilince ad+username `user{id}{3 hane}` olur, kullanıcıya
+  bildirim gider (`name_rejected`).
+- Sekme başlıklarında bekleyen sayısı rozeti (`GET /admin/moderation/counts`, 60 sn'de bir tazelenir).
+
 ### Bildirimler
 - `/bildirimler` sayfası. Arkadaşlık, unvan (`title_up`), arena madalya (`arena_medal`) bildirimleri.
 - Link'li bildirimler tıklanınca profil/arenaya gider.

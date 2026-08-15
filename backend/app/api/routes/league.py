@@ -75,7 +75,7 @@ async def _period_top3(db: AsyncSession, period_type: str, period_key: str) -> l
             "rank": award.rank,
             "username": user.username,
             "display_name": user.display_name,
-            "avatar_url": user.avatar_url,
+            "avatar_url": user.public_avatar,
             "name": public_name(user.display_name, user.username),
             "score": award.total_score,
             "award": award.award,

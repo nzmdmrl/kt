@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import String, Integer, DateTime, Boolean, func
+from sqlalchemy import String, Integer, DateTime, Boolean, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -54,6 +54,14 @@ class User(Base):
     # Profil
     display_name: Mapped[str] = mapped_column(String(48))
     avatar_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    # Yüklenen profil fotoğrafı (200x200 JPEG, data URI). ONAYLI olan herkese görünür.
+    avatar_photo: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Onay bekleyen yükleme — SADECE sahibine gösterilir (admin → 🖼️ Foto Mod).
+    avatar_pending: Mapped[str | None] = mapped_column(Text, nullable=True)
+    avatar_pending_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Görünen ad / kullanıcı adı moderasyonu: pending | approved | rejected
+    name_status: Mapped[str] = mapped_column(String(16), default="pending", server_default="pending")
+    name_reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Oyun / reyting
     elo: Mapped[int] = mapped_column(Integer, default=1000)
@@ -91,13 +99,21 @@ class User(Base):
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
+    @property
+    def public_avatar(self) -> str | None:
+        """Herkese görünen avatar: ONAYLI yüklenen foto > seçilen DiceBear avatarı.
+        Onay bekleyen yükleme burada YER ALMAZ (yalnız sahibi görür)."""
+        return self.avatar_photo or self.avatar_url
+
     def to_public(self) -> dict:
         """Herkese açık profil görünümü (hassas alanlar yok)."""
         return {
             "id": self.id,
             "username": self.username,
             "display_name": self.display_name,
-            "avatar_url": self.avatar_url,
+            # Herkese açık avatar: onaylı yüklenen foto > seçilen DiceBear avatarı.
+            # Onay bekleyen yükleme burada GÖSTERİLMEZ (sadece sahibi görür).
+            "avatar_url": self.avatar_photo or self.avatar_url,
             "elo": self.elo,
             "matches_played": self.matches_played,
             "wins": self.wins,
@@ -116,6 +132,10 @@ class User(Base):
     def to_private(self) -> dict:
         """Kendi hesabına dair görünüm (e-posta dahil, şifre yok)."""
         data = self.to_public()
+        # Sahibi kendi bekleyen fotoğrafını görür (profilinde ve maçlarda).
+        data["avatar_url"] = self.avatar_pending or self.avatar_photo or self.avatar_url
+        data["avatar_pending"] = bool(self.avatar_pending)
+        data["name_status"] = self.name_status or "pending"
         data["email"] = self.email
         data["has_password"] = self.password_hash is not None
         data["google_linked"] = self.google_sub is not None
