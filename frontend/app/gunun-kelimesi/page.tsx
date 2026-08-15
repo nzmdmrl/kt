@@ -279,6 +279,8 @@ export default function DailyPage() {
             <div style={{ marginTop: 14 }}>
               <ResultShare
                 text={dailyShareText({ rows, maxRows: MAX_ROWS, won: status === "won" })}
+                module="daily"
+                variant={status === "won" ? "win" : "loss"}
                 title="Kelime Tahmin — Günün Kelimesi"
               />
             </div>

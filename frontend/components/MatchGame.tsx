@@ -8,7 +8,7 @@ import { playSound, initSound, startTicking, stopTicking, suppressUiClick } from
 import Grid from "./Grid";
 import MatchRewards from "./MatchRewards";
 import ResultShare from "./ResultShare";
-import { matchShareText } from "@/lib/shareText";
+import { matchShareText, matchVariant } from "@/lib/shareText";
 import TitleCelebration from "./TitleCelebration";
 import { useSectionMusic } from "@/lib/useSectionMusic";
 import ScoreBar from "./ScoreBar";
@@ -480,6 +480,8 @@ export default function MatchGame({
               opp: opp?.name || "Rakip",
               myScore, oppScore, won, draw,
             })}
+            module="match"
+            variant={matchVariant(won, draw)}
             title="Kelime Tahmin — 1v1 Düello"
           />
 

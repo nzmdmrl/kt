@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
 from app.core.database import init_models
-from app.api.routes import health, words, room, match, auth, matchmaking, league, profile, daily, admin, sounds, notifications, home, account, presence, challenge, solo, arena, friends, music, seo, app_settings, notification_prefs, announcements, devices, pages
+from app.api.routes import health, words, room, match, auth, matchmaking, league, profile, daily, admin, sounds, notifications, home, account, presence, challenge, solo, arena, friends, music, seo, app_settings, notification_prefs, announcements, devices, pages, share_texts
 
 settings = get_settings()
 
@@ -60,6 +60,7 @@ app.include_router(admin.router, prefix="/api")
 app.include_router(sounds.router, prefix="/api")
 app.include_router(notifications.router, prefix="/api")
 app.include_router(home.router, prefix="/api")
+app.include_router(share_texts.router, prefix="/api")
 app.include_router(account.router, prefix="/api")
 app.include_router(presence.router, prefix="/api")
 app.include_router(challenge.router, prefix="/api")
@@ -228,6 +229,27 @@ async def on_startup():
                 print(f"[startup] sayfa içeriği: {added} yeni, {synced} güncellendi.")
     except Exception as e:
         print(f"[startup] Sayfa içeriği seed hatası: {e}")
+
+    # Sonuç paylaşım metinlerini seed et — sadece BOŞ olan gruplara ekler,
+    # admin sildiyse/düzenlediyse dokunmaz.
+    try:
+        from app.core.database import AsyncSessionLocal
+        from app.models.share_line import ShareLine, DEFAULT_SHARE_LINES
+        from sqlalchemy import select as _sel
+        async with AsyncSessionLocal() as db:
+            existing = {(r.module, r.variant) for r in (await db.execute(_sel(ShareLine))).scalars().all()}
+            added = 0
+            for (module, variant), texts in DEFAULT_SHARE_LINES.items():
+                if (module, variant) in existing:
+                    continue
+                for i, t in enumerate(texts):
+                    db.add(ShareLine(module=module, variant=variant, text=t, sort_order=i, active=True))
+                    added += 1
+            if added:
+                await db.commit()
+                print(f"[startup] {added} paylaşım metni seed edildi.")
+    except Exception as e:
+        print(f"[startup] Paylaşım metni seed hatası: {e}")
 
     # İlk kez ise botları seed et (100 Türkçe bot).
     try:

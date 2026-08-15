@@ -8,19 +8,26 @@
  * Butonlar: WhatsApp · X · Telegram · Facebook · Kopyala (+ mobilde native).
  */
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import ShareButtons from "./ShareButtons";
 import { pageUrl } from "@/lib/shareText";
+import { useShareTexts, randomLine } from "@/lib/shareTexts";
 
 export default function ResultShare({
   text,
+  module,
+  variant,
   title = "Kelime Tahmin",
   url,
   heading = "📤 Sonucu paylaş",
   compact = false,
 }: {
-  /** Paylaşılacak tam metin (çok satırlı olabilir). */
+  /** Sabit skor satırı (lib/shareText.ts üretir). */
   text: string;
+  /** Yorum satırının çekileceği grup: match | arena | daily | solo */
+  module?: string;
+  /** Grup durumu: win | loss | draw | podium */
+  variant?: string;
   /** Native paylaşımda görünen kısa başlık. */
   title?: string;
   /** Varsayılan: bulunulan sayfanın adresi. */
@@ -31,11 +38,20 @@ export default function ResultShare({
 }) {
   const [copied, setCopied] = useState(false);
   const link = url || pageUrl();
+  const texts = useShareTexts();
+
+  // Yorum satırı: admin panelindeki metinlerden rastgele biri.
+  // Metinler yüklenene kadar yedek listeden seçilir; liste değişince tazelenir.
+  const comment = useMemo(
+    () => (module ? randomLine(texts, module, variant || "") : ""),
+    [texts, module, variant],
+  );
+  const full = [text, comment].filter(Boolean).join("\n") + (texts.footer ? `\n${texts.footer}` : "");
 
   function copy() {
-    const full = `${text}\n${link}`;
+    const payload = `${full}\n${link}`;
     try {
-      navigator.clipboard.writeText(full).then(() => {
+      navigator.clipboard.writeText(payload).then(() => {
         setCopied(true);
         setTimeout(() => setCopied(false), 1800);
       }).catch(() => {});
@@ -56,14 +72,14 @@ export default function ResultShare({
           color: "var(--text-strong)", fontSize: 13, lineHeight: 1.45,
           whiteSpace: "pre-wrap", wordBreak: "break-word", textAlign: "left",
           fontFamily: "inherit",
-        }}>{text}</pre>
+        }}>{full}</pre>
       )}
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, flexWrap: "wrap" }}>
         <ShareButtons
           url={link}
           title={title}
-          text={text}
+          text={full}
           label=""
           networks={["whatsapp", "twitter", "telegram", "facebook"]}
         />

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useArena, ArenaPlayer, RevealPlayer } from "@/lib/useArena";
 import { guestPid } from "@/lib/guestAccess";
 import ResultShare from "./ResultShare";
-import { arenaShareText } from "@/lib/shareText";
+import { arenaShareText, arenaVariant } from "@/lib/shareText";
 import { useSectionMusic } from "@/lib/useSectionMusic";
 import { toUpperTr } from "@/lib/turkish";
 import { playSound, initSound, stopTicking, suppressUiClick } from "@/lib/sound";
@@ -650,6 +650,8 @@ function ArenaResult({ ranking, rewards, onExit, isGuest, totalWords }: { rankin
               total: totalWords,
               players: ranking.length,
             })}
+            module="arena"
+            variant={arenaVariant(mine.rank ?? 0)}
             title="Kelime Tahmin — Arena"
           />
         </div>

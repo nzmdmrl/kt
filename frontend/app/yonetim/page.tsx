@@ -20,6 +20,7 @@ const TABS = [
   { key: "titles", label: "🏅 Unvanlar" },
   { key: "badges", label: "🎖️ Rozetler" },
   { key: "music", label: "🎵 Müzik" },
+  { key: "sharepm", label: "💬 Sonuç PM" },
   { key: "seo", label: "🔍 SEO" },
   { key: "mobile", label: "📱 Mobil & Reklam" },
   { key: "notiftypes", label: "🔔 Bildirim Türleri" },
@@ -58,6 +59,7 @@ export default function AdminPage() {
       {tab === "titles" && <Titles />}
       {tab === "badges" && <Badges />}
       {tab === "music" && <MusicPools />}
+      {tab === "sharepm" && <SharePM />}
       {tab === "seo" && <Seo />}
       {tab === "mobile" && <Mobile />}
       {tab === "notiftypes" && <NotificationTypes />}
@@ -783,6 +785,160 @@ function Stat({ label, value, accent }: { label: string; value: any; accent?: bo
     </div>
   );
 }
+
+// ---- 💬 Sonuç PM: sonuç paylaşım metinleri ------------------------------
+// Paylaşım metni = sabit skor satırı + BURADAN rastgele yorum satırı + footer.
+type ShareLine = { id: number; text: string; active: boolean };
+type ShareGroup = { module: string; variant: string; label: string; lines: ShareLine[] };
+
+function SharePM() {
+  const [groups, setGroups] = useState<ShareGroup[]>([]);
+  const [footer, setFooter] = useState("");
+  const [drafts, setDrafts] = useState<Record<string, string>>({});   // yeni satır kutuları
+  const [popup, setPopup] = useState("");
+  const [saved, setSaved] = useState("");
+  const [loaded, setLoaded] = useState(false);
+
+  function load() {
+    fetch(apiUrl("/api/admin/share-texts"), { headers: authHeaders() })
+      .then((r) => r.json())
+      .then((d) => { setGroups(d.groups || []); setFooter(d.footer || ""); setLoaded(true); })
+      .catch(() => setLoaded(true));
+  }
+  useEffect(load, []);
+
+  function flash(key: string) { setSaved(key); setTimeout(() => setSaved(""), 1400); }
+
+  async function saveFooter() {
+    const r = await fetch(apiUrl("/api/admin/share-texts/footer"), {
+      method: "PUT", headers: authHeaders(), body: JSON.stringify({ text: footer }),
+    });
+    if (!r.ok) { setPopup("Alt bilgi kaydedilemedi."); return; }
+    flash("footer");
+  }
+
+  async function saveLine(id: number, text: string) {
+    const r = await fetch(apiUrl(`/api/admin/share-texts/${id}`), {
+      method: "PUT", headers: authHeaders(), body: JSON.stringify({ text }),
+    });
+    if (!r.ok) { setPopup("Metin kaydedilemedi (boş olamaz)."); load(); return; }
+    flash(`l${id}`);
+  }
+
+  async function toggleLine(id: number, active: boolean) {
+    await fetch(apiUrl(`/api/admin/share-texts/${id}`), {
+      method: "PUT", headers: authHeaders(), body: JSON.stringify({ active }),
+    }).catch(() => {});
+    setGroups((gs) => gs.map((g) => ({ ...g, lines: g.lines.map((l) => (l.id === id ? { ...l, active } : l)) })));
+  }
+
+  async function removeLine(id: number) {
+    setGroups((gs) => gs.map((g) => ({ ...g, lines: g.lines.filter((l) => l.id !== id) })));
+    await fetch(apiUrl(`/api/admin/share-texts/${id}`), { method: "DELETE", headers: authHeaders() }).catch(() => {});
+  }
+
+  async function addLine(g: ShareGroup) {
+    const key = `${g.module}:${g.variant}`;
+    const text = (drafts[key] || "").trim();
+    if (!text) return;
+    const r = await fetch(apiUrl("/api/admin/share-texts"), {
+      method: "POST", headers: authHeaders(),
+      body: JSON.stringify({ module: g.module, variant: g.variant, text }),
+    });
+    if (!r.ok) { setPopup("Satır eklenemedi."); return; }
+    const d = await r.json();
+    setDrafts((x) => ({ ...x, [key]: "" }));
+    setGroups((gs) => gs.map((x) => (x.module === g.module && x.variant === g.variant
+      ? { ...x, lines: [...x.lines, d.line] } : x)));
+  }
+
+  if (!loaded) return <p style={{ color: "var(--text-soft)" }}>Yükleniyor…</p>;
+
+  return (
+    <div style={{ display: "grid", gap: 14 }}>
+      {popup && <AlertPopup message={popup} onClose={() => setPopup("")} />}
+      <p style={{ color: "var(--text-dim)", fontSize: 13, lineHeight: 1.6 }}>
+        Paylaşım metni üç parçadır: <strong>sabit skor satırı</strong> (kod üretir, ör. "🏆 Nazım, Ahmet'i 200-0 yendi!")
+        + <strong>buradan rastgele seçilen yorum satırı</strong> + <strong>alt bilgi</strong>.
+        Her gruba istediğin kadar satır ekleyebilirsin; pasif yaptığın satır seçilmez.
+      </p>
+
+      {/* Alt bilgi — tüm paylaşımların son satırı */}
+      <div style={{ background: "var(--bg-panel)", borderRadius: 12, padding: 14 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-strong)", marginBottom: 8 }}>
+          Alt bilgi (tüm paylaşımların son satırı)
+        </div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <input
+            value={footer}
+            onChange={(e) => setFooter(e.target.value)}
+            placeholder="🎯 Kelime Tahmin — Türkçe kelime oyunu"
+            style={{ flex: "1 1 240px", minWidth: 0, padding: "10px 12px", borderRadius: 9, border: "1px solid var(--tile-border)", background: "var(--bg-elevated)", color: "var(--text-strong)", fontSize: 14 }}
+          />
+          <button onClick={saveFooter} style={smallSaveBtn}>
+            {saved === "footer" ? "✓" : "Kaydet"}
+          </button>
+        </div>
+      </div>
+
+      {groups.map((g) => {
+        const key = `${g.module}:${g.variant}`;
+        return (
+          <div key={key} style={{ background: "var(--bg-panel)", borderRadius: 12, padding: 14 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-strong)", flex: 1 }}>{g.label}</span>
+              <span style={{ fontSize: 12, color: "var(--text-dim)" }}>{g.lines.length} satır</span>
+            </div>
+
+            <div style={{ display: "grid", gap: 8 }}>
+              {g.lines.map((l) => (
+                <div key={l.id} style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                  <input
+                    defaultValue={l.text}
+                    onBlur={(e) => { if (e.target.value.trim() !== l.text) saveLine(l.id, e.target.value); }}
+                    style={{
+                      flex: "1 1 220px", minWidth: 0, padding: "9px 11px", borderRadius: 9,
+                      border: "1px solid var(--tile-border)", background: "var(--bg-elevated)",
+                      color: l.active ? "var(--text-strong)" : "var(--text-dim)", fontSize: 14,
+                      opacity: l.active ? 1 : 0.6,
+                    }}
+                  />
+                  {saved === `l${l.id}` && <span style={{ color: "var(--tile-correct)", fontSize: 13 }}>✓</span>}
+                  <button onClick={() => toggleLine(l.id, !l.active)} title={l.active ? "Pasifleştir" : "Aktifleştir"}
+                    style={{ ...miniBtn, color: l.active ? "var(--tile-correct)" : "var(--text-dim)" }}>
+                    {l.active ? "Aktif" : "Pasif"}
+                  </button>
+                  <button onClick={() => removeLine(l.id)} title="Sil"
+                    style={{ ...miniBtn, color: "var(--accent-hot)" }}>Sil</button>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+              <input
+                value={drafts[key] || ""}
+                onChange={(e) => setDrafts((x) => ({ ...x, [key]: e.target.value }))}
+                onKeyDown={(e) => { if (e.key === "Enter") addLine(g); }}
+                placeholder="Yeni cümle ekle…"
+                style={{ flex: "1 1 220px", minWidth: 0, padding: "9px 11px", borderRadius: 9, border: "1px dashed var(--tile-border)", background: "transparent", color: "var(--text-strong)", fontSize: 14 }}
+              />
+              <button onClick={() => addLine(g)} style={smallSaveBtn}>+ Ekle</button>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+const smallSaveBtn: React.CSSProperties = {
+  padding: "9px 16px", borderRadius: 9, border: "none", background: "var(--accent)",
+  color: "#1a1330", fontWeight: 700, fontSize: 13, cursor: "pointer", flexShrink: 0,
+};
+const miniBtn: React.CSSProperties = {
+  padding: "7px 11px", borderRadius: 8, border: "1px solid var(--border-soft)",
+  background: "var(--bg-elevated)", fontSize: 12.5, fontWeight: 700, cursor: "pointer", flexShrink: 0,
+};
 
 function Wrap({ children }: { children: React.ReactNode }) {
   return (

@@ -274,6 +274,8 @@ export default function SoloGame({ level, onExit, onComplete }: {
           <div style={{ marginBottom: 16 }}>
             <ResultShare
               text={soloShareText({ level, stars: result.stars, total: result.total })}
+              module="solo"
+              variant="win"
               title="Kelime Tahmin — Maraton"
               compact
             />

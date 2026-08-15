@@ -158,8 +158,14 @@ Aşağıdakiler canlıda çalışıyor veya son push'a dahil. Detaylı geçmiş 
 ### Sonuç paylaşımı
 - `components/ResultShare.tsx`: metin önizlemesi + WhatsApp · X · Telegram · Facebook · 📋 Kopyala
   (+ mobilde native paylaşım). 1v1, Arena, Günün Kelimesi ve Maraton sonuç ekranlarında.
-- Metinler `lib/shareText.ts` içinde üretilir: "🏆 Nazım, Ahmet'i 200-0 yendi!",
-  "🥈 Nazım arenada 2. oldu!" vb. Türkçe belirtme eki `acc()` ile ("Ayşe'yi", "Nazım'ı").
+- Metin üç parçadır: **sabit skor satırı** (`lib/shareText.ts` — "🏆 Nazım, Ahmet'i 200-0 yendi!",
+  Türkçe belirtme eki `acc()` ile) + **rastgele yorum satırı** + **alt bilgi**.
+- Yorum satırları ve alt bilgi admin panelden yönetilir: **💬 Sonuç PM** sekmesi.
+  Gruplar: 1v1 (kazandı/kaybetti/berabere), Arena (1./podyum/podyum dışı), Günün Kelimesi
+  (bildi/bilemedi), Maraton. Her grupta varsayılan 5 satır; istenirse eklenir/pasifleştirilir.
+  Model `app/models/share_line.py` (startup'ta BOŞ gruplara seed), uçlar
+  `app/api/routes/share_texts.py` (public `GET /api/share-texts`), arayüz `lib/shareTexts.ts`.
+  Alt bilgi tek alan: `game_settings.share_footer`.
 - Paylaşılan adres bulunulan sayfadır (`pageUrl()` — sorgu parametreleri atılır).
   Facebook metni taşımaz (kendi kısıtı), sadece sayfanın OG başlığını gösterir → OG metinleri
   admin → 🔍 SEO'dan zengin tutulmalı.

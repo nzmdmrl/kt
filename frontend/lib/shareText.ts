@@ -38,21 +38,27 @@ export function acc(name: string): string {
   return `${base}'${endsWithVowel ? "y" : ""}${suffix}`;
 }
 
-const FOOTER = "🎯 Kelime Tahmin — Türkçe kelime oyunu";
+/* Not: Aşağıdaki fonksiyonlar yalnızca SABİT skor satırını üretir.
+   Altına eklenen yorum satırı ve en alttaki footer admin panelinden gelir
+   (lib/shareTexts.ts → GET /api/share-texts · admin: 💬 Sonuç PM). */
 
-/** 1v1 düello sonucu. */
+/** 1v1 düello skor satırı. */
 export function matchShareText(o: {
   me: string; opp: string; myScore: number; oppScore: number; draw?: boolean; won?: boolean;
 }): string {
   const me = o.me || "Oyuncu";
   const opp = o.opp || "Rakip";
-  if (o.draw) {
-    return `🤝 ${me} ve ${opp} ${o.myScore}-${o.oppScore} berabere kaldı!\n⚔️ 1v1 Düello\n${FOOTER}`;
-  }
-  if (o.won) {
-    return `🏆 ${me}, ${acc(opp)} ${o.myScore}-${o.oppScore} yendi!\n⚔️ 1v1 Düello\n${FOOTER}`;
-  }
-  return `⚔️ ${opp}, ${acc(me)} ${o.oppScore}-${o.myScore} yendi. Rövanş vakti! 🔥\n${FOOTER}`;
+  if (o.draw) return `🤝 ${me} ve ${opp} ${o.myScore}-${o.oppScore} berabere kaldı!`;
+  if (o.won) return `🏆 ${me}, ${acc(opp)} ${o.myScore}-${o.oppScore} yendi!`;
+  return `⚔️ ${opp}, ${acc(me)} ${o.oppScore}-${o.myScore} yendi.`;
+}
+
+/** Sonuç durumunu admin metin grubuna çevirir. */
+export function matchVariant(won?: boolean, draw?: boolean): string {
+  return draw ? "draw" : won ? "win" : "loss";
+}
+export function arenaVariant(rank: number): string {
+  return rank === 1 ? "win" : rank === 2 || rank === 3 ? "podium" : "loss";
 }
 
 /** Arena sonucu (5 kişilik hız yarışı). */
@@ -69,7 +75,7 @@ export function arenaShareText(o: {
     o.correct != null && o.total != null ? `✅ ${o.correct}/${o.total} doğru` : "",
     o.players ? `👥 ${o.players} kişilik arena` : "",
   ].filter(Boolean).join(" · ");
-  return `${head}\n${detail}\n${FOOTER}`;
+  return `${head}\n${detail}`;
 }
 
 /** Günün kelimesi sonucu (emoji ızgarasıyla). */
@@ -81,7 +87,7 @@ export function dailyShareText(o: {
   ).join("\n");
   const result = o.won ? `${o.rows.length}/${o.maxRows}` : `X/${o.maxRows}`;
   const head = o.won ? `📅 Günün Kelimesi ${result} ✅` : `📅 Günün Kelimesi ${result} 😔`;
-  return `${head}${grid ? `\n${grid}` : ""}\n${FOOTER}`;
+  return `${head}${grid ? `\n${grid}` : ""}`;
 }
 
 /** Maraton bölüm sonucu. */
@@ -89,5 +95,5 @@ export function soloShareText(o: { me?: string; level: number; stars: number; to
   const stars = "⭐".repeat(Math.max(0, Math.min(3, o.stars))) + "☆".repeat(Math.max(0, 3 - o.stars));
   const who = o.me ? `${o.me} · ` : "";
   const total = o.total ? `\n🌟 Toplam yıldız: ${o.total}` : "";
-  return `🏃 ${who}Maraton Bölüm ${o.level} tamamlandı!\n${stars}${total}\n${FOOTER}`;
+  return `🏃 ${who}Maraton Bölüm ${o.level} tamamlandı!\n${stars}${total}`;
 }
