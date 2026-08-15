@@ -37,6 +37,16 @@
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="@string/admob_app_id" />
+
+        <!-- Bildirim ikonu: bunlar tanımlı DEĞİLKEN Android launcher ikonuna
+             düşüyor ve durum çubuğunda beyaz leke çiziyordu. Siluet
+             @drawable/ic_stat_notify, tint rengi @color/notification_color. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_stat_notify" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/notification_color" />
     </application>
 
     <!-- Permissions -->
