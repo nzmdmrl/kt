@@ -820,12 +820,61 @@ function Stat({ label, value, accent }: { label: string; value: any; accent?: bo
   );
 }
 
+// Moderasyon aç/kapa anahtarları (iki sekmenin başında görünür).
+type ModFlags = { photo_upload_enabled: boolean; photo_moderation_enabled: boolean; name_moderation_enabled: boolean };
+
+function useModFlags() {
+  const [flags, setFlags] = useState<ModFlags>({
+    photo_upload_enabled: true, photo_moderation_enabled: true, name_moderation_enabled: true,
+  });
+  useEffect(() => {
+    fetch(apiUrl("/api/admin/moderation/settings"), { headers: authHeaders() })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d) setFlags(d); })
+      .catch(() => {});
+  }, []);
+  async function setFlag(key: keyof ModFlags, value: boolean) {
+    setFlags((f) => ({ ...f, [key]: value }));
+    await fetch(apiUrl("/api/admin/moderation/settings"), {
+      method: "PUT", headers: authHeaders(), body: JSON.stringify({ key, value }),
+    }).catch(() => {});
+  }
+  return { flags, setFlag };
+}
+
+function ModToggle({ label, hint, value, onChange }: {
+  label: string; hint: string; value: boolean; onChange: (v: boolean) => void;
+}) {
+  return (
+    <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+      <button
+        onClick={() => onChange(!value)}
+        style={{
+          width: 52, height: 28, borderRadius: 14, border: "none", cursor: "pointer",
+          position: "relative", background: value ? "var(--accent)" : "var(--bg-elevated)",
+          transition: "background .2s", flexShrink: 0, marginTop: 2,
+        }}
+      >
+        <span style={{
+          position: "absolute", top: 3, left: value ? 27 : 3, width: 22, height: 22,
+          borderRadius: "50%", background: "#fff", transition: "left .2s",
+        }} />
+      </button>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontWeight: 700, color: "var(--text-strong)", fontSize: 14 }}>{label}</div>
+        <div style={{ color: "var(--text-dim)", fontSize: 12, lineHeight: 1.5, marginTop: 2 }}>{hint}</div>
+      </div>
+    </div>
+  );
+}
+
 // ---- 🖼️ Foto Mod: yüklenen profil fotoğraflarının onayı ----------------
 // Onaylanana kadar fotoğrafı yalnızca sahibi görür; onaylanınca herkes görür.
 function PhotoMod({ onChanged }: { onChanged: () => void }) {
   const [users, setUsers] = useState<any[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState<number | null>(null);
+  const { flags, setFlag } = useModFlags();
 
   function load() {
     fetch(apiUrl("/api/admin/moderation/avatars"), { headers: authHeaders() })
@@ -843,15 +892,30 @@ function PhotoMod({ onChanged }: { onChanged: () => void }) {
     onChanged();
   }
 
-  if (!loaded) return <p style={{ color: "var(--text-soft)" }}>Yükleniyor…</p>;
-  if (users.length === 0) return <p style={{ color: "var(--text-dim)" }}>Onay bekleyen fotoğraf yok. ✅</p>;
-
   return (
     <div style={{ display: "grid", gap: 12 }}>
+      {/* Sekme başındaki aç/kapa anahtarları */}
+      <div style={{ background: "var(--bg-panel)", borderRadius: 12, padding: 12, display: "grid", gap: 8 }}>
+        <ModToggle
+          label="Profil fotoğrafı yükleme açık"
+          hint="Kapalıyken kullanıcılar fotoğraf yükleyemez; eski sistem (hazır avatar) devam eder."
+          value={flags.photo_upload_enabled}
+          onChange={(v) => setFlag("photo_upload_enabled", v)}
+        />
+        <ModToggle
+          label="Yüklenen fotoğraflar onaydan geçsin"
+          hint="Kapalıyken yüklenen fotoğraf ONAYSIZ yayınlanır (herkes hemen görür)."
+          value={flags.photo_moderation_enabled}
+          onChange={(v) => setFlag("photo_moderation_enabled", v)}
+        />
+      </div>
+
       <p style={{ color: "var(--text-dim)", fontSize: 13, lineHeight: 1.6 }}>
         Onaylanana kadar fotoğrafı <strong>sadece sahibi</strong> görür. Reddedersen yükleme silinir,
         kullanıcıya bildirim gider ve eski avatarı kalır.
       </p>
+      {!loaded ? <p style={{ color: "var(--text-soft)" }}>Yükleniyor…</p>
+        : users.length === 0 ? <p style={{ color: "var(--text-dim)" }}>Onay bekleyen fotoğraf yok. ✅</p> : null}
       {users.map((u) => (
         <div key={u.id} style={{
           display: "flex", alignItems: "center", gap: 14, background: "var(--bg-panel)",
@@ -886,6 +950,7 @@ function PhotoMod({ onChanged }: { onChanged: () => void }) {
 // ---- 🏷️ Ad Mod: görünen ad + kullanıcı adı onayı -----------------------
 // Reddedilirse ad "user123456" biçimine döner ve kullanıcıya bildirim gider.
 function NameMod({ onChanged }: { onChanged: () => void }) {
+  const { flags, setFlag } = useModFlags();
   const [users, setUsers] = useState<any[]>([]);
   const [status, setStatus] = useState<"pending" | "approved" | "rejected">("pending");
   const [loaded, setLoaded] = useState(false);
@@ -910,6 +975,15 @@ function NameMod({ onChanged }: { onChanged: () => void }) {
 
   return (
     <div style={{ display: "grid", gap: 12 }}>
+      <div style={{ background: "var(--bg-panel)", borderRadius: 12, padding: 12 }}>
+        <ModToggle
+          label="Görünen ad / kullanıcı adı onaydan geçsin"
+          hint="Kapalıyken yeni kayıtlar ve ad değişiklikleri doğrudan onaylı sayılır, rozet çıkmaz."
+          value={flags.name_moderation_enabled}
+          onChange={(v) => setFlag("name_moderation_enabled", v)}
+        />
+      </div>
+
       <p style={{ color: "var(--text-dim)", fontSize: 13, lineHeight: 1.6 }}>
         Yeni kayıtlar ve ad değişiklikleri burada listelenir. <strong>Reddedersen</strong> görünen ad ve
         kullanıcı adı <code>user123456</code> biçimine döner ve kullanıcıya bildirim gider.

@@ -210,6 +210,13 @@ Aşağıdakiler canlıda çalışıyor veya son push'a dahil. Detaylı geçmiş 
   adı değişikliği pending'e düşer. Reddedilince ad+username `user{id}{3 hane}` olur, kullanıcıya
   bildirim gider (`name_rejected`).
 - Sekme başlıklarında bekleyen sayısı rozeti (`GET /admin/moderation/counts`, 60 sn'de bir tazelenir).
+- **Aç/kapa anahtarları** (sekmelerin en başında; ⚙️ Ayarlar → Moderasyon ile aynı kayıtlar,
+  `GET/PUT /admin/moderation/settings`):
+  - `photo_upload_enabled` — kapalıysa yükleme bölümü gizlenir + `/account/photo` 403 döner;
+    eski sistem (hazır DiceBear avatarı) devam eder. Foto yüklemeyen herkes zaten avatar kullanır.
+  - `photo_moderation_enabled` — kapalıysa yüklenen foto ONAYSIZ yayınlanır (`avatar_photo`).
+  - `name_moderation_enabled` — kapalıysa yeni kayıt/ad değişikliği doğrudan `approved`, rozet çıkmaz.
+  Kapatmak eski BEKLEYEN kayıtları silmez; admin isterse yine onaylayabilir.
 
 ### Bildirimler
 - `/bildirimler` sayfası. Arkadaşlık, unvan (`title_up`), arena madalya (`arena_medal`) bildirimleri.

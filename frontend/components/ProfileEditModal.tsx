@@ -120,15 +120,19 @@ export default function ProfileEditModal({ onClose, onSaved }: { onClose: () => 
       {msg && <div style={notice("var(--tile-correct)")}>{msg}</div>}
       {err && <div style={notice("var(--accent-hot)")}>{err}</div>}
 
-      {/* Kendi fotoğrafını yükle — admin onayına düşer */}
+      {/* Kendi fotoğrafını yükle — admin ayarı kapalıysa bu bölüm hiç görünmez
+          (o durumda eski sistem: hazır avatar galerisi kullanılır). */}
+      {data.photo_upload_enabled !== false && (
       <Section title="Profil Fotoğrafı Yükle">
         <PhotoUpload
           current={data.avatar_url}
           pending={!!data.photo_pending}
           onUploaded={async (dataUrl) => {
-            const ok = await post("/api/account/photo", { photo: dataUrl }, "Fotoğraf yüklendi — onay bekliyor");
+            const moderated = data.photo_moderation_enabled !== false;
+            const ok = await post("/api/account/photo", { photo: dataUrl },
+              moderated ? "Fotoğraf yüklendi — onay bekliyor" : "Profil fotoğrafın güncellendi");
             if (ok) {
-              setData((d: any) => ({ ...d, avatar_url: dataUrl, photo_pending: true, has_photo: true }));
+              setData((d: any) => ({ ...d, avatar_url: dataUrl, photo_pending: moderated, has_photo: true }));
               onSaved();
             }
             return !!ok;
@@ -143,6 +147,7 @@ export default function ProfileEditModal({ onClose, onSaved }: { onClose: () => 
           } : undefined}
         />
       </Section>
+      )}
 
       {/* Hazır avatar galerisi */}
       <Section title="Profil Fotoğrafı (Avatar)">

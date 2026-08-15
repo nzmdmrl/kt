@@ -54,6 +54,12 @@ async def _unique_username(db: AsyncSession, base: str) -> str:
     return candidate
 
 
+def _initial_name_status() -> str:
+    """Yeni kullanıcının ad durumu — moderasyon kapalıysa doğrudan onaylı."""
+    from app.game.settings_service import cached_bool
+    return "pending" if cached_bool("name_moderation_enabled", True) else "approved"
+
+
 async def register_email(
     db: AsyncSession, email: str, password: str, display_name: str
 ) -> User:
@@ -77,6 +83,8 @@ async def register_email(
         username=username,
         password_hash=hash_password(password),
         display_name=display_name,
+        # Ad moderasyonu kapalıysa yeni kayıt doğrudan onaylı sayılır.
+        name_status=_initial_name_status(),
     )
     db.add(user)
     await db.commit()
@@ -123,6 +131,7 @@ async def get_or_create_google_user(
         google_sub=sub,
         display_name=display,
         avatar_url=picture,
+        name_status=_initial_name_status(),
     )
     db.add(user)
     await db.commit()

@@ -35,6 +35,11 @@ USERNAME_LIMIT = 2
 WINDOW_DAYS = 30
 
 
+def _flag(key: str, default: bool = True) -> bool:
+    from app.game.settings_service import cached_bool
+    return cached_bool(key, default)
+
+
 async def _username_quota(db: AsyncSession, user_id: int) -> tuple[int, datetime | None]:
     """(kalan hak, yeni hak kazanma zamanı) döner.
 
@@ -77,6 +82,9 @@ async def account_me(user: User = Depends(get_current_user), db: AsyncSession = 
         "photo_pending": bool(user.avatar_pending),
         "has_photo": bool(user.avatar_photo or user.avatar_pending),
         "name_status": user.name_status or "pending",
+        # Arayüz yükleme bölümünü buna göre gösterir/gizler (admin ayarı).
+        "photo_upload_enabled": _flag("photo_upload_enabled"),
+        "photo_moderation_enabled": _flag("photo_moderation_enabled"),
         "show_online": user.show_online,
         "allow_challenges": user.allow_challenges,
         "has_password": bool(user.password_hash),
@@ -99,8 +107,8 @@ async def change_display_name(data: DisplayNameIn, user: User = Depends(get_curr
     except name_rules.NameError_ as e:
         raise HTTPException(400, str(e))
     user.display_name = name
-    # Ad değişti — yeniden moderasyona düşer (admin → 🏷️ Ad Mod).
-    user.name_status = "pending"
+    # Ad değişti — moderasyon açıksa yeniden onaya düşer (admin → 🏷️ Ad Mod).
+    user.name_status = "pending" if _flag("name_moderation_enabled") else "approved"
     await db.commit()
     return {"ok": True, "display_name": name}
 
@@ -143,7 +151,7 @@ async def change_username(data: UsernameIn, user: User = Depends(get_current_use
         )
 
     user.username = uname
-    user.name_status = "pending"   # yeni ad admin onayına düşer
+    user.name_status = "pending" if _flag("name_moderation_enabled") else "approved"
     db.add(UsernameChange(user_id=user.id, old_username=old, new_username=uname))
     # Maç geçmişindeki bağlantı alanları username tutuyor — eski ad kalırsa
     # geçmiş maçlar profilden ve karşılıklı skordan düşerdi; birlikte taşı.
@@ -227,16 +235,28 @@ async def upload_photo(data: PhotoIn, user: User = Depends(get_current_user), db
     Onaylanana kadar fotoğrafı yalnızca sahibi görür (to_private), diğerlerine
     eski/onaylı avatar gösterilir (to_public).
     """
+    from app.game.settings_service import cached_bool
+    if not cached_bool("photo_upload_enabled", True):
+        raise HTTPException(403, "Fotoğraf yükleme şu an kapalı.")
     photo = (data.photo or "").strip()
     if not photo.startswith("data:image/jpeg;base64,"):
         raise HTTPException(400, "Fotoğraf JPEG olmalı.")
     if len(photo) > MAX_PHOTO_CHARS:
         raise HTTPException(400, "Fotoğraf çok büyük.")
     from datetime import datetime as _dt, timezone as _tz
-    user.avatar_pending = photo
-    user.avatar_pending_at = _dt.now(_tz.utc)
+    if cached_bool("photo_moderation_enabled", True):
+        # Onaya düşer: yalnız sahibi görür.
+        user.avatar_pending = photo
+        user.avatar_pending_at = _dt.now(_tz.utc)
+        pending = True
+    else:
+        # Moderasyon kapalı: doğrudan yayında.
+        user.avatar_photo = photo
+        user.avatar_pending = None
+        user.avatar_pending_at = None
+        pending = False
     await db.commit()
-    return {"ok": True, "avatar_url": photo, "pending": True}
+    return {"ok": True, "avatar_url": photo, "pending": pending}
 
 
 @router.delete("/photo")

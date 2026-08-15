@@ -23,6 +23,7 @@ import secrets
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -45,15 +46,45 @@ def _row(u: User) -> dict:
     }
 
 
+# ---------------------------------------------------------------- ayarlar
+
+MOD_FLAGS = ("photo_upload_enabled", "photo_moderation_enabled", "name_moderation_enabled")
+
+
+@router.get("/settings")
+async def mod_settings(admin: User = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+    """Sekme başındaki aç/kapa anahtarları (⚙️ Ayarlar → Moderasyon ile aynı kayıtlar)."""
+    from app.game.settings_service import cached_bool
+    return {k: cached_bool(k, True) for k in MOD_FLAGS}
+
+
+class FlagIn(BaseModel):
+    key: str
+    value: bool
+
+
+@router.put("/settings")
+async def set_mod_setting(data: FlagIn, admin: User = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+    if data.key not in MOD_FLAGS:
+        raise HTTPException(400, "Bilinmeyen ayar.")
+    from app.game.settings_service import set_setting
+    await set_setting(db, data.key, "true" if data.value else "false")
+    return {"ok": True, "key": data.key, "value": data.value}
+
+
 @router.get("/counts")
 async def counts(admin: User = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
     """Sekme rozetleri: bekleyen fotoğraf ve bekleyen ad sayısı."""
+    from app.game.settings_service import cached_bool
     photos = (await db.execute(
         select(func.count(User.id)).where(User.avatar_pending.isnot(None))
     )).scalar_one()
-    names = (await db.execute(
-        select(func.count(User.id)).where(User.name_status == "pending")
-    )).scalar_one()
+    # Ad moderasyonu kapalıyken rozet gösterilmez (bekleyen kayıtlar listede kalır).
+    names = 0
+    if cached_bool("name_moderation_enabled", True):
+        names = (await db.execute(
+            select(func.count(User.id)).where(User.name_status == "pending")
+        )).scalar_one()
     return {"avatars": int(photos or 0), "names": int(names or 0)}
 
 

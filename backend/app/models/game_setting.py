@@ -71,6 +71,11 @@ DEFAULT_SETTINGS = {
     # Bu süreyi aşan bildirimler otomatik silinir (6 saatte bir çalışan görev).
     # Kullanıcıya bildirim sayfasında bu süre yazılır. 0 = otomatik silme kapalı.
     "notification_retention_days": {"value": "30", "label": "Bildirim saklama süresi (gün · 0 = sınırsız)", "type": "int", "group": "Sosyal"},
+    # Moderasyon — admin panelde 🖼️ Foto Mod / 🏷️ Ad Mod sekmelerinin başından da açılır/kapanır.
+    "photo_upload_enabled": {"value": "true", "label": "Profil fotoğrafı yükleme açık (kapalıysa sadece hazır avatar)", "type": "bool", "group": "Moderasyon"},
+    "photo_moderation_enabled": {"value": "true", "label": "Yüklenen fotoğraflar onaydan geçsin", "type": "bool", "group": "Moderasyon"},
+    "name_moderation_enabled": {"value": "true", "label": "Görünen ad / kullanıcı adı onaydan geçsin", "type": "bool", "group": "Moderasyon"},
+
     # Misafir (üye olmayan ziyaretçi) erişimi. Kapatılırsa ilgili moda girişte
     # "üye ol" ekranı çıkar; sunucu tarafında da engellenir.
     # Not: panelin aç/kapa düğmesi "true"/"false" yazar — varsayılanlar da öyle.
