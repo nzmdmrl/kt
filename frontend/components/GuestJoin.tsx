@@ -64,8 +64,28 @@ export default function GuestJoin({
           <p style={{ color: "var(--text-soft)", fontSize: 14, lineHeight: 1.5, marginBottom: 18 }}>{subtitle}</p>
         )}
 
+        {/* Önce üyelik (asıl istenen yol), sonra misafir katılımı. */}
+        <a
+          href="/giris"
+          style={{
+            display: "block", width: "100%", padding: "15px", borderRadius: 13,
+            border: "none", textDecoration: "none",
+            background: "linear-gradient(135deg, var(--accent), var(--accent-hot))",
+            color: "#1a1330", fontWeight: 900, fontSize: 17,
+            boxShadow: "0 8px 22px var(--accent-glow)",
+          }}
+        >
+          Üye Ol · Giriş Yap →
+        </a>
+
         {allowed && (
           <>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, color: "var(--text-dim)", fontSize: 12, margin: "16px 0 14px" }}>
+              <span style={{ flex: 1, height: 1, background: "var(--border-soft)" }} />
+              veya
+              <span style={{ flex: 1, height: 1, background: "var(--border-soft)" }} />
+            </div>
+
             {askName && (
               <>
                 <label style={{ display: "block", textAlign: "left", fontSize: 12, color: "var(--text-dim)", marginBottom: 6, fontWeight: 600 }}>
@@ -90,35 +110,15 @@ export default function GuestJoin({
             <button
               onClick={join}
               style={{
-                width: "100%", padding: "15px", borderRadius: 13, border: "none", cursor: "pointer",
-                background: "linear-gradient(135deg, var(--accent), var(--accent-hot))",
-                color: "#1a1330", fontWeight: 900, fontSize: 17, marginTop: 8,
-                boxShadow: "0 8px 22px var(--accent-glow)",
+                width: "100%", padding: "14px", borderRadius: 13, cursor: "pointer",
+                border: "1px solid var(--border-soft)", background: "transparent",
+                color: "var(--text-strong)", fontWeight: 800, fontSize: 16, marginTop: 8,
               }}
             >
               {joinLabel}
             </button>
-
-            <div style={{ display: "flex", alignItems: "center", gap: 10, color: "var(--text-dim)", fontSize: 12, margin: "16px 0 12px" }}>
-              <span style={{ flex: 1, height: 1, background: "var(--border-soft)" }} />
-              veya
-              <span style={{ flex: 1, height: 1, background: "var(--border-soft)" }} />
-            </div>
           </>
         )}
-
-        <a
-          href="/giris"
-          style={{
-            display: "block", width: "100%", padding: "14px", borderRadius: 13,
-            border: `1px solid ${allowed ? "var(--border-soft)" : "var(--accent)"}`,
-            background: allowed ? "transparent" : "var(--accent)",
-            color: allowed ? "var(--text-strong)" : "#1a1330",
-            fontWeight: 800, fontSize: 16, textDecoration: "none",
-          }}
-        >
-          {allowed ? "🎁 Üye Ol · Puanların kaydedilsin" : "Ücretsiz Üye Ol / Giriş Yap →"}
-        </a>
 
         <p style={{ color: "var(--text-dim)", fontSize: 12, lineHeight: 1.5, marginTop: 14 }}>
           {note ?? (allowed
