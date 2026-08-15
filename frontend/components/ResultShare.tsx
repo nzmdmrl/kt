@@ -59,8 +59,11 @@ export default function ResultShare({
   }
 
   return (
+    // Sonuç ekranının en altındaki blok — hafif amber tonuyla diğer
+    // kartlardan ayrışır (gece/gündüz temasında da çalışır: yarı saydam).
     <div style={{
-      background: "var(--bg-elevated)", border: "1px solid var(--border-soft)",
+      background: "linear-gradient(180deg, rgba(224,148,10,.12), rgba(196,74,126,.07))",
+      border: "1px solid var(--accent-glow)",
       borderRadius: 14, padding: "14px 14px 12px", textAlign: "center",
     }}>
       <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-soft)", marginBottom: 10 }}>{heading}</div>
@@ -68,7 +71,7 @@ export default function ResultShare({
       {!compact && (
         <pre style={{
           margin: "0 0 12px", padding: "10px 12px", borderRadius: 10,
-          background: "var(--bg-panel)", border: "1px solid var(--border-soft)",
+          background: "var(--bg-panel)", border: "1px solid var(--border-soft)", opacity: .96,
           color: "var(--text-strong)", fontSize: 13, lineHeight: 1.45,
           whiteSpace: "pre-wrap", wordBreak: "break-word", textAlign: "left",
           fontFamily: "inherit",

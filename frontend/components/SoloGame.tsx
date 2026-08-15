@@ -271,7 +271,13 @@ export default function SoloGame({ level, onExit, onComplete }: {
             ))}
           </div>
           <p style={{ color: "var(--text-soft)", marginBottom: 14 }}>Toplam yıldız: {result.total}</p>
-          <div style={{ marginBottom: 16 }}>
+          <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+            <button onClick={() => { stopTicking(); onComplete(result.stars, result.next); }} style={btnPrimary}>Sonraki Bölüm →</button>
+            <button onClick={() => { stopTicking(); onExit(); }} style={btnGhost}>Haritaya Dön</button>
+          </div>
+
+          {/* Sonuç paylaşımı — en altta */}
+          <div style={{ marginTop: 16 }}>
             <ResultShare
               text={soloShareText({ level, stars: result.stars, total: result.total })}
               module="solo"
@@ -279,10 +285,6 @@ export default function SoloGame({ level, onExit, onComplete }: {
               title="Kelime Tahmin — Maraton"
               compact
             />
-          </div>
-          <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-            <button onClick={() => { stopTicking(); onComplete(result.stars, result.next); }} style={btnPrimary}>Sonraki Bölüm →</button>
-            <button onClick={() => { stopTicking(); onExit(); }} style={btnGhost}>Haritaya Dön</button>
           </div>
         </div>
       )}

@@ -638,7 +638,12 @@ function ArenaResult({ ranking, rewards, onExit, isGuest, totalWords }: { rankin
         </div>
       )}
 
-      {/* Sonuç paylaşımı — "🥈 Nazım arenada 2. oldu!" + sosyal butonlar */}
+      <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 16, flexWrap: "wrap" }}>
+        <button onClick={() => window.location.reload()} style={{ padding: "12px 22px", borderRadius: 11, border: "none", background: "var(--accent)", color: "#1a1330", fontWeight: 700, fontSize: 15, cursor: "pointer" }}>Tekrar Arena'ya Gir</button>
+        <button onClick={onExit} style={{ padding: "12px 20px", borderRadius: 11, border: "1px solid var(--border-soft)", background: "transparent", color: "var(--text-soft)", fontWeight: 600, fontSize: 15, cursor: "pointer" }}>Ana Sayfa</button>
+      </div>
+
+      {/* Sonuç paylaşımı — her zaman EN ALTTA */}
       {mine && (
         <div style={{ marginTop: 16 }}>
           <ResultShare
@@ -656,11 +661,6 @@ function ArenaResult({ ranking, rewards, onExit, isGuest, totalWords }: { rankin
           />
         </div>
       )}
-
-      <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 16, flexWrap: "wrap" }}>
-        <button onClick={() => window.location.reload()} style={{ padding: "12px 22px", borderRadius: 11, border: "none", background: "var(--accent)", color: "#1a1330", fontWeight: 700, fontSize: 15, cursor: "pointer" }}>Tekrar Arena'ya Gir</button>
-        <button onClick={onExit} style={{ padding: "12px 20px", borderRadius: 11, border: "1px solid var(--border-soft)", background: "transparent", color: "var(--text-soft)", fontWeight: 600, fontSize: 15, cursor: "pointer" }}>Ana Sayfa</button>
-      </div>
     </div>
   );
 }

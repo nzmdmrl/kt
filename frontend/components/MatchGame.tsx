@@ -473,7 +473,15 @@ export default function MatchGame({
               🔄 Rövanş İste
             </button>
           )}
-          {/* Sonuç paylaşımı — "🏆 Nazım, Ahmet'i 200-0 yendi!" + sosyal butonlar */}
+          <div style={{ display: "flex", gap: 10 }}>
+            <a href="/oyna" style={{ ...secondaryLink, flex: 1, textAlign: "center" }}>Yeni Rakip</a>
+          </div>
+          <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap", marginTop: 4 }}>
+            <a href="/" style={endLinkBtn}>🏠 Ana Sayfa</a>
+            <a href="/lig" style={endLinkBtn}>🏆 Lig</a>
+          </div>
+
+          {/* Sonuç paylaşımı — her zaman EN ALTTA */}
           <ResultShare
             text={matchShareText({
               me: me?.name || "Oyuncu",
@@ -484,14 +492,6 @@ export default function MatchGame({
             variant={matchVariant(won, draw)}
             title="Kelime Tahmin — 1v1 Düello"
           />
-
-          <div style={{ display: "flex", gap: 10 }}>
-            <a href="/oyna" style={{ ...secondaryLink, flex: 1, textAlign: "center" }}>Yeni Rakip</a>
-          </div>
-          <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap", marginTop: 4 }}>
-            <a href="/" style={endLinkBtn}>🏠 Ana Sayfa</a>
-            <a href="/lig" style={endLinkBtn}>🏆 Lig</a>
-          </div>
         </div>
       </div>
     );

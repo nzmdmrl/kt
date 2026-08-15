@@ -275,16 +275,6 @@ export default function DailyPage() {
               Bugünkü kelimeyi çözdün — yarın yeni kelime seni bekliyor.
             </p>
           )}
-          {rows.length > 0 && (
-            <div style={{ marginTop: 14 }}>
-              <ResultShare
-                text={dailyShareText({ rows, maxRows: MAX_ROWS, won: status === "won" })}
-                module="daily"
-                variant={status === "won" ? "win" : "loss"}
-                title="Kelime Tahmin — Günün Kelimesi"
-              />
-            </div>
-          )}
           {/* Bilemediyse bugünkü kelimeyi yeniden deneyebilir (çözdüyse kilitli). */}
           {status === "lost" && (
             <div style={{ marginTop: 12 }}>
@@ -296,6 +286,18 @@ export default function DailyPage() {
             </div>
           )}
           <p style={{ color: "var(--text-dim)", fontSize: 13, marginTop: 14 }}>Yarın yeni kelime!</p>
+        </div>
+      )}
+
+      {/* Sonuç paylaşımı — her zaman EN ALTTA */}
+      {status !== "playing" && rows.length > 0 && (
+        <div style={{ marginTop: 16 }}>
+          <ResultShare
+            text={dailyShareText({ rows, maxRows: MAX_ROWS, won: status === "won" })}
+            module="daily"
+            variant={status === "won" ? "win" : "loss"}
+            title="Kelime Tahmin — Günün Kelimesi"
+          />
         </div>
       )}
 
