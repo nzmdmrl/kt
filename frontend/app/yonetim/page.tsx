@@ -1823,8 +1823,37 @@ const MOBILE_FIELDS: Record<string, MobileField[]> = {
       type: "number",
       hint: "varsayılan 120 — 10 ile 900 arası",
     },
+    {
+      path: "mic_web_enabled",
+      label: "🎤 Web'de sesli tahmin (tarayıcı)",
+      type: "bool",
+      hint: "Kapatırsan uygulamadaki mikrofon da kapanır (uygulama web'e bağımlıdır).",
+    },
+    {
+      path: "mic_app_enabled",
+      label: "🎤 Uygulamada sesli tahmin (Android/iOS)",
+      type: "bool",
+      hint: "Açmak için web'deki de açık olmalı — işaretlersen web otomatik açılır.",
+    },
   ],
 };
+
+/**
+ * Mikrofon bağımlılık kuralı (sunucuda da uygulanır — app_settings.py):
+ *   uygulama açık  -> web de açık OLMALI
+ *   web kapatılır  -> uygulama da kapanır
+ * Geçerli durumlar: ikisi kapalı / yalnız web / ikisi açık. "Yalnız uygulama" YOK.
+ * Bu fonksiyon bir kutu değişince uygulanacak (yol, değer) çiftlerini döner.
+ */
+function micRulePatches(path: string, checked: boolean): Array<[string, boolean]> {
+  if (path === "mic_app_enabled" && checked) {
+    return [["mic_app_enabled", true], ["mic_web_enabled", true]];
+  }
+  if (path === "mic_web_enabled" && !checked) {
+    return [["mic_web_enabled", false], ["mic_app_enabled", false]];
+  }
+  return [[path, checked]];
+}
 
 function mobileGet(obj: any, path: string): any {
   return path.split(".").reduce((o: any, k) => (o === null || o === undefined ? undefined : o[k]), obj);
@@ -1879,7 +1908,13 @@ function Mobile() {
     const res = await fetch(apiUrl(`/api/admin/app-settings/${row.key}`), {
       method: "PUT", headers: authHeaders(), body: JSON.stringify({ value }),
     }).catch(() => null);
-    if (!res || !res.ok) { setMsg("Kaydedilemedi."); return; }
+    if (!res || !res.ok) {
+      // Sunucunun kuralı reddettiği durumlar için gerçek mesajı göster
+      // (ör. mikrofon bağımlılık kuralı → 400).
+      const detail = res ? await res.json().then((d: any) => d?.detail).catch(() => null) : null;
+      setMsg(typeof detail === "string" && detail ? detail : "Kaydedilemedi.");
+      return;
+    }
     setMsg("");
     setSaved(row.key); setTimeout(() => setSaved(null), 1500);
     load();
@@ -1896,6 +1931,12 @@ function Mobile() {
         • Banner ile geçiş reklamı ayrı anahtarlarda: banner&apos;ı kapatmak geçiş reklamını etkilemez.<br />
         • <b>Gizlenecek sayfalar</b>: her satıra bir yol. Alt yollar da kapsanır
         (<span className="brand-mono">/arena</span> yazmak <span className="brand-mono">/arena/ozel/ABC</span>&apos;yi de kapsar).<br />
+        • <b>🎤 Sesli tahmin</b> (Davranış ayarları): iki kutu birbirine bağlıdır —
+        uygulamayı açmak web&apos;i de açar, web&apos;i kapatmak uygulamayı da kapatır.
+        Geçerli durumlar: <b>ikisi kapalı</b>, <b>yalnız web</b>, <b>ikisi açık</b>;
+        &quot;yalnız uygulama&quot; yoktur (uygulama sitenin aynı kodunu çalıştırır).
+        Kapalıyken mikrofon düğmesi ve ipucu hiç görünmez. Cihazda tanıma servisi
+        yoksa kutu açık olsa bile düğme çıkmaz.<br />
         • <b>Bant konumu</b>: uygulama bandı alt menünün üstüne kendi hesabıyla yerleştirir.
         <b> Sabit değer</b> 0&apos;dan büyükse hesaplama devre dışı kalır ve bant tam o yüksekliğe konur;
         0 ise <b>ek boşluk</b> hesaplanan değere eklenir. Değişiklik uygulamada bandın
@@ -1918,13 +1959,27 @@ function Mobile() {
           {(MOBILE_FIELDS[row.key] || []).map((f) => {
             const val = mobileGet(row.value, f.path);
             if (f.type === "bool") {
+              const isMic = row.key === "app.flags" && f.path.startsWith("mic_");
               return (
-                <label key={f.path} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--text-strong)", cursor: "pointer" }}>
-                  <input type="checkbox" checked={val === true}
-                    onChange={(e) => patch(row.key, f.path, e.target.checked)}
-                    style={{ width: 16, height: 16, accentColor: "var(--accent)" }} />
-                  {f.label}
-                </label>
+                <div key={f.path} style={{ display: "grid", gap: 2 }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--text-strong)", cursor: "pointer" }}>
+                    <input type="checkbox" checked={val === true}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        // Mikrofon kutuları birbirine bağlı — kural micRulePatches'te.
+                        if (isMic) {
+                          for (const [p, v] of micRulePatches(f.path, checked)) patch(row.key, p, v);
+                        } else {
+                          patch(row.key, f.path, checked);
+                        }
+                      }}
+                      style={{ width: 16, height: 16, accentColor: "var(--accent)" }} />
+                    {f.label}
+                  </label>
+                  {f.hint && (
+                    <span style={{ fontSize: 11, color: "var(--text-dim)", marginLeft: 24 }}>{f.hint}</span>
+                  )}
+                </div>
               );
             }
             if (f.type === "number") {

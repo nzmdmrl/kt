@@ -13,10 +13,17 @@
 //
 // Ortak arayüz: { supported, listening, error, start, stop }
 //
-//   supported — cihazda tanıma GERÇEKTEN varsa true. Native tarafta plugin'in
-//               available() yanıtına bakılır (cihazda tanıma servisi yoksa false).
-//               Çağıran ekranlar false ise mikrofon düğmesini hiç basmaz; düğme
+//   supported — İKİ koşulun birden sağlanması: (a) admin bayrağı açık,
+//               (b) ortamda tanıma GERÇEKTEN var (native: plugin available(),
+//               web: Web Speech API nesnesi). Çağıran ekranlar false ise mikrofon
+//               düğmesini ve "🎤 basılı tut & söyle" ipucunu hiç basmaz; düğme
 //               görünmez, "görünür ama bozuk" olmaz.
+//
+//               Bayraklar: app_settings -> "app.flags" (admin → 📱 Mobil & Reklam)
+//                 mic_web_enabled -> tarayıcı  (eksik/okunamazsa AÇIK sayılır)
+//                 mic_app_enabled -> uygulama  (eksik/okunamazsa KAPALI sayılır)
+//               Uygulama bayrağı web bayrağına BAĞIMLIDIR (web kapalıysa uygulama
+//               da kapalı) — aynı kural sunucuda da uygulanır.
 //   start()   — Promise<boolean>: tanıma GERÇEKTEN başladıysa true. 1v1'de söz
 //               hakkı (buzzer) yalnızca bu true döndükten SONRA alınır — izin
 //               diyaloğu reddedilirse oyuncu sırasını boşa harcamamış olur.
@@ -27,6 +34,7 @@
 
 import { useRef, useState, useCallback, useEffect } from "react";
 import { detectPlatform } from "@/lib/platform";
+import { loadAppConfig, type FlagsConfig } from "@/lib/appConfig";
 
 // TypeScript için minimal tip tanımları (Web Speech API standart d.ts'de yok).
 type SpeechRecognitionType = any;
@@ -85,9 +93,15 @@ function getRecognition(): SpeechRecognitionType | null {
 }
 
 export function useSpeech(onResult: (text: string) => void, lang = "tr-TR") {
-  const [supported, setSupported] = useState(false);
+  /** Ortam yeteneği: plugin available() / Web Speech nesnesi. Bayraktan bağımsız. */
+  const [capable, setCapable] = useState(false);
+  /** Admin bayrağı bu ortam için izin veriyor mu? Yapılandırma gelene kadar null. */
+  const [flagAllowed, setFlagAllowed] = useState<boolean | null>(null);
   const [listening, setListening] = useState(false);
   const [error, setError] = useState("");
+
+  // Dışarı verilen tek kapı: bayrak AÇIK **ve** ortam yetenekli.
+  const supported = capable && flagAllowed === true;
 
   // İlk effect'e kadar "none" — sunucu ve istemci ilk boyaması aynı kalsın,
   // ayrıca native import'u normal tarayıcıda ASLA tetiklenmesin.
@@ -102,6 +116,8 @@ export function useSpeech(onResult: (text: string) => void, lang = "tr-TR") {
   supportedRef.current = supported;
   const listeningRef = useRef(listening);
   listeningRef.current = listening;
+  const flagAllowedRef = useRef(flagAllowed);
+  flagAllowedRef.current = flagAllowed;
 
   useEffect(() => {
     const platform = detectPlatform();
@@ -120,10 +136,43 @@ export function useSpeech(onResult: (text: string) => void, lang = "tr-TR") {
     });
   }, []);
 
+  // ------------------------------------------------------- ADMİN BAYRAĞI ----
+  // app_settings -> "app.flags" (public /api/app-config, 60 sn cache).
+  //
+  // Yapılandırma okunamazsa (backend kapalı / tablo yok) VARSAYILANA düşeriz:
+  //   web      -> AÇIK  (bugünkü davranış korunur, mikrofon kaybolmaz)
+  //   uygulama -> KAPALI (kapalı yayınlama isteği: panelden açılacak)
+  useEffect(() => {
+    if (backend === "none") return;
+    let alive = true;
+
+    loadAppConfig(detectPlatform()).then((cfg) => {
+      if (!alive) return;
+      const flags: FlagsConfig = (cfg?.["app.flags"] as FlagsConfig) || {};
+      const web = flags.mic_web_enabled !== false; // eksikse açık
+      const app = flags.mic_app_enabled === true;  // eksikse kapalı
+      // Bağımlılık kuralı burada da uygulanır: web kapalıysa uygulama da kapalı.
+      const allowed = backend === "native" ? web && app : web;
+      setFlagAllowed(allowed);
+      slog("bayraklar:", {
+        yapılandırmaGeldi: !!cfg,
+        mic_web_enabled: flags.mic_web_enabled,
+        mic_app_enabled: flags.mic_app_enabled,
+        backend,
+        izinVar: allowed,
+      });
+    });
+
+    return () => {
+      alive = false;
+    };
+  }, [backend]);
+
   // GEÇİCİ tanılama: hook'un dışarı verdiği son `supported` değeri.
   useEffect(() => {
-    slog("supported =", supported, "(backend:", backend + ")");
-  }, [supported, backend]);
+    slog("supported =", supported, "(backend:", backend, "| ortam yetenekli:", capable,
+      "| bayrak izni:", flagAllowed + ")");
+  }, [supported, backend, capable, flagAllowed]);
 
   // ---------------------------------------------------------------- WEB ----
   // Bu bölüm bugüne kadar çalışan koddur; tek ekleme onstart (start() promise'i
@@ -149,10 +198,10 @@ export function useSpeech(onResult: (text: string) => void, lang = "tr-TR") {
 
     const rec = getRecognition();
     if (!rec) {
-      setSupported(false);
+      setCapable(false);
       return;
     }
-    setSupported(true);
+    setCapable(true);
     rec.lang = lang;
     rec.continuous = false;
     rec.interimResults = false;
@@ -287,7 +336,7 @@ export function useSpeech(onResult: (text: string) => void, lang = "tr-TR") {
         if (!available) {
           // Cihazda tanıma servisi yok → düğme hiç görünmesin.
           slog("available=false → cihazda tanıma servisi yok, düğme gizlenecek");
-          setSupported(false);
+          setCapable(false);
           return;
         }
 
@@ -306,11 +355,11 @@ export function useSpeech(onResult: (text: string) => void, lang = "tr-TR") {
 
         handle = h;
         pluginRef.current = SpeechRecognition;
-        slog("native kurulum TAMAM → supported=true");
-        setSupported(true);
+        slog("native kurulum TAMAM → ortam yetenekli (capable=true)");
+        setCapable(true);
       } catch (e) {
-        slog("native kurulum HATASI → supported=false:", errInfo(e));
-        if (!cancelled) setSupported(false);
+        slog("native kurulum HATASI → capable=false:", errInfo(e));
+        if (!cancelled) setCapable(false);
       }
     })();
 
@@ -403,6 +452,7 @@ export function useSpeech(onResult: (text: string) => void, lang = "tr-TR") {
     slog("BASILDI:", {
       backend,
       supported: supportedRef.current,
+      bayrakİzni: flagAllowedRef.current,
       listening: listeningRef.current,
       pluginHazır: !!pluginRef.current,
       köprüdeKayıtlı: pluginRegistered(),

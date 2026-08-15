@@ -57,6 +57,13 @@ _ADMOB_MARGIN_KEYS_JSON = json.dumps(
 # Geçiş reklamı sıklık kuralları — sonradan eklenen anahtarlar (bkz. migration 8).
 _ADMOB_INTERSTITIAL_KEYS_JSON = json.dumps(DEFAULT_INTERSTITIAL_RULES, ensure_ascii=True)
 
+# Mikrofon (sesli tahmin) bayrakları — sonradan eklenen anahtarlar (bkz. migration 9).
+# Uygulama tarafı BİLEREK kapalı: gerçek telefonda doğrulanınca panelden açılır.
+_MIC_FLAGS_JSON = json.dumps(
+    {"mic_web_enabled": True, "mic_app_enabled": False},
+    ensure_ascii=True,
+)
+
 CREATE_MIGRATIONS_SQL = f"""
 CREATE TABLE IF NOT EXISTS applied_migrations (
     code VARCHAR(80) PRIMARY KEY,
@@ -230,6 +237,31 @@ DATA_MIGRATIONS: list[tuple[str, list[str]]] = [
             f"SET value = json_patch('{_ADMOB_INTERSTITIAL_KEYS_JSON}', value), "
             "    updated_at = CURRENT_TIMESTAMP "
             "WHERE key = 'ads.admob'"
+        ),
+    ]),
+
+    # 9) Mikrofon (sesli tahmin) bayrakları: mic_web_enabled / mic_app_enabled.
+    #    Gerekçe (6)(7)(8) ile aynı — app_settings seed'i YALNIZCA satır yoksa
+    #    yazar, dolayısıyla DEFAULT_APP_SETTINGS'e eklenen bu iki anahtar canlıdaki
+    #    'app.flags' satırına asla ulaşmaz. Burada mevcut JSON'a birleştiriliyor.
+    #
+    #    Birleştirme yönü: varsayılanlar SOLDA, mevcut değer SAĞDA -> çakışmada
+    #    MEVCUT değer kazanır. Yani admin daha önce bir şey değiştirdiyse ezilmez;
+    #    yalnızca eksik anahtar eklenir. challenge_ttl_seconds de korunur.
+    #
+    #    Uygulama bayrağı KAPALI geliyor (mic_app_enabled: false) — gerçek telefonda
+    #    doğrulandıktan sonra panelden açılacak. Kural: uygulama açıksa web de açık
+    #    olmalı; bu değerler kuralı zaten sağlıyor (web açık + uygulama kapalı).
+    ("2026_08_mic_flags", [
+        (
+            "UPDATE app_settings "
+            f"SET value = '{_MIC_FLAGS_JSON}'::jsonb || value, updated_at = now() "
+            "WHERE key = 'app.flags'"
+            if _IS_PG else
+            "UPDATE app_settings "
+            f"SET value = json_patch('{_MIC_FLAGS_JSON}', value), "
+            "    updated_at = CURRENT_TIMESTAMP "
+            "WHERE key = 'app.flags'"
         ),
     ]),
 ]

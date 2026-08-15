@@ -48,6 +48,20 @@ export type AdMobConfig = {
   interstitial_modes?: Record<string, boolean>;
 };
 
+/** Davranış bayrakları (backend: DEFAULT_APP_SETTINGS -> "app.flags"). */
+export type FlagsConfig = {
+  /** Maç teklifinin geçerlilik süresi (saniye). */
+  challenge_ttl_seconds?: number;
+  /** Tarayıcıda sesli tahmin — Web Speech API yolu. Eksikse AÇIK sayılır. */
+  mic_web_enabled?: boolean;
+  /**
+   * Uygulamada sesli tahmin — native tanıma plugin'i. Eksikse KAPALI sayılır.
+   * Web bayrağına bağımlıdır: web kapalıyken uygulama açık olamaz (sunucu da
+   * bu kombinasyonu reddeder, bkz. backend app_settings.py).
+   */
+  mic_app_enabled?: boolean;
+};
+
 export type StoresConfig = {
   badges_enabled: boolean;
   play_url: string;
@@ -61,6 +75,7 @@ export type AppConfig = {
   "ads.admob"?: AdMobConfig;
   "push.firebase"?: Record<string, any>;
   "app.stores"?: StoresConfig;
+  "app.flags"?: FlagsConfig;
   [key: string]: any;
 };
 

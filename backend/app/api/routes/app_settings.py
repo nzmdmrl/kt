@@ -155,9 +155,17 @@ DEFAULT_APP_SETTINGS: dict[str, tuple[dict, bool]] = {
     ),
     # Davranış bayrakları. challenge_ttl_seconds: maç teklifinin geçerlilik
     # süresi (app/game/challenge_service.py okur, 60 sn cache'li).
+    #
+    # Mikrofon (sesli tahmin) bayrakları — frontend/lib/useSpeech.ts okur:
+    #   mic_web_enabled -> tarayıcıda Web Speech API yolu
+    #   mic_app_enabled -> Capacitor uygulamasında native tanıma (plugin)
+    # UYGULAMA VARSAYILAN KAPALI: gerçek telefonda doğrulanana kadar kapalı
+    # çıksın, admin panelden açsın.
     "app.flags": (
         {
             "challenge_ttl_seconds": 120,
+            "mic_web_enabled": True,
+            "mic_app_enabled": False,
         },
         True,
     ),
@@ -188,6 +196,39 @@ def _as_dict(raw: Any) -> dict:
             return {}
         return parsed if isinstance(parsed, dict) else {}
     return {}
+
+
+# --------------------------------------------- mikrofon bayrak kuralı
+#
+# Uygulama mikrofonu WEB mikrofonuna BAĞIMLIDIR:
+#   web açık  + uygulama açık   -> geçerli
+#   web açık  + uygulama kapalı -> geçerli (yalnız web)
+#   web kapalı+ uygulama kapalı -> geçerli (tamamen kapalı)
+#   web kapalı+ uygulama açık   -> GEÇERSİZ
+#
+# Gerekçe: uygulama sitenin AYNI JS'ini çalıştırır (WebView canlı siteyi yükler).
+# "Web'de kapalı ama uygulamada açık" hâli tek bir anahtarla yönetilebilir bir
+# durum değil; uygulama bayrağı web bayrağının üstüne binen bir ek şarttır.
+#
+# Panel bu kombinasyonu zaten üretmez (kutular birbirini otomatik ayarlar);
+# buradaki kontrol sunucu tarafı güvencesidir (doğrudan API çağrısı, curl vb.).
+
+def _mic_flags_valid(value: dict) -> bool:
+    return not (
+        value.get("mic_app_enabled") is True and value.get("mic_web_enabled") is not True
+    )
+
+
+def _normalize_mic_flags(value: dict) -> dict:
+    """Geçersiz kombinasyon public yanıtta ASLA görünmesin.
+
+    Satır elle (psql) düzenlenmiş olabilir; okuma tarafında da kuralı uygularız.
+    """
+    if _mic_flags_valid(value):
+        return value
+    out = dict(value)
+    out["mic_app_enabled"] = False
+    return out
 
 
 async def _all_rows(db: AsyncSession) -> list[dict]:
@@ -245,6 +286,8 @@ def _clear_cache() -> None:
 
 def _shape_for_platform(key: str, value: dict, platform: str) -> dict:
     """android/ios isteğinde admob'un sadece ilgili platform bloğunu bırak."""
+    if key == "app.flags":
+        return _normalize_mic_flags(value)
     if key != "ads.admob" or platform not in ("android", "ios"):
         return value
     out = copy.deepcopy(value)
@@ -310,6 +353,16 @@ async def admin_update(
     res = await db.execute(text("SELECT id FROM app_settings WHERE key = :key"), {"key": key})
     if res.first() is None:
         raise HTTPException(status_code=404, detail="Bilinmeyen ayar anahtarı")
+
+    # Mikrofon bağımlılık kuralı — panel dışı çağrılar da geçemez.
+    if key == "app.flags" and not _mic_flags_valid(body.value):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Uygulamada sesli tahmin açıkken web'de de açık olmalı. "
+                "Önce “Web'de sesli tahmin” seçeneğini işaretle."
+            ),
+        )
 
     params: dict[str, Any] = {"key": key, "value": json.dumps(body.value)}
     sets = [f"value = {_VALUE_BIND}", "updated_at = " + ("now()" if _IS_PG else "CURRENT_TIMESTAMP")]
