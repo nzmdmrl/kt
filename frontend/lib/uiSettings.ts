@@ -37,9 +37,19 @@ export function useMatchNameMax(): number {
   return n;
 }
 
-/** Ad etiketini kısalt: ilk kelime + en fazla `max` karakter, sonrası "…". */
+/**
+ * Ad etiketini kısalt: ilk kelime + en fazla `max` karakter, sonrası "…".
+ *
+ * BÜYÜK harfler daha geniş yer kapladığı için sınır yazım şekline göre değişir:
+ *   - hepsi BÜYÜK yazılmış adlar (ör. "MUSTAFA")      -> `max` karakter (7)
+ *   - normal/küçük yazılmış adlar (ör. "Mustafa")     -> `max + 2` karakter (9)
+ * Böylece etiket genişliği iki durumda da yaklaşık aynı kalır.
+ */
 export function shortMatchName(name: string, max: number): string {
   const first = (name || "").trim().split(" ")[0];
-  if (!max || max <= 0 || first.length <= max) return first;
-  return first.slice(0, max) + "…";
+  if (!max || max <= 0) return first;
+  const allCaps = first === first.toLocaleUpperCase("tr") && first !== first.toLocaleLowerCase("tr");
+  const limit = allCaps ? max : max + 2;
+  if (first.length <= limit) return first;
+  return first.slice(0, limit) + "…";
 }
