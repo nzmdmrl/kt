@@ -20,6 +20,7 @@ const TABS = [
   { key: "titles", label: "🏅 Unvanlar" },
   { key: "badges", label: "🎖️ Rozetler" },
   { key: "music", label: "🎵 Müzik" },
+  { key: "users", label: "👥 Üyeler" },
   { key: "photomod", label: "🖼️ Foto Mod" },
   { key: "namemod", label: "🏷️ Ad Mod" },
   { key: "homebtn", label: "🏠 Ana Sayfa" },
@@ -90,6 +91,7 @@ export default function AdminPage() {
       {tab === "titles" && <Titles />}
       {tab === "badges" && <Badges />}
       {tab === "music" && <MusicPools />}
+      {tab === "users" && <Users />}
       {tab === "photomod" && <PhotoMod onChanged={loadCounts} />}
       {tab === "namemod" && <NameMod onChanged={loadCounts} />}
       {tab === "homebtn" && <HomeButtons />}
@@ -863,6 +865,206 @@ function ModToggle({ label, hint, value, onChange }: {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontWeight: 700, color: "var(--text-strong)", fontSize: 14 }}>{label}</div>
         <div style={{ color: "var(--text-dim)", fontSize: 12, lineHeight: 1.5, marginTop: 2 }}>{hint}</div>
+      </div>
+    </div>
+  );
+}
+
+// ---- 👥 Üyeler: üye arama + reklamsız anahtarı --------------------------
+//
+// SALT OKUMA + tek yazma işlemi (ad_free). Silme / yasaklama / şifre sıfırlama
+// ve başka alanların düzenlenmesi BİLEREK yok.
+//
+// Tüm üyeler listelenmez: en az 2 harf yazılınca arama yapılır, en fazla 25 satır.
+
+type AdminUser = {
+  id: number;
+  username: string;
+  display_name: string;
+  email: string | null;
+  created_at: string | null;
+  presence: "online" | "in_match" | "offline";
+  is_admin: boolean;
+  ad_free: boolean;
+  ad_free_since: string | null;
+  ad_free_source: string | null;
+};
+
+const USER_MIN_CHARS = 2;
+
+const PRESENCE_TEXT: Record<string, string> = {
+  online: "🟢 Çevrimiçi",
+  in_match: "🔵 Maçta",
+  offline: "⚪ Çevrimdışı",
+};
+
+function fmtDate(iso: string | null): string {
+  if (!iso) return "—";
+  try {
+    return new Date(iso).toLocaleDateString("tr-TR", { year: "numeric", month: "short", day: "numeric" });
+  } catch {
+    return "—";
+  }
+}
+
+function Users() {
+  const [q, setQ] = useState("");
+  const [rows, setRows] = useState<AdminUser[]>([]);
+  const [total, setTotal] = useState<number | null>(null);
+  const [searching, setSearching] = useState(false);
+  const [searched, setSearched] = useState(false);
+  const [busy, setBusy] = useState<number | null>(null);
+  const [saved, setSaved] = useState<number | null>(null);
+  const [msg, setMsg] = useState("");
+
+  // Toplam üye sayısı için açılışta boş sorgu (arama yapmaz, sayıyı getirir).
+  useEffect(() => { void run(""); }, []);
+
+  // Yazmayı bırakınca ara (debounce).
+  useEffect(() => {
+    const t = setTimeout(() => { void run(q); }, 300);
+    return () => clearTimeout(t);
+  }, [q]);
+
+  async function run(term: string) {
+    const clean = term.trim();
+    if (clean.length > 0 && clean.length < USER_MIN_CHARS) {
+      setRows([]); setSearched(false);
+      return;
+    }
+    setSearching(true); setMsg("");
+    try {
+      const r = await fetch(apiUrl(`/api/admin/users?q=${encodeURIComponent(clean)}`), { headers: authHeaders() });
+      if (!r.ok) throw new Error();
+      const d = await r.json();
+      setTotal(typeof d.total_users === "number" ? d.total_users : null);
+      setRows(Array.isArray(d.users) ? d.users : []);
+      setSearched(clean.length >= USER_MIN_CHARS);
+    } catch {
+      setMsg("Üyeler getirilemedi.");
+      setRows([]);
+    } finally {
+      setSearching(false);
+    }
+  }
+
+  async function toggleAdFree(u: AdminUser) {
+    if (busy) return;
+    setBusy(u.id); setMsg("");
+    try {
+      const r = await fetch(apiUrl(`/api/admin/users/${u.id}/ad-free`), {
+        method: "PUT", headers: authHeaders(),
+        body: JSON.stringify({ enabled: !u.ad_free }),
+      });
+      if (!r.ok) throw new Error();
+      const d = await r.json();
+      // Sunucunun döndürdüğü satırla değiştir (tarih/kaynak da tazelensin).
+      setRows((rs) => rs.map((x) => (x.id === u.id ? { ...x, ...(d.user || {}) } : x)));
+      setSaved(u.id);
+      setTimeout(() => setSaved(null), 1500);
+    } catch {
+      setMsg("Kaydedilemedi.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  const tooShort = q.trim().length > 0 && q.trim().length < USER_MIN_CHARS;
+
+  return (
+    <div style={{ display: "grid", gap: 14 }}>
+      <div style={{ background: "var(--bg-panel)", borderRadius: 12, padding: 14, fontSize: 13, color: "var(--text-dim)", lineHeight: 1.7 }}>
+        Kayıtlı üye sayısı: <b style={{ color: "var(--text-strong)" }}>{total === null ? "…" : total.toLocaleString("tr")}</b><br />
+        Üyeler topluca listelenmez — kullanıcı adı ya da e-posta ile <b>en az {USER_MIN_CHARS} harf</b> yazarak
+        ara (en fazla 25 sonuç).<br />
+        • <b>Reklamsız</b> anahtarı kullanıcının reklam görmemesini sağlar: AdSense, uygulama bandı
+        ve geçiş reklamı kapanır, geçiş reklamının maç sayacı bile artmaz.<br />
+        • Buradan verilen hak <span className="brand-mono">manual</span> kaynağıyla işaretlenir.
+        Kapatınca ne zaman/nereden verildiği bilgisi silinmez.<br />
+        • Bu sekmede silme, yasaklama, şifre sıfırlama YOKTUR.
+      </div>
+
+      <div style={{ position: "relative" }}>
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Kullanıcı adı veya e-posta…"
+          autoComplete="off"
+          spellCheck={false}
+          style={{
+            width: "100%", padding: "12px 40px 12px 14px", borderRadius: 10,
+            border: "1px solid var(--tile-border)", background: "var(--bg-elevated)",
+            color: "var(--text-strong)", fontSize: 15,
+          }}
+        />
+        <span style={{ position: "absolute", right: 13, top: "50%", transform: "translateY(-50%)", color: "var(--text-dim)" }}>
+          {searching ? "⏳" : "🔎"}
+        </span>
+      </div>
+
+      {tooShort && <p style={{ fontSize: 12, color: "var(--text-dim)", margin: 0 }}>En az {USER_MIN_CHARS} harf yaz…</p>}
+      {msg && <p style={{ fontSize: 13, color: "var(--accent-hot)", margin: 0 }}>{msg}</p>}
+
+      {searched && rows.length === 0 && !searching && (
+        <p style={{ color: "var(--text-dim)", textAlign: "center", padding: 24 }}>Bu aramaya uyan üye yok.</p>
+      )}
+
+      <div style={{ display: "grid", gap: 10 }}>
+        {rows.map((u) => (
+          <div key={u.id} style={{
+            background: "var(--bg-panel)", borderRadius: 12, padding: "12px 14px",
+            display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
+          }}>
+            <div style={{ flex: "1 1 260px", minWidth: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <a href={`/profil/${u.username}`} target="_blank" rel="noreferrer"
+                  style={{ color: "var(--text-strong)", fontWeight: 700, fontSize: 15, textDecoration: "none" }}>
+                  {u.display_name}
+                </a>
+                <span className="brand-mono" style={{ fontSize: 12, color: "var(--text-dim)" }}>@{u.username}</span>
+                {u.is_admin && (
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "var(--accent)", border: "1px solid var(--accent)", borderRadius: 6, padding: "1px 6px" }}>
+                    ADMIN
+                  </span>
+                )}
+              </div>
+              <div style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 3 }}>
+                #{u.id} · {u.email || "e-posta yok"} · Kayıt: {fmtDate(u.created_at)} · {PRESENCE_TEXT[u.presence] || "—"}
+              </div>
+              {u.ad_free_since && (
+                <div style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 2 }}>
+                  Reklamsız: {fmtDate(u.ad_free_since)}
+                  {u.ad_free_source ? ` · kaynak: ${u.ad_free_source}` : ""}
+                  {!u.ad_free ? " (şu an kapalı)" : ""}
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+              <span style={{ fontSize: 13, color: u.ad_free ? "var(--text-strong)" : "var(--text-dim)" }}>Reklamsız</span>
+              <button
+                onClick={() => toggleAdFree(u)}
+                disabled={busy === u.id}
+                title={u.ad_free ? "Reklamsız hakkını kapat" : "Reklamsız hakkı ver"}
+                style={{
+                  width: 52, height: 28, borderRadius: 14, border: "none",
+                  cursor: busy === u.id ? "default" : "pointer",
+                  position: "relative", background: u.ad_free ? "var(--accent)" : "var(--bg-elevated)",
+                  transition: "background .2s", flexShrink: 0, opacity: busy === u.id ? 0.6 : 1,
+                }}
+              >
+                <span style={{
+                  position: "absolute", top: 3, left: u.ad_free ? 27 : 3,
+                  width: 22, height: 22, borderRadius: "50%", background: "#fff",
+                  transition: "left .2s",
+                }} />
+              </button>
+              <span style={{ width: 12, color: "var(--tile-correct)", fontSize: 12 }}>
+                {saved === u.id ? "✓" : ""}
+              </span>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

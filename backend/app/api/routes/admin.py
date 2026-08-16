@@ -29,6 +29,7 @@ from app.models.user import User
 from app.models.bot import Bot
 from app.models.daily_score import DailyScore
 from app.game import settings_service
+from app.game import presence_service
 from app.game.bot_generator import generate_bots
 from app.core.config import get_settings
 
@@ -459,89 +460,107 @@ async def remove_word(data: WordIn, admin: User = Depends(get_admin_user), db: A
     return {"ok": True, "removed": w}
 
 
-# ---------------------------------------------------------------- reklamsız (ad-free)
+
+
+# ---------------------------------------------------------------- 👥 Üyeler
 #
-# ÖDEME ENTEGRASYONU YOK. Bugün bu bayrağı yalnızca admin elle açar/kapatır;
-# mağaza aboneliği (play/apple) ya da site satışı (web) eklendiğinde aynı alanlar
-# ad_free_source ile işaretlenir.
+# Salt okuma + TEK yazma işlemi: reklamsız (ad_free) anahtarı.
+# Bilerek YOK: silme, yasaklama, şifre sıfırlama, başka alanların düzenlenmesi.
 #
-# Arayüz notu: panelde henüz genel bir kullanıcı yönetim ekranı YOK. Bu uçlar o
-# ekran eklendiğinde doğrudan kullanılabilir; şimdilik elle çağrılabilir.
+# GÜVENLİK: yanıt alanları AÇIKÇA seçilir (model nesnesi hiç serileştirilmez).
+# password_hash, google_sub ve oturum/token bilgisi HİÇBİR koşulda dönmez.
 
-AD_FREE_SOURCES = {"manual", "play", "apple", "web"}
+USER_SEARCH_MIN_CHARS = 2
+USER_SEARCH_LIMIT = 25
+
+# ad_free_source: manual | play | apple | web (bugün yalnız "manual" üretiliyor —
+# mağaza/site satışı eklendiğinde diğerleri oradan yazılacak).
+AD_FREE_SOURCE_MANUAL = "manual"
 
 
-@router.get("/users/search")
-async def search_users(
-    q: str = Query("", min_length=0, max_length=64),
-    limit: int = Query(20, ge=1, le=50),
+def _admin_user_row(u: User) -> dict:
+    """Panelde gösterilen alanlar — beyaz liste."""
+    return {
+        "id": u.id,
+        "username": u.username,
+        "display_name": u.display_name,
+        "email": u.email,
+        "created_at": u.created_at.isoformat() if u.created_at else None,
+        # DB'de last_seen SÜTUNU YOK; canlı durum bellekteki presence servisinden
+        # gelir (sunucu yeniden başlayınca sıfırlanır): online | in_match | offline
+        "presence": presence_service.get_status(u.id),
+        "is_admin": bool(u.is_admin),
+        "ad_free": bool(u.ad_free),
+        "ad_free_since": u.ad_free_since.isoformat() if u.ad_free_since else None,
+        "ad_free_source": u.ad_free_source,
+    }
+
+
+@router.get("/users")
+async def list_users(
+    q: str = Query("", max_length=64),
     admin: User = Depends(get_admin_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Kullanıcı adı / görünen ad / e-posta içinde arar (admin)."""
+    """Kullanıcı adı veya e-postaya göre üye arar.
+
+    TÜM ÜYELER LİSTELENMEZ: en az USER_SEARCH_MIN_CHARS harf gerekir. Toplam
+    kayıtlı üye sayısı her durumda döner (sekmenin başlığında gösteriliyor).
+    """
+    total = (await db.execute(select(func.count(User.id)))).scalar_one()
     term = (q or "").strip()
-    stmt = select(User)
-    if term:
-        like = f"%{term.lower()}%"
-        stmt = stmt.where(
-            func.lower(User.username).like(like)
-            | func.lower(User.display_name).like(like)
-            | func.lower(func.coalesce(User.email, "")).like(like)
+    if len(term) < USER_SEARCH_MIN_CHARS:
+        return {
+            "users": [],
+            "total_users": total,
+            "query": term,
+            "min_chars": USER_SEARCH_MIN_CHARS,
+        }
+
+    like = f"%{term.lower()}%"
+    rows = (
+        await db.execute(
+            select(User)
+            .where(
+                func.lower(User.username).like(like)
+                | func.lower(func.coalesce(User.email, "")).like(like)
+            )
+            .order_by(User.id.desc())
+            .limit(USER_SEARCH_LIMIT)
         )
-    rows = (await db.execute(stmt.order_by(User.id.desc()).limit(limit))).scalars().all()
+    ).scalars().all()
+
     return {
-        "users": [
-            {
-                "id": u.id,
-                "username": u.username,
-                "display_name": u.display_name,
-                "email": u.email,
-                "avatar_url": u.public_avatar,
-                "ad_free": bool(u.ad_free),
-                "ad_free_source": u.ad_free_source,
-                "ad_free_since": u.ad_free_since.isoformat() if u.ad_free_since else None,
-            }
-            for u in rows
-        ]
+        "users": [_admin_user_row(u) for u in rows],
+        "total_users": total,
+        "query": term,
+        "min_chars": USER_SEARCH_MIN_CHARS,
+        "limit": USER_SEARCH_LIMIT,
     }
 
 
 class AdFreeIn(BaseModel):
-    ad_free: bool
-    source: str = "manual"
+    enabled: bool
 
 
-@router.post("/users/{user_id}/ad-free")
+@router.put("/users/{user_id}/ad-free")
 async def set_ad_free(
     user_id: int,
     data: AdFreeIn,
     admin: User = Depends(get_admin_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Kullanıcının reklamsız hakkını açar/kapatır."""
-    if data.source not in AD_FREE_SOURCES:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Geçersiz kaynak. Şunlardan biri olmalı: {', '.join(sorted(AD_FREE_SOURCES))}",
-        )
+    """Reklamsız hakkını açar/kapatır (kaynak: manual)."""
     user = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
 
-    user.ad_free = bool(data.ad_free)
-    if data.ad_free:
-        # Hak yeniden veriliyorsa tarihi tazele; zaten açıksa ilk tarihi koru.
-        if user.ad_free_since is None:
-            user.ad_free_since = datetime.now(timezone.utc)
-        user.ad_free_source = data.source
+    user.ad_free = bool(data.enabled)
+    if data.enabled:
+        user.ad_free_since = datetime.now(timezone.utc)
+        user.ad_free_source = AD_FREE_SOURCE_MANUAL
     else:
-        # Kapatınca geçmişi silmiyoruz — ne zaman/nereden verildiği kayıtlı kalsın.
+        # Kapatınca geçmiş SİLİNMEZ: ne zaman ve nereden verildiği kayıtlı kalsın.
         pass
     await db.commit()
-    return {
-        "ok": True,
-        "user_id": user.id,
-        "ad_free": user.ad_free,
-        "ad_free_source": user.ad_free_source,
-        "ad_free_since": user.ad_free_since.isoformat() if user.ad_free_since else None,
-    }
+    return {"ok": True, "user": _admin_user_row(user)}
