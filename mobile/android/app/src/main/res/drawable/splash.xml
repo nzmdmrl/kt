@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ESKİ YOL için açılış görseli (yedek).
+
+  @capacitor/splash-screen önce Android 12 SplashScreen API'sini dener; o yol
+  kurulamazsa bu çizimi tam ekran zemin olarak basar. Eskiden burada Capacitor'ın
+  hazır splash.png'leri (11 yoğunluk kopyası, BEYAZ zeminli Capacitor logosu)
+  duruyordu — beyaz parlamanın ikinci kaynağı buydu. Hepsi silindi; yerine tek
+  dosya: düz koyu zemin + ortada aynı KT monogramı, ölçüsü sabit (gerilmez).
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/splash_background" />
+    <item
+        android:drawable="@drawable/splash_icon"
+        android:gravity="center"
+        android:width="192dp"
+        android:height="192dp" />
+</layer-list>

@@ -15,8 +15,39 @@
         <item name="android:background">@null</item>
     </style>
 
+    <!-- Açılıştan SONRA geçilen tema (postSplashScreenTheme).
+         AppTheme.NoActionBar'ın aynısı, tek farkı pencere zemini: webview ilk
+         boyamayı yapana kadar arkada koyu zemin durur, beyaz parlama olmaz. -->
+    <style name="AppTheme.NoActionBarPostSplash" parent="AppTheme.NoActionBar">
+        <item name="android:windowBackground">@color/splash_background</item>
+    </style>
 
+    <!--
+      AÇILIŞ EKRANI.
+
+      ÖNCEDEN: yalnızca `android:background` verilmişti. Android 12+ SplashScreen
+      API'si (ve @capacitor/splash-screen'in kullandığı androidx core-splashscreen
+      geri-uyum katmanı) bu alanı DİKKATE ALMAZ; simge olarak LAUNCHER SİMGESİNİ
+      kullanır. Launcher simgesi adaptive-icon ve arka plan katmanı beyaz olduğu
+      için logonun çevresinde beyaz halka çıkıyordu.
+
+      ŞİMDİ: zemin ve simge API'nin kendi alanlarıyla veriliyor —
+        windowSplashScreenBackground   -> düz #0e0b1e
+        windowSplashScreenAnimatedIcon -> @drawable/splash_icon (zemini ŞEFFAF)
+        postSplashScreenTheme          -> açılış bitince geçilecek tema (ZORUNLU)
+      Simge zemini (windowSplashScreenIconBackgroundColor) BİLEREK verilmedi:
+      verilseydi simgenin arkasına yine bir daire çizilirdi.
+
+      Öneki OLMAYAN isimler doğrudur: core-splashscreen bu adları tanımlar ve
+      API 31+ tarafında platformun android:* karşılıklarına kendisi bağlar.
+    -->
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/splash_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_icon</item>
+        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBarPostSplash</item>
+        <!-- Geri-uyum katmanı devreye giremezse (eklenti Android 12 yolunu
+             kuramazsa) kullanılan eski yol; @drawable/splash artık aynı
+             monogramı koyu zemin üstünde çizer. -->
         <item name="android:background">@drawable/splash</item>
     </style>
 </resources>

@@ -4,4 +4,9 @@
          AndroidManifest'teki com.google.firebase.messaging.default_notification_color
          bu kaydı gösterir; Android beyaz silueti bu renge boyar. -->
     <color name="notification_color">#4CAF50</color>
+
+    <!-- Açılış (splash) ekranının zemini — sitenin en koyu zemini (bg-deep).
+         Hem SplashScreen API'sinin zemini hem de açılıştan sonraki pencere zemini
+         budur; böylece hiçbir anda beyaz kare/parlama görünmez. -->
+    <color name="splash_background">#0E0B1E</color>
 </resources>

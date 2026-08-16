@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  AÇILIŞ EKRANI SİMGESİ — KT monogramı (iki kutu: yeşil K + sarı T).
+
+  NEDEN AYRI BİR ÇİZİM: bu dosya YOKKEN Android 12+ SplashScreen API'si açılışta
+  LAUNCHER SİMGESİNİ kullanıyordu; o da bir adaptive-icon ve arka plan katmanı
+  BEYAZ (values/ic_launcher_background.xml → #FFFFFF). Sistem simgeyi daireye
+  maskelediği için logonun çevresinde beyaz bir halka görünüyordu. Burada zemin
+  ŞEFFAF: yalnızca kutular çizilir, arkasında tema rengi (#0e0b1e) kalır.
+
+  ÖLÇÜ KURALI (Android 12+ resmî ölçüsü): simge zemini OLMAYAN çizimlerde tuval
+  288x288 dp'dir ve görsel, ortadaki 192 dp'lik daireye sığmalıdır — dışı kırpılır.
+  Kutu çifti 164x78, merkezden en uzak köşe ~91 dp (sınır 96) → güvenli.
+
+  Renkler frontend/app/globals.css'teki "stil2" logosuyla aynıdır
+  (kt-logo-tile K yeşil, T sarı). Site stili değişirse burası da elle güncellenmeli.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="288dp"
+    android:height="288dp"
+    android:viewportWidth="288"
+    android:viewportHeight="288">
+
+    <!-- K kutusu (yeşil) -->
+    <path
+        android:fillColor="#39B86A"
+        android:pathData="M78,105 h46 a16,16 0 0 1 16,16 v46 a16,16 0 0 1 -16,16 h-46 a16,16 0 0 1 -16,-16 v-46 a16,16 0 0 1 16,-16 z" />
+    <!-- K harfi: dikey gövde + üst kol + alt bacak -->
+    <path
+        android:pathData="M91,122 L91,166"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="9" />
+    <path
+        android:pathData="M91,144.5 L114,122"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="9" />
+    <path
+        android:pathData="M91,144.5 L114,166"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="9" />
+
+    <!-- T kutusu (sarı) -->
+    <path
+        android:fillColor="#FFB51B"
+        android:pathData="M164,105 h46 a16,16 0 0 1 16,16 v46 a16,16 0 0 1 -16,16 h-46 a16,16 0 0 1 -16,-16 v-46 a16,16 0 0 1 16,-16 z" />
+    <!-- T harfi: üst çubuk + dikey gövde -->
+    <path
+        android:pathData="M169,126.5 L205,126.5"
+        android:strokeColor="#0D0B2B"
+        android:strokeWidth="9" />
+    <path
+        android:pathData="M187,126.5 L187,166"
+        android:strokeColor="#0D0B2B"
+        android:strokeWidth="9" />
+</vector>

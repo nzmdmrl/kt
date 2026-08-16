@@ -1268,7 +1268,16 @@ function androidMajor(): number {
 async function setupStatusBar(platform: Platform) {
   if (platform !== "android") return;
   try {
-    const { StatusBar, Style } = await import("@capacitor/status-bar");
+    const [{ Capacitor }, { StatusBar, Style }] = await Promise.all([
+      import("@capacitor/core"),
+      import("@capacitor/status-bar"),
+    ]);
+    // Eklenti APK'ya derlenmiş mi? (İlk kurulumdan beri derli — bu kontrol
+    // yalnızca çok eski bir APK'da sessiz hata yerine NET kayıt bırakmak için.)
+    if (!Capacitor.isPluginAvailable("StatusBar")) {
+      log("StatusBar eklentisi bu APK'da yok — durum çubuğu ayarı atlandı.");
+      return;
+    }
 
     // Çubuk yüksekliği dp cinsinden gelir; WebView'da dp = CSS px.
     // (Eklenti bunu modern WindowInsets API'siyle okur, Android 15'te de doğrudur.)
