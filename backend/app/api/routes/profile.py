@@ -184,6 +184,69 @@ async def my_profile(user: User = Depends(get_current_user), db: AsyncSession = 
     return await _build_profile(db, user)
 
 
+# Üye arama — /uye-ara sayfası kullanır.
+#
+# DİKKAT: bu uç "/{username}" ROTASINDAN ÖNCE tanımlanmalı; FastAPI rotaları
+# tanımlanma sırasına göre eşleştirir, sonra tanımlansaydı "search" bir kullanıcı
+# adı sanılırdı (aynı sebeple "/me/stats" da yukarıda duruyor).
+#
+# TÜM ÜYELER LİSTELENMEZ: en az MIN_SEARCH_CHARS harf yazılmadan boş liste döner.
+MIN_SEARCH_CHARS = 2
+MAX_SEARCH_RESULTS = 20
+
+
+@router.get("/search")
+async def search_users(
+    request: Request,
+    q: str = "",
+    db: AsyncSession = Depends(get_db),
+):
+    """Kullanıcı adı / görünen ada göre üye arar (giriş gerekmez).
+
+    Giriş yapılmışsa her satıra arkadaşlık durumu eklenir; böylece listedeki
+    düğme doğru hâlde çizilir (ekle / istek gönderildi / arkadaşın ...).
+    """
+    term = (q or "").strip()
+    if len(term) < MIN_SEARCH_CHARS:
+        return {"users": [], "query": term, "min_chars": MIN_SEARCH_CHARS}
+
+    viewer = await _optional_user(request, db)
+    like = f"%{term.lower()}%"
+    stmt = select(User).where(
+        func.lower(User.username).like(like) | func.lower(User.display_name).like(like)
+    )
+    if viewer:
+        stmt = stmt.where(User.id != viewer.id)   # kendini arama sonucunda gösterme
+    # Kullanıcı adı ARADIĞI metinle BAŞLAYANLAR önce gelsin.
+    starts = f"{term.lower()}%"
+    rows = (
+        await db.execute(
+            stmt.order_by(
+                func.lower(User.username).like(starts).desc(),
+                User.username.asc(),
+            ).limit(MAX_SEARCH_RESULTS)
+        )
+    ).scalars().all()
+
+    from app.game import display_policy
+    out = []
+    for u in rows:
+        item = {
+            "id": u.id,
+            "username": u.username,
+            "display_name": display_policy.public_name(u.display_name, u.username),
+            "avatar_url": u.public_avatar,
+            "level": _level_info(u.xp or 0).get("level"),
+            "friend_status": "none",
+        }
+        if viewer:
+            from app.api.routes.friends import friend_status
+            item["friend_status"] = await friend_status(db, viewer.id, u.id)
+        out.append(item)
+
+    return {"users": out, "query": term, "min_chars": MIN_SEARCH_CHARS}
+
+
 @router.get("/{username}")
 async def public_profile(username: str, request: Request, db: AsyncSession = Depends(get_db)):
     res = await db.execute(select(User).where(User.username == username))

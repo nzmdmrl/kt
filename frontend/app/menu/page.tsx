@@ -55,6 +55,7 @@ export default function MenuPage() {
           <NavRow icon="👤" label="Profilim" onClick={() => router.push(`/profil/${user.username}`)} />
         )}
         {user && <NavRow icon="🤝" label="Arkadaşlarım" onClick={() => router.push("/arkadaslar")} />}
+        <NavRow icon="🔎" label="Üye Ara" onClick={() => router.push("/uye-ara")} />
         <NavRow icon="🔔" label="Bildirimler" onClick={() => router.push("/bildirimler")} />
         <NavRow icon="🕐" label="Geçmiş" onClick={() => router.push("/gecmis")} />
         <NavRow icon="❓" label="Nasıl Oynanır" onClick={() => router.push("/nasil-oynanir")} />

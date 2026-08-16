@@ -216,6 +216,17 @@ SEO_PAGES: list[dict] = [
         "keywords": "",
     },
     {
+        "key": "member_search",
+        "path": "/uye-ara",
+        "label": "Üye Ara (/uye-ara)",
+        # Etkileşim gerektiren araç sayfası — dizine girecek içeriği yok.
+        "indexable": False,
+        "priority": 0.2,
+        "title": "Üye Ara",
+        "description": "Kullanıcı adına göre üye ara, arkadaş ekle.",
+        "keywords": "",
+    },
+    {
         "key": "announcements",
         "path": "/duyurular",
         "label": "Duyurular (/duyurular)",

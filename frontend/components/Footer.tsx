@@ -5,6 +5,7 @@ import { COMPANY } from "@/lib/legal";
 // Site altbilgisi — tüm sayfalarda görünür, yasal ve tanıtım linkleri.
 export default function Footer() {
   const links = [
+    { href: "/uye-ara", label: "Üye Ara" },
     { href: "/hakkimizda", label: "Hakkımızda" },
     { href: "/nasil-oynanir", label: "Nasıl Oynanır" },
     { href: "/duyurular", label: "Haberler" },
