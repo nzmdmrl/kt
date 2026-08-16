@@ -483,11 +483,13 @@ function ArenaShell({ children, onExit, players, answers, showResults, fillTo }:
     // kt-game-fill: kabuk ekran yüksekliğine kilitli olduğu için dipteki oyuncu
     // şeridi uygulamada alt reklam bandının ALTINDA kalıyordu. Yükseklikten
     // --kt-game-space (bant + güvenli alan + admin ek payı) düşülür → şerit tam
-    // bandın üstüne oturur. NativeBootstrap aynı değeri ayrıca satır içi
+    // bandın üstüne oturur. --kt-status-space da düşülür: gövdeye üst rezerv
+    // yazıldığı durumda (Android 15+) kabuk o kadar aşağı iter, düşülmezse alt
+    // taraf yine banda taşar. NativeBootstrap aynı değeri ayrıca satır içi
     // !important olarak da yazar (alt barla birebir aynı yöntem).
     // TARAYICIDA değişken 0px -> calc(100vh - 0px), yani hiçbir şey değişmez.
     <div className="kt-game-fill" style={{
-      minHeight: "calc(100vh - var(--kt-game-space, 0px))",
+      minHeight: "calc(100vh - var(--kt-status-space, 0px) - var(--kt-game-space, 0px))",
       display: "flex", flexDirection: "column", maxWidth: 520, margin: "0 auto",
     }}>
       <div style={{ padding: "12px 16px" }}>

@@ -242,7 +242,7 @@ export default function BildirimlerPage() {
           onClick={() => setConfirmAll(false)}
           style={{
             position: "fixed", inset: 0, zIndex: 900, background: "rgba(0,0,0,.55)",
-            display: "grid", placeItems: "center", padding: 20,
+            display: "grid", placeItems: "center", padding: 20, paddingTop: "max(20px, var(--kt-safe-top))",
           }}
         >
           <div onClick={(e) => e.stopPropagation()} style={{

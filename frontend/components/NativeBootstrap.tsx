@@ -29,6 +29,10 @@
  *    ads.admob.banner_hidden_paths ARTIK BOŞ gelir ama alan duruyor: oraya yol
  *    yazılırsa banner o sayfada yine gizlenir; ilan YENİDEN YÜKLENMEZ, aynı
  *    banner gizlenip gösterilir (hideBanner/resumeBanner).
+ *  - Durum çubuğu (Android): webview varsayılan olarak saat/pil satırının ARKASINA
+ *    çiziliyordu. overlaysWebView=false + tema rengiyle zemin verilir; işe
+ *    yaramazsa (Android 15+ zorunlu edge-to-edge) ölçülen çubuk yüksekliği üst
+ *    rezerv olarak yazılır (setupStatusBar).
  *  - Geri tuşu: sayfa geçmişi varsa geri git, yoksa uygulamayı arka plana al
  *    (uygulamadan çıkma YOK).
  */
@@ -389,8 +393,11 @@ function applyGameSpace() {
 
     // 2) Kabuklar. Pay 0 olsa bile SİLİNMEZ, 0px'li hâli yazılır: min-height'ı
     //    React de yönetiyor (calc + değişken), removeProperty onu da götürürdü.
+    //    ÜST rezerv de düşülür: gövdenin üst dolgusu kabuğu aşağı ittiği için
+    //    düşülmezse kabuğun ALTI tam o kadar bandın içine taşar.
     const fills = document.querySelectorAll<HTMLElement>(GAME_FILL_SELECTOR);
-    fills.forEach((el) => el.style.setProperty("min-height", `calc(100vh - ${space}px)`, "important"));
+    const reserved = space + statusSpacePx;
+    fills.forEach((el) => el.style.setProperty("min-height", `calc(100vh - ${reserved}px)`, "important"));
 
     gameSpacePx = space;
     gameShellCount = fills.length;
@@ -607,6 +614,12 @@ export default function NativeBootstrap() {
     currentPath = pathname || "/";
     void applyBannerForPath();
 
+    // Bildirimler sayfası açıldı: kullanıcı listeyi görüyor, gölgedeki sistem
+    // bildirimleri (ve dolayısıyla simge rozeti) burada temizlenir.
+    if (pathMatches(currentPath, ["/bildirimler"])) {
+      void clearDeliveredNotifications("bildirimler sayfası");
+    }
+
     // Bar bu sayfada var mı yok mu değişmiş olabilir → satır içi kaldırmayı ve
     // içerik rezervini tazele. Bar yeni monte olduysa satır içi stili kaybolur;
     // bu yüzden ilk kareden sonra bir de gecikmeli tekrar uygulanır.
@@ -727,8 +740,11 @@ export default function NativeBootstrap() {
     if (!ready || !isNative || bootstrapped) return;
     bootstrapped = true;
 
+    void setupStatusBar(platform);
     void setupPush(platform, go, () => syncRef.current(), pushTokenRef);
-    void setupBackButton();
+    void setupAppLifecycle();
+    // Soğuk açılış: bildirime tıklanarak gelinmiş olabilir, rozet baştan sönsün.
+    void clearDeliveredNotifications("açılış");
     // AdMob BURADA kurulmaz: reklamsız hak netleşmeden reklam açılmasın diye
     // aşağıdaki effect'e taşındı.
   }, [ready, isNative, platform, go, syncPushToken]);
@@ -1150,11 +1166,222 @@ function setupInterstitial(
   }
 }
 
-// ---------------------------------------------------------------- GERİ TUŞU
+// ---------------------------------------------------------------- DURUM ÇUBUĞU
+//
+// SORUN: @capacitor/status-bar eklentisinin Android varsayılanı overlaysWebView
+// = TRUE (StatusBarConfig.java). Yani webview saat/pil satırının ARKASINDAN
+// başlıyor ve sayfanın tepesi sistem çubuğunun altında kalıyor.
+//
+// ÇÖZÜM (APK YENİDEN DERLEMEDEN): eklenti zaten APK'nın içinde derli
+// (mobile/android/app/capacitor.build.gradle → capacitor-status-bar), bu yüzden
+// aynı ayar ÇALIŞMA ANINDA JS'ten verilebilir:
+//     setOverlaysWebView({ overlay: false })  -> webview çubuğun ALTINDAN başlar
+//     setBackgroundColor({ color })           -> çubuk zemini sayfanın tepesiyle aynı
+//     setStyle({ style })                     -> ikonlar açık/koyu temaya göre
+//
+// AMA: bu üç çağrının Android tarafı DEPRECATED API kullanıyor
+// (View.setSystemUiVisibility + Window.setStatusBarColor). Uygulama targetSdk 35
+// ile derlendiği için ANDROID 15+ cihazlarda bu çağrılar SESSİZCE YOK SAYILIR
+// (zorunlu edge-to-edge). Bu yüzden çağrıdan sonra GERÇEKTEN işe yarayıp
+// yaramadığı ÖLÇÜLÜR: webview çubuk kadar kısaldıysa tamam; kısalmadıysa
+// yedek plana geçilir → ölçülen çubuk yüksekliği kadar üst rezerv
+// (--kt-status-space + --kt-safe-top + gövde dolgusu).
+//
+// Yedek planda görüntü aslında daha da iyi olur: webview çubuğun altına da
+// çizdiği için sayfanın gökyüzü gradyanı çubuğun arkasından devam eder, düz renk
+// yerine gerçek zemin görünür. Kaybedilen tek şey "düz renkli çubuk" tercihidir.
+//
+// SADECE ANDROID: iOS'ta çubuk zaten env(safe-area-inset-*) ile doğru çalışıyor
+// ve setBackgroundColor iOS'ta desteklenmiyor.
 
-async function setupBackButton() {
+const STATUS_SPACE_VAR = "--kt-status-space";
+const STATUS_BODY_CLASS = "has-native-statusbar";
+/**
+ * Ekrana SABİT elemanların (maç geri butonu, toast'lar, mikrofon balonu, yapışkan
+ * başlıklar, modal üst dolgusu) okuduğu değişken. Android'de
+ * env(safe-area-inset-top) YALNIZCA çentik için dolar — düz durum çubuğu için 0
+ * döner — bu yüzden yedek planda buraya ölçülen çubuk yüksekliği yazılır.
+ */
+const SAFE_TOP_VAR = "--kt-safe-top";
+
+/** Uygulanan üst rezerv (0 = eklenti yolu tuttu, rezerve gerek yok). */
+let statusSpacePx = 0;
+
+/** Sayfanın en üstündeki renk — globals.css'te tema/gökyüzü başına tanımlı. */
+function statusBarColor(): string {
+  try {
+    const v = getComputedStyle(document.documentElement)
+      .getPropertyValue("--kt-statusbar")
+      .trim();
+    if (/^#[0-9a-f]{3,8}$/i.test(v)) return v;
+  } catch {}
+  return "#0e0b1e";
+}
+
+function isLightTheme(): boolean {
+  try {
+    return document.documentElement.getAttribute("data-theme") === "light";
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Üst rezervi uygular. Alt bar/bant ile aynı yöntem: satır içi + !important,
+ * yani globals.css de React de ezemez. 0 verilince satır içi yazımlar SİLİNİR ve
+ * düzen web'dekiyle birebir aynı hâline döner.
+ */
+function applyStatusSpace(px: number) {
+  try {
+    statusSpacePx = Number.isFinite(px) && px > 0 ? Math.round(px) : 0;
+    const root = document.documentElement;
+    root.style.setProperty(STATUS_SPACE_VAR, `${statusSpacePx}px`);
+    document.body.classList.toggle(STATUS_BODY_CLASS, statusSpacePx > 0);
+
+    if (statusSpacePx > 0) {
+      // Çentiği de koru: gerçek env() değeri daha büyükse o kazansın.
+      root.style.setProperty(
+        SAFE_TOP_VAR, `max(env(safe-area-inset-top, 0px), ${statusSpacePx}px)`,
+      );
+      document.body.style.setProperty("padding-top", `${statusSpacePx}px`, "important");
+    } else {
+      root.style.removeProperty(SAFE_TOP_VAR);   // :root'taki env() tanımına döner
+      document.body.style.removeProperty("padding-top");
+    }
+
+    // Üst rezerv oyun kabuklarının yüksekliğine de giriyor (bkz. applyGameSpace);
+    // karar burada verildiği için alt taraf yeniden hesaplanmalı.
+    applyBannerSpace();
+  } catch {}
+}
+
+/** UA'dan Android ana sürümü (0 = bilinmiyor). Yalnızca teşhis/karar için. */
+function androidMajor(): number {
+  try {
+    const m = navigator.userAgent.match(/Android\s+(\d+)/);
+    return m ? parseInt(m[1], 10) : 0;
+  } catch {
+    return 0;
+  }
+}
+
+async function setupStatusBar(platform: Platform) {
+  if (platform !== "android") return;
+  try {
+    const { StatusBar, Style } = await import("@capacitor/status-bar");
+
+    // Çubuk yüksekliği dp cinsinden gelir; WebView'da dp = CSS px.
+    // (Eklenti bunu modern WindowInsets API'siyle okur, Android 15'te de doğrudur.)
+    let barH = 0;
+    let overlaysBefore = true;
+    try {
+      const info: any = await StatusBar.getInfo();
+      barH = Math.round(Number(info?.height) || 0);
+      overlaysBefore = info?.overlays !== false;
+    } catch (e) {
+      log("durum çubuğu bilgisi okunamadı:", e);
+    }
+
+    const heightBefore = window.innerHeight;
+
+    await StatusBar.setOverlaysWebView({ overlay: false });
+    // Renk/stil overlay tutmasa da verilir: yedek planda zararsız (çubuk saydam
+    // kalır), eklenti yolunda ise çubuğun zeminini sayfanın tepesiyle eşitler.
+    await applyStatusBarLook(StatusBar, Style);
+
+    /**
+     * KARAR. Üç durum var:
+     *   a) overlay AÇIKTI ve çağrıdan sonra webview çubuk kadar KISALDI
+     *      -> eklenti yolu tuttu, rezerve gerek yok.
+     *   b) overlay AÇIKTI ama hiçbir şey değişmedi
+     *      -> çağrı yok sayıldı (Android 15+), rezerv gerekir.
+     *   c) overlay ZATEN KAPALIYDI (eklenti öyle diyor)
+     *      -> Android 15+'ta bayrak okunamadığı için bu bilgi YALAN olabilir;
+     *         sürüm 15'in altındaysa gerçekten kapalıdır, üstündeyse rezerv gerekir.
+     * Ölçüm asıldır, sürüm yalnızca (c)'deki belirsizliği çözer.
+     */
+    const decide = () => {
+      const shrank = heightBefore - window.innerHeight;
+      const worked = barH > 0 && shrank >= barH - 2;
+      const alreadyBelow = !overlaysBefore && androidMajor() < 15;
+      const space = worked || alreadyBelow || barH <= 0 ? 0 : barH;
+      applyStatusSpace(space);
+      console.log(
+        `[native] durum çubuğu: yükseklik:${barH} overlay(önce):${overlaysBefore} ` +
+        `kısalma:${shrank} android:${androidMajor()} → ` +
+        `${space > 0 ? `REZERV ${space}px (eklenti yolu tutmadı)` : "eklenti yolu tuttu"}`,
+      );
+    };
+
+    // Yerleşim bir-iki kare sürebilir; erken ölçüm yanlış karar verdirir.
+    window.setTimeout(decide, 400);
+    // Ağır açılışta ilk ölçüm kaçarsa ikinci tur düzeltir (uygulaması aynı, fark
+    // yoksa hiçbir şey değişmez).
+    window.setTimeout(decide, 2000);
+
+    // Tema (gündüz/gece) ve gökyüzü değişince çubuk rengi/ikon tonu tazelenir.
+    try {
+      const obs = new MutationObserver(() => { void applyStatusBarLook(StatusBar, Style); });
+      obs.observe(document.documentElement, {
+        attributes: true, attributeFilter: ["data-theme", "data-sky"],
+      });
+    } catch {}
+  } catch (e) {
+    log("durum çubuğu ayarlanamadı:", e);
+  }
+}
+
+type StatusBarModule = (typeof import("@capacitor/status-bar"))["StatusBar"];
+type StyleEnum = (typeof import("@capacitor/status-bar"))["Style"];
+
+/** Çubuk zemini = sayfanın tepesindeki renk; ikonlar temaya göre açık/koyu. */
+async function applyStatusBarLook(StatusBar: StatusBarModule, Style: StyleEnum) {
+  try {
+    await StatusBar.setBackgroundColor({ color: statusBarColor() });
+    // Style.Dark = KOYU zemin için AÇIK ikon, Style.Light = AÇIK zemin için KOYU ikon.
+    await StatusBar.setStyle({ style: isLightTheme() ? Style.Light : Style.Dark });
+  } catch (e) {
+    log("durum çubuğu görünümü uygulanamadı:", e);
+  }
+}
+
+// -------------------------------------------------- SİMGE ROZETİ (BADGE)
+//
+// SORUN: bildirim okunduktan sonra da uygulama simgesinde "1" rozeti kalıyordu.
+//
+// NEDEN: Android'de rozet AYRI bir sayaç DEĞİLDİR — launcher'lar (Samsung One UI
+// dahil) rozeti uygulamanın GÖLGEDEKİ AKTİF bildirim sayısından üretir. Bildirimi
+// gölgeden silmeden rozet düşmez; sitedeki "okundu" işareti Android'i ilgilendirmez.
+//
+// ÇÖZÜM: removeAllDeliveredNotifications() — eklentinin Android karşılığı
+// NotificationManager.cancelAll() (PushNotificationsPlugin.java:188), yani gölge
+// temizlenir ve rozet kendiliğinden söner.
+//
+// AYRI BİR "rozeti sıfırla" ÇAĞRISI VAR MI? @capacitor/push-notifications'ın
+// Android tarafında YOK (eklentideki `badge` seçeneği yalnız iOS içindir; iOS'ta
+// applicationIconBadgeNumber ayrı sıfırlanır). Android'de standart bir rozet API'si
+// de yoktur; OEM'e özel yayınlar (Samsung BADGE_COUNT_UPDATE) ya da @capacitor/badge
+// gerekir — ikisi de YENİ NATIVE KOD, yani APK derlemesi ister. Gölgeyi temizlemek
+// bu cihazlarda rozeti düşürmek için yeterli ve doğru yoldur.
+//
+// NE ZAMAN: (1) uygulama açılışında, (2) her öne gelişte, (3) /bildirimler açılınca.
+
+async function clearDeliveredNotifications(reason: string) {
+  try {
+    const { PushNotifications } = await import("@capacitor/push-notifications");
+    await PushNotifications.removeAllDeliveredNotifications();
+  } catch (e) {
+    // İzin verilmemiş / eklenti yok — rozet zaten çıkmaz, sessiz geç.
+    log(`bildirim gölgesi temizlenemedi (${reason}):`, e);
+  }
+}
+
+// ------------------------------------------------------------ UYGULAMA YAŞAM DÖNGÜSÜ
+
+async function setupAppLifecycle() {
   try {
     const { App } = await import("@capacitor/app");
+
     await App.addListener("backButton", ({ canGoBack }) => {
       try {
         if (canGoBack || window.history.length > 1) {
@@ -1167,7 +1394,12 @@ async function setupBackButton() {
         log("geri tuşu işlenemedi:", e);
       }
     });
+
+    // Uygulama öne geldi: kullanıcı bildirimleri görmüş sayılır, rozet sönsün.
+    await App.addListener("appStateChange", ({ isActive }) => {
+      if (isActive) void clearDeliveredNotifications("öne geldi");
+    });
   } catch (e) {
-    log("geri tuşu dinleyicisi kurulamadı:", e);
+    log("uygulama yaşam döngüsü dinleyicileri kurulamadı:", e);
   }
 }

@@ -266,6 +266,8 @@ function Overlay({ children, onClose }: { children: React.ReactNode; onClose: ()
       style={{
         position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", zIndex: 200,
         display: "grid", placeItems: "center", padding: 16,
+        // Durum çubuğu (üst) ve reklam bandı (alt) — uygulamada ikisinin de altında kalmasın.
+        paddingTop: "max(16px, var(--kt-safe-top))",
         paddingBottom: "max(16px, var(--kt-banner-space, 0px))",
       }}
     >

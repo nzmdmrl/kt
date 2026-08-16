@@ -84,11 +84,13 @@ export default function SoloPage() {
     // kadar iniyordu ve dipteki içerik bandın altında kalıyordu (bkz.
     // NativeBootstrap → applyGameSpace). Tarayıcıda --kt-game-space 0px -> düzen aynı.
     <div className="kt-game-fill" style={{
-      position: "relative", minHeight: "calc(100vh - var(--kt-game-space, 0px))",
+      position: "relative", minHeight: "calc(100vh - var(--kt-status-space, 0px) - var(--kt-game-space, 0px))",
     }}>
-      {/* Üst bar */}
+      {/* Üst bar — yapışkan başlık ekranın TEPESİNE yapışır; uygulamada durum çubuğu
+          webview'ın üstündeyse (Android 15+ edge-to-edge) saat/pil satırının
+          altında kalmasın diye çubuk kadar aşağı iner. Tarayıcıda 0px. */}
       <div style={{
-        position: "sticky", top: 0, zIndex: 10, display: "flex", alignItems: "center",
+        position: "sticky", top: "var(--kt-safe-top)", zIndex: 10, display: "flex", alignItems: "center",
         justifyContent: "space-between", padding: "12px 16px",
         background: "var(--bg)", borderBottom: "1px solid var(--border-soft)",
       }}>

@@ -315,7 +315,7 @@ export default function ProfilePage({ params }: { params: { username: string } }
           {/* Arkadaşlıktan çıkarma onayı */}
           {unfriendOpen && (
             <div onClick={() => setUnfriendOpen(false)}
-              style={{ position: "fixed", inset: 0, zIndex: 900, background: "rgba(0,0,0,.55)", display: "grid", placeItems: "center", padding: 20 }}>
+              style={{ position: "fixed", inset: 0, zIndex: 900, background: "rgba(0,0,0,.55)", display: "grid", placeItems: "center", padding: 20, paddingTop: "max(20px, var(--kt-safe-top))" }}>
               <div onClick={(e) => e.stopPropagation()} style={{
                 background: "var(--bg-panel)", border: "1px solid var(--border-soft)",
                 borderRadius: 16, padding: "22px 20px", maxWidth: 340, width: "100%", textAlign: "center",

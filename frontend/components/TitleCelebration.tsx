@@ -59,6 +59,8 @@ export default function TitleCelebration({ title, onClose }: {
         position: "fixed", inset: 0, zIndex: 1000,
         background: "rgba(0,0,0,.82)",
         display: "grid", placeItems: "center",
+        // Durum çubuğu (üst) ve reklam bandı (alt) — uygulamada ikisinin de altında kalmasın.
+        paddingTop: "var(--kt-safe-top)",
         paddingBottom: "var(--kt-banner-space, 0px)",
         opacity: visible ? 1 : 0, transition: "opacity .4s ease",
         overflow: "hidden", cursor: "pointer",

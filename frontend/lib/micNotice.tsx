@@ -119,7 +119,9 @@ export default function MicNoticeHost() {
         position: "fixed",
         left: 0,
         right: 0,
-        top: "calc(env(safe-area-inset-top, 0px) + 14px)",
+        // env() DEĞİL --kt-safe-top: uygulamada durum çubuğu webview'ın üstündeyse
+        // JS bu değişkeni çubuk yüksekliğine çeker (Android'de env yalnız çentikte dolar).
+        top: "calc(var(--kt-safe-top) + 14px)",
         zIndex: 9000,
         display: "flex",
         justifyContent: "center",
