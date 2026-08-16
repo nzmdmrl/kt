@@ -470,8 +470,9 @@ async def remove_word(data: WordIn, admin: User = Depends(get_admin_user), db: A
 # GÜVENLİK: yanıt alanları AÇIKÇA seçilir (model nesnesi hiç serileştirilmez).
 # password_hash, google_sub ve oturum/token bilgisi HİÇBİR koşulda dönmez.
 
-USER_SEARCH_MIN_CHARS = 2
-USER_SEARCH_LIMIT = 25
+# Sayfa başına satır — panelde 20 / 50 / 100 seçilebilir.
+USER_PAGE_SIZE_DEFAULT = 20
+USER_PAGE_SIZE_MAX = 100
 
 # ad_free_source: manual | play | apple | web (bugün yalnız "manual" üretiliyor —
 # mağaza/site satışı eklendiğinde diğerleri oradan yazılacak).
@@ -499,43 +500,47 @@ def _admin_user_row(u: User) -> dict:
 @router.get("/users")
 async def list_users(
     q: str = Query("", max_length=64),
+    limit: int = Query(USER_PAGE_SIZE_DEFAULT, ge=1, le=USER_PAGE_SIZE_MAX),
+    offset: int = Query(0, ge=0),
     admin: User = Depends(get_admin_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Kullanıcı adı veya e-postaya göre üye arar.
+    """Üyeleri sayfalayarak listeler; q verilirse arama yapar.
 
-    TÜM ÜYELER LİSTELENMEZ: en az USER_SEARCH_MIN_CHARS harf gerekir. Toplam
-    kayıtlı üye sayısı her durumda döner (sekmenin başlığında gösteriliyor).
+    q BOŞSA tüm üyeler listelenir (sayfalanmış). Burası ADMİN ucudur — herkese
+    açık /profile/search'teki "en az 2 harf" kuralı buraya uygulanmaz.
+
+    Dönenler:
+      total_users -> kayıtlı toplam üye (arama fark etmez, sekme başlığı için)
+      matched     -> bu sorguya uyan satır sayısı (sayfa sayısı bundan çıkar)
     """
-    total = (await db.execute(select(func.count(User.id)))).scalar_one()
     term = (q or "").strip()
-    if len(term) < USER_SEARCH_MIN_CHARS:
-        return {
-            "users": [],
-            "total_users": total,
-            "query": term,
-            "min_chars": USER_SEARCH_MIN_CHARS,
-        }
+    total = (await db.execute(select(func.count(User.id)))).scalar_one()
 
-    like = f"%{term.lower()}%"
-    rows = (
-        await db.execute(
-            select(User)
-            .where(
-                func.lower(User.username).like(like)
-                | func.lower(func.coalesce(User.email, "")).like(like)
-            )
-            .order_by(User.id.desc())
-            .limit(USER_SEARCH_LIMIT)
+    stmt = select(User)
+    count_stmt = select(func.count(User.id))
+    if term:
+        like = f"%{term.lower()}%"
+        cond = (
+            func.lower(User.username).like(like)
+            | func.lower(func.coalesce(User.email, "")).like(like)
         )
+        stmt = stmt.where(cond)
+        count_stmt = count_stmt.where(cond)
+
+    matched = (await db.execute(count_stmt)).scalar_one() if term else total
+
+    rows = (
+        await db.execute(stmt.order_by(User.id.desc()).limit(limit).offset(offset))
     ).scalars().all()
 
     return {
         "users": [_admin_user_row(u) for u in rows],
         "total_users": total,
+        "matched": matched,
         "query": term,
-        "min_chars": USER_SEARCH_MIN_CHARS,
-        "limit": USER_SEARCH_LIMIT,
+        "limit": limit,
+        "offset": offset,
     }
 
 

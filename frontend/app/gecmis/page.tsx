@@ -101,7 +101,7 @@ export default function GecmisPage() {
 function Wrap({ children }: { children: React.ReactNode }) {
   return (
     <main style={{ maxWidth: 520, margin: "0 auto", padding: "24px 18px 40px", minHeight: "60vh" }}>
-      <div style={{ marginBottom: 16 }}><a href="/"><Logo size={32} /></a></div>
+      <div className="kt-mobile-only" style={{ marginBottom: 16 }}><a href="/"><Logo size={32} /></a></div>
       {children}
     </main>
   );

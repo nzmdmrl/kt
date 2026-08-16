@@ -103,7 +103,7 @@ export default function UyeAraPage() {
 
   return (
     <main style={{ maxWidth: 560, margin: "0 auto", padding: "20px 14px 40px" }}>
-      <div style={{ marginBottom: 16 }}><a href="/"><Logo size={32} /></a></div>
+      <div className="kt-mobile-only" style={{ marginBottom: 16 }}><a href="/"><Logo size={32} /></a></div>
 
       <h1 className="brand-mono" style={{ fontSize: 24, margin: "0 0 6px" }}>🔎 Üye Ara</h1>
       <p style={{ color: "var(--text-dim)", fontSize: 12.5, lineHeight: 1.55, marginBottom: 14 }}>

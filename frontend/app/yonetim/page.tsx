@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { apiUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import Logo from "@/components/Logo";
@@ -909,42 +909,53 @@ function fmtDate(iso: string | null): string {
 
 function Users() {
   const [q, setQ] = useState("");
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(20);
+
   const [rows, setRows] = useState<AdminUser[]>([]);
   const [total, setTotal] = useState<number | null>(null);
-  const [searching, setSearching] = useState(false);
-  const [searched, setSearched] = useState(false);
+  const [matched, setMatched] = useState(0);
+  const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState<number | null>(null);
   const [saved, setSaved] = useState<number | null>(null);
   const [msg, setMsg] = useState("");
 
-  // Toplam üye sayısı için açılışta boş sorgu (arama yapmaz, sayıyı getirir).
-  useEffect(() => { void run(""); }, []);
+  /** Yavaş dönen eski isteğin yeni sonucu ezmesini engeller. */
+  const reqRef = useRef(0);
 
-  // Yazmayı bırakınca ara (debounce).
+  // Arama ya da sayfa boyu değişince başa dön.
+  useEffect(() => { setPage(0); }, [q, pageSize]);
+
+  // Tek yükleme noktası: arama, sayfa ve sayfa boyu aynı effect'i tetikler.
+  // Debounce sayesinde "q değişti -> page 0'a döndü" ikilisinde tek istek gider.
   useEffect(() => {
-    const t = setTimeout(() => { void run(q); }, 300);
+    const t = setTimeout(() => { void load(); }, 300);
     return () => clearTimeout(t);
-  }, [q]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q, page, pageSize]);
 
-  async function run(term: string) {
-    const clean = term.trim();
-    if (clean.length > 0 && clean.length < USER_MIN_CHARS) {
-      setRows([]); setSearched(false);
-      return;
-    }
-    setSearching(true); setMsg("");
+  async function load() {
+    const mine = ++reqRef.current;
+    setLoading(true); setMsg("");
     try {
-      const r = await fetch(apiUrl(`/api/admin/users?q=${encodeURIComponent(clean)}`), { headers: authHeaders() });
+      const params = new URLSearchParams({
+        q: q.trim(),
+        limit: String(pageSize),
+        offset: String(page * pageSize),
+      });
+      const r = await fetch(apiUrl(`/api/admin/users?${params}`), { headers: authHeaders() });
       if (!r.ok) throw new Error();
       const d = await r.json();
-      setTotal(typeof d.total_users === "number" ? d.total_users : null);
+      if (mine !== reqRef.current) return;   // daha yeni bir istek var
       setRows(Array.isArray(d.users) ? d.users : []);
-      setSearched(clean.length >= USER_MIN_CHARS);
+      setTotal(typeof d.total_users === "number" ? d.total_users : null);
+      setMatched(typeof d.matched === "number" ? d.matched : 0);
     } catch {
+      if (mine !== reqRef.current) return;
       setMsg("Üyeler getirilemedi.");
       setRows([]);
     } finally {
-      setSearching(false);
+      if (mine === reqRef.current) setLoading(false);
     }
   }
 
@@ -969,14 +980,16 @@ function Users() {
     }
   }
 
-  const tooShort = q.trim().length > 0 && q.trim().length < USER_MIN_CHARS;
+  const pageCount = Math.max(1, Math.ceil(matched / pageSize));
+  const from = matched === 0 ? 0 : page * pageSize + 1;
+  const to = Math.min(matched, (page + 1) * pageSize);
 
   return (
     <div style={{ display: "grid", gap: 14 }}>
       <div style={{ background: "var(--bg-panel)", borderRadius: 12, padding: 14, fontSize: 13, color: "var(--text-dim)", lineHeight: 1.7 }}>
         Kayıtlı üye sayısı: <b style={{ color: "var(--text-strong)" }}>{total === null ? "…" : total.toLocaleString("tr")}</b><br />
-        Üyeler topluca listelenmez — kullanıcı adı ya da e-posta ile <b>en az {USER_MIN_CHARS} harf</b> yazarak
-        ara (en fazla 25 sonuç).<br />
+        Arama kutusu boşken <b>tüm üyeler</b> sayfa sayfa listelenir; kullanıcı adı ya da
+        e-posta yazınca sonuçlar süzülür (o da sayfalanır).<br />
         • <b>Reklamsız</b> anahtarı kullanıcının reklam görmemesini sağlar: AdSense, uygulama bandı
         ve geçiş reklamı kapanır, geçiş reklamının maç sayacı bile artmaz.<br />
         • Buradan verilen hak <span className="brand-mono">manual</span> kaynağıyla işaretlenir.
@@ -984,29 +997,50 @@ function Users() {
         • Bu sekmede silme, yasaklama, şifre sıfırlama YOKTUR.
       </div>
 
-      <div style={{ position: "relative" }}>
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Kullanıcı adı veya e-posta…"
-          autoComplete="off"
-          spellCheck={false}
-          style={{
-            width: "100%", padding: "12px 40px 12px 14px", borderRadius: 10,
-            border: "1px solid var(--tile-border)", background: "var(--bg-elevated)",
-            color: "var(--text-strong)", fontSize: 15,
-          }}
-        />
-        <span style={{ position: "absolute", right: 13, top: "50%", transform: "translateY(-50%)", color: "var(--text-dim)" }}>
-          {searching ? "⏳" : "🔎"}
-        </span>
+      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+        <div style={{ position: "relative", flex: "1 1 240px", minWidth: 0 }}>
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Kullanıcı adı veya e-posta… (boş bırak = tümü)"
+            autoComplete="off"
+            spellCheck={false}
+            style={{
+              width: "100%", padding: "12px 40px 12px 14px", borderRadius: 10,
+              border: "1px solid var(--tile-border)", background: "var(--bg-elevated)",
+              color: "var(--text-strong)", fontSize: 15,
+            }}
+          />
+          <span style={{ position: "absolute", right: 13, top: "50%", transform: "translateY(-50%)", color: "var(--text-dim)" }}>
+            {loading ? "⏳" : "🔎"}
+          </span>
+        </div>
+        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--text-dim)" }}>
+          Sayfada
+          <select
+            value={pageSize}
+            onChange={(e) => setPageSize(parseInt(e.target.value, 10))}
+            style={{
+              padding: "9px 10px", borderRadius: 8, border: "1px solid var(--tile-border)",
+              background: "var(--bg-elevated)", color: "var(--text-strong)", fontSize: 14,
+            }}
+          >
+            {[20, 50, 100].map((n) => <option key={n} value={n}>{n}</option>)}
+          </select>
+        </label>
       </div>
 
-      {tooShort && <p style={{ fontSize: 12, color: "var(--text-dim)", margin: 0 }}>En az {USER_MIN_CHARS} harf yaz…</p>}
       {msg && <p style={{ fontSize: 13, color: "var(--accent-hot)", margin: 0 }}>{msg}</p>}
 
-      {searched && rows.length === 0 && !searching && (
-        <p style={{ color: "var(--text-dim)", textAlign: "center", padding: 24 }}>Bu aramaya uyan üye yok.</p>
+      <Pager
+        from={from} to={to} matched={matched} page={page} pageCount={pageCount}
+        disabled={loading} onPage={setPage}
+      />
+
+      {!loading && rows.length === 0 && (
+        <p style={{ color: "var(--text-dim)", textAlign: "center", padding: 24 }}>
+          {q.trim() ? "Bu aramaya uyan üye yok." : "Kayıtlı üye yok."}
+        </p>
       )}
 
       <div style={{ display: "grid", gap: 10 }}>
@@ -1066,6 +1100,39 @@ function Users() {
           </div>
         ))}
       </div>
+
+      {rows.length > 0 && (
+        <Pager
+          from={from} to={to} matched={matched} page={page} pageCount={pageCount}
+          disabled={loading} onPage={setPage}
+        />
+      )}
+    </div>
+  );
+}
+
+/** Sayfa gezinme şeridi — listenin altında ve üstünde aynısı kullanılır. */
+function Pager({
+  from, to, matched, page, pageCount, disabled, onPage,
+}: {
+  from: number; to: number; matched: number; page: number; pageCount: number;
+  disabled: boolean; onPage: (p: number) => void;
+}) {
+  const btn: React.CSSProperties = {
+    padding: "7px 12px", borderRadius: 8, border: "1px solid var(--tile-border)",
+    background: "var(--bg-elevated)", color: "var(--text-strong)",
+    fontSize: 13, fontWeight: 600, cursor: "pointer",
+  };
+  const off = { ...btn, opacity: 0.4, cursor: "default" };
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+      <span style={{ flex: 1, fontSize: 12.5, color: "var(--text-dim)" }}>
+        {matched === 0 ? "Sonuç yok" : `${from}–${to} / ${matched.toLocaleString("tr")} kayıt · sayfa ${page + 1}/${pageCount}`}
+      </span>
+      <button onClick={() => onPage(Math.max(0, page - 1))}
+        disabled={disabled || page <= 0} style={disabled || page <= 0 ? off : btn}>‹ Önceki</button>
+      <button onClick={() => onPage(Math.min(pageCount - 1, page + 1))}
+        disabled={disabled || page >= pageCount - 1} style={disabled || page >= pageCount - 1 ? off : btn}>Sonraki ›</button>
     </div>
   );
 }

@@ -30,7 +30,7 @@ export default function MenuPage() {
 
   return (
     <main style={{ maxWidth: 520, margin: "0 auto", padding: "20px 14px 40px" }}>
-      <div style={{ marginBottom: 16 }}><a href="/"><Logo size={32} /></a></div>
+      <div className="kt-mobile-only" style={{ marginBottom: 16 }}><a href="/"><Logo size={32} /></a></div>
       {/* Ayarlar (toggle'lar) */}
       <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-soft)", marginBottom: 10, marginTop: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>Ayarlar</div>
       <div style={{ display: "grid", gap: 10, marginBottom: 28 }}>

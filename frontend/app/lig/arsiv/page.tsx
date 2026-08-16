@@ -35,7 +35,7 @@ export default function LigArsivPage() {
 
   return (
     <main style={{ flex: 1, maxWidth: 640, width: "100%", margin: "0 auto", padding: "28px 18px 60px" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+      <div className="kt-mobile-only" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
         <a href="/"><Logo size={38} /></a>
         <a href="/lig" style={{ color: "var(--accent)", fontWeight: 600 }}>← Lig</a>
       </div>
