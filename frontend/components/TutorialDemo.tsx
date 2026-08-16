@@ -101,7 +101,11 @@ export default function TutorialDemo({ onClose }: { onClose: () => void }) {
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 400, background: "var(--bg)", overflowY: "auto" }}>
-      <div style={{ maxWidth: 480, margin: "0 auto", padding: "calc(20px + var(--kt-safe-top)) 16px calc(40px + var(--kt-safe-bottom) + var(--kt-banner-space, 0px))", display: "grid", gap: 16 }}>
+      {/* Bu katman KENDİ kaydırıcısı (fixed + overflowY:auto), yani gövdenin alt
+          rezervi buraya işlemez — payı kendisi bırakmalı. /oyna bir oyun ekranı
+          olduğu için oyun payı (admin ek payı dahil) geçerlidir; başka yerde
+          açılırsa genel bant payına düşer. */}
+      <div style={{ maxWidth: 480, margin: "0 auto", padding: "calc(20px + var(--kt-safe-top)) 16px calc(40px + var(--kt-safe-bottom) + max(var(--kt-banner-space, 0px), var(--kt-game-space, 0px)))", display: "grid", gap: 16 }}>
         {/* Üst bar */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span className="brand-mono" style={{ fontSize: 18, color: "var(--accent)" }}>Nasıl Oynanır?</span>

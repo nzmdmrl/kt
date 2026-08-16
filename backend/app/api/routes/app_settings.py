@@ -58,16 +58,12 @@ CREATE TABLE IF NOT EXISTS app_settings (
 )
 """
 
-# Oyun ekranları: reklam bandı buralarda gösterilmez (oyun alanını kapatmasın).
-# Not: "/oda" 1v1 davet bağlantısıdır ve doğrudan düelloya yönlendirir.
-# Aynı liste migration'da da kullanılır (app/core/migrations.py) — tek kaynak.
-DEFAULT_BANNER_HIDDEN_PATHS: list[str] = [
-    "/oyna",            # 1v1 düello + 1vB pratik + özel oda
-    "/arena",           # arena + özel arena (/arena/ozel/{kod})
-    "/solo",            # Maraton
-    "/gunun-kelimesi",  # Günün Kelimesi
-    "/oda",             # oda daveti -> /oyna yönlendirmesi
-]
+# Banner'ın GİZLENECEĞİ yollar. VARSAYILAN ARTIK BOŞ — gerçek cihaz denemesinden
+# sonra yaklaşım değişti: oyun ekranlarında bant GİZLENMİYOR, onun yerine dipteki
+# her eleman (arena oyuncu şeridi vb.) alt barın yaptığı gibi bandın üstüne
+# çekiliyor (bkz. frontend/components/NativeBootstrap.tsx → --kt-game-space).
+# Alan admin panelinde DURUYOR: istenirse tek tek yol yazılıp banner yine gizlenir.
+DEFAULT_BANNER_HIDDEN_PATHS: list[str] = []
 
 # Geçiş (interstitial) reklamının mod bazlı aç/kapası.
 # ÖZEL ARENA VARSAYILAN KAPALI: ödül vermiyor ve arkadaşların birlikte oynadığı
@@ -137,6 +133,12 @@ DEFAULT_APP_SETTINGS: dict[str, tuple[dict, bool]] = {
             #   banner_margin_override -> 0'dan büyükse hesap YOK SAYILIR, navLift = bu
             "banner_margin_extra": 0,
             "banner_margin_override": 0,
+            # OYUN EKRANLARI (arena, 1v1, özel oda, maraton, günün kelimesi) için
+            # ek pay: dipteki elemanlar bandın üstüne çekilirken hesaplanan boşluğa
+            # (bant + güvenli alan) BU DEĞER de eklenir. Yalnız oyun ekranlarını
+            # etkiler; alt bar ve diğer sayfalar banner_margin_extra'ya bakar.
+            # Cihazda deneyip kaydetmek için — deploy gerekmez.
+            "banner_game_offset_extra": 0,
             # Geçiş (interstitial) reklamı sıklığı. Reklam YALNIZCA oyun akışından
             # OYUN OLMAYAN bir hedefe çıkarken gösterilir (ana sayfa, /lig, profil,
             # maraton haritası); "tekrar oyna / rövanş / sonraki bölüm / yeni rakip"

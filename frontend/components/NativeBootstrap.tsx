@@ -23,9 +23,12 @@
  *    `bottom` + !important olarak yazılır; admin alanları (ek boşluk / sabit
  *    değer) BU değeri ayarlar. Akışta bırakılacak yer --kt-banner-space'e
  *    yazılır (ÖLÇÜLEREK) + gövdeye "has-native-banner"
- *    sınıfı eklenir. Oyun ekranlarında
- *    (ads.admob.banner_hidden_paths) banner gizlenir; ilan YENİDEN YÜKLENMEZ,
- *    aynı banner gizlenip gösterilir (hideBanner/resumeBanner).
+ *    sınıfı eklenir. OYUN EKRANLARINDA (alt barın basılmadığı /oyna, /arena,
+ *    /solo, /gunun-kelimesi, /oda) bant GİZLENMEZ: aynı kaldırma bu kez sayfanın
+ *    kendi dip elemanlarına uygulanır (--kt-game-space, applyGameSpace).
+ *    ads.admob.banner_hidden_paths ARTIK BOŞ gelir ama alan duruyor: oraya yol
+ *    yazılırsa banner o sayfada yine gizlenir; ilan YENİDEN YÜKLENMEZ, aynı
+ *    banner gizlenip gösterilir (hideBanner/resumeBanner).
  *  - Geri tuşu: sayfa geçmişi varsa geri git, yoksa uygulamayı arka plana al
  *    (uygulamadan çıkma YOK).
  */
@@ -73,11 +76,46 @@ const BANNER_SPACE_VAR = "--kt-banner-space";
  */
 const NAV_LIFT_VAR = "--kt-nav-lift";
 
+/**
+ * OYUN EKRANLARINDA dip elemanların bandın üstüne çekilme payı
+ * (= navLift + admin "oyun ekranı ek payı"). Oyun dışı sayfada ve bant yokken 0px.
+ */
+const GAME_SPACE_VAR = "--kt-game-space";
+
+/** Oyun ekranındayız + bant görünür (gövdeye eklenir). */
+const GAME_SCREEN_CLASS = "kt-game-screen";
+
 /** Alt bar ölçülemezse kullanılacak yükseklik (globals.css'teki spacer değeri). */
 const NAV_HEIGHT_FALLBACK = 76;
 
 /** Alt barı basan eleman — satır içi stil buraya yazılır. */
 const NAV_SELECTOR = ".kt-bottom-nav-bar";
+
+/**
+ * Ekran yüksekliğine KİLİTLİ oyun kabuğu (min-height: 100vh) — dibindeki şerit
+ * doğrudan ekranın altına oturduğu için bandın altında kalan tek eleman tipi.
+ * Bugün: arena (ArenaShell) ve maraton haritası.
+ *
+ * Tedavi: min-height 100vh yerine `calc(100vh - oyun payı)`. Böylece kabuğun ALT
+ * KENARI bandın üstüne çıkar, sayfa uzamaz (akış rezervini gövde üstlenir) ve
+ * içerik uzunsa kabuk yine büyür.
+ *
+ * KURAL: bu sınıfı alan eleman React tarafında da
+ *   minHeight: "calc(100vh - var(--kt-game-space, 0px))"
+ * yazmalıdır. Sebep: eleman JS'in haberi olmadan yeniden monte olabilir (ör. arena
+ * reveal tablosundan soru ekranına dönüş) — değişken sayesinde daha ilk boyamada
+ * doğru yükseklikle gelir, buradaki satır içi yazım yalnızca pekiştirir.
+ */
+const GAME_FILL_SELECTOR = ".kt-game-fill";
+
+/**
+ * Oyun ekranları — alt barın basılmadığı, bandın sayfa içeriğine değdiği yollar.
+ * Eşleşme pathMatches ile ("/arena" -> "/arena/ozel/ABC" de kapsanır).
+ * BottomNav.tsx → hideOn ve DesktopChrome.tsx → HIDE_ON listeleriyle aynı fikir;
+ * buradaki listede yönetim/giriş yok (onlar oyun değil, zaten alt barsız sayfa
+ * kuralına -- gövde dolgusu -- düşerler).
+ */
+const GAME_PATHS = ["/oyna", "/arena", "/solo", "/gunun-kelimesi", "/oda"];
 
 /**
  * GOOGLE'IN RESMİ TEST REKLAM BİRİMLERİ — tek yer burası, başka yere kopyalama.
@@ -100,9 +138,11 @@ const TEST_AD_UNITS = {
 
 /**
  * Banner'ın gizleneceği yolların yedeği — ayar okunamazsa kullanılır.
- * backend/app/api/routes/app_settings.py → DEFAULT_BANNER_HIDDEN_PATHS ile aynı.
+ * backend/app/api/routes/app_settings.py → DEFAULT_BANNER_HIDDEN_PATHS ile aynı:
+ * artık BOŞ. Oyun ekranlarında bant gizlenmiyor, dip elemanlar onun üstüne
+ * çekiliyor (bkz. GAME_PATHS / applyGameSpace).
  */
-const FALLBACK_BANNER_HIDDEN_PATHS = ["/oyna", "/arena", "/solo", "/gunun-kelimesi", "/oda"];
+const FALLBACK_BANNER_HIDDEN_PATHS: string[] = [];
 
 /**
  * Geçiş reklamının mod bazlı aç/kapası — ayar okunamazsa kullanılır.
@@ -227,8 +267,16 @@ let navLiftPx = 0;
 /** Admin → Mobil & Reklam ayarları (setupAdMob doldurur). */
 let adminLiftExtra = 0;
 let adminLiftOverride = 0;
+/** Admin → "oyun ekranı ek payı" (yalnız oyun ekranlarındaki dip elemanlara eklenir). */
+let adminGameExtra = 0;
 /** Konsoldan elle deneme (bkz. __ktBanner.lift) — kaydetmeden önce denemek için. */
 let consoleLift: number | null = null;
+/** Konsoldan elle deneme (bkz. __ktBanner.game). */
+let consoleGameExtra: number | null = null;
+
+/** Oyun ekranı payının UYGULANAN değeri + kaç kabuğa yazıldığı (log için). */
+let gameSpacePx = 0;
+let gameShellCount = 0;
 
 function setBannerHeight(px: number) {
   try {
@@ -289,7 +337,63 @@ function applyBannerSpace() {
     // Alt bar bu sayfada basılı mı? Rezervin spacer'a mı yoksa gövdeye mi
     // yazılacağını bu belirler (bkz. globals.css).
     document.body.classList.toggle(NAV_PRESENT_CLASS, m.navPresent);
+    applyGameSpace();
     logBannerLayout(m);
+  } catch {}
+}
+
+// ------------------------------------------------------ OYUN EKRANI PAYI
+//
+// Oyun ekranlarında alt bar YOK, yani bandın üstüne kalkacak bir bar da yok —
+// banda değen şey sayfanın kendi dip elemanlarıdır (arena oyuncu şeridi gibi).
+// Uygulanan mantık alt barınkiyle birebir aynı: değer JS'te hesaplanır, elemanın
+// KENDİ satır içi stiline `!important` ile yazılır (React'in style prop'u da,
+// globals.css de bunu ezemez), her gezinmede/boyut olayında tazelenir.
+//
+//     oyun payı = navLift (bant + güvenli alan + admin ek boşluk)
+//                 + admin "oyun ekranı ek payı"
+//
+// İki iş yapılır ve BİRBİRİNİ ETKİLEMEZ (bilerek: biri diğerinin varlığına göre
+// karar verseydi, arena reveal tablosu kabuğu bir anlığına söküp taktığında
+// hesap bayatlar ve boşluk ya iki kez sayılır ya hiç kalmazdı):
+//
+//   1) GÖVDE — oyun yolundayken alt dolgu = oyun payı. Akışta biten HER şeyi
+//      kapsar (1v1, günün kelimesi, maraton bölümü, arena sonuç/tablo ekranları,
+//      misafir kartları…): kaydırılan içerik bandın ARKASINDA değil ÜSTÜNDE biter.
+//
+//   2) EKRAN YÜKSEKLİĞİNE KİLİTLİ KABUKLAR (.kt-game-fill) — min-height 100vh
+//      yerine calc(100vh - pay). Dipteki şerit (arena oyuncu barı) tam bandın
+//      üstüne oturur. Kabuk sayfayı UZATMADIĞI için (1) ile toplanmaz: kabuk
+//      100vh - pay, gövde dolgusu pay → toplam yine tam 100vh.
+//
+// Bant yokken (reklamsız hesap / banner kapalı / no fill) pay 0'dır: kabuklar
+// calc(100vh - 0px) = 100vh'ye döner, gövdenin satır içi dolgusu tamamen SİLİNİR
+// (oyun dışı sayfalarda globals.css yeniden devralsın) — düzen web'dekiyle birebir
+// aynı, geride boşluk kalmaz.
+function gameExtraPx(): number {
+  return consoleGameExtra !== null ? consoleGameExtra : adminGameExtra;
+}
+
+function applyGameSpace() {
+  try {
+    const active = bannerHeightPx > 0 && pathMatches(currentPath, GAME_PATHS);
+    const space = active ? Math.max(0, Math.round(navLiftPx + gameExtraPx())) : 0;
+
+    document.documentElement.style.setProperty(GAME_SPACE_VAR, `${space}px`);
+    document.body.classList.toggle(GAME_SCREEN_CLASS, active);
+
+    // 1) Gövde rezervi. Oyun ekranında değilsek satır içi dolgu KALDIRILIR ki
+    //    globals.css'teki genel kural (--kt-banner-space) yeniden devralsın.
+    if (active) document.body.style.setProperty("padding-bottom", `${space}px`, "important");
+    else document.body.style.removeProperty("padding-bottom");
+
+    // 2) Kabuklar. Pay 0 olsa bile SİLİNMEZ, 0px'li hâli yazılır: min-height'ı
+    //    React de yönetiyor (calc + değişken), removeProperty onu da götürürdü.
+    const fills = document.querySelectorAll<HTMLElement>(GAME_FILL_SELECTOR);
+    fills.forEach((el) => el.style.setProperty("min-height", `calc(100vh - ${space}px)`, "important"));
+
+    gameSpacePx = space;
+    gameShellCount = fills.length;
   } catch {}
 }
 
@@ -315,7 +419,8 @@ function logBannerLayout(m: NavMetrics) {
       `nav computed bottom:${m.navComputedBottom} rect payı:${rectAlt} ` +
       `${m.navPresent ? okStr(rectAlt, navLiftPx) : "(bar yok)"} | ` +
       `şerit:${fillH}/${navLiftPx} ${okStr(fillH, navLiftPx)} | ` +
-      `rezerv:${m.space} | navH:${m.navHeight} innerH:${m.innerHeight}`,
+      `rezerv:${m.space} | oyun payı:${gameSpacePx} (ek:${gameExtraPx()}) ` +
+      `kabuk:${gameShellCount} | navH:${m.navHeight} innerH:${m.innerHeight}`,
     );
     if (m.navPresent && Math.abs(rectAlt - navLiftPx) > 1) dumpBottomFixed();
   } catch {}
@@ -423,7 +528,7 @@ function syncBannerFill() {
 }
 
 /** "/arena" kaydı "/arena" ve "/arena/ozel/ABC" ile eşleşir, "/arenax" ile eşleşmez. */
-function pathHidden(pathname: string, list: string[]): boolean {
+function pathMatches(pathname: string, list: string[]): boolean {
   const p = (pathname || "/").split("?")[0];
   return list.some((raw) => {
     const item = (raw || "").trim();
@@ -461,7 +566,7 @@ function applyBannerForPath(): Promise<void> {
     return Promise.resolve();
   }
   // Reklamsız hesapta yol ne olursa olsun bant kapalı.
-  const shouldHide = adFreeActive || pathHidden(currentPath, ctl.hiddenPaths);
+  const shouldHide = adFreeActive || pathMatches(currentPath, ctl.hiddenPaths);
   bannerQueue = bannerQueue
     .then(() => (shouldHide ? ctl.hide() : ctl.show()))
     .catch(() => {});
@@ -842,6 +947,9 @@ async function setupAdMob(platform: Platform) {
     // Yalnızca navLift'i belirler (bkz. computeNavLift).
     adminLiftExtra = Number(admob.banner_margin_extra) || 0;
     adminLiftOverride = Number(admob.banner_margin_override) || 0;
+    // Oyun ekranlarındaki dip elemanlara (arena oyuncu şeridi vb.) EKLENEN pay.
+    // Alt barı etkilemez — bkz. applyGameSpace.
+    adminGameExtra = Number(admob.banner_game_offset_extra) || 0;
 
     // --- yükseklik: TAHMİN YOK, eklentinin bildirdiği gerçek ölçü kullanılır ---
     // SizeChanged (Android: bannerViewChangeSize, iOS: bannerViewDidReceiveAd
@@ -918,15 +1026,22 @@ async function setupAdMob(platform: Platform) {
      * Cihazda deneme kancası (chrome://inspect konsolu):
      *   __ktBanner.lift(220)  -> alt barı 220 px'e kaldır (ANINDA görünür)
      *   __ktBanner.lift()     -> konsol denemesini bırak, admin ayarına dön
+     *   __ktBanner.game(24)   -> oyun ekranı ek payını 24 px dene (ANINDA görünür)
+     *   __ktBanner.game()     -> konsol denemesini bırak, admin ayarına dön
      *   __ktBanner.retry()    -> bandı sıfırdan kur (margin her zaman 0)
      *   __ktBanner.info()     -> o anki tek satır ölçüm dökümü
-     * Beğendiğin sayıyı /yonetim → Mobil & Reklam → "Alt bar kaldırma — sabit
-     * değer" alanına yazınca kalıcı olur.
+     * Beğendiğin sayıları /yonetim → Mobil & Reklam → "Alt bar kaldırma — sabit
+     * değer" / "Oyun ekranı — ek pay" alanlarına yazınca kalıcı olur.
      */
     (window as any).__ktBanner = {
       /** Barın yüksekliğini anında dener — bant yeniden yüklenmez. */
       lift(px?: number) {
         consoleLift = typeof px === "number" ? px : null;
+        applyBannerSpace();
+      },
+      /** Oyun ekranındaki dip elemanların ek payını anında dener. */
+      game(px?: number) {
+        consoleGameExtra = typeof px === "number" ? px : null;
         applyBannerSpace();
       },
       async retry() {

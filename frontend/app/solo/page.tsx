@@ -80,7 +80,12 @@ export default function SoloPage() {
   const levels = Array.from({ length: shownCount }, (_, i) => i + 1);
 
   return (
-    <div style={{ position: "relative", minHeight: "100vh" }}>
+    // kt-game-fill: uygulamada alt reklam bandı varken harita 100vh'nin dibine
+    // kadar iniyordu ve dipteki içerik bandın altında kalıyordu (bkz.
+    // NativeBootstrap → applyGameSpace). Tarayıcıda --kt-game-space 0px -> düzen aynı.
+    <div className="kt-game-fill" style={{
+      position: "relative", minHeight: "calc(100vh - var(--kt-game-space, 0px))",
+    }}>
       {/* Üst bar */}
       <div style={{
         position: "sticky", top: 0, zIndex: 10, display: "flex", alignItems: "center",

@@ -38,6 +38,11 @@ export type AdMobConfig = {
   banner_margin_extra?: number;
   /** 0'dan büyükse navLift hesabı yok sayılır, alt bar tam bu yüksekliğe konur. */
   banner_margin_override?: number;
+  /**
+   * OYUN ekranlarında (arena, 1v1, özel oda, maraton, günün kelimesi) dipteki
+   * elemanların bandın üstüne çekilme payına EKLENEN px. Alt barı etkilemez.
+   */
+  banner_game_offset_extra?: number;
   /** Geçiş reklamı: her kaç TAMAMLANMIŞ maçta bir gösterilsin (0 = kapalı). */
   interstitial_every_n_matches?: number;
   /** İki geçiş reklamı arasında en az kaç saniye geçmeli. */

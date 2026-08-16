@@ -480,7 +480,16 @@ function ArenaShell({ children, onExit, players, answers, showResults, fillTo }:
   // Bekleme ekranında bar sabit genişlikte kalsın diye boş slotları placeholder ile doldur.
   const emptyCount = fillTo ? Math.max(0, fillTo - players.length) : 0;
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", maxWidth: 520, margin: "0 auto" }}>
+    // kt-game-fill: kabuk ekran yüksekliğine kilitli olduğu için dipteki oyuncu
+    // şeridi uygulamada alt reklam bandının ALTINDA kalıyordu. Yükseklikten
+    // --kt-game-space (bant + güvenli alan + admin ek payı) düşülür → şerit tam
+    // bandın üstüne oturur. NativeBootstrap aynı değeri ayrıca satır içi
+    // !important olarak da yazar (alt barla birebir aynı yöntem).
+    // TARAYICIDA değişken 0px -> calc(100vh - 0px), yani hiçbir şey değişmez.
+    <div className="kt-game-fill" style={{
+      minHeight: "calc(100vh - var(--kt-game-space, 0px))",
+      display: "flex", flexDirection: "column", maxWidth: 520, margin: "0 auto",
+    }}>
       <div style={{ padding: "12px 16px" }}>
         <button onClick={onExit} style={{ background: "var(--bg-panel)", border: "1px solid var(--border-soft)", borderRadius: "50%", width: 36, height: 36, cursor: "pointer", fontSize: 18, color: "var(--text-strong)" }}>←</button>
       </div>

@@ -2000,7 +2000,9 @@ const MOBILE_FIELDS: Record<string, MobileField[]> = {
       path: "banner_hidden_paths",
       label: "Banner'ın GİZLENECEĞİ sayfalar (her satıra bir yol)",
       type: "lines",
-      hint: "/oyna\n/arena\n/solo\n/gunun-kelimesi\n/oda",
+      hint: "VARSAYILAN BOŞ: oyun ekranlarında bant artık gizlenmiyor, dipteki "
+        + "elemanlar (ör. arena oyuncu şeridi) bandın üstüne çekiliyor. Yine de "
+        + "gizlemek istediğin sayfa olursa yolunu buraya yaz (örn. /arena)",
     },
     {
       path: "banner_margin_extra",
@@ -2013,6 +2015,15 @@ const MOBILE_FIELDS: Record<string, MobileField[]> = {
       label: "Alt bar kaldırma — sabit değer (px)",
       type: "number",
       hint: "0 = kapalı. 0'dan büyükse hesaplama YOK SAYILIR, alt bar tam bu yüksekliğe konur",
+    },
+    {
+      path: "banner_game_offset_extra",
+      label: "Oyun ekranı — ek pay (px)",
+      type: "number",
+      hint: "Oyun ekranlarında (arena, 1v1, özel oda, maraton, günün kelimesi) alt bar "
+        + "yoktur; banda değen şey sayfanın kendi dip elemanlarıdır (ör. arena oyuncu "
+        + "şeridi). Bunlar bant + güvenli alan kadar yukarı çekilir; bu değer O PAYA "
+        + "eklenir. 0 = dokunma, eksi değer aşağı indirir. Alt barı ETKİLEMEZ",
     },
     {
       path: "interstitial_every_n_matches",
@@ -2231,7 +2242,10 @@ function Mobile() {
         • AdMob&apos;da <b>Test modu</b> açıkken gerçek reklam gösterilmez.<br />
         • Banner ile geçiş reklamı ayrı anahtarlarda: banner&apos;ı kapatmak geçiş reklamını etkilemez.<br />
         • <b>Gizlenecek sayfalar</b>: her satıra bir yol. Alt yollar da kapsanır
-        (<span className="brand-mono">/arena</span> yazmak <span className="brand-mono">/arena/ozel/ABC</span>&apos;yi de kapsar).<br />
+        (<span className="brand-mono">/arena</span> yazmak <span className="brand-mono">/arena/ozel/ABC</span>&apos;yi de kapsar).
+        Liste artık <b>varsayılan olarak boştur</b>: oyun ekranlarında bant gizlenmiyor,
+        onun yerine dipteki elemanlar (ör. arena oyuncu şeridi) bandın üstüne çekiliyor.
+        İnce ayarı <b>Oyun ekranı — ek pay</b> alanından yaparsın.<br />
         • <b>🎤 Mikrofon (sesli tahmin)</b> kartı: iki kutu birbirine bağlıdır —
         uygulamayı açmak web&apos;i de açar, web&apos;i kapatmak uygulamayı da kapatır.
         Geçerli durumlar: <b>ikisi kapalı</b>, <b>yalnız web</b>, <b>ikisi açık</b>;
@@ -2319,6 +2333,11 @@ function Mobile() {
                     }}
                     style={{ ...seoInput, maxWidth: 200 }}
                   />
+                  {/* Sayı alanlarında ipucu AYRI SATIR: placeholder yalnız kutu
+                      boşken görünür, bu alanların değeri ise (0 dahil) hep dolu. */}
+                  {f.hint && (
+                    <span style={{ fontSize: 11, color: "var(--text-dim)", lineHeight: 1.6 }}>{f.hint}</span>
+                  )}
                 </div>
               );
             }

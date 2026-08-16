@@ -27,6 +27,15 @@
      Değeri NativeBootstrap yazar; bant yokken ve tarayıcıda 0px kalır. */
   --kt-banner-space: 0px;
 
+  /* OYUN EKRANLARINDA (arena, 1v1, özel oda, maraton, günün kelimesi) dipteki
+     elemanların bandın üstüne çekilme payı =
+       alt bar kaldırma (bant + güvenli alan)  +  admin "oyun ekranı ek payı".
+     Alt bar bu ekranlarda basılmadığı için ayrı bir değişken: banda değen tek şey
+     sayfanın kendi dip elemanları (ör. arena oyuncu şeridi).
+     Değeri NativeBootstrap yazar; bant yokken, oyun dışı sayfada ve TARAYICIDA
+     0px kalır — yani web düzeni hiç etkilenmez. */
+  --kt-game-space: 0px;
+
   /* Arena paleti — derin gece zemini + amber enerji + grid renkleri */
   --bg-deep: #0e0b1e;          /* en derin zemin */
   --bg-panel: #171331;         /* panel/kart zemini */
@@ -275,6 +284,17 @@ body.has-native-banner { --kt-nav-safe-bottom: 0px; }
    Bant yokken sınıf da değişken de devrede olmadığı için web düzeni değişmez. */
 body.has-native-banner .kt-bottom-nav-spacer { height: var(--kt-banner-space, 0px); }
 body.has-native-banner:not(.has-bottom-nav) { padding-bottom: var(--kt-banner-space, 0px); }
+
+/* OYUN EKRANLARI (/oyna /arena /solo /gunun-kelimesi /oda) — bant burada da
+   GÖRÜNÜR (artık gizlenmiyor), dolayısıyla dipteki her şeyin onun üstüne çekilmesi
+   gerekir. Alt barla aynı mantık: asıl uygulama JS'ten, elemanın KENDİ satır içi
+   stiline `!important` ile yazılır (NativeBootstrap → applyGameSpace); aşağıdaki
+   kural yalnızca YEDEKtir. Bu ekranlarda alt bar basılmaz, yani rezerv gövdeye
+   yazılır ve --kt-banner-space yerine oyun payı (ek pay dahil) kullanılır.
+   Ekran yüksekliğine kilitli kabuklar (.kt-game-fill) kendi min-height'ından aynı
+   payı düşer — sayfayı uzatmadıkları için bu iki rezerv toplanmaz.
+   Tarayıcıda sınıf hiç eklenmez, değişken 0px kalır. */
+body.has-native-banner.kt-game-screen:not(.has-bottom-nav) { padding-bottom: var(--kt-game-space, 0px); }
 
 /* Çerez bandı: mobilde alt navigasyonun (76px) üstünde dursun; bant varsa
    onun da üstüne çıksın (max: iki koşuldan hangisi yüksekse). */

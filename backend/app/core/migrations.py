@@ -26,7 +26,6 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.routes.app_settings import (
-    DEFAULT_BANNER_HIDDEN_PATHS,
     DEFAULT_INTERSTITIAL_RULES,
     MIC_NOTICE_TEXT,
 )
@@ -39,15 +38,25 @@ _TRUE = "TRUE" if _IS_PG else "1"
 _FALSE = "FALSE" if _IS_PG else "0"
 
 # ads.admob satırına sonradan eklenen anahtarlar (bkz. migration 6).
-# Yollar app_settings.py'deki tek kaynaktan gelir; JSON metnine gömülür.
+# DİKKAT: yol listesi burada DONDURULMUŞTUR, app_settings.py'den GELMEZ. Migration
+# geçmişi sabittir: (6) o gün hangi listeyi yazdıysa onu yazmalı. Bugünkü varsayılan
+# boş liste (bkz. migration 12) ve bu ikisi birbirini ezmemeli.
+_LEGACY_BANNER_HIDDEN_PATHS = ["/oyna", "/arena", "/solo", "/gunun-kelimesi", "/oda"]
+
 _ADMOB_NEW_KEYS_JSON = json.dumps(
     {
         "banner_enabled": True,
         "interstitial_enabled": True,
-        "banner_hidden_paths": DEFAULT_BANNER_HIDDEN_PATHS,
+        "banner_hidden_paths": _LEGACY_BANNER_HIDDEN_PATHS,
     },
     ensure_ascii=True,   # tek tırnaklı SQL literali içine güvenle gömülsün
 )
+
+# Oyun ekranı payı — sonradan eklenen anahtar (bkz. migration 12).
+_ADMOB_GAME_OFFSET_JSON = json.dumps({"banner_game_offset_extra": 0}, ensure_ascii=True)
+
+# Banner artık oyun ekranlarında GİZLENMİYOR (bkz. migration 12) — liste boşaltılır.
+_ADMOB_EMPTY_HIDDEN_JSON = json.dumps({"banner_hidden_paths": []}, ensure_ascii=True)
 
 # Bant konumu ince ayarı — sonradan eklenen anahtarlar (bkz. migration 7).
 _ADMOB_MARGIN_KEYS_JSON = json.dumps(
@@ -348,6 +357,35 @@ DATA_MIGRATIONS: list[tuple[str, list[str]]] = [
             f"SET value = json_patch('{_MIC_NOTICE_KEYS_JSON}', value), "
             "    updated_at = CURRENT_TIMESTAMP "
             "WHERE key = 'app.mic'"
+        ),
+    ]),
+
+    # 12) Bant oyun ekranlarında ARTIK GİZLENMİYOR (gerçek cihaz denemesi sonrası
+    #     yaklaşım değişikliği). İki iş yapılır:
+    #       a) banner_game_offset_extra anahtarı eklenir (yoksa) — oyun ekranındaki
+    #          dip elemanların bandın üstüne çekilme payına eklenen ince ayar,
+    #       b) banner_hidden_paths BOŞALTILIR.
+    #
+    #     (b) BİLEREK koşulsuzdur ve öncekilerin aksine mevcut değeri EZER: değişikliğin
+    #     tamamı zaten "bu liste artık dolu olmasın" demek. Admin isterse panelden
+    #     tek tek yol ekleyip yine gizleyebilir; migration bir kez çalışır, bir daha
+    #     o listeye dokunmaz.
+    #
+    #     Sıra: önce yeni anahtar birleştirilir (varsayılan SOLDA -> adminin girdiği
+    #     değer korunur), sonra yol listesi üstüne yazılır.
+    ("2026_08_admob_game_offset", [
+        (
+            "UPDATE app_settings "
+            f"SET value = ('{_ADMOB_GAME_OFFSET_JSON}'::jsonb || value) "
+            f"          || '{_ADMOB_EMPTY_HIDDEN_JSON}'::jsonb, "
+            "    updated_at = now() "
+            "WHERE key = 'ads.admob'"
+            if _IS_PG else
+            "UPDATE app_settings "
+            f"SET value = json_patch(json_patch('{_ADMOB_GAME_OFFSET_JSON}', value), "
+            f"                       '{_ADMOB_EMPTY_HIDDEN_JSON}'), "
+            "    updated_at = CURRENT_TIMESTAMP "
+            "WHERE key = 'ads.admob'"
         ),
     ]),
 ]
