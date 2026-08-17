@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 import Logo from "@/components/Logo";
 import PageBody from "@/components/PageBody";
-import ContactForm from "@/components/ContactForm";
+import SupportForm from "@/components/SupportForm";
 import { fetchPageContent } from "@/lib/pageContent";
 import { pageMetadata } from "@/lib/seo";
 
@@ -31,7 +31,7 @@ export default async function IletisimPage() {
         <PageBody body={page.body} />
       </div>
 
-      <ContactForm />
+      <SupportForm />
 
       <div style={{ marginTop: 40, paddingTop: 20, borderTop: "1px solid var(--border-soft)" }}>
         <a href="/" style={{ color: "var(--accent)", fontWeight: 600 }}>← Ana sayfaya dön</a>

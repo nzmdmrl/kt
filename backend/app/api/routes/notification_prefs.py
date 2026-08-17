@@ -166,6 +166,9 @@ DEFAULT_TYPES: list[tuple[str, str, str, str, bool, str, str, int, bool]] = [
     ("challenge_offer", "game", "Maç teklifleri",
      "Bir arkadaşın sana doğrudan 1v1 maç teklifi gönderdiğinde.",
      True, "game", "/", 30, True),
+    ("support_reply", "system", "Destek yanıtları",
+     "Açtığın destek talebine ekibimiz yanıt verdiğinde.",
+     True, "system", "/destek/{ticket}", 10, True),
 
     # --- PASİF (planlanan; bugün üretilmiyor, ayar sayfasında GÖRÜNMEZ) ---
     ("match_result", "game", "Maç sonuçları",

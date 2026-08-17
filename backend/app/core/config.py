@@ -42,24 +42,6 @@ class Settings:
     RECAPTCHA_SITE_KEY: str = os.getenv("RECAPTCHA_SITE_KEY", "")
     RECAPTCHA_SECRET: str = os.getenv("RECAPTCHA_SECRET", "")
 
-    # --- E-posta (iletişim formu) ---
-    # SMTP bilgileri Coolify'dan girilir. BOŞSA form yine çalışır: mesaj
-    # veritabanına yazılır ve admin panelinden (📬 İletişim) okunur; sadece
-    # e-posta gönderilmez.
-    SMTP_HOST: str = os.getenv("SMTP_HOST", "")
-    SMTP_PORT: int = int(os.getenv("SMTP_PORT", "587") or 587)
-    SMTP_USER: str = os.getenv("SMTP_USER", "")
-    SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD", "")
-    SMTP_TLS: bool = (os.getenv("SMTP_TLS", "true").lower() != "false")
-    # Gönderen adresi (boşsa SMTP_USER kullanılır).
-    SMTP_FROM: str = os.getenv("SMTP_FROM", "")
-    # İletişim formunun ULAŞACAĞI adres.
-    CONTACT_EMAIL: str = os.getenv("CONTACT_EMAIL", "destek@kelimetahmin.com")
-
-    @property
-    def smtp_configured(self) -> bool:
-        return bool(self.SMTP_HOST and (self.SMTP_FROM or self.SMTP_USER))
-
     # --- JWT (Faz 3) ---
     JWT_SECRET: str = os.getenv("JWT_SECRET", "degistir-beni-guclu-bir-secret-ile")
     JWT_ALGORITHM: str = "HS256"

@@ -5,20 +5,23 @@ import { apiUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
 /**
- * İletişim formu — mesaj destek adresine iletilir (POST /api/contact).
- * Üye girişi ŞART DEĞİL; giriş yapılmışsa ad/e-posta hazır gelir.
+ * Destek talebi formu — e-posta göndermez, DESTEK BİLETİ açar.
+ *
+ * Üye açtığında yazışma "Destek Taleplerim" (/destek) altında sürer: ekip
+ * yanıtlayınca bildirim gelir, üye bileti açıp okur ve tekrar yazabilir.
+ * Misafir de bilet açabilir (ad + e-posta ister) ama yanıtı uygulama içinden
+ * okuyamaz — bu yüzden giriş yapması önerilir.
  */
-export default function ContactForm() {
+export default function SupportForm() {
   const { user } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
-  const [done, setDone] = useState(false);
+  const [done, setDone] = useState<{ id: number; linked: boolean } | null>(null);
   const [err, setErr] = useState("");
 
-  // Giriş yapmış kullanıcıda alanları önden doldur (kullanıcı değiştirebilir).
   useEffect(() => {
     if (!user) return;
     setName((v) => v || user.display_name || "");
@@ -32,7 +35,7 @@ export default function ContactForm() {
     setBusy(true);
     try {
       const token = typeof window !== "undefined" ? localStorage.getItem("kt_token") : null;
-      const r = await fetch(apiUrl("/api/contact"), {
+      const r = await fetch(apiUrl("/api/support/tickets"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -40,12 +43,12 @@ export default function ContactForm() {
         },
         body: JSON.stringify({ name, email, subject, message }),
       });
+      const d = await r.json().catch(() => null);
       if (r.ok) {
-        setDone(true);
+        setDone({ id: d?.id ?? 0, linked: !!d?.linked });
         setSubject(""); setMessage("");
       } else {
-        const d = await r.json().catch(() => null);
-        setErr(d?.detail || "Mesaj gönderilemedi. Lütfen tekrar dene.");
+        setErr(d?.detail || "Destek talebi oluşturulamadı. Lütfen tekrar dene.");
       }
     } catch {
       setErr("Sunucuya ulaşılamadı. Lütfen tekrar dene.");
@@ -60,16 +63,28 @@ export default function ContactForm() {
         background: "var(--bg-panel)", border: "1px solid var(--tile-correct)",
         borderRadius: 14, padding: 24, textAlign: "center",
       }}>
-        <div style={{ fontSize: 40, marginBottom: 8 }}>✅</div>
-        <h2 className="brand-mono" style={{ fontSize: 20, margin: "0 0 8px" }}>Mesajın bize ulaştı</h2>
-        <p style={{ color: "var(--text-soft)", fontSize: 14.5, lineHeight: 1.6, margin: 0 }}>
-          En kısa sürede yanıtlayacağız. Yanıtı yazdığın e-posta adresine göndereceğiz.
+        <div style={{ fontSize: 40, marginBottom: 8 }}>🎫</div>
+        <h2 className="brand-mono" style={{ fontSize: 20, margin: "0 0 8px" }}>
+          Destek talebin oluşturuldu {done.id ? `(#${done.id})` : ""}
+        </h2>
+        <p style={{ color: "var(--text-soft)", fontSize: 14.5, lineHeight: 1.7, margin: 0 }}>
+          {done.linked
+            ? "Ekibimiz yanıtladığında bildirim göndereceğiz. Yanıtı “Destek Taleplerim” sayfasından okuyup tekrar yazabilirsin."
+            : "Talebini aldık. Yanıtı uygulama içinden okuyabilmen için üye girişi yapman gerekir; giriş yaparak açacağın talepler hesabına bağlanır."}
         </p>
-        <button onClick={() => setDone(false)} style={{
-          marginTop: 16, padding: "11px 20px", borderRadius: 10, cursor: "pointer",
-          border: "1px solid var(--border-soft)", background: "var(--bg-elevated)",
-          color: "var(--text-soft)", fontWeight: 600, fontSize: 14,
-        }}>Yeni mesaj yaz</button>
+        <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 16, flexWrap: "wrap" }}>
+          {done.linked && (
+            <a href="/destek" style={{
+              padding: "12px 20px", borderRadius: 10, textDecoration: "none",
+              background: "var(--accent)", color: "#1a1330", fontWeight: 700, fontSize: 14,
+            }}>Destek Taleplerim</a>
+          )}
+          <button onClick={() => setDone(null)} style={{
+            padding: "12px 20px", borderRadius: 10, cursor: "pointer",
+            border: "1px solid var(--border-soft)", background: "var(--bg-elevated)",
+            color: "var(--text-soft)", fontWeight: 600, fontSize: 14,
+          }}>Yeni talep aç</button>
+        </div>
       </div>
     );
   }
@@ -80,6 +95,26 @@ export default function ContactForm() {
       background: "var(--bg-panel)", border: "1px solid var(--border-soft)",
       borderRadius: 14, padding: 18,
     }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+        <h2 className="brand-mono" style={{ fontSize: 18, margin: 0 }}>🎫 Destek talebi aç</h2>
+        {user && (
+          <a href="/destek" style={{ marginLeft: "auto", fontSize: 13.5, color: "var(--accent)", fontWeight: 600 }}>
+            Destek Taleplerim →
+          </a>
+        )}
+      </div>
+
+      {!user && (
+        <p style={{
+          margin: 0, fontSize: 13, color: "var(--text-soft)", lineHeight: 1.6,
+          background: "var(--bg-elevated)", border: "1px solid var(--border-soft)",
+          borderRadius: 10, padding: "10px 12px",
+        }}>
+          <a href="/giris" style={{ color: "var(--accent)", fontWeight: 700 }}>Giriş yaparsan</a> yanıtı
+          uygulama içinden okuyabilir ve yazışmayı sürdürebilirsin.
+        </p>
+      )}
+
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 }}>
         <label style={labelStyle}>
           Adın
@@ -89,14 +124,14 @@ export default function ContactForm() {
         <label style={labelStyle}>
           E-posta adresin
           <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} maxLength={160}
-            placeholder="ornek@eposta.com" required style={inputStyle} />
+            placeholder="ornek@eposta.com" required={!user} style={inputStyle} />
         </label>
       </div>
 
       <label style={labelStyle}>
         Konu
         <input value={subject} onChange={(e) => setSubject(e.target.value)} maxLength={160}
-          placeholder="Kısaca konu" style={inputStyle} />
+          placeholder="Kısaca konu" required style={inputStyle} />
       </label>
 
       <label style={labelStyle}>
@@ -113,12 +148,7 @@ export default function ContactForm() {
         padding: "14px", borderRadius: 12, border: "none", cursor: busy ? "default" : "pointer",
         background: "var(--accent)", color: "#1a1330", fontWeight: 800, fontSize: 16,
         fontFamily: "var(--font-display)", opacity: busy ? 0.6 : 1,
-      }}>{busy ? "Gönderiliyor…" : "Mesajı Gönder"}</button>
-
-      <p style={{ fontSize: 12.5, color: "var(--text-dim)", margin: 0, lineHeight: 1.6 }}>
-        Formu gönderdiğinde adın, e-posta adresin ve mesajın destek ekibimize iletilir;
-        yalnızca talebini yanıtlamak için kullanılır.
-      </p>
+      }}>{busy ? "Gönderiliyor…" : "Talebi Gönder"}</button>
     </form>
   );
 }

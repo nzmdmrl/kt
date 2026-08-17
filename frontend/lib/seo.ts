@@ -99,6 +99,12 @@ const FALLBACK: Record<string, { title: string; description: string; path: strin
     path: "/iletisim",
     indexable: true,
   },
+  support: {
+    title: "Destek Taleplerim",
+    description: "Açtığın destek taleplerini görüntüle, ekibin yanıtlarını oku ve yazışmayı sürdür.",
+    path: "/destek",
+    indexable: false,
+  },
   profile: {
     title: "Oyuncu Profili",
     description: "Oyuncunun istatistikleri: maç sayısı, galibiyet oranı, puanı, unvanı, kupaları ve rozetleri.",

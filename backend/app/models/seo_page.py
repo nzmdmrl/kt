@@ -186,6 +186,16 @@ SEO_PAGES: list[dict] = [
         "keywords": "kelime tahmin iletişim, destek, bize ulaşın, öneri",
     },
     {
+        "key": "support",
+        "path": "/destek",
+        "label": "Destek Taleplerim (/destek)",
+        "indexable": False,
+        "priority": 0.2,
+        "title": "Destek Taleplerim",
+        "description": "Açtığın destek taleplerini görüntüle, ekibin yanıtlarını oku ve yazışmayı sürdür.",
+        "keywords": "",
+    },
+    {
         "key": "profile",
         "path": "/profil",
         "label": "Oyuncu Profili (/profil/...)",
