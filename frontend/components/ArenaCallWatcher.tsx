@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { apiUrl } from "@/lib/api";
 import { playSound } from "@/lib/sound";
+import { useArenaCallEnabled } from "@/lib/uiSettings";
 
 /**
  * "Arenaya davet" ANLIK popup'ı (bildirim değil — hiçbir yere kaydedilmez).
@@ -38,8 +39,10 @@ export default function ArenaCallWatcher() {
   const [left, setLeft] = useState(0);
   const callRef = useRef<typeof call>(null);
   useEffect(() => { callRef.current = call; }, [call]);
+  // Admin → ⚙️ Ayarlar → Arena → "Arenaya çağrı" kapalıysa hiç yoklanmaz.
+  const featureOn = useArenaCallEnabled();
 
-  const blocked = !pathname || BLOCKED.some((p) => pathname.startsWith(p));
+  const blocked = !featureOn || !pathname || BLOCKED.some((p) => pathname.startsWith(p));
 
   function token() { return typeof window !== "undefined" ? localStorage.getItem("kt_token") : null; }
 

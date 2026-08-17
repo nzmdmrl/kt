@@ -30,6 +30,7 @@ type Appearance = {
   match_name_max_len_desktop?: number;
   arena_gap_word_letters?: number;
   arena_gap_letters_input?: number;
+  arena_call_enabled?: boolean;
 };
 
 // Tüm public görünüm ayarları TEK istekte gelir; her tüketici aynı önbelleği kullanır.
@@ -51,6 +52,22 @@ function fetchNameMax(): Promise<NameMax> {
     mobile: typeof d.match_name_max_len === "number" ? d.match_name_max_len : FALLBACK.mobile,
     desktop: typeof d.match_name_max_len_desktop === "number" ? d.match_name_max_len_desktop : FALLBACK.desktop,
   }));
+}
+
+/**
+ * "Arenaya çağrı" (anlık davet popup'ı) açık mı — admin ayarı.
+ * Ayar gelene kadar `true` (varsayılan açık) kabul edilir.
+ */
+export function useArenaCallEnabled(): boolean {
+  const [on, setOn] = useState(true);
+  useEffect(() => {
+    let alive = true;
+    fetchAppearance().then((d) => {
+      if (alive && d.arena_call_enabled === false) setOn(false);
+    });
+    return () => { alive = false; };
+  }, []);
+  return on;
 }
 
 /** Arena oyun ekranındaki iki dikey boşluk (px) — admin panelden ayarlanır. */

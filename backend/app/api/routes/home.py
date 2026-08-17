@@ -36,6 +36,8 @@ async def appearance():
         # Arena oyun ekranı dikey boşlukları (px) — ArenaGame okur.
         "arena_gap_word_letters": cached_int("arena_gap_word_letters", 28),
         "arena_gap_letters_input": cached_int("arena_gap_letters_input", 24),
+        # Arenaya çağrı (anlık davet popup'ı) açık mı — kapalıysa istemci yoklamaz.
+        "arena_call_enabled": cached_bool("arena_call_enabled", True),
     }
 
 

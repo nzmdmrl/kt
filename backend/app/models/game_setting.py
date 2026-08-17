@@ -55,6 +55,8 @@ DEFAULT_SETTINGS = {
     "arena_bot_interval": {"value": "2", "label": "Arena bot katılım aralığı (sn)", "type": "int", "group": "Arena"},
     "arena_reveal_seconds": {"value": "4", "label": "Arena sonuç tablosu gösterim süresi (sn)", "type": "int", "group": "Arena"},
     "arena_feedback_seconds": {"value": "2", "label": "Arena cevap sonrası doğru/yanlış gösterim payı (sn)", "type": "int", "group": "Arena"},
+    # Biri arenaya girince o an boşta olan üyelere çıkan anlık davet popup'ı.
+    "arena_call_enabled": {"value": "true", "label": "Arenaya çağrı (anlık davet popup'ı)", "type": "bool", "group": "Arena"},
     # Oyun ekranı dikey boşlukları (px) — dar ekranlarda ince ayar için.
     "arena_gap_word_letters": {"value": "28", "label": "Arena: kelime kutuları ↔ karma harfler boşluğu (px)", "type": "int", "group": "Arena"},
     "arena_gap_letters_input": {"value": "24", "label": "Arena: karma harfler ↔ yazma satırı boşluğu (px)", "type": "int", "group": "Arena"},

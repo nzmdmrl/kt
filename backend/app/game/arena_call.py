@@ -45,9 +45,17 @@ _current: Optional[_Call] = None
 _last_ended_at: float = 0.0
 
 
+def enabled() -> bool:
+    """Admin → ⚙️ Ayarlar → Arena → "Arenaya çağrı" anahtarı (varsayılan açık)."""
+    from app.game.settings_service import cached_bool
+    return cached_bool("arena_call_enabled", True)
+
+
 def open_call(from_id: int, from_name: str, ttl: int) -> Optional[_Call]:
-    """Yeni çağrı aç. Aktif çağrı ya da bekleme süresi varsa hiçbir şey yapmaz."""
+    """Yeni çağrı aç. Kapalıysa, aktif çağrı ya da bekleme süresi varsa no-op."""
     global _current, _last_ended_at
+    if not enabled():
+        return None
     now = time.time()
     if _current is not None:
         if _current.alive():
@@ -68,6 +76,8 @@ def open_call(from_id: int, from_name: str, ttl: int) -> Optional[_Call]:
 def call_for(user_id: int) -> Optional[dict]:
     """Bu kullanıcıya gösterilecek aktif çağrı (yoksa None)."""
     global _current
+    if not enabled():
+        return None
     c = _current
     if c is None:
         return None
