@@ -126,6 +126,19 @@ function GoogleSignInNative({
         setErr("Cihazda Google hesabı bulunamadı. Telefon ayarlarından hesap ekleyip tekrar dene.");
         return;
       }
+      if (out.status === "reauth") {
+        // Cihazdaki Google hesabı yeniden doğrulama istiyor ("[16] Account
+        // reauth failed"). Uygulamada yapılabilecek bir şey yok; kullanıcının
+        // hesabı Google'a yeniden onaylatması gerekiyor. Bu yüzden genel mesaj
+        // yerine NE YAPACAĞINI anlatan bir metin gösteriliyor.
+        console.warn("[google-native] hesap yeniden doğrulama istiyor:", out.message);
+        setErr(
+          "Telefonundaki Google hesabının yeniden doğrulanması gerekiyor. " +
+            "Play Store'u açıp hesabını doğrula ya da Ayarlar → Hesaplar'dan " +
+            "hesabı kaldırıp yeniden ekle. Bu arada e-posta ve şifrenle giriş yapabilirsin.",
+        );
+        return;
+      }
       if (out.status === "error") {
         // Kullanıcıya genel mesaj, konsola EKLENTİNİN GERÇEK sebebi
         // (chrome://inspect ya da Logcat'te "[INFO:CONSOLE]" satırı).
@@ -182,7 +195,18 @@ function GoogleSignInNative({
         {busy ? "Giriş yapılıyor…" : NATIVE_LABEL[text]}
       </button>
       {err && (
-        <span style={{ fontSize: 13, color: "var(--accent-hot)", textAlign: "center" }}>{err}</span>
+        // Yeniden doğrulama metni birkaç cümle; dar satır aralığında okunmuyor.
+        <span
+          style={{
+            fontSize: 13,
+            color: "var(--accent-hot)",
+            textAlign: "center",
+            lineHeight: 1.5,
+            maxWidth: 320,
+          }}
+        >
+          {err}
+        </span>
       )}
     </div>
   );

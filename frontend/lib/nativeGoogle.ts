@@ -37,6 +37,12 @@ export type NativeGoogleOutcome =
   | { status: "cancelled" }
   /** Cihazda kullanılabilir Google hesabı yok / seçiciye hesap düşmedi. */
   | { status: "no-account" }
+  /**
+   * Cihazdaki Google hesabı YENİDEN DOĞRULAMA istiyor (kod 16 / "reauth").
+   * Uygulamayla ilgili bir kusur değil; kullanıcı hesabı Google'a yeniden
+   * onaylatana kadar native giriş çalışmaz.
+   */
+  | { status: "reauth"; message: string }
   /** message = EKLENTİNİN HAM mesajı (Türkçeleştirilmemiş) — konsola basılır. */
   | { status: "error"; message: string };
 
@@ -76,17 +82,50 @@ function claimSummary(idToken: string): string {
   }
 }
 
+/**
+ * Hata kodunu çıkarır.
+ *
+ * İki kaynağa da bakılır: Capacitor köprüsünün taşıdığı alan (`code`) ve
+ * eklentinin mesajın İÇİNE gömdüğü kalıp — gerçek örnek:
+ *   "Google Sign-In failed: [16] Account reauth failed."
+ */
+function errorCode(raw: unknown): string {
+  const e = raw as any;
+  const direct = e?.code ?? e?.errorCode ?? e?.status;
+  if (direct !== undefined && direct !== null && String(direct).trim()) {
+    return String(direct).trim();
+  }
+  const m = String(e?.message ?? e ?? "").match(/\[(\d+)\]/);
+  return m ? m[1] : "";
+}
+
 /** Eklentinin hata metninden kullanıcıya anlatılabilir bir durum çıkarır. */
 function classify(raw: unknown): NativeGoogleOutcome {
-  const text = String((raw as any)?.message ?? raw ?? "").toLowerCase();
+  const message = String((raw as any)?.message ?? raw ?? "");
+  const text = message.toLowerCase();
+  const code = errorCode(raw);
+
   // Kullanıcı seçiciyi kapattı (Android: "activity is cancelled by the user",
   // iOS: "the user canceled the sign in flow").
+  //
+  // SIRA ÖNEMLİ — bu kontrol 16 kontrolünden ÖNCE olmalı: Play Services'te
+  // CommonStatusCodes.CANCELED da 16'dır. Yani 16 tek başına "reauth" demek
+  // değil; mesajında "cancel" geçen bir 16, iptaldir ve burada yakalanır.
   if (text.includes("cancel")) return { status: "cancelled" };
+
   // Cihazda hesap yok / Credential Manager hiçbir kimlik döndüremedi.
   if (text.includes("nocredential") || text.includes("no credential")) {
     return { status: "no-account" };
   }
-  return { status: "error", message: String((raw as any)?.message || raw || "") };
+
+  // Cihazdaki Google hesabı yeniden doğrulama istiyor:
+  //   "Google Sign-In failed: [16] Account reauth failed."
+  // Kodumuzla ilgisi yok — hesabın kendisi Google'a yeniden onaylatılmalı.
+  if (text.includes("reauth") || code === "16") {
+    return { status: "reauth", message };
+  }
+
+  return { status: "error", message };
 }
 
 /**
