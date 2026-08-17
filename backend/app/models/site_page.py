@@ -135,6 +135,29 @@ Kısa kopmalarda oyuna geri dönebilirsin. Maçı sürekli terk edersen kısa s�
 eşleşme engeli uygulanır — rakipleri yarı yolda bırakmamak için.
 """
 
+CONTACT_BODY = """\
+Sorun, öneri, iş birliği ya da sadece "merhaba" demek için aşağıdaki formu
+doldurabilirsin. Mesajın doğrudan destek ekibimize ulaşır; genellikle **1-2 iş
+günü** içinde yanıt veriyoruz.
+
+## Nelerde yardımcı olabiliriz?
+
+- **Hesap sorunları** — giriş yapamama, şifre, kullanıcı adı veya profil fotoğrafı.
+- **Oyun içi sorunlar** — kabul edilmeyen kelime, puan/rozet hatası, bağlantı kopması.
+- **Öneri ve fikirler** — yeni mod, yeni özellik, arayüz önerileri.
+- **İş birliği ve reklam** — sponsorluk ve tanıtım talepleri.
+
+## Yazmadan önce
+
+Sorunun oyunun nasıl oynandığıyla ilgiliyse [Nasıl Oynanır](/nasil-oynanir)
+sayfasına göz atmak en hızlı yol olabilir. Bir hatayı bildiriyorsan hangi modda
+(1v1, Arena, Maraton, Günün Kelimesi) ve ne zaman yaşadığını yazman çözümü
+epeyce hızlandırır.
+
+Kişisel verilerinin nasıl işlendiğini [Gizlilik & KVKK](/gizlilik) sayfasında
+bulabilirsin.
+"""
+
 # Panelde listelenen düzenlenebilir sayfalar.
 DEFAULT_PAGES = [
     {
@@ -150,6 +173,13 @@ DEFAULT_PAGES = [
         "path": "/nasil-oynanir",
         "title": "Nasıl Oynanır?",
         "body": HOW_BODY,
+    },
+    {
+        "key": "iletisim",
+        "label": "İletişim",
+        "path": "/iletisim",
+        "title": "İletişim",
+        "body": CONTACT_BODY,
     },
 ]
 

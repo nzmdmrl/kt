@@ -4,14 +4,16 @@ import { COMPANY } from "@/lib/legal";
 
 // Site altbilgisi — tüm sayfalarda görünür, yasal ve tanıtım linkleri.
 export default function Footer() {
+  // Sıra: tanıtım → yasal → üye ara → iletişim (en sonda).
   const links = [
-    { href: "/uye-ara", label: "Üye Ara" },
     { href: "/hakkimizda", label: "Hakkımızda" },
     { href: "/nasil-oynanir", label: "Nasıl Oynanır" },
     { href: "/duyurular", label: "Haberler" },
     { href: "/gizlilik", label: "Gizlilik & KVKK" },
     { href: "/kosullar", label: "Kullanım Koşulları" },
     { href: "/cerez", label: "Çerez Politikası" },
+    { href: "/uye-ara", label: "Üye Ara" },
+    { href: "/iletisim", label: "İletişim" },
   ];
   return (
     <footer

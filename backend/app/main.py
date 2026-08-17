@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
 from app.core.database import init_models
-from app.api.routes import health, words, room, match, auth, matchmaking, league, profile, daily, admin, sounds, notifications, home, account, presence, challenge, solo, arena, friends, music, seo, app_settings, notification_prefs, announcements, devices, pages, share_texts, home_buttons, moderation
+from app.api.routes import health, words, room, match, auth, matchmaking, league, profile, daily, admin, sounds, notifications, home, account, presence, challenge, solo, arena, friends, music, seo, app_settings, notification_prefs, announcements, devices, pages, share_texts, home_buttons, moderation, contact
 
 settings = get_settings()
 
@@ -76,6 +76,7 @@ app.include_router(notification_prefs.router, prefix="/api")  # bildirim turu ka
 app.include_router(announcements.router, prefix="/api")  # duyurular (public liste + admin CRUD/bildirim)
 app.include_router(devices.router, prefix="/api")  # push cihaz kayitlari + admin test gonderimi
 app.include_router(pages.router, prefix="/api")  # duzenlenebilir sayfa icerikleri (Hakkimizda, Nasil Oynanir)
+app.include_router(contact.router, prefix="/api")  # iletisim formu (destek e-postasi + admin kutusu)
 
 
 @app.on_event("startup")

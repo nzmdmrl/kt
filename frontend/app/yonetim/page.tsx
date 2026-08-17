@@ -30,6 +30,7 @@ const TABS = [
   { key: "notiftypes", label: "🔔 Bildirim Türleri" },
   { key: "announcements", label: "📢 Duyurular" },
   { key: "pages", label: "📄 Sayfalar" },
+  { key: "contact", label: "📬 İletişim" },
 ];
 
 export default function AdminPage() {
@@ -38,11 +39,17 @@ export default function AdminPage() {
   const [denied, setDenied] = useState(false);
   // Sekme rozetleri: bekleyen fotoğraf / ad sayısı.
   const [modCounts, setModCounts] = useState<{ avatars: number; names: number }>({ avatars: 0, names: 0 });
+  // İletişim kutusundaki okunmamış mesaj sayısı (sekme rozeti).
+  const [contactUnread, setContactUnread] = useState(0);
 
   function loadCounts() {
     fetch(apiUrl("/api/admin/moderation/counts"), { headers: authHeaders() })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => { if (d) setModCounts({ avatars: d.avatars || 0, names: d.names || 0 }); })
+      .catch(() => {});
+    fetch(apiUrl("/api/admin/contact?limit=1"), { headers: authHeaders() })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d) setContactUnread(d.unread || 0); })
       .catch(() => {});
   }
   useEffect(() => {
@@ -61,7 +68,7 @@ export default function AdminPage() {
       <h1 className="brand-mono" style={{ fontSize: 26, marginBottom: 16 }}>Yönetim Paneli</h1>
       <div style={{ display: "flex", gap: 6, marginBottom: 20, flexWrap: "wrap" }}>
         {TABS.map((t) => {
-          const badge = t.key === "photomod" ? modCounts.avatars : t.key === "namemod" ? modCounts.names : 0;
+          const badge = t.key === "photomod" ? modCounts.avatars : t.key === "namemod" ? modCounts.names : t.key === "contact" ? contactUnread : 0;
           return (
             <button key={t.key} onClick={() => setTab(t.key)} style={{
               padding: "10px 14px", borderRadius: 10, border: "none", cursor: "pointer",
@@ -101,6 +108,7 @@ export default function AdminPage() {
       {tab === "notiftypes" && <NotificationTypes />}
       {tab === "announcements" && <Announcements />}
       {tab === "pages" && <Pages />}
+      {tab === "contact" && <ContactBox onChanged={loadCounts} />}
     </Wrap>
   );
 }
@@ -166,6 +174,95 @@ function Dashboard({ onDenied }: { onDenied: () => void }) {
  * logo yalnızca yayındaki sayfada görünür, bu ekranda GÖSTERİLMEZ.
  * Sayfa başlığı/açıklaması (arama motoru) ayrı yerde: 🔍 SEO sekmesi.
  */
+/**
+ * 📬 İletişim — /iletisim formundan gelen mesajlar.
+ *
+ * Mesaj her zaman veritabanına yazılır; SMTP yapılandırılmışsa ayrıca destek
+ * adresine e-posta olarak da gider. SMTP yoksa burası TEK okuma yeridir.
+ */
+function ContactBox({ onChanged }: { onChanged: () => void }) {
+  const [data, setData] = useState<any>(null);
+  const [open, setOpen] = useState<number | null>(null);
+
+  function load() {
+    fetch(apiUrl("/api/admin/contact"), { headers: authHeaders() })
+      .then((r) => (r.ok ? r.json() : null))
+      .then(setData)
+      .catch(() => {});
+  }
+  useEffect(load, []);
+
+  async function markRead(id: number) {
+    await fetch(apiUrl(`/api/admin/contact/${id}/read`), { method: "POST", headers: authHeaders() });
+    load(); onChanged();
+  }
+  async function remove(id: number) {
+    if (!confirm("Bu mesaj silinsin mi?")) return;
+    await fetch(apiUrl(`/api/admin/contact/${id}`), { method: "DELETE", headers: authHeaders() });
+    load(); onChanged();
+  }
+
+  if (!data) return <p style={{ color: "var(--text-soft)" }}>Yükleniyor…</p>;
+  const list: any[] = data.messages || [];
+
+  return (
+    <div style={{ display: "grid", gap: 12 }}>
+      <div style={{
+        background: "var(--bg-panel)", border: "1px solid var(--border-soft)",
+        borderRadius: 12, padding: 14, fontSize: 13.5, color: "var(--text-soft)", lineHeight: 1.7,
+      }}>
+        Alıcı adres: <strong style={{ color: "var(--text-strong)" }}>{data.recipient}</strong>
+        <br />
+        {data.smtp_configured
+          ? "SMTP yapılandırılmış — mesajlar ayrıca e-posta olarak da gönderiliyor."
+          : "SMTP yapılandırılmamış: mesajlar e-posta olarak GÖNDERİLMİYOR, sadece burada birikiyor. Coolify'da SMTP_HOST / SMTP_USER / SMTP_PASSWORD girilince e-posta da gitmeye başlar."}
+        <br />
+        Sayfa metni: <strong style={{ color: "var(--text-strong)" }}>📄 Sayfalar → İletişim</strong>
+      </div>
+
+      {list.length === 0 && <p style={{ color: "var(--text-dim)" }}>Henüz mesaj yok.</p>}
+
+      {list.map((m) => (
+        <div key={m.id} style={{
+          background: "var(--bg-panel)", borderRadius: 12, padding: 14,
+          border: `1px solid ${m.is_read ? "var(--border-soft)" : "var(--accent)"}`,
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <strong style={{ color: "var(--text-strong)" }}>{m.subject || "(konusuz)"}</strong>
+            {!m.is_read && <span style={{ fontSize: 11, fontWeight: 800, color: "#1a1330", background: "var(--accent)", padding: "2px 8px", borderRadius: 20 }}>YENİ</span>}
+            {!m.mailed && <span style={{ fontSize: 11, color: "var(--accent-hot)" }}>e-posta gitmedi</span>}
+            <span style={{ marginLeft: "auto", fontSize: 12, color: "var(--text-dim)" }}>
+              {m.created_at ? new Date(m.created_at).toLocaleString("tr-TR") : ""}
+            </span>
+          </div>
+          <div style={{ fontSize: 13, color: "var(--text-soft)", marginTop: 4 }}>
+            {m.name} · <a href={`mailto:${m.email}`} style={{ color: "var(--accent)" }}>{m.email}</a>
+            {m.user_id ? ` · üye #${m.user_id}` : " · misafir"}
+          </div>
+          {open === m.id ? (
+            <p style={{ whiteSpace: "pre-wrap", color: "var(--text-strong)", fontSize: 14, lineHeight: 1.7, margin: "10px 0 0" }}>{m.body}</p>
+          ) : (
+            <p style={{ color: "var(--text-dim)", fontSize: 13.5, margin: "8px 0 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.body}</p>
+          )}
+          <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+            <button onClick={() => setOpen(open === m.id ? null : m.id)} style={smallBtn}>
+              {open === m.id ? "Kapat" : "Oku"}
+            </button>
+            {!m.is_read && <button onClick={() => markRead(m.id)} style={smallBtn}>Okundu işaretle</button>}
+            <a href={`mailto:${m.email}?subject=${encodeURIComponent("Re: " + (m.subject || ""))}`} style={{ ...smallBtn, textDecoration: "none", display: "inline-block" }}>Yanıtla</a>
+            <button onClick={() => remove(m.id)} style={{ ...smallBtn, color: "var(--accent-hot)" }}>Sil</button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const smallBtn: React.CSSProperties = {
+  padding: "7px 12px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600,
+  border: "1px solid var(--border-soft)", background: "var(--bg-elevated)", color: "var(--text-soft)",
+};
+
 function Pages() {
   const [pages, setPages] = useState<any[]>([]);
   const [sel, setSel] = useState<string>("");

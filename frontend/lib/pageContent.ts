@@ -18,6 +18,13 @@ const FALLBACK: Record<string, PageContent> = {
       "Kelime Tahmin, Türkçenin en keyifli hâlini bir oyuna sığdırma fikrinden doğdu. " +
       "Kelime bulmacalarının tadını alıp karşına gerçek bir rakip koyuyoruz.",
   },
+  iletisim: {
+    key: "iletisim",
+    title: "İletişim",
+    body:
+      "Sorun, öneri ya da iş birliği için aşağıdaki formu doldurabilirsin. " +
+      "Mesajın doğrudan destek ekibimize ulaşır.",
+  },
   "nasil-oynanir": {
     key: "nasil-oynanir",
     title: "Nasıl Oynanır?",

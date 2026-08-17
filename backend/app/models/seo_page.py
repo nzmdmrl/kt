@@ -173,6 +173,19 @@ SEO_PAGES: list[dict] = [
         "keywords": "kelime tahmin hakkında, hakkımızda, türkçe kelime oyunu ekibi",
     },
     {
+        "key": "contact",
+        "path": "/iletisim",
+        "label": "İletişim (/iletisim)",
+        "indexable": True,
+        "priority": 0.5,
+        "title": "İletişim — Kelime Tahmin",
+        "description": (
+            "Kelime Tahmin ekibine ulaş: hesap ve oyun sorunları, öneriler, iş birliği ve "
+            "reklam talepleri için iletişim formu."
+        ),
+        "keywords": "kelime tahmin iletişim, destek, bize ulaşın, öneri",
+    },
+    {
         "key": "profile",
         "path": "/profil",
         "label": "Oyuncu Profili (/profil/...)",
