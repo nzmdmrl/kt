@@ -187,14 +187,96 @@ function readTokenLines(): string[] {
   return lines;
 }
 
+/**
+ * Ortam raporu: butonun HANGİ yolu seçtiğini ve eklentinin köprüde gerçekten
+ * kayıtlı olup olmadığını söyler.
+ *
+ * Neden gerekli: telefon hiç /api/auth/google/native'e ulaşmıyor, yalnızca
+ * /api/auth/google/status görünüyor. O ucu HEM giriş sayfası HEM de web
+ * butonu çağırdığı için sunucu günlüğünden hangi yolun seçildiği anlaşılmıyor.
+ * Aşağıdaki satırlar bunu cihazda kesinleştirir.
+ */
+async function readEnvLines(
+  platform: string,
+  isNative: boolean,
+  ready: boolean,
+  clientId: string,
+): Promise<string[]> {
+  const out: string[] = [];
+  out.push(`platform: ${platform} · isNative: ${isNative} · ready: ${ready}`);
+
+  // detectPlatform'un baktığı İKİ ham işaret ayrı ayrı gösterilir; biri tutup
+  // diğeri tutmuyorsa sorun tespitte, eklentide değildir.
+  let ua = "";
+  try {
+    ua = navigator.userAgent || "";
+  } catch {}
+  out.push(`UA "KelimeApp/": ${ua.includes("KelimeApp/") ? "VAR" : "YOK"}`);
+
+  let bridge = "YOK";
+  try {
+    const cap = (window as any).Capacitor;
+    if (cap) {
+      bridge =
+        `VAR · isNativePlatform=${String(cap.isNativePlatform?.() ?? "?")}` +
+        ` · getPlatform=${String(cap.getPlatform?.() ?? "?")}`;
+    }
+  } catch {}
+  out.push(`Capacitor köprüsü: ${bridge}`);
+
+  // ---- eklenti gerçekten pakete girmiş ve köprüye kayıtlı mı? ----
+  // Play sürümü eklenti eklenmeden ÖNCE üretilmişse burası "YOK" der ve
+  // aranan cevap budur.
+  let registered = "?";
+  try {
+    const p = (window as any).Capacitor?.Plugins?.SocialLogin;
+    registered = p ? "VAR" : "YOK";
+  } catch {}
+  let available = "?";
+  try {
+    const { Capacitor } = await import("@capacitor/core");
+    available = String(Capacitor.isPluginAvailable("SocialLogin"));
+  } catch (e: any) {
+    available = `(@capacitor/core yüklenemedi: ${e?.message ?? e})`;
+  }
+  out.push(`SocialLogin köprüde: ${registered} · isPluginAvailable: ${available}`);
+
+  // JS tarafı (chunk) inebiliyor mu — ağ/paket sorunu ile native kayıt sorununu ayırır.
+  let mod = "?";
+  try {
+    const m = await import("@capgo/capacitor-social-login");
+    mod = m?.SocialLogin ? "yüklendi" : "yüklendi ama SocialLogin dışa aktarılmamış";
+  } catch (e: any) {
+    mod = `YÜKLENEMEDİ: ${e?.message ?? e}`;
+  }
+  out.push(`SocialLogin JS modülü: ${mod}`);
+
+  // ---- buton hangi yolu seçer (GoogleSignIn.tsx ile AYNI mantık) ----
+  const path = !ready
+    ? "(platform henüz belli değil)"
+    : isNative
+      ? clientId
+        ? "NATIVE eklenti"
+        : "ÇİZİLMİYOR — client id boş"
+      : "WEB (Google Identity Services)";
+  out.push(`Google butonu yolu: ${path}`);
+  out.push(
+    `client id: ${clientId ? `${clientId.slice(0, 14)}… (${clientId.length} krkt)` : "BOŞ"}`,
+  );
+
+  return out;
+}
+
 function TokenDebug() {
-  const { isNative, ready } = usePlatform();
+  const { platform, isNative, ready } = usePlatform();
   const config = useAppConfig();
   const [lines, setLines] = useState<string[] | null>(null);
+  const [envLines, setEnvLines] = useState<string[]>([]);
   const [version, setVersion] = useState("okunuyor…");
   const [lastErr, setLastErr] = useState<DebugError | null>(null);
 
   const flags: FlagsConfig = (config?.["app.flags"] as FlagsConfig) || {};
+  const clientId = (flags.google_web_client_id || "").trim();
   const enabled = ready && isNative && flags.debug_panel === true;
 
   // localStorage effect'te okunur: sunucu ve istemcinin ilk boyaması aynı kalsın.
@@ -226,6 +308,25 @@ function TokenDebug() {
     };
   }, [enabled]);
 
+  // Ortam raporu (köprü + eklenti kaydı + butonun seçtiği yol).
+  useEffect(() => {
+    if (!enabled) {
+      setEnvLines([]);
+      return;
+    }
+    let alive = true;
+    readEnvLines(platform, isNative, ready, clientId)
+      .then((l) => {
+        if (alive) setEnvLines(l);
+      })
+      .catch((e) => {
+        if (alive) setEnvLines([`ortam raporu alınamadı: ${e?.message ?? e}`]);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [enabled, platform, isNative, ready, clientId]);
+
   if (!enabled || !lines) return null;
 
   return (
@@ -250,6 +351,13 @@ function TokenDebug() {
       <div style={{ fontWeight: 700, marginBottom: 4 }}>🔧 teşhis (geçici)</div>
 
       <div>sürüm: {version}</div>
+
+      <div style={{ borderTop: "1px dashed var(--border-soft)", margin: "8px 0 6px" }} />
+      {envLines.map((l, i) => (
+        <div key={`env${i}`}>{l}</div>
+      ))}
+
+      <div style={{ borderTop: "1px dashed var(--border-soft)", margin: "8px 0 6px" }} />
       {lines.map((l, i) => (
         <div key={i}>{l}</div>
       ))}
@@ -264,6 +372,7 @@ function TokenDebug() {
           {lastErr.code && <div>kod: {lastErr.code}</div>}
           {lastErr.name && <div>tür: {lastErr.name}</div>}
           <div style={{ color: "var(--accent-hot)" }}>{lastErr.message || "(mesaj boş)"}</div>
+          {lastErr.extra && <div>ek: {lastErr.extra}</div>}
           <button
             onClick={() => {
               clearDebugError();
