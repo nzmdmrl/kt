@@ -29,11 +29,13 @@ export default function MenuPage() {
   }
 
   return (
-    <main style={{ maxWidth: 520, margin: "0 auto", padding: "20px 14px 40px" }}>
+    // Genişlik ana sayfayla (.home-modes-wrap) aynı: dar bir kolon yerine
+    // ekranı dolduran rahat bloklar.
+    <main style={{ maxWidth: 760, margin: "0 auto", padding: "20px 16px 40px" }}>
       <div className="kt-mobile-only" style={{ marginBottom: 16 }}><a href="/"><Logo size={32} /></a></div>
       {/* Ayarlar (toggle'lar) */}
       <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-soft)", marginBottom: 10, marginTop: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>Ayarlar</div>
-      <div style={{ display: "grid", gap: 10, marginBottom: 28 }}>
+      <div style={{ display: "grid", gridTemplateColumns: GRID_COLS, gap: 10, marginBottom: 28 }}>
         <ToggleRow icon={dark ? "🌙" : "☀️"} label={dark ? "Gece modu" : "Gündüz modu"} on={dark} onClick={toggleTheme} />
         <ToggleRow icon="🔊" label="Ses" on={sound} onClick={toggleSound} />
         {user && (
@@ -52,7 +54,7 @@ export default function MenuPage() {
       {user?.is_admin && (
         <>
           <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-soft)", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.05em" }}>Yönetici</div>
-          <div style={{ display: "grid", gap: 10, marginBottom: 28 }}>
+          <div style={{ display: "grid", gridTemplateColumns: GRID_COLS, gap: 10, marginBottom: 28 }}>
             <button onClick={() => router.push("/oyna?mode=reklam")} style={{ ...rowStyle, cursor: "pointer", width: "100%", textAlign: "left" }}>
               <span style={{
                 fontSize: 22, width: 40, height: 40, flexShrink: 0, borderRadius: 11,
@@ -67,7 +69,7 @@ export default function MenuPage() {
 
       {/* Hesap & bilgi butonları */}
       <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-soft)", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.05em" }}>Hesap & Bilgi</div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+      <div style={{ display: "grid", gridTemplateColumns: GRID_COLS, gap: 10 }}>
         {user && (
           <NavRow icon="👤" label="Profilim" onClick={() => router.push(`/profil/${user.username}`)} />
         )}
@@ -91,6 +93,10 @@ export default function MenuPage() {
   );
 }
 
+/* Bloklar: dar ekranda TEK sütun (tam genişlik, rahat), geniş ekranda iki sütun.
+   Eskiden mobilde de iki sütun kare kutu vardı ve ortada ince bir görünüm oluyordu. */
+const GRID_COLS = "repeat(auto-fit, minmax(280px, 1fr))";
+
 const rowStyle: React.CSSProperties = {
   display: "flex", alignItems: "center", gap: 16, padding: "17px 18px",
   background: "var(--bg-panel)", borderRadius: 14, color: "var(--text-strong)",
@@ -100,17 +106,13 @@ const rowStyle: React.CSSProperties = {
 
 function NavRow({ icon, label, onClick }: { icon: string; label: string; onClick: () => void }) {
   return (
-    <button onClick={onClick} style={{
-      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8,
-      padding: "16px 8px", background: "var(--bg-panel)", borderRadius: 14,
-      border: "1px solid var(--border-soft)", boxShadow: "0 1px 3px rgba(0,0,0,.15)",
-      cursor: "pointer", width: "100%", minHeight: 92,
-    }}>
+    <button onClick={onClick} style={{ ...rowStyle, cursor: "pointer", width: "100%", textAlign: "left" }}>
       <span style={{
-        fontSize: 24, width: 46, height: 46, flexShrink: 0, borderRadius: 13,
+        fontSize: 22, width: 40, height: 40, flexShrink: 0, borderRadius: 11,
         background: "var(--bg-elevated)", display: "grid", placeItems: "center",
       }}>{icon}</span>
-      <span style={{ fontWeight: 600, fontSize: 14, color: "var(--text-strong)", textAlign: "center", lineHeight: 1.2, wordBreak: "break-word" }}>{label}</span>
+      <span style={{ flex: 1, minWidth: 0, fontWeight: 600, fontSize: 16, color: "var(--text-strong)" }}>{label}</span>
+      <span style={{ color: "var(--text-dim)", fontSize: 18, flexShrink: 0 }}>›</span>
     </button>
   );
 }
