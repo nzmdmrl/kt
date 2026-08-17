@@ -9,7 +9,7 @@ import { apiUrl } from "./api";
 type Slot =
   | "ui_click" | "button" | "tile_correct" | "tile_present" | "tile_absent"
   | "correct" | "wrong" | "win" | "lose" | "round_start" | "match_start"
-  | "radar" | "opponent_found" | "tick" | "count_tick" | "count_done"
+  | "radar" | "opponent_found" | "player_join" | "tick" | "count_tick" | "count_done"
   | "joker_yellow" | "joker_green" | "joker_time"
   | "music1" | "music2" | "music3" | "music4" | "music5" | "music6";
 
@@ -174,6 +174,29 @@ function playSynth(slot: Slot, opts?: { intensity?: number }) {
       tone(784, 0.14, "sine", 0.2, 0.9);    // sol
       tone(1047, 0.2, "sine", 0.32, 0.75);  // yüksek do
       break;
+    case "player_join": {
+      // Arena lobisine biri katıldı — "kapı zili" hissi.
+      // Radar bip'i ve geri sayım tık'ı YÜKSELEN/keskin olduğu için burada
+      // bilerek ALÇALAN iki nota + yumuşak triangle tını kullanılır; böylece
+      // katılım sesi geri sayımla karışmaz.
+      const c = liveCtx();
+      if (!c) break;
+      const now = c.currentTime;
+      // Alçak, kısa "tok" (biri girdi hissi)
+      const thump = c.createOscillator();
+      const tg = c.createGain();
+      thump.type = "sine";
+      thump.frequency.setValueAtTime(220, now);
+      thump.frequency.exponentialRampToValueAtTime(90, now + 0.14);
+      tg.gain.setValueAtTime(volume * 0.22, now);
+      tg.gain.exponentialRampToValueAtTime(0.0001, now + 0.16);
+      thump.connect(tg); tg.connect(c.destination);
+      thump.start(now); thump.stop(now + 0.17);
+      // Ding-dong (alçalan)
+      tone(988, 0.18, "triangle", 0.04, 0.85);   // si
+      tone(659, 0.34, "triangle", 0.19, 0.8);    // mi
+      break;
+    }
     case "joker_green":
       // Parlak, olumlu "açılış" (yeşil harf).
       tone(659, 0.1, "sine", 0, 0.9); tone(988, 0.18, "sine", 0.1, 0.8); break;

@@ -62,7 +62,8 @@ export default function ArenaGame({ onExit, customCode, guestName }: { onExit: (
   useEffect(() => {
     if (state.phase === "lobby" || state.phase === "connecting") {
       if (state.players.length > prevCountRef.current) {
-        playSound("opponent_found");   // katılım sesi (rakip bulundu)
+        // Katılım sesi — geri sayım/radar bipleriyle karışmasın diye AYRI slot.
+        playSound("player_join");
       }
     }
     prevCountRef.current = state.players.length;
@@ -205,42 +206,73 @@ export default function ArenaGame({ onExit, customCode, guestName }: { onExit: (
 
   // Eşleşme / lobi
   if (state.phase === "connecting" || state.phase === "lobby") {
+    const cap = state.size || 5;
     return (
-      <ArenaShell onExit={onExit} players={state.players} fillTo={5}>
+      <ArenaShell onExit={onExit} players={state.players} fillTo={cap}>
         {leftToastEl}
-        <div style={{ textAlign: "center", paddingTop: 40 }}>
-          <h2 className="brand-mono" style={{ fontSize: 26, marginBottom: 8 }}>Arena</h2>
-          <p style={{ color: "var(--text-soft)", marginBottom: 4 }}>Kelimeler: {state.totalQuestions}</p>
-          <p style={{ color: "var(--accent)", marginBottom: 4, fontSize: 14 }}>Sıradaki kelime: {state.firstLength} harf</p>
-          <p style={{ color: "var(--text-soft)", marginBottom: 30 }}>👤 {state.players.length}/5</p>
-          <div style={{ borderTop: "1px solid var(--border-soft)", paddingTop: 30 }}>
-            <p className="brand-mono" style={{ fontSize: 20, marginBottom: 16 }}>Rakip aranıyor…</p>
-            <div style={{ width: 40, height: 40, margin: "0 auto 20px", borderRadius: "50%", border: "3px solid var(--border-soft)", borderTopColor: "var(--accent)", animation: "spin 1s linear infinite" }} />
+        {/* Üst blok sıkı tutulur (paddingTop küçük): alttaki katılımcı listesi
+            ve dipteki oyuncu şeridi rahat sığsın. */}
+        <div style={{ textAlign: "center", paddingTop: 4 }}>
+          {/* Başlık — büyük ikon + parlayan ad */}
+          <div style={{ fontSize: 46, lineHeight: 1, marginBottom: 2, animation: "arenaPulse 2.4s ease-in-out infinite" }}>
+            {customCode ? "🎪" : "⚔️"}
+          </div>
+          <h2 className="brand-mono" style={{
+            fontSize: 38, margin: "0 0 12px", lineHeight: 1.05, letterSpacing: "0.06em",
+            color: "var(--accent)", textShadow: "0 0 24px var(--accent-glow)",
+          }}>
+            {customCode ? "ÖZEL ARENA" : "ARENA"}
+          </h2>
+
+          {/* Bilgi çipleri — üç satır yerine tek satır */}
+          <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap", marginBottom: 14 }}>
+            <LobbyChip>🔤 {state.totalQuestions} kelime</LobbyChip>
+            <LobbyChip accent>➡️ {state.firstLength} harf</LobbyChip>
+            <LobbyChip>👤 {state.players.length}/{cap}</LobbyChip>
+          </div>
+
+          <div style={{ borderTop: "1px solid var(--border-soft)", paddingTop: 14 }}>
+            {/* Spinner + metin yan yana (dikey yer kazandırır) */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 12 }}>
+              <span style={{ width: 20, height: 20, borderRadius: "50%", border: "2.5px solid var(--border-soft)", borderTopColor: "var(--accent)", animation: "spin 1s linear infinite", display: "inline-block" }} />
+              <span className="brand-mono" style={{ fontSize: 17 }}>
+                {customCode ? "Katılımcılar bekleniyor…" : "Rakip aranıyor…"}
+              </span>
+            </div>
             {/* Katılan oyuncuların isimleri */}
-            <div style={{ display: "grid", gap: 8, maxWidth: 320, margin: "0 auto" }}>
+            <div style={{ display: "grid", gap: 6, maxWidth: 320, margin: "0 auto" }}>
               {state.players.map((p) => (
                 <div key={p.pid} style={{
-                  display: "flex", alignItems: "center", gap: 10, padding: "8px 14px",
+                  display: "flex", alignItems: "center", gap: 10, padding: "6px 12px",
                   background: "var(--bg-panel)", borderRadius: 10,
+                  border: "1px solid var(--border-soft)",
                   animation: "slideIn .3s ease",
                 }}>
                   <img src={p.avatar_url || `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(p.name)}`}
                     alt={p.name}
-                    style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--bg-elevated)" }} />
-                  <span style={{ color: "var(--text-strong)", fontWeight: 600, fontSize: 14 }}>{p.name}</span>
+                    style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--bg-elevated)" }} />
+                  <span style={{ color: "var(--text-strong)", fontWeight: 600, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
                   {p.is_bot && <span style={{ fontSize: 12 }}>🤖</span>}
-                  <span style={{ marginLeft: "auto", color: "var(--tile-correct)", fontSize: 13 }}>katıldı</span>
+                  <span style={{ marginLeft: "auto", color: "var(--tile-correct)", fontSize: 12.5, fontWeight: 700, flexShrink: 0 }}>katıldı</span>
                 </div>
               ))}
-              {state.players.length < 5 && (
-                <p style={{ color: "var(--text-dim)", fontSize: 12, marginTop: 4 }}>
-                  Diğer oyuncular bekleniyor… ({state.players.length}/5)
-                </p>
-              )}
+              {/* Boş kontenjan — kaç kişi daha bekleniyor (kutucuk olarak) */}
+              {Array.from({ length: Math.max(0, cap - state.players.length) }).map((_, i) => (
+                <div key={`slot${i}`} style={{
+                  display: "flex", alignItems: "center", gap: 10, padding: "6px 12px",
+                  borderRadius: 10, border: "1px dashed var(--border-soft)", opacity: 0.6,
+                }}>
+                  <span style={{
+                    width: 28, height: 28, borderRadius: "50%", background: "var(--bg-elevated)",
+                    display: "grid", placeItems: "center", fontSize: 13,
+                  }}>⏳</span>
+                  <span style={{ color: "var(--text-dim)", fontSize: 13 }}>Bekleniyor…</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
-        <style>{`@keyframes spin{to{transform:rotate(360deg)}}@keyframes slideIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}`}</style>
+        <style>{`@keyframes spin{to{transform:rotate(360deg)}}@keyframes slideIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}@keyframes arenaPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}`}</style>
       </ArenaShell>
     );
   }
@@ -472,6 +504,18 @@ export default function ArenaGame({ onExit, customCode, guestName }: { onExit: (
 
 
 // Alt barlı kabuk (her fazda oyuncular altta)
+/** Lobi bilgi çipi (kelime sayısı · harf · kişi). */
+function LobbyChip({ children, accent }: { children: React.ReactNode; accent?: boolean }) {
+  return (
+    <span style={{
+      padding: "6px 12px", borderRadius: 999, fontSize: 13, fontWeight: 700, whiteSpace: "nowrap",
+      background: accent ? "var(--accent-glow)" : "var(--bg-panel)",
+      border: `1px solid ${accent ? "var(--accent)" : "var(--border-soft)"}`,
+      color: accent ? "var(--accent)" : "var(--text-soft)",
+    }}>{children}</span>
+  );
+}
+
 function ArenaShell({ children, onExit, players, answers, showResults, fillTo }: {
   children: React.ReactNode; onExit: () => void;
   players: ArenaPlayer[]; answers?: Record<string, { correct: boolean; flash: boolean }>;

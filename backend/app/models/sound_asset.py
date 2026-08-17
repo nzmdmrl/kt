@@ -31,6 +31,7 @@ SOUND_SLOTS = {
     "match_start": "Maç başlangıç",
     "radar": "Rakip aranıyor (radar)",
     "opponent_found": "Rakip bulundu",
+    "player_join": "Arena lobisine oyuncu katıldı",
     "tick": "Geri sayım tık-tık",
     "joker_yellow": "Joker — sarı harf",
     "joker_green": "Joker — yeşil harf",

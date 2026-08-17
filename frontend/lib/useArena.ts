@@ -40,6 +40,7 @@ export type ArenaState = {
   revealTotal: number;            // toplam soru
   totalQuestions: number;         // maçtaki kelime sayısı (oyun moduna göre; lobide de bilinir)
   firstLength: number;            // ilk kelimenin harf sayısı
+  size: number;                   // arenanın kişi kapasitesi (özel arenada 2-5)
   scores: Record<string, number>;
   ranking: ArenaPlayer[];
   leftNotice: { name: string; at: number } | null;   // "xxx arenadan çıktı" popup
@@ -61,6 +62,7 @@ const initialState: ArenaState = {
   revealTotal: 6,
   totalQuestions: 6,
   firstLength: 4,
+  size: 5,
   scores: {},
   ranking: [],
   leftNotice: null,
@@ -98,6 +100,7 @@ export function useArena(enabled: boolean, customCode?: string, guestName?: stri
             ...s, phase: "lobby", players: msg.players || [],
             totalQuestions: msg.total || s.totalQuestions,
             firstLength: msg.first_length || s.firstLength,
+            size: msg.size || s.size,
           }));
           break;
         case "match_start":
