@@ -14,6 +14,7 @@ export default function Footer() {
     { href: "/cerez", label: "Çerez Politikası" },
     { href: "/uye-ara", label: "Üye Ara" },
     { href: "/iletisim", label: "İletişim" },
+    { href: "/destek", label: "Destek" },
   ];
   return (
     <footer

@@ -82,7 +82,7 @@ export default function MenuPage() {
         <NavRow icon="📄" label="Şartlar" onClick={() => router.push("/kosullar")} />
         <NavRow icon="🍪" label="Çerezler" onClick={() => router.push("/cerez")} />
         <NavRow icon="✉️" label="İletişim" onClick={() => router.push("/iletisim")} />
-        {user && <NavRow icon="🎫" label="Destek Taleplerim" onClick={() => router.push("/destek")} />}
+        {user && <NavRow icon="🎫" label="Destek" onClick={() => router.push("/destek")} />}
         {user && (
           <button onClick={logout} style={{ ...rowStyle, color: "var(--accent-hot)", cursor: "pointer", width: "100%", textAlign: "left", gridColumn: "1 / -1" }}>
             <span style={{ fontSize: 22, width: 40, height: 40, flexShrink: 0, borderRadius: 11, background: "rgba(217,90,90,.12)", display: "grid", placeItems: "center" }}>🚪</span>
