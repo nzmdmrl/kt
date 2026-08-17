@@ -32,10 +32,44 @@ export type NativeGoogleOutcome =
   | { status: "cancelled" }
   /** Cihazda kullanılabilir Google hesabı yok / seçiciye hesap düşmedi. */
   | { status: "no-account" }
+  /** message = EKLENTİNİN HAM mesajı (Türkçeleştirilmemiş) — konsola basılır. */
   | { status: "error"; message: string };
+
+/** Konsol etiketi — Logcat'te `chromium: [INFO:CONSOLE]` altında görünür. */
+const TAG = "[google-native]";
 
 /** initialize() hangi client id ile yapıldı — aynıysa tekrar çağrılmaz. */
 let initializedFor: string | null = null;
+
+/**
+ * id_token'ın taşıdığı iddiaları (claim) ÖZETLER — teşhis için.
+ *
+ * DEĞER BASMAZ: yalnız alan ADLARI, e-postanın var/yok bilgisi ve aud'un ilk
+ * hanesi yazılır (e-posta, ad, foto adresi konsola DÜŞMEZ). Backend token'ı
+ * zaten Google'a yeniden doğrulatıyor; buradaki çözümleme sadece "email alanı
+ * geldi mi" sorusunu cihazda gözle görmek için, güvenlik kararı vermez.
+ */
+function claimSummary(idToken: string): string {
+  try {
+    const payload = idToken.split(".")[1];
+    const json = JSON.parse(
+      decodeURIComponent(
+        atob(payload.replace(/-/g, "+").replace(/_/g, "/"))
+          .split("")
+          .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+          .join(""),
+      ),
+    );
+    return (
+      `alanlar=[${Object.keys(json).sort().join(",")}] ` +
+      `email=${json.email ? "VAR" : "YOK"} ` +
+      `email_verified=${String(json.email_verified)} ` +
+      `aud=${String(json.aud || "").slice(0, 14)}…`
+    );
+  } catch {
+    return "(id_token çözümlenemedi)";
+  }
+}
 
 /** Eklentinin hata metninden kullanıcıya anlatılabilir bir durum çıkarır. */
 function classify(raw: unknown): NativeGoogleOutcome {
@@ -68,20 +102,41 @@ export async function nativeGoogleSignIn(webClientId: string): Promise<NativeGoo
       initializedFor = clientId;
     }
 
-    const res = await SocialLogin.login({
-      provider: "google",
-      options: { scopes: ["email", "profile"] },
-    });
+    // ------------------------------------------------------------------
+    // `scopes` GÖNDERİLMEZ — bilerek.
+    //
+    // Eklenti scopes verildiğinde MainActivity'nin
+    // ModifiedMainActivityForSocialLoginPlugin'den türemesini ŞART koşuyor,
+    // aksi halde çağrıyı şu mesajla reddediyor:
+    //   "You CANNOT use scopes without modifying the main activity."
+    //
+    // Ama GoogleProvider.java zaten şu üçünü KOŞULSUZ ekliyor:
+    //   userinfo.email + userinfo.profile + openid
+    // ve custom scopes yalnızca BUNLARIN ÜSTÜNE eklenmek için var. Daha önce
+    // gönderdiğimiz ["email","profile"] bu kümenin alt kümesiydi; hiçbir şey
+    // kazandırmıyor, sadece yukarıdaki kapıyı tetikliyordu. Dolayısıyla
+    // kaldırmak KAYIPSIZDIR: id_token yine email + email_verified + name +
+    // picture + sub taşır (backend zaten bunları Google'a doğrulatıp okuyor).
+    //
+    // Ek scope'a (Drive, Calendar vb.) gerçekten ihtiyaç doğarsa iş değişir:
+    // o zaman MainActivity'yi eklentinin dokümanındaki gibi değiştirmek şart.
+    // ------------------------------------------------------------------
+    const res = await SocialLogin.login({ provider: "google", options: {} });
 
     const result: any = res?.result;
     // 'offline' modda idToken gelmez (yalnız serverAuthCode) — biz 'online'
     // varsayılanını kullanıyoruz, yine de tip güvenliği için kontrol edilir.
     const idToken: unknown = result?.idToken;
     if (typeof idToken !== "string" || !idToken) {
+      console.error(`${TAG} id_token gelmedi. Ham sonuç:`, res);
       return { status: "error", message: "id-token-yok" };
     }
+    // Teşhis satırı: "email=VAR" görüyorsan backend'in ihtiyacı karşılanıyor.
+    console.warn(`${TAG} id_token alındı — ${claimSummary(idToken)}`);
     return { status: "ok", idToken };
   } catch (e) {
+    // EKLENTİNİN HAM MESAJI: genel Türkçe uyarının arkasında kaybolmasın.
+    console.error(`${TAG} eklenti hatası:`, (e as any)?.message ?? e, e);
     return classify(e);
   }
 }

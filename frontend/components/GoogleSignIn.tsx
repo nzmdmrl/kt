@@ -120,10 +120,14 @@ function GoogleSignInNative({
 
       if (out.status === "cancelled") return;        // sessizce vazgeçildi
       if (out.status === "no-account") {
+        console.warn("[google-native] cihazda kullanılabilir Google hesabı yok");
         setErr("Cihazda Google hesabı bulunamadı. Telefon ayarlarından hesap ekleyip tekrar dene.");
         return;
       }
       if (out.status === "error") {
+        // Kullanıcıya genel mesaj, konsola EKLENTİNİN GERÇEK sebebi
+        // (chrome://inspect ya da Logcat'te "[INFO:CONSOLE]" satırı).
+        console.error("[google-native] giriş başarısız — sebep:", out.message);
         setErr("Google girişi açılamadı. E-posta ve şifrenle girebilirsin.");
         return;
       }
@@ -133,6 +137,9 @@ function GoogleSignInNative({
       await loginGoogleNative(out.idToken);
       onDone?.();
     } catch (e: any) {
+      // Buraya token ALINDIKTAN SONRAKİ hatalar düşer: /auth/google/native'in
+      // reddi (503 yapılandırma yok, 401 audience/exp tutmadı) ya da ağ hatası.
+      console.error("[google-native] sunucu tarafı başarısız:", e?.message ?? e, e);
       setErr(e?.message || "Google girişi başarısız.");
     } finally {
       if (aliveRef.current) setBusy(false);
