@@ -55,6 +55,9 @@ DEFAULT_SETTINGS = {
     "arena_bot_interval": {"value": "2", "label": "Arena bot katılım aralığı (sn)", "type": "int", "group": "Arena"},
     "arena_reveal_seconds": {"value": "4", "label": "Arena sonuç tablosu gösterim süresi (sn)", "type": "int", "group": "Arena"},
     "arena_feedback_seconds": {"value": "2", "label": "Arena cevap sonrası doğru/yanlış gösterim payı (sn)", "type": "int", "group": "Arena"},
+    # Oyun ekranı dikey boşlukları (px) — dar ekranlarda ince ayar için.
+    "arena_gap_word_letters": {"value": "28", "label": "Arena: kelime kutuları ↔ karma harfler boşluğu (px)", "type": "int", "group": "Arena"},
+    "arena_gap_letters_input": {"value": "24", "label": "Arena: karma harfler ↔ yazma satırı boşluğu (px)", "type": "int", "group": "Arena"},
     # Arayüz stili — stil1: eski (klasik) görünüm, stil2: yeni görünüm.
     # Sadece GÖRÜNÜMÜ değiştirir; oyun mantığı/veri aynıdır.
     "ui_style": {"value": "stil2", "label": "Arayüz stili (stil1: klasik · stil2: yeni)", "type": "str", "group": "Görünüm"},

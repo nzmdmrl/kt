@@ -21,21 +21,53 @@ const DESKTOP_MIN_WIDTH = 721;
 type NameMax = { mobile: number; desktop: number };
 const FALLBACK: NameMax = { mobile: DEFAULT_MATCH_NAME_MAX, desktop: DEFAULT_MATCH_NAME_MAX_DESKTOP };
 
-let cached: NameMax | null = null;
-let inflight: Promise<NameMax> | null = null;
+// Arena oyun ekranı dikey boşlukları (admin → ⚙️ Ayarlar → Arena).
+export type ArenaGaps = { wordLetters: number; lettersInput: number };
+export const DEFAULT_ARENA_GAPS: ArenaGaps = { wordLetters: 28, lettersInput: 24 };
 
-function fetchNameMax(): Promise<NameMax> {
-  if (cached) return Promise.resolve(cached);
+type Appearance = {
+  match_name_max_len?: number;
+  match_name_max_len_desktop?: number;
+  arena_gap_word_letters?: number;
+  arena_gap_letters_input?: number;
+};
+
+// Tüm public görünüm ayarları TEK istekte gelir; her tüketici aynı önbelleği kullanır.
+let cachedAppearance: Appearance | null = null;
+let inflight: Promise<Appearance> | null = null;
+
+function fetchAppearance(): Promise<Appearance> {
+  if (cachedAppearance) return Promise.resolve(cachedAppearance);
   if (!inflight) {
-    inflight = getJSON<{ match_name_max_len?: number; match_name_max_len_desktop?: number }>("/api/home/appearance")
-      .then((d) => ({
-        mobile: typeof d.match_name_max_len === "number" ? d.match_name_max_len : FALLBACK.mobile,
-        desktop: typeof d.match_name_max_len_desktop === "number" ? d.match_name_max_len_desktop : FALLBACK.desktop,
-      }))
-      .catch(() => FALLBACK)
-      .then((v) => { cached = v; inflight = null; return v; });
+    inflight = getJSON<Appearance>("/api/home/appearance")
+      .catch(() => ({} as Appearance))
+      .then((v) => { cachedAppearance = v; inflight = null; return v; });
   }
   return inflight;
+}
+
+function fetchNameMax(): Promise<NameMax> {
+  return fetchAppearance().then((d) => ({
+    mobile: typeof d.match_name_max_len === "number" ? d.match_name_max_len : FALLBACK.mobile,
+    desktop: typeof d.match_name_max_len_desktop === "number" ? d.match_name_max_len_desktop : FALLBACK.desktop,
+  }));
+}
+
+/** Arena oyun ekranındaki iki dikey boşluk (px) — admin panelden ayarlanır. */
+export function useArenaGaps(): ArenaGaps {
+  const [gaps, setGaps] = useState<ArenaGaps>(DEFAULT_ARENA_GAPS);
+  useEffect(() => {
+    let alive = true;
+    fetchAppearance().then((d) => {
+      if (!alive) return;
+      setGaps({
+        wordLetters: typeof d.arena_gap_word_letters === "number" ? d.arena_gap_word_letters : DEFAULT_ARENA_GAPS.wordLetters,
+        lettersInput: typeof d.arena_gap_letters_input === "number" ? d.arena_gap_letters_input : DEFAULT_ARENA_GAPS.lettersInput,
+      });
+    });
+    return () => { alive = false; };
+  }, []);
+  return gaps;
 }
 
 /**
@@ -43,7 +75,7 @@ function fetchNameMax(): Promise<NameMax> {
  * (dar ekran güvenli taraf), mount sonrası gerçek genişliğe göre güncellenir.
  */
 export function useMatchNameMax(): number {
-  const [limits, setLimits] = useState<NameMax>(cached ?? FALLBACK);
+  const [limits, setLimits] = useState<NameMax>(FALLBACK);
   const [isDesktop, setIsDesktop] = useState(false);
 
   useEffect(() => {

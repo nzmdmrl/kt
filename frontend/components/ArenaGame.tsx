@@ -11,6 +11,7 @@ import { playSound, initSound, stopTicking, suppressUiClick } from "@/lib/sound"
 import TitleCelebration from "./TitleCelebration";
 import { useSpeech } from "@/lib/useSpeech";
 import { exitWithAd, noteMatchFinished, type AdMode } from "@/lib/interstitial";
+import { useArenaGaps } from "@/lib/uiSettings";
 
 // Arena maç ekranı — eşleşme, senkron sorular (anagram), sonuç.
 // guestName verilirse üye olmayan ziyaretçi olarak bağlanılır (ödül/XP yok).
@@ -22,6 +23,8 @@ export default function ArenaGame({ onExit, customCode, guestName }: { onExit: (
   const [useKeyboard, setUseKeyboard] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(0);
   const submittedRef = useRef<number>(-1);               // hangi soruya cevap gönderildi
+  // Oyun ekranı dikey boşlukları (admin → ⚙️ Ayarlar → Arena).
+  const gaps = useArenaGaps();
 
   // Ses sistemi + arena boyunca global arayüz tıklama sesini sustur.
   useEffect(() => { initSound(true, 70); return suppressUiClick(); }, []);
@@ -329,7 +332,7 @@ export default function ArenaGame({ onExit, customCode, guestName }: { onExit: (
 
           {/* Cevap kutuları — cevap gönderilip sonuç geldiyse GİZLE (aşağıda FlipReveal gösterilir) */}
           {!(alreadyAnswered && state.myResult && !isReveal) && (
-          <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 28 }}>
+          <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: gaps.wordLetters }}>
             {Array.from({ length: q.length }).map((_, j) => {
               let letter = "";
               if (isReveal) letter = state.revealAnswer[j] || "";
@@ -358,7 +361,7 @@ export default function ArenaGame({ onExit, customCode, guestName }: { onExit: (
 
           {/* Cevap sonucu: harf kutuları TAHMİN KUTULARIYLA AYNI KONUMDA (yer değişmesin) */}
           {alreadyAnswered && state.myResult && !isReveal && (
-            <div style={{ marginBottom: 28 }}>
+            <div style={{ marginBottom: gaps.wordLetters }}>
               <FlipReveal word={state.myResult.answer || ""} correct={state.myResult.correct} />
             </div>
           )}
@@ -422,8 +425,14 @@ export default function ArenaGame({ onExit, customCode, guestName }: { onExit: (
                 </div>
               )}
 
-              {/* 1v1 TARZI giriş satırı: input + mikrofon + Gönder */}
-              <div style={{ display: "flex", gap: 8, justifyContent: "center", alignItems: "stretch", flexWrap: "wrap", width: "100%" }}>
+              {/* 1v1 TARZI giriş satırı: input + mikrofon + Gönder.
+                  Üstündeki boşluk admin ayarı (karma harflerle bitişik durmasın). */}
+              <div style={{
+                display: "flex", gap: 8, justifyContent: "center", alignItems: "stretch",
+                flexWrap: "wrap", width: "100%",
+                // Yazma modunda karma harfler gizli olduğu için ek boşluk yok.
+                marginTop: useKeyboard ? 0 : Math.max(0, gaps.lettersInput - 12),
+              }}>
                 <input
                   value={useKeyboard ? typed : picked.map((idx) => q.scrambled[idx]).join("")}
                   onChange={(e) => { setUseKeyboard(true); setTyped(toUpperTr(e.target.value).replace(/[^A-ZÇĞİÖŞÜI]/g, "").slice(0, q.length)); }}

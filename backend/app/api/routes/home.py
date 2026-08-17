@@ -33,6 +33,9 @@ async def appearance():
         # (Grid.tsx + ScoreBar.tsx okur; 0 = kesme). Mobil ve masaüstü ayrı.
         "match_name_max_len": cached_int("match_name_max_len", 7),
         "match_name_max_len_desktop": cached_int("match_name_max_len_desktop", 14),
+        # Arena oyun ekranı dikey boşlukları (px) — ArenaGame okur.
+        "arena_gap_word_letters": cached_int("arena_gap_word_letters", 28),
+        "arena_gap_letters_input": cached_int("arena_gap_letters_input", 24),
     }
 
 
