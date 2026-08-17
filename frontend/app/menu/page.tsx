@@ -62,6 +62,14 @@ export default function MenuPage() {
               <span style={{ flex: 1, fontWeight: 600, fontSize: 16, color: "var(--text-strong)" }}>Reklam Oyunu</span>
               <span style={{ color: "var(--text-dim)", fontSize: 18 }}>›</span>
             </button>
+            <button onClick={() => router.push("/yonetim")} style={{ ...rowStyle, cursor: "pointer", width: "100%", textAlign: "left" }}>
+              <span style={{
+                fontSize: 22, width: 40, height: 40, flexShrink: 0, borderRadius: 11,
+                background: "var(--bg-elevated)", display: "grid", placeItems: "center",
+              }}>🛠️</span>
+              <span style={{ flex: 1, fontWeight: 600, fontSize: 16, color: "var(--text-strong)" }}>Yönetim Paneli</span>
+              <span style={{ color: "var(--text-dim)", fontSize: 18 }}>›</span>
+            </button>
           </div>
         </>
       )}
