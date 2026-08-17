@@ -22,6 +22,52 @@ allprojects {
         google()
         mavenCentral()
     }
+
+    // ------------------------------------------------------------------
+    // androidx.browser sürüm sabitlemesi — @capgo/capacitor-social-login
+    //
+    // SORUN (build şu hatayla duruyordu):
+    //   Could not resolve androidx.browser:browser:1.9.0
+    //   constraint --> androidx.browser:browser:{strictly 1.4.0} (consistent resolution)
+    //
+    // İKİ AYRI KUSUR ÜST ÜSTE BİNİYOR:
+    //
+    //  1) SINIF YOLU TUTARSIZLIĞI. capacitor.config.ts'te Apple sağlayıcısını
+    //     kapattığımız için eklenti browser'ı `compileOnly` alıyor: 1.9.0 yalnız
+    //     DERLEME yolunda. ÇALIŞMA yoluna ise browser 1.4.0 giriyor (Google
+    //     sağlayıcısının çektiği androidbrowserhelper 2.5.0 -> browser 1.4.0).
+    //     AGP'nin "consistent resolution" kuralı derleme yolunu çalışma yoluna
+    //     eşitlemek için `strictly 1.4.0` kısıtı koyuyor; doğrudan istenen 1.9.0
+    //     ile bu kısıt uzlaşamıyor.
+    //
+    //  2) 1.9.0 ZATEN KULLANILAMAZ. Google Maven'da var (yok değil), ama
+    //     aar-metadata'sı minCompileSdk=36 diyor; bizim compileSdk 35. Yani
+    //     Apple sağlayıcısını geri açıp (1) çözülse bile build bu kez
+    //     "compile against version 36 or later" diye patlardı. Eklentinin kendi
+    //     build.gradle'ı compileSdk 35 varsayıp 1.9.0 istiyor — upstream hatası.
+    //
+    // NEDEN `force`, NEDEN SADECE variables.gradle DEĞİL: eklenti sürümü kendi
+    // build.gradle'ında SABİT yazıyor ("androidx.browser:browser:1.9.0"), bir
+    // gradle property'si OKUMUYOR. Dolayısıyla variables.gradle'a değişken
+    // koymak tek başına hiçbir şeyi değiştirmez; o dosya yalnızca sayının tek
+    // kaynağı olsun diye kullanılıyor. Değeri gerçekten değiştirmenin tek yolu
+    // ya node_modules içindeki dosyayı elle düzenlemek (her `npm install`ta
+    // silinir) ya da buradaki force. Force'u seçtim: repoda duruyor, kurulumdan
+    // etkilenmiyor.
+    //
+    // 1.8.0 iki tarafı da memnun eder: minCompileSdk=34 (<= 35) ve
+    // androidbrowserhelper'ın istediği 1.4.0'dan yeni. Eklentinin kullandığı
+    // API'ler (CustomTabsIntent/Client/Session/Callback, TrustedWebActivity...)
+    // 1.8.0'da mevcut. Force HER configuration'a uygulanır — derleme ve çalışma
+    // yolları aynı sürüme oturmazsa (1)'deki tutarlılık kısıtı yine patlar.
+    //
+    // NE ZAMAN KALDIRILIR: compileSdk 36'ya çıkılırsa ya da eklenti sürümü
+    // parametrik hale getirirse bu blok gereksizleşir.
+    configurations.all {
+        resolutionStrategy {
+            force "androidx.browser:browser:${rootProject.ext.androidxBrowserVersion}"
+        }
+    }
 }
 
 task clean(type: Delete) {
