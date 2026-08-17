@@ -22,14 +22,28 @@ export default function DestekPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const [list, setList] = useState<Ticket[] | null>(null);
+  const [loadErr, setLoadErr] = useState("");
 
   function token() { return typeof window !== "undefined" ? localStorage.getItem("kt_token") : null; }
 
-  function load() {
-    fetch(apiUrl("/api/support/my"), { headers: { Authorization: `Bearer ${token()}` } })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => setList(d?.tickets || []))
-      .catch(() => setList([]));
+  // Uygulamada bildirimle açılışta ağ bazen hazır olmuyor ("Failed to fetch") —
+  // ağ hatasında kısa aralıklarla yeniden denenir, sonra "Tekrar dene" çıkar.
+  async function load(retries = 3) {
+    for (let i = 0; i < retries; i++) {
+      try {
+        const r = await fetch(apiUrl("/api/support/my"), {
+          headers: { Authorization: `Bearer ${token()}` },
+          cache: "no-store",
+        });
+        if (!r.ok) { setLoadErr("Destek talepleri yüklenemedi."); return; }
+        const d = await r.json();
+        setList(d?.tickets || []); setLoadErr("");
+        return;
+      } catch {
+        if (i < retries - 1) await new Promise((res) => setTimeout(res, 500 * (i + 1)));
+      }
+    }
+    setLoadErr("Bağlantı kurulamadı. İnternetini kontrol edip tekrar dene.");
   }
   useEffect(() => { if (user) load(); }, [user]);
 
@@ -65,9 +79,19 @@ export default function DestekPage() {
         }}>Yeni talep</a>
       </div>
 
-      {list === null && <Center>Yükleniyor…</Center>}
+      {loadErr && (
+        <div style={{ display: "grid", gap: 12, justifyItems: "center", padding: "24px 0", textAlign: "center", color: "var(--text-soft)" }}>
+          <span>{loadErr}</span>
+          <button onClick={() => { setLoadErr(""); load(); }} style={{
+            padding: "11px 20px", borderRadius: 10, border: "none", cursor: "pointer",
+            background: "var(--accent)", color: "#1a1330", fontWeight: 700, fontSize: 14,
+          }}>Tekrar dene</button>
+        </div>
+      )}
 
-      {list && list.length === 0 && (
+      {list === null && !loadErr && <Center>Yükleniyor…</Center>}
+
+      {list && list.length === 0 && !loadErr && (
         <p style={{ color: "var(--text-soft)", lineHeight: 1.7 }}>
           Henüz destek talebin yok. Bir sorun ya da önerin varsa{" "}
           <a href="/iletisim" style={{ color: "var(--accent)", fontWeight: 600 }}>İletişim</a>{" "}

@@ -26,23 +26,44 @@ export default function DestekDetayPage({ params }: { params: { id: string } }) 
 
   function token() { return typeof window !== "undefined" ? localStorage.getItem("kt_token") : null; }
 
-  function load() {
-    fetch(apiUrl(`/api/support/my/${encodeURIComponent(params.id)}`), {
-      headers: { Authorization: `Bearer ${token()}` },
-    })
-      .then(async (r) => {
-        if (r.status === 401) throw new Error("Oturumun sona ermiş. Tekrar giriş yap.");
+  // Uygulamada bildirime tıklayıp açılışta (cold start) ağ katmanı bazen henüz
+  // hazır olmuyor ve tek denemede "Failed to fetch" ile ölü ekran kalıyordu:
+  // ağ hatalarında kısa aralıklarla birkaç kez denenir, sonra "Tekrar dene".
+  async function load(retries = 3) {
+    for (let i = 0; i < retries; i++) {
+      try {
+        const r = await fetch(apiUrl(`/api/support/my/${encodeURIComponent(params.id)}`), {
+          headers: { Authorization: `Bearer ${token()}` },
+          cache: "no-store",
+        });
+        if (r.status === 401) { setLoadErr("Oturumun sona ermiş. Tekrar giriş yap."); return; }
         if (r.status === 403 || r.status === 404) {
           const d = await r.json().catch(() => null);
-          throw new Error(d?.detail || "Destek talebi bulunamadı.");
+          setLoadErr(d?.detail || "Destek talebi bulunamadı.");
+          return;
         }
-        if (!r.ok) throw new Error("Destek talebi yüklenemedi. Lütfen tekrar dene.");
-        return r.json();
-      })
-      .then((d) => { setTicket(d.ticket); setMsgs(d.messages || []); setLoadErr(""); })
-      .catch((e) => setLoadErr(e?.message || "Destek talebi yüklenemedi."));
+        if (!r.ok) { setLoadErr("Destek talebi yüklenemedi. Lütfen tekrar dene."); return; }
+        const d = await r.json();
+        setTicket(d.ticket); setMsgs(d.messages || []); setLoadErr("");
+        return;
+      } catch {
+        // Ağ hatası (TypeError: Failed to fetch) — kısa bekleyip yeniden dene.
+        if (i < retries - 1) await new Promise((res) => setTimeout(res, 500 * (i + 1)));
+      }
+    }
+    setLoadErr("Bağlantı kurulamadı. İnternetini kontrol edip tekrar dene.");
   }
   useEffect(() => { if (user) load(); }, [user, params.id]);
+
+  // Ekran yeniden öne gelince (uygulama arka plandan döndüğünde) hata varsa
+  // kendiliğinden yeniden dener.
+  useEffect(() => {
+    function onVis() {
+      if (document.visibilityState === "visible" && loadErr && user) load();
+    }
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, [loadErr, user]);
 
   // Silmek kaydı yok etmez: talep senin listenden kalkar, destek ekibi
   // yazışmayı "üye sildi" işaretiyle görmeye devam eder.
@@ -84,9 +105,20 @@ export default function DestekDetayPage({ params }: { params: { id: string } }) 
     return (
       <Wrap>
         <Center>
-          {loadErr}
-          <br />
-          <a href="/destek" style={{ color: "var(--accent)", fontWeight: 700 }}>← Destek</a>
+          <div style={{ display: "grid", gap: 14, justifyItems: "center" }}>
+            <span>{loadErr}</span>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
+              <button onClick={() => { setLoadErr(""); load(); }} style={{
+                padding: "11px 20px", borderRadius: 10, border: "none", cursor: "pointer",
+                background: "var(--accent)", color: "#1a1330", fontWeight: 700, fontSize: 14,
+              }}>Tekrar dene</button>
+              <a href="/destek" style={{
+                padding: "11px 20px", borderRadius: 10, textDecoration: "none",
+                border: "1px solid var(--border-soft)", background: "var(--bg-elevated)",
+                color: "var(--text-soft)", fontWeight: 600, fontSize: 14,
+              }}>← Destek</a>
+            </div>
+          </div>
         </Center>
       </Wrap>
     );
