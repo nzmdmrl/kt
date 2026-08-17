@@ -11,6 +11,12 @@ import MatchGame from "@/components/MatchGame";
 import GuestJoin from "@/components/GuestJoin";
 import VsScreen from "@/components/VsScreen";
 import TutorialDemo from "@/components/TutorialDemo";
+import { toUpperTr } from "@/lib/turkish";
+
+// Reklam Oyunu: elle girilen kelimenin sınırları (backend ile aynı).
+const AD_WORD_MIN = 4;
+const AD_WORD_MAX = 8;
+const TR_LETTERS_RE = /^[ABCÇDEFGĞHIİJKLMNOÖPRSŞTUÜVYZ]+$/;
 
 function getAnonId(): string {
   if (typeof window === "undefined") return "";
@@ -22,7 +28,7 @@ function getAnonId(): string {
   return id;
 }
 
-type Mode = "menu" | "createSetup" | "searching" | "vs" | "match";
+type Mode = "menu" | "createSetup" | "adSetup" | "searching" | "vs" | "match";
 
 export default function OynaPage() {
   const { user, loading: authLoading } = useAuth();
@@ -56,6 +62,9 @@ export default function OynaPage() {
   const [roomSize, setRoomSize] = useState(2);
   const [roomRounds, setRoomRounds] = useState(1);
   const [roomWait, setRoomWait] = useState(120);
+  // Reklam Oyunu (admin): elle belirlenen hedef kelime.
+  const [adWord, setAdWord] = useState("");
+  const [adBusy, setAdBusy] = useState(false);
 
   // Ses: rakip aranırken radar çal; VS/maç moduna geçince rakip bulundu sesi.
   useEffect(() => {
@@ -118,6 +127,8 @@ export default function OynaPage() {
       const m = params.get("mode");
       if (m === "bot") { fromHomeRef.current = true; setBot(true); setBotElo(elo); createBotSolo(); }
       else if (m === "create") { fromHomeRef.current = true; setMode("createSetup"); }
+      // Reklam Oyunu (admin): kelimeyi belirle -> arkadaşını davet et -> maç.
+      else if (m === "reklam") { fromHomeRef.current = true; setMode("adSetup"); }
       else if (m === "search") { fromHomeRef.current = true; startSearch(); }
     }
   }, [playerId, gateReady, guestBlocked]);
@@ -225,6 +236,49 @@ export default function OynaPage() {
       setErr("Oda oluşturulamadı");
     }
   }
+  // Reklam Oyunu (admin): kelimesi önceden belirlenmiş 2 kişilik tek turluk oda.
+  // Motor özel oda ile AYNI; tek fark hedef kelimenin sabit olması.
+  async function createAdRoom() {
+    const w = toUpperTr(adWord).trim();
+    if (w.length < AD_WORD_MIN || w.length > AD_WORD_MAX) {
+      return setErr(`Kelime ${AD_WORD_MIN}-${AD_WORD_MAX} harf olmalı`);
+    }
+    if (!TR_LETTERS_RE.test(w)) return setErr("Sadece Türkçe harf kullan");
+    setErr("");
+    setAdBusy(true);
+    try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("kt_token") : null;
+      const res = await fetch(apiUrl("/api/room/create"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          host: (user?.display_name || name || "").trim(),
+          size: 2,
+          rounds: 1,
+          wait_seconds: 600,
+          custom: true,
+          word: w,
+        }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => null);
+        setErr(d?.detail || "Oda oluşturulamadı");
+        return;
+      }
+      const data = await res.json();
+      setCode(data.code);
+      setBot(false);
+      setRoomFlow(true);
+      setMode("match");
+    } catch {
+      setErr("Oda oluşturulamadı");
+    } finally {
+      setAdBusy(false);
+    }
+  }
   function joinRoom() {
     if (!name.trim()) return setErr("Önce bir isim gir");
     const c = joinCode.trim().toUpperCase();
@@ -301,6 +355,65 @@ export default function OynaPage() {
           opponent={{ name: oppInfo.name, elo: oppInfo.elo, is_bot: bot, avatar_url: oppInfo.avatar_url }}
           onDone={() => setMode("match")}
         />
+      </main>
+    );
+  }
+
+  // Reklam Oyunu (admin): kelime belirle -> Tamam -> arkadaşını davet et.
+  if (mode === "adSetup") {
+    // Eski önbellekte is_admin alanı yoksa /auth/me tazelenene kadar bekle
+    // (yoksa admin'e bir an "yetkin yok" ekranı çakar).
+    if (authLoading || (user && user.is_admin === undefined)) {
+      return <main style={pageStyle}><div style={{ display: "grid", placeItems: "center", minHeight: "50vh", color: "var(--text-soft)" }}>Yükleniyor…</div></main>;
+    }
+    if (!user?.is_admin) {
+      return (
+        <main style={pageStyle}>
+          <div style={{ display: "grid", gap: 16, maxWidth: 420, margin: "0 auto", textAlign: "center", paddingTop: 40 }}>
+            <div style={{ fontSize: 42 }}>🔒</div>
+            <p style={{ color: "var(--text-soft)" }}>Bu bölüm yalnızca yöneticilere açık.</p>
+            <a href="/" style={{ ...ghostBtn, textAlign: "center", textDecoration: "none", lineHeight: "48px" }}>Ana sayfa</a>
+          </div>
+        </main>
+      );
+    }
+    const wordUp = toUpperTr(adWord);
+    const wordOk = wordUp.length >= AD_WORD_MIN && wordUp.length <= AD_WORD_MAX && TR_LETTERS_RE.test(wordUp);
+    return (
+      <main style={pageStyle}>
+        <div style={{ display: "grid", gap: 18, maxWidth: 420, margin: "0 auto" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <button onClick={() => (fromHomeRef.current ? router.push("/menu") : setMode("menu"))}
+              style={{ background: "var(--bg-panel)", border: "1px solid var(--border-soft)", borderRadius: "50%", width: 34, height: 34, cursor: "pointer", fontSize: 16, color: "var(--text-strong)" }}>←</button>
+            <h1 className="brand-mono" style={{ fontSize: 22, margin: 0 }}>📣 Reklam Oyunu</h1>
+          </div>
+
+          <div>
+            <label style={labelStyle}>Oynanacak kelime</label>
+            <input
+              value={wordUp}
+              onChange={(e) => { setAdWord(e.target.value); setErr(""); }}
+              placeholder="ÖRN: KALEM"
+              maxLength={AD_WORD_MAX}
+              autoFocus
+              style={{ ...inputStyle, letterSpacing: "0.18em", textAlign: "center", fontSize: 22, fontFamily: "var(--font-display)" }}
+            />
+            <p style={{ color: "var(--text-dim)", fontSize: 12.5, lineHeight: 1.5, marginTop: 8 }}>
+              {AD_WORD_MIN}-{AD_WORD_MAX} harf, sadece Türkçe harf. Maç <strong>tek tur</strong> ve
+              <strong> 2 kişilik</strong> olur; ilk harf rakibe ipucu olarak gösterilir.
+              Kelimeyi rakip <strong>göremez</strong>.
+            </p>
+          </div>
+
+          <button onClick={createAdRoom} disabled={!wordOk || adBusy} style={{ ...primaryBtn, opacity: wordOk && !adBusy ? 1 : 0.5 }}>
+            {adBusy ? "Oda kuruluyor…" : "✔ Tamam"}
+          </button>
+          <p style={{ color: "var(--text-dim)", fontSize: 12.5, lineHeight: 1.5, textAlign: "center", margin: 0 }}>
+            Sonraki adımda arkadaş listenden rakibini seçip davet göndereceksin.
+            Rakip katılınca maç otomatik başlar.
+          </p>
+          {err && <p style={{ color: "var(--accent-hot)", fontSize: 14, textAlign: "center" }}>{err}</p>}
+        </div>
       </main>
     );
   }

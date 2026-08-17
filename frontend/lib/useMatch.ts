@@ -61,6 +61,8 @@ export type RoomInfo = {
   match_started: boolean;
   expired?: boolean;
   custom?: boolean;
+  /** Hedef kelime elle belirlendi mi (Reklam Oyunu)? Kelimenin kendisi GELMEZ. */
+  fixed_word?: boolean;
 };
 export type MatchState = {
   match_id: string;

@@ -25,6 +25,8 @@ export type AuthUser = {
   ad_free?: boolean;
   /** manual | play | apple | web */
   ad_free_source?: string | null;
+  /** Yönetici mi — admin'e özel menü girişlerini açar (ör. Reklam Oyunu). */
+  is_admin?: boolean;
 };
 
 type AuthContextType = {

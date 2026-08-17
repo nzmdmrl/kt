@@ -152,4 +152,6 @@ class User(Base):
         # AdMob bandı, geçiş reklamı). Herkese açık görünümde YER ALMAZ.
         data["ad_free"] = bool(self.ad_free)
         data["ad_free_source"] = self.ad_free_source
+        # Yönetici mi? Arayüzde admin'e özel girişleri (ör. Reklam Oyunu) açar.
+        data["is_admin"] = bool(self.is_admin)
         return data

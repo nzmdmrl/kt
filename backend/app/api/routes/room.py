@@ -9,8 +9,11 @@ from pydantic import BaseModel
 from sqlalchemy import and_, or_, select
 
 from app.core.database import get_db
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, get_optional_user
 from app.game.room import room_manager
+
+# Reklam Oyunu'nda elle girilebilecek kelime uzunluğu sınırları.
+AD_WORD_MIN, AD_WORD_MAX = 4, 8
 
 router = APIRouter(prefix="/room", tags=["room"])
 
@@ -21,21 +24,41 @@ class CreateRoomIn(BaseModel):
     rounds: int = 1           # tur sayısı (1-5) — her tur 5 veya 6 harfli rastgele kelime
     wait_seconds: int = 120   # bu sürede dolmazsa oda pasifleşir (30-600)
     custom: bool = False      # "Özel Oda Kur" akışı mı (tur/kişi ayarları geçerli)
+    word: str = ""            # Reklam Oyunu (SADECE admin): turun hedef kelimesi
 
 
 @router.post("/create")
-async def create_room(data: Optional[CreateRoomIn] = None):
+async def create_room(data: Optional[CreateRoomIn] = None, user=Depends(get_optional_user)):
     """Yeni bir oda kodu üretir. Oyuncular bu kodla WebSocket'e bağlanır."""
     import asyncio
+    # Reklam Oyunu: kelime yalnız admin tarafından belirlenebilir.
+    fixed_word = ""
+    if data and (data.word or "").strip():
+        if not (user and user.is_admin):
+            raise HTTPException(403, "Kelime belirlemek için yönetici olmalısın.")
+        from app.game.word_engine import normalize, is_valid_word_shape
+        w = normalize(data.word)
+        if not (AD_WORD_MIN <= len(w) <= AD_WORD_MAX) or not is_valid_word_shape(w, len(w)):
+            raise HTTPException(
+                400,
+                f"Kelime {AD_WORD_MIN}-{AD_WORD_MAX} harf olmalı ve sadece Türkçe harf içermeli.",
+            )
+        fixed_word = w
+
     code = room_manager.new_code()
     # Odayı önden oluştur (ilk katılan beklemede kalır).
     room = room_manager.get_or_create(code)
     if data:
         if data.host:
             room.host_name = data.host.strip()[:24]
-        room.configure(size=data.size, rounds=data.rounds,
-                       wait_seconds=data.wait_seconds, custom=data.custom)
-        if data.custom:
+        if fixed_word:
+            # Kelimeli oda daima 2 kişilik + tek turdur.
+            room.fixed_word = fixed_word
+            room.configure(size=2, rounds=1, wait_seconds=data.wait_seconds, custom=True)
+        else:
+            room.configure(size=data.size, rounds=data.rounds,
+                           wait_seconds=data.wait_seconds, custom=data.custom)
+        if data.custom or fixed_word:
             # Süre dolarsa oda pasifleşsin (bekleyenlere bildirilir).
             # NOT: bu uç async olmalı — senkron def threadpool'da çalışır ve
             # get_running_loop() hata verip görev hiç başlamaz.

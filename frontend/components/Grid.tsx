@@ -101,7 +101,7 @@ function Line({ tiles, animate }: { tiles: { letter: string; bg: string; dim?: b
         <span
           key={i}
           style={{
-            ...tileStyle(t.bg, t.dim ? "var(--text-dim)" : "#fff", t.dim),
+            ...tileStyle(t.bg, t.dim ? "var(--text-dim)" : "#fff", t.dim, tiles.length),
             animation: animate ? `flipIn .4s ease ${i * 0.22}s both` : undefined,
           }}
         >
@@ -123,7 +123,7 @@ function RevealLine({ word }: { word: string }) {
           <span
             key={i}
             style={{
-              ...tileStyle("var(--accent)", "#1a1330"),
+              ...tileStyle("var(--accent)", "#1a1330", false, word.length),
               animation: `flipIn .3s ease ${i * 0.08}s both`,
             }}
           >
@@ -179,7 +179,7 @@ function DraftLine({
           <span
             key={i}
             style={{
-              ...tileStyle(bg, jokerBorder ? "#fff" : (isHint ? "var(--text-dim)" : "var(--text-strong)")),
+              ...tileStyle(bg, jokerBorder ? "#fff" : (isHint ? "var(--text-dim)" : "var(--text-strong)"), false, length),
               border: jokerBorder
                 ? "none"
                 : active
@@ -197,12 +197,14 @@ function DraftLine({
   );
 }
 
-function tileStyle(bg: string, color: string, dim?: boolean): React.CSSProperties {
+function tileStyle(bg: string, color: string, dim?: boolean, len = 6): React.CSSProperties {
+  // Responsive: 50px ya da ekrana sığacak boyut. Bölen kelime uzunluğuna göre
+  // büyür; 6 harfe kadar eski ölçü (7.2) aynen korunur, daha uzun kelimelerde
+  // (Reklam Oyunu) kutular küçülerek satır ekrana sığar.
+  const div = Math.max(7.2, len + 1.2);
   return {
-    // Responsive: 50px ya da ekrana sığacak boyut. 6 harf + gap + padding hesaba katılır;
-    // muhafazakar bölen (7.2) ile en dar telefonda bile taşma olmaz.
-    width: "min(50px, calc((100vw - 44px) / 7.2))",
-    height: "min(50px, calc((100vw - 44px) / 7.2))",
+    width: `min(50px, calc((100vw - 44px) / ${div}))`,
+    height: `min(50px, calc((100vw - 44px) / ${div}))`,
     aspectRatio: "1",
     flexShrink: 0,
     display: "grid",
@@ -210,7 +212,7 @@ function tileStyle(bg: string, color: string, dim?: boolean): React.CSSPropertie
     borderRadius: 10,
     fontFamily: "var(--font-display)",
     fontWeight: 700,
-    fontSize: "min(22px, calc((100vw - 44px) / 17))",
+    fontSize: `min(22px, calc((100vw - 44px) / ${div * 2.36}))`,
     color,
     background: bg,
     border: dim ? "1px solid var(--tile-border)" : "none",

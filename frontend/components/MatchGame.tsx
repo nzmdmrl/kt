@@ -394,7 +394,9 @@ export default function MatchGame({
           </div>
           {room?.custom && (
             <p style={{ color: "var(--text-soft)", textAlign: "center", fontSize: 13.5, lineHeight: 1.6, marginBottom: 6 }}>
-              {room.size} kişilik · {room.rounds} tur · her turda 5 veya 6 harfli rastgele kelime
+              {room.fixed_word
+                ? <>{room.size} kişilik · tek tur · kelime hazır</>
+                : <>{room.size} kişilik · {room.rounds} tur · her turda 5 veya 6 harfli rastgele kelime</>}
               <br />
               Oda dolunca maç otomatik başlar.
               {waitLeft > 0 && <> Kalan süre: <strong style={{ color: "var(--accent)" }}>{fmtWait(waitLeft)}</strong> — dolmazsa oda kapanır.</>}

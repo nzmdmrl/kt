@@ -125,7 +125,8 @@ class Match:
             return None  # type: ignore[return-value]
 
         cfg = self.round_plan[self.round_index]
-        target = self._pick_word(cfg["length"])
+        # Plan hedef kelimeyi sabitlemiş olabilir (Reklam Oyunu); yoksa havuzdan seç.
+        target = cfg.get("word") or self._pick_word(cfg["length"])
         # Ayarları cache'ten oku (admin panelden değiştirilebilir); yoksa varsayılan.
         from app.game.settings_service import cached_int
         length = cfg["length"]

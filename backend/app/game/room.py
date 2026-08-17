@@ -47,6 +47,9 @@ class Room:
         self.created_at: float = _time.time()
         self.expired: bool = False                  # süre dolup pasifleştiyse
         self.custom: bool = False                   # "özel oda kur" ile mi açıldı
+        # "Reklam Oyunu" (admin): turun hedef kelimesi elle belirlenir.
+        # İSTEMCİYE ASLA GÖNDERİLMEZ — public_info yalnız "var mı" bilgisini verir.
+        self.fixed_word: Optional[str] = None
         self.match: Optional[Match] = None
         self.sockets: dict[str, WebSocket] = {}   # player_id -> ws
         self.players: dict[str, Player] = {}
@@ -101,6 +104,8 @@ class Room:
             "match_started": self.match is not None,
             "expired": self.expired,
             "custom": self.custom,
+            # Kelime elle belirlendi mi (Reklam Oyunu)? Kelimenin KENDİSİ gitmez.
+            "fixed_word": bool(self.fixed_word),
         }
 
     async def broadcast(self, message: dict) -> None:
@@ -134,6 +139,8 @@ class Room:
 
     async def restart_match(self) -> None:
         """Aynı odada, aynı oyuncularla yeni bir maç başlatır (rövanş)."""
+        # Reklam Oyunu'nda rövanş aynı kelimeyi tekrarlamasın — normal akışa döner.
+        self.fixed_word = None
         # Eski maç durumunu ve skorları temizle.
         for p in self.players.values():
             p.score = 0
@@ -148,7 +155,12 @@ class Room:
         players = list(self.players.values())
         # Özel odada tur sayısı oda ayarından gelir (her tur 5/6 harf rastgele).
         plan = None
-        if self.custom:
+        if self.fixed_word:
+            # Reklam Oyunu: tek tur, hedef kelime admin tarafından belirlendi.
+            from app.game.settings_service import cached_int
+            n = len(self.fixed_word)
+            plan = [{"length": n, "rows": cached_int(f"rows_{n}", 5), "word": self.fixed_word}]
+        elif self.custom:
             from app.game.models import custom_round_plan
             plan = custom_round_plan(self.rounds)
         self.match = Match(self.code, players, round_plan_override=plan)
