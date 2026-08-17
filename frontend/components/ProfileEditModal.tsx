@@ -113,9 +113,19 @@ export default function ProfileEditModal({ onClose, onSaved }: { onClose: () => 
 
   return (
     <Overlay onClose={onClose}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+      {/* Başlık + kapatma: yapışkan — uzun içerikte kaydırılınca da ✕ görünür. */}
+      <div style={{
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+        position: "sticky", top: 0, zIndex: 3, background: "var(--bg-panel)",
+        margin: "-22px -22px 16px", padding: "18px 22px 10px",
+        borderTopLeftRadius: 16, borderTopRightRadius: 16,
+      }}>
         <h2 className="brand-mono" style={{ fontSize: 20, margin: 0 }}>Profili Düzenle</h2>
-        <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--text-dim)", fontSize: 22, cursor: "pointer" }}>×</button>
+        <button onClick={onClose} aria-label="Kapat" style={{
+          width: 34, height: 34, flexShrink: 0, borderRadius: "50%", display: "grid", placeItems: "center",
+          background: "var(--bg-elevated)", border: "1px solid var(--border-soft)",
+          color: "var(--text-strong)", fontSize: 20, lineHeight: 1, cursor: "pointer",
+        }}>×</button>
       </div>
 
       {msg && <div style={notice("var(--tile-correct)")}>{msg}</div>}
@@ -259,6 +269,9 @@ export default function ProfileEditModal({ onClose, onSaved }: { onClose: () => 
   );
 }
 
+// Modalın üst payı: her zaman en az 30px, uygulamada durum çubuğu kadar + 10px.
+const TOP_GAP = "max(30px, calc(var(--kt-safe-top) + 10px))";
+
 function Overlay({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
   return (
     <div
@@ -267,7 +280,10 @@ function Overlay({ children, onClose }: { children: React.ReactNode; onClose: ()
         position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", zIndex: 200,
         display: "grid", placeItems: "center", padding: 16,
         // Durum çubuğu (üst) ve reklam bandı (alt) — uygulamada ikisinin de altında kalmasın.
-        paddingTop: "max(16px, var(--kt-safe-top))",
+        // `position:fixed` gövde dolgusunu YOK SAYAR; bu yüzden üst pay burada
+        // ayrıca verilir. En az 30px: uygulamada başlık ve kapatma (✕) tuşu
+        // telefonun saat/durum çubuğunun altında kalıyordu.
+        paddingTop: TOP_GAP,
         paddingBottom: "max(16px, var(--kt-banner-space, 0px))",
       }}
     >
@@ -275,7 +291,10 @@ function Overlay({ children, onClose }: { children: React.ReactNode; onClose: ()
         onClick={(e) => e.stopPropagation()}
         style={{
           background: "var(--bg-panel)", borderRadius: 16, padding: 22,
-          width: "min(460px, 100%)", maxHeight: "90vh", overflowY: "auto",
+          width: "min(460px, 100%)", overflowY: "auto",
+          // Kutu, üst/alt paylardan ARTAN alanı aşamaz — aşarsa ortalanınca
+          // taşıp üstü durum çubuğunun altına giriyordu.
+          maxHeight: `calc(100vh - ${TOP_GAP} - max(16px, var(--kt-banner-space, 0px)) - 8px)`,
           border: "1px solid var(--border-soft)", boxShadow: "var(--shadow-soft)",
         }}
       >
