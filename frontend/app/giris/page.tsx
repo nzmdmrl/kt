@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { getJSON } from "@/lib/api";
+import { usePlatform } from "@/lib/platform";
+import { useAppConfig, type FlagsConfig } from "@/lib/appConfig";
 import Logo from "@/components/Logo";
 import GoogleSignIn from "@/components/GoogleSignIn";
 import Recaptcha from "@/components/Recaptcha";
@@ -41,7 +43,7 @@ export default function GirisPage() {
     if (!loading && user) router.push("/");
   }, [user, loading, router]);
 
-  // Google yapılandırılmış mı?
+  // Google yapılandırılmış mı? — WEB akışı için (env: GOOGLE_CLIENT_ID/SECRET).
   useEffect(() => {
     getJSON<{ configured: boolean }>("/api/auth/google/status")
       .then((d) => setGoogleConfigured(d.configured))
@@ -50,6 +52,18 @@ export default function GirisPage() {
 
   // Giriş/kayıt arasında geçişte tekrar alanı kalmasın.
   useEffect(() => { setPassword2(""); }, [mode]);
+
+  // Google butonu bu ortamda gösterilebilir mi?
+  // UYGULAMADA env'e BAKILMAZ: native giriş app_settings'teki Web istemci
+  // kimliğiyle çalışır (GOOGLE_CLIENT_SECRET uygulama akışında hiç kullanılmaz).
+  // Platform tespiti bitene kadar (ready=false) bölüm çizilmez — kısa bir an için
+  // yanlış butonun görünüp değişmesi olmasın.
+  const { isNative, ready: platformReady } = usePlatform();
+  const appConfig = useAppConfig();
+  const nativeGoogleId = (
+    ((appConfig?.["app.flags"] as FlagsConfig)?.google_web_client_id) || ""
+  ).trim();
+  const googleAvailable = platformReady && (isNative ? !!nativeGoogleId : googleConfigured);
 
   async function submit() {
     setErr("");
@@ -189,7 +203,7 @@ export default function GirisPage() {
             </p>
           )}
 
-          {googleConfigured && (
+          {googleAvailable && (
             <>
               <Divider />
               <GoogleSignIn

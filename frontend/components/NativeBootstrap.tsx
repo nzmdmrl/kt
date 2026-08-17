@@ -728,6 +728,13 @@ export default function NativeBootstrap() {
   }, [platform]);
 
   // Giriş/çıkış olduğunda bekleyen token'ı yeniden dene.
+  //
+  // TETİKLEYİCİ authToken'dır (lib/auth.tsx → applyAuth) ve giriş yolu fark
+  // etmez: e-posta/şifre, web Google akışı ve UYGULAMA İÇİ NATIVE GOOGLE GİRİŞİ
+  // (/api/auth/google/native) üçü de aynı applyAuth'tan geçer, dolayısıyla push
+  // izni verilmiş ama hesapsız beklemekte olan cihaz token'ı burada kaydedilir.
+  // Kayıt JWT başına bir kez yapılır (registeredForJwtRef), yani yeniden
+  // render'lar boşuna istek atmaz; farklı hesaba geçilirse yeniden gönderilir.
   useEffect(() => {
     if (!ready || !isNative) return;
     void syncPushToken();

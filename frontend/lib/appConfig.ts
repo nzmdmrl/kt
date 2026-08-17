@@ -57,6 +57,13 @@ export type AdMobConfig = {
 export type FlagsConfig = {
   /** Maç teklifinin geçerlilik süresi (saniye). */
   challenge_ttl_seconds?: number;
+  /**
+   * Google **Web** istemci kimliği — UYGULAMA içindeki native giriş için.
+   * Boşsa uygulamada Google butonu hiç çizilmez ve /auth/google/native 503 döner.
+   * Web'deki GIS butonu buna BAKMAZ; o env'deki GOOGLE_CLIENT_ID'yi kullanır
+   * (/api/auth/google/status).
+   */
+  google_web_client_id?: string;
   /** ESKİ yer — mikrofon artık "app.mic" satırında. Yalnız geçiş için okunur. */
   mic_web_enabled?: boolean;
   /** ESKİ yer — mikrofon artık "app.mic" satırında. Yalnız geçiş için okunur. */

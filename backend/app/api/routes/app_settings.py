@@ -169,9 +169,19 @@ DEFAULT_APP_SETTINGS: dict[str, tuple[dict, bool]] = {
     ),
     # Davranış bayrakları. challenge_ttl_seconds: maç teklifinin geçerlilik
     # süresi (app/game/challenge_service.py okur, 60 sn cache'li).
+    #
+    # google_web_client_id: Google Cloud Console'daki **Web** istemci kimliği.
+    # İKİ yerde kullanılır ve İKİSİNDE DE AYNI değer olmalıdır:
+    #   1) Uygulama (Capacitor) — native hesap seçici bu kimlikle açılır ve
+    #      döndürdüğü id_token'ın `aud` alanı BU değer olur,
+    #   2) Backend — /auth/google/native gelen id_token'ın audience'ını buna göre
+    #      doğrular (app/api/routes/auth.py).
+    # Env'deki GOOGLE_CLIENT_ID'den AYRI tutulur: web akışı env'e, uygulama akışı
+    # bu satıra bakar; admin panelden deploy'suz değiştirilebilsin diye burada.
     "app.flags": (
         {
             "challenge_ttl_seconds": 120,
+            "google_web_client_id": "",
         },
         True,
     ),
@@ -329,9 +339,37 @@ async def ensure_app_settings_table() -> int:
 CACHE_TTL = 60.0
 _cache: dict[str, tuple[float, dict]] = {}
 
+# "app.flags" satırının sunucu tarafı okuması (public yanıttan bağımsız).
+# Neden ayrı: /app-config yanıtı platforma göre şekillendirilmiş bir SÖZLÜK; sunucu
+# kodu (ör. Google native girişi) tek satırın ham değerini ister. 60 sn cache'li,
+# admin kaydettiğinde _clear_cache ile birlikte düşer.
+FLAGS_KEY = "app.flags"
+_flags_cache: tuple[float, dict] | None = None
+
 
 def _clear_cache() -> None:
+    global _flags_cache
     _cache.clear()
+    _flags_cache = None
+
+
+async def read_flags(db: AsyncSession) -> dict:
+    """'app.flags' satırının ham değeri. Tablo/satır yoksa boş sözlük döner."""
+    global _flags_cache
+    now = time.monotonic()
+    if _flags_cache and now - _flags_cache[0] < CACHE_TTL:
+        return _flags_cache[1]
+    try:
+        res = await db.execute(
+            text("SELECT value FROM app_settings WHERE key = :k"), {"k": FLAGS_KEY}
+        )
+        row = res.first()
+        value = _as_dict(row[0]) if row else {}
+    except Exception:
+        # Tablo henüz yoksa (ilk deploy) özellik "yapılandırılmamış" sayılır.
+        value = {}
+    _flags_cache = (now, value)
+    return value
 
 
 def _shape_for_platform(key: str, value: dict, platform: str) -> dict:

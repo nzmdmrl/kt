@@ -52,6 +52,10 @@ _ADMOB_NEW_KEYS_JSON = json.dumps(
     ensure_ascii=True,   # tek tırnaklı SQL literali içine güvenle gömülsün
 )
 
+# Google Web istemci kimliği — sonradan eklenen anahtar (bkz. migration 13).
+# BOŞ gelir: admin panelden (⚙️ Mobil & Reklam → Davranış ayarları) girilir.
+_FLAGS_GOOGLE_JSON = json.dumps({"google_web_client_id": ""}, ensure_ascii=True)
+
 # Oyun ekranı payı — sonradan eklenen anahtar (bkz. migration 12).
 _ADMOB_GAME_OFFSET_JSON = json.dumps({"banner_game_offset_extra": 0}, ensure_ascii=True)
 
@@ -386,6 +390,34 @@ DATA_MIGRATIONS: list[tuple[str, list[str]]] = [
             f"                       '{_ADMOB_EMPTY_HIDDEN_JSON}'), "
             "    updated_at = CURRENT_TIMESTAMP "
             "WHERE key = 'ads.admob'"
+        ),
+    ]),
+
+    # 13) Uygulama içi (native) Google girişi için Web istemci kimliği:
+    #     'app.flags'.google_web_client_id.
+    #
+    #     Gerekçe (6)(7)(8)(9) ile aynı ve BURADA ÖZELLİKLE ÖNEMLİ: app_settings
+    #     seed'i (ensure_app_settings_table) yalnızca SATIR YOKSA yazar —
+    #     "key in existing: continue". Canlıda 'app.flags' satırı çoktan var,
+    #     dolayısıyla DEFAULT_APP_SETTINGS'e eklediğim yeni anahtar oraya ASLA
+    #     ulaşmaz; alan admin panelinde boş bir kutu olarak bile görünmezdi.
+    #
+    #     Birleştirme yönü öncekilerle aynı: varsayılan SOLDA, mevcut değer SAĞDA
+    #     -> anahtar zaten varsa (ör. admin daha önce girdiyse) EZİLMEZ,
+    #     challenge_ttl_seconds de olduğu gibi korunur.
+    #
+    #     Değer BOŞ gelir: kimliği admin panelden Nazım girecek. Boş olduğu sürece
+    #     /auth/google/native 503 döner ve uygulamada buton hiç çizilmez.
+    ("2026_08_flags_google_web_client_id", [
+        (
+            "UPDATE app_settings "
+            f"SET value = '{_FLAGS_GOOGLE_JSON}'::jsonb || value, updated_at = now() "
+            "WHERE key = 'app.flags'"
+            if _IS_PG else
+            "UPDATE app_settings "
+            f"SET value = json_patch('{_FLAGS_GOOGLE_JSON}', value), "
+            "    updated_at = CURRENT_TIMESTAMP "
+            "WHERE key = 'app.flags'"
         ),
     ]),
 ]

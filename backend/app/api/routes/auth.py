@@ -1,12 +1,15 @@
-"""Kimlik doğrulama uçları: kayıt, giriş, /me, Google OAuth."""
+"""Kimlik doğrulama uçları: kayıt, giriş, /me, Google OAuth (web + native)."""
 
 from __future__ import annotations
+
+import time
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.routes import app_settings as app_settings_routes
 from app.core.database import get_db
 from app.core.config import get_settings
 from app.core import captcha
@@ -87,28 +90,60 @@ def google_status():
     }
 
 
-@router.post("/google")
-async def google_login(data: GoogleIn, db: AsyncSession = Depends(get_db)):
-    if not settings.google_oauth_configured:
-        raise HTTPException(status_code=503, detail="Google girişi yapılandırılmamış.")
-    # id_token'ı Google'ın tokeninfo ucuyla doğrula.
-    async with httpx.AsyncClient(timeout=10) as client:
-        resp = await client.get(
-            "https://oauth2.googleapis.com/tokeninfo",
-            params={"id_token": data.id_token},
-        )
+GOOGLE_TOKENINFO_URL = "https://oauth2.googleapis.com/tokeninfo"
+GOOGLE_ISSUERS = ("accounts.google.com", "https://accounts.google.com")
+
+
+async def _verify_google_id_token(id_token: str, expected_aud: str) -> dict:
+    """id_token'ı Google'a doğrulatır ve doğrulanmış iddiaları (claims) döner.
+
+    Hem web (GIS) hem uygulama (native hesap seçici) akışı BURAYA girer — iki
+    yolun güvenlik kontrolleri birbirinden ayrışmasın diye tek fonksiyon.
+
+    Kontroller:
+      - imza/biçim: tokeninfo ucu 200 dönmezse token geçersizdir,
+      - aud       : token BİZİM istemcimiz için mi üretilmiş,
+      - iss       : gerçekten Google mı verdi,
+      - exp       : süresi dolmuş mu (tokeninfo da reddeder; burada açıkça bakılır).
+    Herhangi biri tutmazsa 401 fırlatır.
+    """
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(GOOGLE_TOKENINFO_URL, params={"id_token": id_token})
+    except httpx.HTTPError:
+        # Google'a ulaşılamadı — token'ı doğrulayamadığımız için giriş VERİLMEZ.
+        raise HTTPException(status_code=503, detail="Google'a ulaşılamadı, tekrar dene.")
     if resp.status_code != 200:
         raise HTTPException(status_code=401, detail="Google token doğrulanamadı.")
     info = resp.json()
+
     # aud (client_id) bizim uygulamamıza mı ait?
-    if info.get("aud") != settings.GOOGLE_CLIENT_ID:
+    if info.get("aud") != expected_aud:
         raise HTTPException(status_code=401, detail="Google token bu uygulama için değil.")
     # Token'ı gerçekten Google mı verdi?
-    if info.get("iss") not in ("accounts.google.com", "https://accounts.google.com"):
+    if info.get("iss") not in GOOGLE_ISSUERS:
         raise HTTPException(status_code=401, detail="Google token kaynağı geçersiz.")
-    sub = info.get("sub")
-    if not sub:
+    # Süre. tokeninfo süresi geçmiş token'a zaten 400 döner; yine de açıkça
+    # bakıyoruz ki kontrol tek bir dış servisin davranışına bağlı kalmasın.
+    try:
+        exp = int(info.get("exp") or 0)
+    except (TypeError, ValueError):
+        exp = 0
+    if exp <= int(time.time()):
+        raise HTTPException(status_code=401, detail="Google token süresi dolmuş.")
+
+    if not info.get("sub"):
         raise HTTPException(status_code=401, detail="Google kimliği okunamadı.")
+    return info
+
+
+async def _google_sign_in(db: AsyncSession, info: dict) -> dict:
+    """Doğrulanmış Google iddialarıyla oturum açar/hesap oluşturur.
+
+    Web ve uygulama akışı için TEK yol: hesap oluşturma varsayılanları, mevcut
+    hesaba bağlama ve yan etkiler (ad moderasyonu, benzersiz username, avatar)
+    auth_service.get_or_create_google_user içinde — burada kopyalanmaz.
+    """
     # E-posta yalnızca Google tarafından doğrulanmışsa mevcut hesapla eşleştirilir;
     # aksi halde doğrulanmamış adresle başkasının hesabı ele geçirilebilir.
     email = info.get("email")
@@ -116,12 +151,49 @@ async def google_login(data: GoogleIn, db: AsyncSession = Depends(get_db)):
         email = None
     user = await auth_service.get_or_create_google_user(
         db,
-        sub=sub,
+        sub=info["sub"],
         email=email,
         name=info.get("name"),
         picture=info.get("picture"),
     )
     return _auth_response(user)
+
+
+@router.post("/google")
+async def google_login(data: GoogleIn, db: AsyncSession = Depends(get_db)):
+    """Web akışı — Google Identity Services butonundan gelen id_token."""
+    if not settings.google_oauth_configured:
+        raise HTTPException(status_code=503, detail="Google girişi yapılandırılmamış.")
+    info = await _verify_google_id_token(data.id_token, settings.GOOGLE_CLIENT_ID)
+    return await _google_sign_in(db, info)
+
+
+@router.post("/google/native")
+async def google_login_native(data: GoogleIn, db: AsyncSession = Depends(get_db)):
+    """Uygulama akışı — cihazın native Google hesap seçicisinden gelen id_token.
+
+    NEDEN AYRI UÇ: Google, gömülü WebView içinde OAuth'a izin vermiyor, bu yüzden
+    uygulamada GIS betiği hiç yüklenmiyor ("google servisi yüklenemedi"). Uygulama
+    bunun yerine cihazın hesap seçicisini açar; oradan dönen id_token buraya gelir.
+
+    Beklenen audience env'deki GOOGLE_CLIENT_ID DEĞİL, app_settings'teki
+    'app.flags'.google_web_client_id'dir: uygulama hesap seçiciyi o kimlikle açar
+    (Android Credential Manager'da audience daima **Web** istemci kimliğidir) ve
+    değer admin panelden deploy'suz değiştirilebilir.
+
+    Doğrulama ve hesap açma yolu web akışıyla AYNI fonksiyonlardır; dönen yanıt da
+    birebir aynıdır ({token, user}) — sonrasındaki her şey (WebSocket kimliği,
+    admin kontrolü, push cihaz kaydı) farkı görmez.
+    """
+    flags = await app_settings_routes.read_flags(db)
+    client_id = str(flags.get("google_web_client_id") or "").strip()
+    if not client_id:
+        raise HTTPException(
+            status_code=503,
+            detail="Uygulama içi Google girişi yapılandırılmamış.",
+        )
+    info = await _verify_google_id_token(data.id_token, client_id)
+    return await _google_sign_in(db, info)
 
 
 # ---- profil ----

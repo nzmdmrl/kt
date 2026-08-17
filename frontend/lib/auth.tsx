@@ -40,7 +40,14 @@ type AuthContextType = {
     captchaToken?: string | null
   ) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
+  /** Web akışı — Google Identity Services butonundan gelen id_token. */
   loginGoogle: (idToken: string) => Promise<void>;
+  /**
+   * Uygulama akışı — cihazın native hesap seçicisinden gelen id_token.
+   * Yanıt web akışıyla BİREBİR aynıdır ({token, user}), aynı applyAuth'tan geçer;
+   * token değişince NativeBootstrap bekleyen push token'ını yeniden kaydeder.
+   */
+  loginGoogleNative: (idToken: string) => Promise<void>;
   logout: () => void;
 };
 
@@ -167,18 +174,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [applyAuth]
   );
 
-  const loginGoogle = useCallback(
-    async (idToken: string) => {
-      const res = await fetch(apiUrl("/api/auth/google"), {
+  // Web ve uygulama akışı aynı gövdeyi gönderir, aynı yanıtı alır; tek fark uç.
+  const postGoogleToken = useCallback(
+    async (path: string, idToken: string) => {
+      const res = await fetch(apiUrl(path), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id_token: idToken }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.detail || "Google girişi başarısız");
       applyAuth(data);
     },
     [applyAuth]
+  );
+
+  const loginGoogle = useCallback(
+    (idToken: string) => postGoogleToken("/api/auth/google", idToken),
+    [postGoogleToken]
+  );
+
+  const loginGoogleNative = useCallback(
+    (idToken: string) => postGoogleToken("/api/auth/google/native", idToken),
+    [postGoogleToken]
   );
 
   const logout = useCallback(() => {
@@ -190,7 +208,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, token, loading, register, login, loginGoogle, logout }}
+      value={{ user, token, loading, register, login, loginGoogle, loginGoogleNative, logout }}
     >
       {children}
     </AuthContext.Provider>

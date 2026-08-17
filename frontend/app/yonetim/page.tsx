@@ -2145,7 +2145,13 @@ type MobileField = {
   path: string;
   label: string;
   type?: "text" | "bool" | "list" | "lines" | "number" | "textbox";
+  /** Metin/liste alanlarında PLACEHOLDER olarak kullanılır — kısa tut. */
   hint?: string;
+  /**
+   * Kutunun ALTINDA kalıcı açıklama satırı. hint'ten farkı: değer girilince
+   * kaybolmaz. Uzun anlatımlar (nereden alınır, neyi etkiler) buraya yazılır.
+   */
+  note?: string;
   /** Bu yoldaki değer true DEĞİLSE alan gizlenir (ör. uyarı kutucuğuna bağlı alanlar). */
   showIf?: string;
 };
@@ -2278,6 +2284,20 @@ const MOBILE_FIELDS: Record<string, MobileField[]> = {
       label: "Maç teklifi geçerlilik süresi (saniye)",
       type: "number",
       hint: "varsayılan 120 — 10 ile 900 arası",
+    },
+    {
+      path: "google_web_client_id",
+      label: "Google — Web istemci kimliği (uygulama girişi)",
+      type: "text",
+      hint: "000000000000-xxxxxxxx.apps.googleusercontent.com",
+      note: "Google Cloud Console → Kimlik Bilgileri → OAuth 2.0 istemci kimlikleri → "
+        + "\"Web application\" satırının kimliği. ANDROID istemci kimliği DEĞİL "
+        + "(Android istemcisi de tanımlı olmalı ama buraya WEB olanı yazılır). "
+        + "Uygulamadaki \"Google ile giriş\" cihazın hesap seçicisini bu kimlikle açar, "
+        + "sunucu da gelen token'ı bu kimliğe göre doğrular. Boş bırakılırsa uygulamada "
+        + "Google butonu hiç çıkmaz (e-posta/şifre girişi etkilenmez). Web sitesindeki "
+        + "Google butonu bu alana BAKMAZ — o, Coolify'daki GOOGLE_CLIENT_ID değişkenini "
+        + "kullanır.",
     },
   ],
   "app.mic": [
@@ -2537,12 +2557,17 @@ function Mobile() {
                 <input
                   value={text}
                   placeholder={f.hint || ""}
+                  spellCheck={false}
                   onChange={(e) => {
                     if (isList) setListText((t) => ({ ...t, [`${row.key}:${f.path}`]: e.target.value }));
                     else patch(row.key, f.path, e.target.value);
                   }}
                   style={seoInput}
                 />
+                {/* Kalıcı açıklama — placeholder'ın aksine değer girilince kaybolmaz. */}
+                {f.note && (
+                  <span style={{ fontSize: 11, color: "var(--text-dim)", lineHeight: 1.6 }}>{f.note}</span>
+                )}
               </div>
             );
           })}
