@@ -1,8 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!--
+        YEDEKLEME KAPALI.
+
+        Neden: oturum jetonu (kt_token) WebView'ın localStorage'ında duruyor, o da
+        uygulamanın veri dizininin içinde. Android Auto Backup varsayılan olarak bu
+        dizini buluta yedekliyordu; uygulama silinip yeniden kurulunca sistem veriyi
+        GERİ YÜKLÜYOR ve kullanıcı hiç giriş yapmadan giriş yapmış olarak açılıyordu.
+        ("Verileri temizle" farklı davranıyordu, çünkü geri yükleme yalnızca KURULUM
+        anında çalışır — teşhiste bu doğrulandı.)
+
+        Üç öznitelik birden gerekiyor, çünkü tek başına allowBackup her sürümü
+        kapsamıyor:
+          allowBackup=false      -> buluta yedeklemeyi kapatır (tüm sürümler)
+          fullBackupContent      -> Android 11 ve altı için kural dosyası
+          dataExtractionRules    -> Android 12+ ; bulut yedeği VE cihazdan cihaza
+                                    aktarımı ayrı ayrı kapsar. Android 12+'ta
+                                    cihazdan cihaza aktarım allowBackup'a BAKMAZ,
+                                    yalnızca bu dosyayla dışlanır.
+        Her iki dosya da "her şeyi hariç tut" der (res/xml/).
+    -->
     <application
-        android:allowBackup="true"
+        android:allowBackup="false"
+        android:fullBackupContent="@xml/backup_rules"
+        android:dataExtractionRules="@xml/data_extraction_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"

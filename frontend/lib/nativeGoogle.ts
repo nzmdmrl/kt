@@ -25,6 +25,9 @@
  *  - initialize() kimlik başına BİR kez çağrılır; ikinci girişte tekrarlanmaz.
  */
 
+import { loadAppConfig, type FlagsConfig } from "./appConfig";
+import { detectPlatform } from "./platform";
+
 /** Hesap seçicinin sonucu — arayüz buna göre Türkçe mesaj basar. */
 export type NativeGoogleOutcome =
   | { status: "ok"; idToken: string }
@@ -138,5 +141,48 @@ export async function nativeGoogleSignIn(webClientId: string): Promise<NativeGoo
     // EKLENTİNİN HAM MESAJI: genel Türkçe uyarının arkasında kaybolmasın.
     console.error(`${TAG} eklenti hatası:`, (e as any)?.message ?? e, e);
     return classify(e);
+  }
+}
+
+/**
+ * Cihazın Google oturumunu bırakır — ÇIKIŞ YAPARKEN çağrılır (lib/auth.tsx).
+ *
+ * NEDEN GEREKLİ: bizim JWT'mizi silmek yetmiyor. Android'in Credential Manager'ı
+ * son kullanılan hesabı hatırlıyor, eklenti de id/access token'ı kendi
+ * SharedPreferences'ında tutuyor (GoogleProvider.java → persistState). Bunlar
+ * durduğu sürece bir sonraki "Google ile giriş"te hesap seçici soru sormadan aynı
+ * hesabı geçebiliyor. Eklentinin logout'u
+ * `credentialManager.clearCredentialStateAsync()` çağırıp o SharedPreferences'ı
+ * TEMİZLİYOR (GoogleProvider.java → rawLogout), yani seçici tekrar soruyor.
+ *
+ * ÖNCE initialize: eklentinin logout'u sağlayıcı kurulmamışsa
+ * "Cannot find provider 'google'. Provider was not initialized." diye reddediyor
+ * (SocialLoginPlugin.java:216). En sık durum tam da bu: uygulama yeniden
+ * açılmıştır, kullanıcı bu oturumda Google butonuna hiç basmamıştır, dolayısıyla
+ * initialize hiç çalışmamıştır. Bu yüzden gerekiyorsa önce kurulur.
+ *
+ * ASLA FIRLATMAZ ve çıkışı engellemez: bizim oturumumuz zaten kapatılmış olur,
+ * buradaki iş yalnızca cihaz tarafını temizlemektir.
+ */
+export async function nativeGoogleSignOut(): Promise<void> {
+  try {
+    if (detectPlatform() === "web") return;
+
+    const config = await loadAppConfig(detectPlatform());
+    const clientId = (
+      ((config?.["app.flags"] as FlagsConfig)?.google_web_client_id) || ""
+    ).trim();
+    // Kimlik yoksa uygulamada Google girişi zaten hiç açılmamıştır.
+    if (!clientId) return;
+
+    const { SocialLogin } = await import("@capgo/capacitor-social-login");
+    if (initializedFor !== clientId) {
+      await SocialLogin.initialize({ google: { webClientId: clientId } });
+      initializedFor = clientId;
+    }
+    await SocialLogin.logout({ provider: "google" });
+    console.warn(`${TAG} cihazın Google oturumu bırakıldı`);
+  } catch (e) {
+    console.warn(`${TAG} Google oturumu bırakılamadı (zararsız):`, (e as any)?.message ?? e);
   }
 }

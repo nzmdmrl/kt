@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Android 11 (API 30) ve altı — android:fullBackupContent.
+
+    HER ŞEY HARİÇ. Gerekçe AndroidManifest.xml'deki nottadır: uygulamanın veri
+    dizini WebView'ın localStorage'ını (dolayısıyla oturum jetonunu) taşıyor;
+    yedekten geri yükleme, kullanıcıyı hiç giriş yapmadan giriş yapmış hâle
+    getiriyordu.
+
+    Bu sürümlerde allowBackup="false" zaten yedeklemeyi kapatıyor; bu dosya
+    ikinci emniyet kemeri — ileride allowBackup yanlışlıkla açılırsa (ör. bir
+    kütüphanenin manifest birleştirmesi) veri yine dışarı çıkmasın.
+
+    domain="root" uygulamanın veri dizininin KÖKÜdür; app_webview/ klasörü de
+    oradadır, yani localStorage bu satırla kapsanır.
+-->
+<full-backup-content>
+    <exclude domain="root" path="." />
+    <exclude domain="file" path="." />
+    <exclude domain="database" path="." />
+    <exclude domain="sharedpref" path="." />
+    <exclude domain="external" path="." />
+</full-backup-content>

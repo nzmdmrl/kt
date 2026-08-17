@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { apiUrl } from "./api";
+import { detectPlatform } from "./platform";
 import { useIsoLayoutEffect } from "./useIsoLayoutEffect";
 
 export type AuthUser = {
@@ -200,10 +201,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const logout = useCallback(() => {
+    // 1) Bizim oturumumuz — KOŞULSUZ ve ÖNCE. Aşağıdaki native adım ne yaparsa
+    //    yapsın (hata da verse) kullanıcı çıkmış olur; arayüz beklemez.
     localStorage.removeItem(TOKEN_KEY);
     writeCachedUser(null);
     setToken(null);
     setUser(null);
+
+    // 2) UYGULAMADA ayrıca cihazın Google oturumu bırakılır. Yoksa Credential
+    //    Manager son hesabı hatırlar ve bir dahaki "Google ile giriş"te seçici
+    //    soru sormadan aynı hesaptan devam edebilir. Ateşle-unut: sonucu
+    //    beklenmez, hatası yutulur (ayrıntı için lib/nativeGoogle.ts).
+    //    Web'de eklenti CHUNK'I BİLE indirilmez — önce platform kontrol edilir.
+    if (detectPlatform() !== "web") {
+      void import("./nativeGoogle").then((m) => m.nativeGoogleSignOut()).catch(() => {});
+    }
   }, []);
 
   return (

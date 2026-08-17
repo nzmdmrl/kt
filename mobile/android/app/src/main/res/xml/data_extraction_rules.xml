@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Android 12 (API 31) ve üstü — android:dataExtractionRules.
+
+    Bu sürümlerde veri çıkışının İKİ ayrı yolu var ve ikisi de burada kapatılıyor:
+
+      <cloud-backup>    Google hesabına yedekleme. allowBackup="false" bunu zaten
+                        kapatıyor; burada da açıkça dışlanıyor.
+      <device-transfer> Yeni telefona kurulum sırasındaki cihazdan cihaza aktarım.
+                        DİKKAT: Android 12+'ta bu yol allowBackup özniteliğine
+                        BAKMAZ — yalnızca bu bölümle engellenir. Manifest'te üç
+                        özniteliğin birden bulunmasının sebebi budur.
+
+    domain="root" uygulamanın veri dizininin KÖKÜdür; WebView'ın localStorage'ını
+    tutan app_webview/ klasörü de oradadır.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" path="." />
+        <exclude domain="file" path="." />
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="external" path="." />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" path="." />
+        <exclude domain="file" path="." />
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="external" path="." />
+    </device-transfer>
+</data-extraction-rules>
