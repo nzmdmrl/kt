@@ -48,6 +48,26 @@ def is_online(user_id: int) -> bool:
     return get_status(user_id) in ("online", "in_match")
 
 
+def idle_user_ids(exclude: set[int] | None = None, limit: int = 4) -> list[int]:
+    """
+    Şu an ONLINE olup maçta OLMAYAN kullanıcılar (en yakın zamanda görülen önce).
+
+    "Arenaya davet" anlık popup'ı bu listeye gönderilir. Oyun ekranında olup
+    olmadığı ayrıca istemcide de kontrol edilir (in_match yalnız maçı bilir).
+    """
+    now = time.time()
+    skip = exclude or set()
+    rows = [
+        (uid, p["last_seen"])
+        for uid, p in _presence.items()
+        if uid not in skip
+        and not p.get("in_match")
+        and now - p["last_seen"] <= ONLINE_WINDOW
+    ]
+    rows.sort(key=lambda r: r[1], reverse=True)
+    return [uid for uid, _ in rows[:max(0, limit)]]
+
+
 def counts() -> dict:
     """Şu an online ve maçtaki kullanıcı sayıları (heartbeat penceresi içinde)."""
     now = time.time()

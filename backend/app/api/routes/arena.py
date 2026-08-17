@@ -156,6 +156,30 @@ async def custom_arena_info(code: str, user=Depends(get_optional_user)):
     }
 
 
+@router.get("/arena/call")
+async def arena_call_status(user=Depends(get_current_user)):
+    """
+    "Arenaya davet" anlık çağrısı (popup). Bildirim DEĞİL — kaydedilmez.
+
+    Yalnız çağrının hedefi olan, henüz kapatmamış kullanıcı için dolu döner.
+    İstemci oyun ekranlarında bu ucu hiç çağırmaz.
+    """
+    from app.game import arena_call
+    return {"call": arena_call.call_for(user.id)}
+
+
+class ArenaCallDismissIn(BaseModel):
+    id: str = ""
+
+
+@router.post("/arena/call/dismiss")
+async def arena_call_dismiss(data: ArenaCallDismissIn, user=Depends(get_current_user)):
+    """Popup kapatıldı/kabul edildi — aynı çağrı bir daha gösterilmez."""
+    from app.game import arena_call
+    arena_call.dismiss(user.id, data.id)
+    return {"ok": True}
+
+
 class InviteIn(BaseModel):
     code: str
     friend_ids: list[int]
@@ -611,6 +635,19 @@ async def arena_ws(
         })
         # Eşleşme başlatıcı: ilk giren tetikler (dolunca veya süre dolunca)
         asyncio.create_task(_matchmaker(code))
+        # "Arenaya davet" anlık popup'ı: lobide yer varsa o an boşta olan
+        # (online ama maçta olmayan) en fazla 4 üyeye çağrı açılır. Üye giriş
+        # yapmış olmalı; misafirler çağrı açamaz.
+        if user and not lobby.is_full():
+            try:
+                from app.game import arena_call
+                arena_call.open_call(
+                    user.id,
+                    user.display_name or user.username,
+                    cached_int("arena_wait_seconds", WAIT_SECONDS),
+                )
+            except Exception:
+                pass
 
     await _arena_receive_loop(websocket, code, pid, name=name, is_custom=False)
 

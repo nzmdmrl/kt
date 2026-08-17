@@ -4,6 +4,7 @@ import { PlatformProvider } from "@/lib/platform";
 import { AuthProvider } from "@/lib/auth";
 import HeartbeatPinger from "@/components/HeartbeatPinger";
 import ChallengeWatcher from "@/components/ChallengeWatcher";
+import ArenaCallWatcher from "@/components/ArenaCallWatcher";
 import UiClickSound from "@/components/UiClickSound";
 import NativeBootstrap from "@/components/NativeBootstrap";
 import MicNoticeHost from "@/lib/micNotice";
@@ -16,6 +17,8 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         {/* Her sayfada çalışan global presence + maç teklifi izleyici */}
         <HeartbeatPinger />
         <ChallengeWatcher />
+        {/* Arenaya anlık davet popup'ı — sadece oyun dışı sayfalarda */}
+        <ArenaCallWatcher />
         {/* Maç dışındaki tüm sayfalarda buton tıklama sesi */}
         <UiClickSound />
         {/* Native kabuk: push + AdMob + geri tuşu. Tarayıcıda tamamen etkisiz. */}
