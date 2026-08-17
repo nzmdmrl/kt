@@ -110,8 +110,16 @@ export function useMatch(
     const ws = new WebSocket(url);
     wsRef.current = ws;
 
-    ws.onopen = () => setConnected(true);
-    ws.onclose = () => setConnected(false);
+    // Heartbeat: uygulama kapanınca/ağ kopunca soket yarı-açık kalabiliyor.
+    // Sunucu 15 sn ses çıkmayan oyuncuyu sıradan düşürür; 5 sn'de bir ping.
+    let hb: ReturnType<typeof setInterval> | null = null;
+    ws.onopen = () => {
+      setConnected(true);
+      hb = setInterval(() => {
+        if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ action: "ping" }));
+      }, 5000);
+    };
+    ws.onclose = () => { setConnected(false); if (hb) { clearInterval(hb); hb = null; } };
     ws.onerror = () => setError("Bağlantı hatası");
 
     ws.onmessage = (ev) => {
@@ -151,6 +159,7 @@ export function useMatch(
     };
 
     return () => {
+      if (hb) clearInterval(hb);
       ws.close();
       wsRef.current = null;
     };

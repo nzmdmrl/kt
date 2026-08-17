@@ -213,16 +213,8 @@ export default function ArenaGame({ onExit, customCode, guestName }: { onExit: (
         {/* Üst blok sıkı tutulur (paddingTop küçük): alttaki katılımcı listesi
             ve dipteki oyuncu şeridi rahat sığsın. */}
         <div style={{ textAlign: "center", paddingTop: 4 }}>
-          {/* Başlık — büyük ikon + parlayan ad */}
-          <div style={{ fontSize: 46, lineHeight: 1, marginBottom: 2, animation: "arenaPulse 2.4s ease-in-out infinite" }}>
-            {customCode ? "🎪" : "⚔️"}
-          </div>
-          <h2 className="brand-mono" style={{
-            fontSize: 38, margin: "0 0 12px", lineHeight: 1.05, letterSpacing: "0.06em",
-            color: "var(--accent)", textShadow: "0 0 24px var(--accent-glow)",
-          }}>
-            {customCode ? "ÖZEL ARENA" : "ARENA"}
-          </h2>
+          {/* Başlık — lobi ve 3-2-1 ekranında AYNI bileşen */}
+          <ArenaTitle custom={!!customCode} />
 
           {/* Bilgi çipleri — üç satır yerine tek satır */}
           <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap", marginBottom: 14 }}>
@@ -281,17 +273,19 @@ export default function ArenaGame({ onExit, customCode, guestName }: { onExit: (
   if (state.phase === "starting" || state.phase === "countdown") {
     return (
       <ArenaShell onExit={onExit} players={state.players}>
-        <div style={{ textAlign: "center", paddingTop: 30 }}>
-          <h2 className="brand-mono" style={{ fontSize: 26, marginBottom: 6 }}>Arena</h2>
-          <p style={{ color: "var(--accent)", marginBottom: 4, fontSize: 16, fontWeight: 600 }}>
-            Sıradaki kelime: {state.countdownLen} harf
-          </p>
-          <p style={{ color: "var(--text-soft)", marginBottom: 24 }}>👤 5</p>
-          <p className="brand-mono" style={{ fontSize: 22, marginBottom: 10 }}>içinde başlayacak</p>
-          <div className="brand-mono" style={{ fontSize: 90, color: "var(--text-dim)", lineHeight: 1 }}>
+        <div style={{ textAlign: "center", paddingTop: 4 }}>
+          {/* Başlık lobideki ile BİREBİR aynı (ikon + ad + çipler). */}
+          <ArenaTitle custom={!!customCode} />
+          <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap", marginBottom: 18 }}>
+            <LobbyChip accent>➡️ {state.countdownLen} harf</LobbyChip>
+            <LobbyChip>👤 {state.players.length}</LobbyChip>
+          </div>
+          <p className="brand-mono" style={{ fontSize: 20, marginBottom: 6 }}>içinde başlayacak</p>
+          <div className="brand-mono" style={{ fontSize: 88, color: "var(--text-dim)", lineHeight: 1 }}>
             {state.phase === "countdown" ? state.countdownN : "3"}
           </div>
         </div>
+        <style>{`@keyframes arenaPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}`}</style>
       </ArenaShell>
     );
   }
@@ -335,7 +329,7 @@ export default function ArenaGame({ onExit, customCode, guestName }: { onExit: (
 
           {/* Cevap kutuları — cevap gönderilip sonuç geldiyse GİZLE (aşağıda FlipReveal gösterilir) */}
           {!(alreadyAnswered && state.myResult && !isReveal) && (
-          <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 16 }}>
+          <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 28 }}>
             {Array.from({ length: q.length }).map((_, j) => {
               let letter = "";
               if (isReveal) letter = state.revealAnswer[j] || "";
@@ -364,7 +358,7 @@ export default function ArenaGame({ onExit, customCode, guestName }: { onExit: (
 
           {/* Cevap sonucu: harf kutuları TAHMİN KUTULARIYLA AYNI KONUMDA (yer değişmesin) */}
           {alreadyAnswered && state.myResult && !isReveal && (
-            <div style={{ marginBottom: 16 }}>
+            <div style={{ marginBottom: 28 }}>
               <FlipReveal word={state.myResult.answer || ""} correct={state.myResult.correct} />
             </div>
           )}
@@ -504,6 +498,23 @@ export default function ArenaGame({ onExit, customCode, guestName }: { onExit: (
 
 
 // Alt barlı kabuk (her fazda oyuncular altta)
+/** Arena başlığı — bekleme lobisi ve 3-2-1 geri sayım ekranında ortak. */
+function ArenaTitle({ custom }: { custom: boolean }) {
+  return (
+    <>
+      <div style={{ fontSize: 46, lineHeight: 1, marginBottom: 2, animation: "arenaPulse 2.4s ease-in-out infinite" }}>
+        {custom ? "🎪" : "⚔️"}
+      </div>
+      <h2 className="brand-mono" style={{
+        fontSize: 38, margin: "0 0 12px", lineHeight: 1.05, letterSpacing: "0.06em",
+        color: "var(--accent)", textShadow: "0 0 24px var(--accent-glow)",
+      }}>
+        {custom ? "ÖZEL ARENA" : "ARENA"}
+      </h2>
+    </>
+  );
+}
+
 /** Lobi bilgi çipi (kelime sayısı · harf · kişi). */
 function LobbyChip({ children, accent }: { children: React.ReactNode; accent?: boolean }) {
   return (
@@ -549,9 +560,28 @@ function ArenaShell({ children, onExit, players, answers, showResults, fillTo }:
           return (
             <div key={p.pid} style={{ textAlign: "center", flexShrink: 0, width: 62 }}>
               <div style={{ position: "relative", width: 48, height: 48, margin: "0 auto" }}>
+                {/* Cevap gelince dışa doğru açılan renkli halka — doğru/yanlış
+                    çok daha belirgin görünsün diye (yeşil/kırmızı dalga). */}
+                {answered && (
+                  <span
+                    key={`ring-${a!.correct ? "ok" : "no"}`}
+                    style={{
+                      position: "absolute", inset: -5, borderRadius: "50%",
+                      border: `3px solid ${ring}`, pointerEvents: "none",
+                      animation: "arenaRipple .75s ease-out forwards",
+                    }}
+                  />
+                )}
                 <img src={p.avatar_url || `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(p.name)}`}
                   alt={p.name}
-                  style={{ width: 48, height: 48, borderRadius: "50%", border: `3px solid ${ring}`, background: "var(--bg-elevated)", objectFit: "cover" }} />
+                  style={{
+                    width: 48, height: 48, borderRadius: "50%", objectFit: "cover",
+                    border: `${answered ? 4 : 3}px solid ${ring}`,
+                    background: "var(--bg-elevated)",
+                    boxShadow: answered ? `0 0 14px 1px ${ring}` : "none",
+                    animation: answered ? "arenaAnswerPop .5s ease-out" : undefined,
+                    transition: "border-color .2s, box-shadow .2s",
+                  }} />
                 {a?.flash && <span style={{ position: "absolute", top: -4, right: -4, fontSize: 14 }}>⚡</span>}
                 {/* Reveal'de ✓/✗ rozeti */}
                 {showResults && answered && (
@@ -583,6 +613,10 @@ function ArenaShell({ children, onExit, players, answers, showResults, fillTo }:
           </div>
         ))}
       </div>
+      <style>{`
+        @keyframes arenaRipple{0%{transform:scale(.82);opacity:.95}100%{transform:scale(1.75);opacity:0}}
+        @keyframes arenaAnswerPop{0%{transform:scale(1)}38%{transform:scale(1.18)}100%{transform:scale(1)}}
+      `}</style>
     </div>
   );
 }

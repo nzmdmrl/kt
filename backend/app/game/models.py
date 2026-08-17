@@ -103,6 +103,12 @@ class Player:
     trophies: int = 0
     medals: int = 0
     badges: int = 0
+    # Son WS mesajının zamanı. Uygulama kapanınca soket yarı-açık kalabildiği
+    # için "ayrıldı" tespiti bu alana bakar (bkz. Room._drop_stale_players).
+    last_seen: float = 0.0
+    # İstemci düzenli `ping` yolluyor mu? Yalnızca ping gönderen istemciler
+    # zaman aşımına düşürülür — eski sürüm istemciler yanlışlıkla atılmasın.
+    heartbeat: bool = False
 
     def to_public(self) -> dict:
         return {

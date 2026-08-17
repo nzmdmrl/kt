@@ -51,6 +51,22 @@ async def _add_bot_to_room(room, bot_elo: int, bot_id: int = 0):
     room.add_bot(f"botX{random.randint(1000,9999)}", "Rakip", bot_elo, None, settings.GAME_LANG)
 
 
+def _touch_player(room, player_id: str, is_ping: bool = False) -> None:
+    """Oyuncunun 'son görülme' zamanını tazele (hem odada hem maçta).
+
+    `is_ping` ile istemcinin heartbeat gönderdiği işaretlenir; zaman aşımı
+    kontrolü yalnızca bu istemcilere uygulanır (eski sürümler etkilenmez).
+    """
+    import time as _time
+    now = _time.time()
+    for holder in (room.players, room.match.players if room.match else {}):
+        p = holder.get(player_id)
+        if p:
+            p.last_seen = now
+            if is_ping:
+                p.heartbeat = True
+
+
 async def _fill_achievements(player, player_id: str) -> None:
     """Kayıtlı kullanıcının kupa/madalya/rozet sayılarını DB'den doldurur."""
     if not player_id.startswith("u"):
@@ -235,6 +251,8 @@ async def match_ws(
     else:
         room.players[player_id].connected = True
     room.sockets[player_id] = websocket
+    # Yeniden bağlanınca sayaç sıfırlansın (ilk ping gelene kadar düşürülmesin).
+    _touch_player(room, player_id)
 
     # Presence: kayıtlı kullanıcı maça girdi -> in_match.
     if player_id.startswith("u"):
@@ -273,7 +291,10 @@ async def match_ws(
     try:
         while True:
             data = await websocket.receive_json()
+            # Heartbeat: her mesaj "hâlâ buradayım" demektir. Sessiz kalan
+            # oyuncu Room._drop_stale_players ile sıradan düşürülür.
             action = data.get("action")
+            _touch_player(room, player_id, is_ping=(action == "ping"))
             if action == "buzzer":
                 await room.handle_buzzer(player_id)
             elif action == "guess":

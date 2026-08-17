@@ -85,10 +85,17 @@ class Match:
         return self.player_order[1] if self.player_order[0] == player_id else self.player_order[0]
 
     def _eligible_ids(self) -> list[str]:
-        """Bu döngüde hâlâ buzzer'a basabilecek oyuncular."""
+        """Bu döngüde hâlâ buzzer'a basabilecek oyuncular.
+
+        Bağlantısı kopan / uygulamayı kapatan oyuncular sıra listesinden çıkar;
+        aksi hâlde sıra onlara gelip herkes boşuna bekliyordu.
+        """
         r = self.round
         assert r is not None
-        return [pid for pid in self.player_order if pid not in r.blocked_ids]
+        return [
+            pid for pid in self.player_order
+            if pid not in r.blocked_ids and self.players[pid].connected
+        ]
 
     def _pass_turn_multi(self, spent_id: str) -> None:
         """3-4 kişilik akış: hakkını kullanan oyuncuyu çıkar, sırayı yeniden dağıt."""

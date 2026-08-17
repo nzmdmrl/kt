@@ -33,6 +33,9 @@ from app.game.models import Player, MatchPhase
 DEFAULT_ROOM_SIZE = 2          # 2-4 kişi
 DEFAULT_ROOM_ROUNDS = 1        # 1-5 tur
 DEFAULT_ROOM_WAIT = 120        # saniye; bu sürede dolmazsa oda pasifleşir
+# İstemci her 5 sn "ping" yollar. Bu süre boyunca hiç ses çıkmayan oyuncu
+# "uygulamayı kapattı / bağlantısı koptu" sayılır ve sıradan düşürülür.
+STALE_SECONDS = 15
 
 
 class Room:
@@ -193,6 +196,13 @@ class Room:
                 m = self.match
                 if not m or m.phase != MatchPhase.ROUND_ACTIVE or m.round is None:
                     break
+                # Uygulamayı kapatan / bağlantısı kopan oyuncuları düşür (soket
+                # yarı-açık kalabildiği için WebSocketDisconnect gelmeyebilir).
+                if await self._drop_stale_players():
+                    return
+                m = self.match
+                if not m or m.phase != MatchPhase.ROUND_ACTIVE or m.round is None:
+                    break
                 r = m.round
                 prev_turn = r.turn_player_id
                 m.tick()
@@ -212,6 +222,55 @@ class Room:
                 await self.broadcast_state()
         except asyncio.CancelledError:
             pass
+
+    async def _drop_stale_players(self) -> bool:
+        """
+        Heartbeat'i kesilen oyuncuları "ayrıldı" say.
+
+        Mobilde uygulama kapatılınca TCP yarı-açık kalabiliyor ve
+        WebSocketDisconnect hiç gelmiyordu; sıra o kişiye geldiğinde herkes
+        boşuna bekliyordu. İstemci her 5 sn `ping` yolluyor; STALE_SECONDS
+        boyunca ses çıkmayan oyuncu sıradan düşürülür.
+
+        `True` dönerse maç sonlandırıldı (çağıran döngü bitmeli).
+        """
+        import time as _time
+        if not self.match or self.match.phase != MatchPhase.ROUND_ACTIVE:
+            return False
+        # Yalnız 3-4 kişilik odalarda uygulanır. 2 kişilikte zaten sıra cevap
+        # süresiyle geri döner; orada kısa bir arka plana alma yüzünden kimse
+        # "terk etti" sayılıp ceza almasın.
+        if not self.match.is_multi:
+            return False
+        now = _time.time()
+        stale = [
+            pid for pid, p in self.match.players.items()
+            if p.connected and not p.is_bot and p.heartbeat and (now - p.last_seen) > STALE_SECONDS
+        ]
+        if not stale:
+            return False
+        for pid in stale:
+            self.sockets.pop(pid, None)
+            if pid in self.players:
+                self.players[pid].connected = False
+            self.match.players[pid].connected = False
+        # Kalan bağlı gerçek oyuncu sayısına göre: maç devam mı, bitti mi?
+        alive = [p for p in self.match.players.values() if p.connected]
+        if len(alive) >= 2:
+            r = self.match.round
+            if r is not None and r.turn_player_id in stale:
+                self.match._pass_turn_multi(r.turn_player_id)
+            for pid in stale:
+                await self.broadcast({
+                    "type": "player_left",
+                    "player_id": pid,
+                    "name": self.match.players[pid].name,
+                })
+            await self.broadcast_state()
+            return False
+        # 2 kişiden az kaldı: normal "rakip ayrıldı" akışı maçı bitirir.
+        await self.handle_opponent_left(stale[0])
+        return True
 
     async def _after_round(self) -> None:
         """Tur bitti — doğru cevabı görme arası, sonra sonraki tur veya maç sonu."""

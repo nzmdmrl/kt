@@ -37,20 +37,24 @@ export default function MultiScoreBar({ state, myId }: { state: MatchState; myId
       {/* Oyuncular: foto üstte, altında ad + puan */}
       <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
         {state.players.map((p) => {
-          const active = turnId === p.id;
+          // Ayrılan/bağlantısı kopan oyuncu: sıra listesinden çıkarıldığı için
+          // burada da tamamen pasifleştirilir (soluk + gri + "ayrıldı").
+          const gone = p.connected === false;
+          const active = turnId === p.id && !gone;
           const spent = blocked.includes(p.id);
           const isMe = p.id === myId;
           return (
             <div
               key={p.id}
-              title={p.name}
+              title={gone ? `${p.name} — ayrıldı` : p.name}
               style={{
                 flex: 1, minWidth: 0, display: "flex", flexDirection: "column",
                 alignItems: "center", gap: 3, padding: "6px 4px", borderRadius: 12,
                 background: active ? "var(--accent-glow)" : "transparent",
                 border: active ? "2px solid var(--accent)" : "2px solid transparent",
                 boxShadow: active ? "0 0 16px var(--accent-glow)" : "none",
-                opacity: spent && !active ? 0.45 : 1,
+                opacity: gone ? 0.32 : (spent && !active ? 0.45 : 1),
+                filter: gone ? "grayscale(1)" : "none",
                 transition: "all .25s",
               }}
             >
@@ -84,9 +88,15 @@ export default function MultiScoreBar({ state, myId }: { state: MatchState; myId
               }}>
                 {shortMatchName(p.name, nameMax)}
               </span>
-              <span className="brand-mono" style={{ fontSize: 17, fontWeight: 800, color: "var(--accent)", lineHeight: 1 }}>
-                {p.score}
-              </span>
+              {gone ? (
+                <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-dim)", lineHeight: 1.4 }}>
+                  ayrıldı
+                </span>
+              ) : (
+                <span className="brand-mono" style={{ fontSize: 17, fontWeight: 800, color: "var(--accent)", lineHeight: 1 }}>
+                  {p.score}
+                </span>
+              )}
             </div>
           );
         })}
@@ -131,7 +141,7 @@ export default function MultiScoreBar({ state, myId }: { state: MatchState; myId
           {turnId
             ? (myTurn ? "Sıra sende — cevabı yaz!" : `${shortMatchName(state.players.find((p) => p.id === turnId)?.name || "", nameMax) || "Rakip"} tahmin ediyor`)
             : blocked.length > 0
-              ? `⚡ Kalan ${state.players.length - blocked.length} kişi arasında buzzer yarışı`
+              ? `⚡ Kalan ${Math.max(1, state.players.filter((p) => p.connected !== false && !blocked.includes(p.id)).length)} kişi arasında buzzer yarışı`
               : "⚡ Buzzer serbest — ilk yazan sırayı kapar"}
         </div>
       )}
