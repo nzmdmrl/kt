@@ -278,11 +278,11 @@ async def outgoing_status(db: AsyncSession, from_id: int) -> dict[str, Any] | No
     ttl = await ttl_seconds(db)
     row = (await db.execute(
         text(
-            f"SELECT id, from_user_id, to_user_id, status, room_code, "
-            f"       (expires_at <= {_NOW}) AS is_stale "
-            f"FROM challenges "
-            f"WHERE from_user_id = :f AND created_at > {_minus(':win')} "
-            f"ORDER BY id DESC LIMIT 1"
+            f"SELECT c.id, c.from_user_id, c.to_user_id, c.status, c.room_code, "
+            f"       (c.expires_at <= {_NOW}) AS is_stale, u.display_name "
+            f"FROM challenges c LEFT JOIN users u ON u.id = c.to_user_id "
+            f"WHERE c.from_user_id = :f AND c.created_at > {_minus(':win')} "
+            f"ORDER BY c.id DESC LIMIT 1"
         ),
         {"f": from_id, "win": ttl + OUTGOING_GRACE},
     )).first()
@@ -293,7 +293,7 @@ async def outgoing_status(db: AsyncSession, from_id: int) -> dict[str, Any] | No
         status = "expired"
     return {
         "id": row[0], "from_id": row[1], "to_id": row[2],
-        "status": status, "room_code": row[4],
+        "status": status, "room_code": row[4], "to_name": row[6],
     }
 
 

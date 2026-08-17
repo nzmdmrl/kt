@@ -152,4 +152,5 @@ async def outgoing(user: User = Depends(get_current_user), db: AsyncSession = De
     return {"challenge": {
         "id": str(ch["id"]), "status": ch["status"],
         "room_code": ch["room_code"], "to_id": ch["to_id"],
+        "to_name": ch.get("to_name"),
     }}

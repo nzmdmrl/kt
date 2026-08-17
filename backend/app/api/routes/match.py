@@ -22,13 +22,25 @@ router = APIRouter()
 settings = get_settings()
 
 
-async def _add_bot_to_room(room, bot_elo: int):
-    """Odaya DB'den seçilmiş uygun bir bot ekler. DB yoksa jenerik bot."""
+async def _add_bot_to_room(room, bot_elo: int, bot_id: int = 0):
+    """
+    Odaya DB'den seçilmiş uygun bir bot ekler. DB yoksa jenerik bot.
+
+    `bot_id` verilirse O bot eklenir — böylece VS ekranında gösterilen bot adı
+    ile maçtaki bot aynı olur (istemci botu maç öncesi /mm/bot ile öğrenir).
+    """
     try:
         from app.core.database import AsyncSessionLocal
         from app.game.match_result import pick_bot
+        from app.models.bot import Bot
         async with AsyncSessionLocal() as db:
-            bot = await pick_bot(db, bot_elo, settings.GAME_LANG)
+            bot = None
+            if bot_id:
+                bot = await db.get(Bot, bot_id)
+                if bot and not bot.active:
+                    bot = None
+            if bot is None:
+                bot = await pick_bot(db, bot_elo, settings.GAME_LANG)
             if bot:
                 room.add_bot(f"bot{bot.id}", bot.name, bot.elo, bot.avatar_url, settings.GAME_LANG)
                 return
@@ -194,6 +206,7 @@ async def match_ws(
     name: str = Query("Oyuncu"),
     bot: int = Query(0),
     bot_elo: int = Query(1000),
+    bot_id: int = Query(0),
 ):
     await websocket.accept()
 
@@ -233,7 +246,7 @@ async def match_ws(
     # Bot maçı: oda henüz bot içermiyorsa ekle.
     bot_present = any(p.is_bot for p in room.players.values())
     if bot == 1 and not bot_present and not room.is_full:
-        await _add_bot_to_room(room, bot_elo)
+        await _add_bot_to_room(room, bot_elo, bot_id)
 
     await websocket.send_json({
         "type": "joined",

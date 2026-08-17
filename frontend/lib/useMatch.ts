@@ -81,7 +81,8 @@ export function useMatch(
   playerId: string,
   name: string,
   bot?: boolean,
-  botElo?: number
+  botElo?: number,
+  botId?: number
 ) {
   const [connected, setConnected] = useState(false);
   const [state, setState] = useState<MatchState | null>(null);
@@ -101,6 +102,8 @@ export function useMatch(
     )}&name=${encodeURIComponent(name)}`;
     if (bot) {
       url += `&bot=1&bot_elo=${botElo ?? 1000}`;
+      // VS ekranında gösterilen botun ta kendisi odaya eklensin.
+      if (botId) url += `&bot_id=${botId}`;
     }
     const ws = new WebSocket(url);
     wsRef.current = ws;

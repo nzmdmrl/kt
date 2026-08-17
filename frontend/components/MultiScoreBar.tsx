@@ -129,7 +129,7 @@ export default function MultiScoreBar({ state, myId }: { state: MatchState; myId
       {round && !round.finished && (
         <div style={{ textAlign: "center", fontSize: 12, color: "var(--text-dim)" }}>
           {turnId
-            ? (myTurn ? "Sıra sende — cevabı yaz!" : `Cevap sırası: ${shortMatchName(state.players.find((p) => p.id === turnId)?.name || "", nameMax)}`)
+            ? (myTurn ? "Sıra sende — cevabı yaz!" : `${shortMatchName(state.players.find((p) => p.id === turnId)?.name || "", nameMax) || "Rakip"} tahmin ediyor`)
             : blocked.length > 0
               ? `⚡ Kalan ${state.players.length - blocked.length} kişi arasında buzzer yarışı`
               : "⚡ Buzzer serbest — ilk yazan sırayı kapar"}

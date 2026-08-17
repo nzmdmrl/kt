@@ -40,7 +40,10 @@ export default function OynaPage() {
   const [joinCode, setJoinCode] = useState("");
   const [bot, setBot] = useState(false);
   const [botElo, setBotElo] = useState(1000);
-  const [oppInfo, setOppInfo] = useState<{ name: string; elo: number } | null>(null);
+  const [oppInfo, setOppInfo] = useState<{ name: string; elo: number; avatar_url?: string | null } | null>(null);
+  // Bot maçında VS ekranında gösterilen bot; maç WS'ine bot_id olarak gider ki
+  // gösterilen ad ile odaya eklenen bot AYNI olsun.
+  const [botId, setBotId] = useState(0);
   const [showTutorial, setShowTutorial] = useState(false);
   const [err, setErr] = useState("");
   const [searchSeconds, setSearchSeconds] = useState(0);
@@ -102,7 +105,8 @@ export default function OynaPage() {
     if (duel && mode === "menu") {
       fromHomeRef.current = true;
       setCode(duel);
-      setOppInfo({ name: "Rakip", elo: 1000 });
+      // Teklif akışı rakibin adını ?opp= ile taşır (yoksa jenerik).
+      setOppInfo({ name: params.get("opp") || "Rakip", elo: 1000 });
       setBot(false);
       setMode("vs");
       return;
@@ -160,9 +164,11 @@ export default function OynaPage() {
           setCode(d.code);
           setBot(!!d.opponent_is_bot);
           setBotElo(d.bot_elo ?? 1000);
+          setBotId(d.bot_id ?? 0);
           setOppInfo({
-            name: d.opponent_is_bot ? "Rakip" : "Rakip",
-            elo: d.bot_elo ?? 1000,
+            name: d.opponent_name || "Rakip",
+            elo: d.opponent_elo ?? d.bot_elo ?? 1000,
+            avatar_url: d.opponent_avatar ?? null,
           });
           setMode("vs");
         }
@@ -186,6 +192,7 @@ export default function OynaPage() {
     setCode(null);
     setOppInfo(null);
     setBot(false);
+    setBotId(0);
     setRoomFlow(false);
     if (fromHomeRef.current) { router.push("/"); return; }
     setMode("menu");
@@ -268,6 +275,7 @@ export default function OynaPage() {
           name={name || "Oyuncu"}
           bot={bot}
           botElo={botElo}
+          botId={botId}
           isGuest={!user}
           invitable={roomFlow && !bot}
           onLeave={roomFlow ? leaveRoom : undefined}
@@ -290,7 +298,7 @@ export default function OynaPage() {
       <main style={pageStyle}>
         <VsScreen
           me={{ name: name || "Sen", elo, avatar_url: user?.avatar_url }}
-          opponent={{ name: oppInfo.name, elo: oppInfo.elo, is_bot: bot }}
+          opponent={{ name: oppInfo.name, elo: oppInfo.elo, is_bot: bot, avatar_url: oppInfo.avatar_url }}
           onDone={() => setMode("match")}
         />
       </main>
@@ -470,7 +478,18 @@ export default function OynaPage() {
       setCode(data.code);
       setBot(true);
       setBotElo(elo);
-      setOppInfo({ name: "Bot Rakip", elo });
+      // Botu maç başlamadan seç; VS ekranında gerçek bot adı/avatarı görünsün.
+      let picked: any = null;
+      try {
+        const br = await fetch(apiUrl(`/api/mm/bot?elo=${elo}`));
+        picked = (await br.json())?.bot ?? null;
+      } catch {}
+      setBotId(picked?.id ?? 0);
+      setOppInfo({
+        name: picked?.name || "Bot Rakip",
+        elo: picked?.elo ?? elo,
+        avatar_url: picked?.avatar_url ?? null,
+      });
       playSound("opponent_found");
       setMode("vs");
     } catch {

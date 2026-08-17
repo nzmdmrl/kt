@@ -14,6 +14,7 @@ import { useSectionMusic } from "@/lib/useSectionMusic";
 import ScoreBar from "./ScoreBar";
 import MultiScoreBar from "./MultiScoreBar";
 import RoomInvite from "./RoomInvite";
+import { useMatchNameMax, shortMatchName } from "@/lib/uiSettings";
 import { adExitProps, noteMatchFinished, type AdMode } from "@/lib/interstitial";
 
 export default function MatchGame({
@@ -22,6 +23,7 @@ export default function MatchGame({
   name,
   bot,
   botElo,
+  botId,
   onRematch,
   onLeave,
   isGuest,
@@ -33,6 +35,8 @@ export default function MatchGame({
   name: string;
   bot?: boolean;
   botElo?: number;
+  /** VS ekranında gösterilen botun id'si — odaya AYNI bot eklensin diye. */
+  botId?: number;
   onRematch?: () => void;
   onLeave?: () => void;   // rakip beklerken "Geri" (oda kur/katıl akışı)
   isGuest?: boolean;
@@ -45,7 +49,8 @@ export default function MatchGame({
     playerId,
     name,
     bot,
-    botElo
+    botElo,
+    botId
   );
   // Maç bitti durumu — lastEvent'e bağlı DEĞİL (rematch_request gelince kaybolmasın).
   const [matchOverData, setMatchOverData] = useState<any>(null);
@@ -163,6 +168,16 @@ export default function MatchGame({
 
   const round = state?.round ?? null;
   const myTurn = round?.turn_player_id === playerId;
+  // Sıra/çözüm bannerlarında "Rakip" yerine gerçek adı yazmak için kısa ad üretici.
+  const bannerNameMax = useMatchNameMax();
+  const nameOf = useCallback(
+    (pid?: string | null) => {
+      const p = state?.players?.find((x) => x.id === pid);
+      const short = shortMatchName(p?.name || "", bannerNameMax);
+      return short || "Rakip";
+    },
+    [state?.players, bannerNameMax]
+  );
   // 3-4 kişilik odada bu döngüde hakkını kullandıysam buzzer'a basamam.
   const iAmBlocked = (round?.blocked_ids || []).includes(playerId);
   const turnFree = round?.turn_player_id == null && !iAmBlocked;
@@ -585,7 +600,7 @@ export default function MatchGame({
     if (solvedBy === playerId) {
       turnBanner = { text: "🎉 DOĞRU! Bildin!", bg: "var(--tile-correct)", color: "#fff" };
     } else if (solvedBy) {
-      turnBanner = { text: "Rakip bildi", bg: "var(--accent-hot)", color: "#fff" };
+      turnBanner = { text: `${nameOf(solvedBy)} bildi`, bg: "var(--accent-hot)", color: "#fff" };
     } else {
       turnBanner = { text: "Kimse bilemedi", bg: "var(--bg-elevated)", color: "var(--text-soft)" };
     }
@@ -594,7 +609,12 @@ export default function MatchGame({
   } else if (turnFree) {
     turnBanner = { text: "İLK YAZAN BAŞLAR!", bg: "var(--accent)", color: "#1a1330" };
   } else {
-    turnBanner = { text: "⏳ RAKİBİN SIRASI — bekle", bg: "var(--bg-elevated)", color: "var(--text-soft)" };
+    // Sıra kimdeyse ADIYLA yaz (3-4 kişilik odada "rakip" belirsiz kalıyordu).
+    turnBanner = {
+      text: `⏳ ${toUpperTr(nameOf(round?.turn_player_id))} TAHMİN EDİYOR`,
+      bg: "var(--bg-elevated)",
+      color: "var(--text-soft)",
+    };
   }
 
   return (

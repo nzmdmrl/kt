@@ -138,7 +138,9 @@ export default function ChallengeWatcher() {
             stopWaiting();
             if (!handledOutgoing.current) {
               handledOutgoing.current = true;
-              window.location.href = `/oyna?duel=${encodeURIComponent(ch.room_code)}`;
+              // Rakibin adını taşı: VS ekranında "Rakip" yerine gerçek ad çıksın.
+              const oppQs = ch.to_name ? `&opp=${encodeURIComponent(ch.to_name)}` : "";
+              window.location.href = `/oyna?duel=${encodeURIComponent(ch.room_code)}${oppQs}`;
             }
           } else if (!ch || ch.status !== "pending") {
             // declined / cancelled / expired ya da kayıt yok: yoklamayı bitir.
@@ -195,8 +197,9 @@ export default function ChallengeWatcher() {
       const r = await fetch(apiUrl(`/api/challenge/${incoming.id}/accept`), { method: "POST", headers: headers() });
       const j = await r.json();
       if (r.ok && j.room_code) {
+        const oppQs = incoming.from_name ? `&opp=${encodeURIComponent(incoming.from_name)}` : "";
         setIncoming(null);
-        window.location.href = `/oyna?duel=${encodeURIComponent(j.room_code)}`;
+        window.location.href = `/oyna?duel=${encodeURIComponent(j.room_code)}${oppQs}`;
       } else if (r.status === 404 || r.status === 409) {
         // Teklif tam bu sırada süresi doldu / geri çekildi: popup'ı açık tutma.
         setIncoming(null);

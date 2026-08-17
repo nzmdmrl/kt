@@ -32,6 +32,9 @@ class QueueEntry:
     room_code: Optional[str] = None
     opponent_is_bot: bool = False
     bot_elo: Optional[int] = None
+    # Eşleşilen insanın adı/ELO'su (VS ekranında gösterilir). Bot maçında boş kalır.
+    opponent_name: Optional[str] = None
+    opponent_elo: Optional[int] = None
 
 
 class Matchmaker:
@@ -68,8 +71,12 @@ class Matchmaker:
                 code = self._new_code()
                 best.matched = True
                 best.room_code = code
+                best.opponent_name = entry.name
+                best.opponent_elo = entry.elo
                 entry.matched = True
                 entry.room_code = code
+                entry.opponent_name = best.name
+                entry.opponent_elo = best.elo
                 # İkisi de kuyrukta kalsın ki poll edince öğrensinler; poll temizler.
                 self.waiting[player_id] = entry
                 return entry

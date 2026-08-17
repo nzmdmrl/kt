@@ -70,17 +70,47 @@ async def join_queue(data: JoinIn, user: User | None = Depends(get_optional_user
 
 
 @router.get("/poll")
-async def poll_queue(player_id: str):
+async def poll_queue(player_id: str, db: AsyncSession = Depends(get_db)):
     entry = await matchmaker.poll(player_id)
     if not entry:
         return {"in_queue": False, "matched": False}
-    return {
+    out = {
         "in_queue": True,
         "matched": entry.matched,
         "code": entry.room_code,
         "opponent_is_bot": entry.opponent_is_bot,
         "bot_elo": entry.bot_elo,
+        "opponent_name": entry.opponent_name,
+        "opponent_elo": entry.opponent_elo,
     }
+    # Bot atandıysa botu ŞİMDİ seç ve adını dön; istemci maç WS'ine bot_id ile
+    # bağlanır, böylece VS ekranındaki ad ile maçtaki bot aynı olur.
+    if entry.matched and entry.opponent_is_bot:
+        bot = await _pick_bot_public(db, entry.bot_elo or 1000)
+        if bot:
+            out["bot_id"] = bot["id"]
+            out["bot_elo"] = bot["elo"]
+            out["opponent_name"] = bot["name"]
+            out["opponent_avatar"] = bot["avatar_url"]
+    return out
+
+
+async def _pick_bot_public(db: AsyncSession, elo: int) -> dict | None:
+    """ELO'ya yakın aktif bir bot seç ve public bilgisini dön."""
+    from app.core.config import get_settings
+    from app.game.match_result import pick_bot
+    try:
+        bot = await pick_bot(db, elo, get_settings().GAME_LANG)
+    except Exception:
+        return None
+    return bot.to_public() if bot else None
+
+
+@router.get("/bot")
+async def pick_bot_for_practice(elo: int = 1000, db: AsyncSession = Depends(get_db)):
+    """1vB Pratik: maç başlamadan botun adını/avatarını öğrenmek için."""
+    bot = await _pick_bot_public(db, elo)
+    return {"bot": bot}
 
 
 @router.post("/leave")
