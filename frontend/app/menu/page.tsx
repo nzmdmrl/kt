@@ -6,6 +6,8 @@ import { useAuth } from "@/lib/auth";
 import { useState, useEffect } from "react";
 import { getThemeMode, setThemeMode, effectiveTheme } from "@/lib/theme";
 import { isSoundEnabled, setSoundEnabled } from "@/lib/sound";
+import { usePlatform } from "@/lib/platform";
+import { useAppConfig, type FlagsConfig } from "@/lib/appConfig";
 
 // Menü — ayar odaklı. Mod butonları ana sayfada olduğu için burada YOK.
 export default function MenuPage() {
@@ -98,7 +100,131 @@ export default function MenuPage() {
           </button>
         )}
       </div>
+
+      <TokenDebug />
     </main>
+  );
+}
+
+// ===================================================================
+// GEÇİCİ TEŞHİS BLOĞU — silinecek.
+//
+// Amaç: "uygulama neden giriş yapmış açılıyor?" sorusunu USB kablosu ve
+// chrome://inspect olmadan yanıtlamak. Jetonun ÜRETİLME zamanı, verilerin
+// temizlendiği andan ÖNCEyse jeton hayatta kalmış demektir; SONRAysa bir şey
+// gerçekten yeniden giriş yapıyor demektir.
+//
+// KURALLAR:
+//  - Yalnız OKUR. Hiçbir oturum mantığına dokunmaz, jetonu doğrulamaz,
+//    yazmaz, silmez, ağa istek atmaz.
+//  - Yalnız UYGULAMADA ve yalnız admin panelden "app.flags.debug_panel"
+//    açıkken çizilir; web'de ve bayrak kapalıyken tek satır bile basmaz.
+//  - Jetonun kendisini GÖSTERMEZ (uzunluğunu söyler) — omuz üstünden
+//    okunup kopyalanabilecek bir sır ekrana yazılmasın.
+//
+// İş bitince: bu blok + <TokenDebug /> çağrısı + app.flags.debug_panel alanı
+// (backend varsayılanı ve admin paneldeki kutu) kaldırılacak.
+// ===================================================================
+
+/** backend/app/core/security.py:21 → TOKEN_EXPIRE_DAYS ile AYNI olmalı. */
+const TOKEN_EXPIRE_DAYS = 30;
+
+function fmtTime(ms: number): string {
+  try {
+    return new Date(ms).toLocaleString("tr-TR");
+  } catch {
+    return String(ms);
+  }
+}
+
+/** JWT gövdesini (imza DOĞRULAMADAN) çözer — sadece gösterim için. */
+function decodePayload(token: string): Record<string, any> | null {
+  try {
+    const part = token.split(".")[1];
+    const json = atob(part.replace(/-/g, "+").replace(/_/g, "/"));
+    return JSON.parse(
+      decodeURIComponent(
+        json
+          .split("")
+          .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+          .join(""),
+      ),
+    );
+  } catch {
+    return null;
+  }
+}
+
+function readTokenLines(): string[] {
+  let raw: string | null = null;
+  try {
+    raw = localStorage.getItem("kt_token");
+  } catch {
+    return ["kt_token: OKUNAMADI (depoya erişilemedi)"];
+  }
+  if (!raw) return ["kt_token: YOK — bu cihazda kayıtlı oturum jetonu bulunmuyor"];
+
+  const lines = [`kt_token: VAR (${raw.length} karakter)`];
+  const p = decodePayload(raw);
+  if (!p) {
+    lines.push("jeton çözümlenemedi (biçim beklenenden farklı)");
+    return lines;
+  }
+
+  lines.push(`sub (kullanıcı id): ${p.sub ?? "—"}`);
+
+  const exp = Number(p.exp);
+  if (Number.isFinite(exp) && exp > 0) {
+    const expMs = exp * 1000;
+    const issuedMs = expMs - TOKEN_EXPIRE_DAYS * 24 * 60 * 60 * 1000;
+    // Jetonun içinde iat YOK; üretilme anı exp'ten geri sayılarak bulunuyor.
+    lines.push(`üretilme (exp − ${TOKEN_EXPIRE_DAYS} gün): ${fmtTime(issuedMs)}`);
+    lines.push(`geçerlilik sonu (exp): ${fmtTime(expMs)}`);
+  } else {
+    lines.push("exp okunamadı — üretilme zamanı hesaplanamıyor");
+  }
+  return lines;
+}
+
+function TokenDebug() {
+  const { isNative, ready } = usePlatform();
+  const config = useAppConfig();
+  const [lines, setLines] = useState<string[] | null>(null);
+
+  const flags: FlagsConfig = (config?.["app.flags"] as FlagsConfig) || {};
+  const enabled = ready && isNative && flags.debug_panel === true;
+
+  // localStorage effect'te okunur: sunucu ve istemcinin ilk boyaması aynı kalsın.
+  useEffect(() => {
+    if (!enabled) {
+      setLines(null);
+      return;
+    }
+    setLines(readTokenLines());
+  }, [enabled]);
+
+  if (!enabled || !lines) return null;
+
+  return (
+    <div
+      style={{
+        marginTop: 28,
+        padding: "12px 14px",
+        borderRadius: 10,
+        border: "1px dashed var(--border-soft)",
+        background: "var(--bg-panel)",
+        color: "var(--text-dim)",
+        fontSize: 11,
+        lineHeight: 1.7,
+        fontFamily: "ui-monospace, monospace",
+        wordBreak: "break-word",
+      }}
+    >
+      <div style={{ fontWeight: 700, marginBottom: 4 }}>🔧 teşhis (geçici)</div>
+      {lines.map((l, i) => (
+        <div key={i}>{l}</div>
+      ))}
+    </div>
   );
 }
 

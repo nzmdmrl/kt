@@ -178,10 +178,17 @@ DEFAULT_APP_SETTINGS: dict[str, tuple[dict, bool]] = {
     #      doğrular (app/api/routes/auth.py).
     # Env'deki GOOGLE_CLIENT_ID'den AYRI tutulur: web akışı env'e, uygulama akışı
     # bu satıra bakar; admin panelden deploy'suz değiştirilebilsin diye burada.
+    #
+    # debug_panel: GEÇİCİ teşhis anahtarı. Açıkken UYGULAMADA /menu sayfasının
+    # en altına oturum jetonunun özeti basılır (kullanıcı id + jetonun üretilme
+    # zamanı). "Uygulama neden giriş yapmış açılıyor?" sorusunu USB kablosu ve
+    # chrome://inspect olmadan yanıtlamak için. VARSAYILAN KAPALI; iş bitince
+    # hem bu anahtar hem de /menu'deki blok silinecek.
     "app.flags": (
         {
             "challenge_ttl_seconds": 120,
             "google_web_client_id": "",
+            "debug_panel": False,
         },
         True,
     ),

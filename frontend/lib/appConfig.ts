@@ -64,6 +64,12 @@ export type FlagsConfig = {
    * (/api/auth/google/status).
    */
   google_web_client_id?: string;
+  /**
+   * GEÇİCİ teşhis paneli. Açıkken UYGULAMADA /menu sayfasının altına oturum
+   * jetonunun özeti basılır (app/menu/page.tsx → TokenDebug). Web'de hiç
+   * çizilmez. Teşhis bitince hem bu alan hem o blok kaldırılacak.
+   */
+  debug_panel?: boolean;
   /** ESKİ yer — mikrofon artık "app.mic" satırında. Yalnız geçiş için okunur. */
   mic_web_enabled?: boolean;
   /** ESKİ yer — mikrofon artık "app.mic" satırında. Yalnız geçiş için okunur. */

@@ -56,6 +56,10 @@ _ADMOB_NEW_KEYS_JSON = json.dumps(
 # BOŞ gelir: admin panelden (⚙️ Mobil & Reklam → Davranış ayarları) girilir.
 _FLAGS_GOOGLE_JSON = json.dumps({"google_web_client_id": ""}, ensure_ascii=True)
 
+# Geçici teşhis paneli anahtarı — sonradan eklendi (bkz. migration 14).
+# KAPALI gelir; admin panelden açılır, iş bitince anahtar da kaldırılacak.
+_FLAGS_DEBUG_JSON = json.dumps({"debug_panel": False}, ensure_ascii=True)
+
 # Oyun ekranı payı — sonradan eklenen anahtar (bkz. migration 12).
 _ADMOB_GAME_OFFSET_JSON = json.dumps({"banner_game_offset_extra": 0}, ensure_ascii=True)
 
@@ -416,6 +420,25 @@ DATA_MIGRATIONS: list[tuple[str, list[str]]] = [
             if _IS_PG else
             "UPDATE app_settings "
             f"SET value = json_patch('{_FLAGS_GOOGLE_JSON}', value), "
+            "    updated_at = CURRENT_TIMESTAMP "
+            "WHERE key = 'app.flags'"
+        ),
+    ]),
+
+    # 14) GEÇİCİ teşhis paneli anahtarı: 'app.flags'.debug_panel.
+    #     Gerekçe (13) ile birebir aynı: seed yalnızca satır yoksa yazar, canlıdaki
+    #     'app.flags' satırına yeni anahtar ancak buradan ulaşır.
+    #     Varsayılan SOLDA -> anahtar zaten varsa ezilmez.
+    #     GEÇİCİ: teşhis bitince bu anahtar ve /menu'deki blok kaldırılacak
+    #     (migration kaydı kalır, kod değiştirilmez — bkz. dosya başındaki kural).
+    ("2026_08_flags_debug_panel", [
+        (
+            "UPDATE app_settings "
+            f"SET value = '{_FLAGS_DEBUG_JSON}'::jsonb || value, updated_at = now() "
+            "WHERE key = 'app.flags'"
+            if _IS_PG else
+            "UPDATE app_settings "
+            f"SET value = json_patch('{_FLAGS_DEBUG_JSON}', value), "
             "    updated_at = CURRENT_TIMESTAMP "
             "WHERE key = 'app.flags'"
         ),

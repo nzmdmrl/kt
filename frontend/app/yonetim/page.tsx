@@ -2299,6 +2299,16 @@ const MOBILE_FIELDS: Record<string, MobileField[]> = {
         + "Google butonu bu alana BAKMAZ — o, Coolify'daki GOOGLE_CLIENT_ID değişkenini "
         + "kullanır.",
     },
+    {
+      path: "debug_panel",
+      label: "🔧 Teşhis satırı (GEÇİCİ)",
+      type: "bool",
+      hint: "Açıkken UYGULAMADAKİ Menü sayfasının en altına oturum jetonunun özeti "
+        + "yazılır: kullanıcı id'si, jetonun üretilme zamanı, jeton var mı yok mu. "
+        + "Web sitesinde HİÇ görünmez. “Uygulama neden giriş yapmış açılıyor?” "
+        + "sorusunu kablosuz teşhis etmek için eklendi — iş bitince kapat, sonra kodu "
+        + "da kaldıracağız.",
+    },
   ],
   "app.mic": [
     {
