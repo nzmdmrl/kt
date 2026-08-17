@@ -357,6 +357,18 @@ body.has-native-banner.kt-game-screen:not(.has-bottom-nav) { padding-bottom: var
   .kt-desktop-only { display: block; }
 }
 
+/* ===== Menü / ayarlar sayfası =====
+   Masaüstünde ortalanmış 520px'lik kolon; mobilde bloklar ekranın TAM
+   genişliğini kullansın diye kolon sınırı kalkar ve yan boşluk incelir. */
+.kt-menu-wrap {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 20px 14px 40px;
+}
+@media (max-width: 720px) {
+  .kt-menu-wrap { max-width: none; padding-left: 10px; padding-right: 10px; }
+}
+
 /* ===== Ana sayfa mod ekranı (HomeModes) — desktop + mobil ===== */
 .home-modes-wrap {
   max-width: 760px;
