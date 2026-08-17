@@ -59,19 +59,34 @@ class CustomArenaLobby:
         self.created_at = time.time()
         self.members: dict[str, dict] = {}   # pid -> {name, avatar_url}
         self.started = False
+        # Geri sayım oda kurulunca DEĞİL, arenayı kuran "Arenaya Katıl" deyince
+        # başlar. Böylece davet gönderirken geçen süre lobiyi tüketmez ve
+        # kuran kişi maça yetişemeden arena iptal olmaz/başlamaz.
+        self.owner_joined = False
+        self.opened_at: Optional[float] = None
 
     def add(self, pid: str, name: str, avatar_url: str):
         if len(self.members) < self.size:
             self.members[pid] = {"name": name, "avatar_url": avatar_url}
 
+    def mark_owner_joined(self) -> None:
+        """Kurucu arenaya bağlandı — bekleme geri sayımı şimdi başlar."""
+        if not self.owner_joined:
+            self.owner_joined = True
+            self.opened_at = time.time()
+
     def is_full(self) -> bool:
         return len(self.members) >= self.size
 
     def waited_enough(self) -> bool:
-        return time.time() - self.created_at >= self.wait_seconds
+        if self.opened_at is None:
+            return False
+        return time.time() - self.opened_at >= self.wait_seconds
 
     def seconds_left(self) -> int:
-        return max(0, int(self.wait_seconds - (time.time() - self.created_at)))
+        if self.opened_at is None:
+            return self.wait_seconds
+        return max(0, int(self.wait_seconds - (time.time() - self.opened_at)))
 
 
 class ArenaManager:

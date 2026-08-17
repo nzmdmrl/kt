@@ -151,6 +151,8 @@ async def custom_arena_info(code: str, user=Depends(get_optional_user)):
         "bots_enabled": lobby.bots_enabled, "word_plan": lobby.word_plan,
         "players": [{"pid": k, "name": v["name"], "avatar_url": v.get("avatar_url", "")} for k, v in lobby.members.items()],
         "started": lobby.started,
+        # Geri sayım kurucu katılınca başlar; o ana kadar lobi bekler.
+        "owner_joined": lobby.owner_joined,
     }
 
 
@@ -224,6 +226,8 @@ async def arena_history(
 _connections: dict[str, dict[str, WebSocket]] = {}
 # Maçı süren görev başladı mı: code -> True
 _runners: dict[str, bool] = {}
+# Özel arena: kurucu bu süre içinde katılmazsa lobi iptal edilir (saniye).
+CUSTOM_OWNER_WAIT_LIMIT = 30 * 60
 
 
 async def _broadcast(code: str, message: dict):
@@ -571,12 +575,17 @@ async def arena_ws(
             await _send(websocket, {"type": "error", "message": "Arenaya katılınamadı (dolu veya başladı)."})
         clobby = arena_manager.custom_lobby(custom)
         if clobby:
+            # Kurucu bağlandıysa bekleme geri sayımı ŞİMDİ başlar (davet süresi
+            # lobiyi tüketmesin). Kurucu gelmeden arena başlamaz.
+            if pid == clobby.owner_pid:
+                clobby.mark_owner_joined()
             cplan = clobby.word_plan or default_question_plan()
             await _broadcast(code, {
                 "type": "lobby", "code": code,
                 "players": [{"pid": k, "name": v["name"], "avatar_url": v.get("avatar_url", "")} for k, v in clobby.members.items()],
                 "size": clobby.size, "wait_seconds": clobby.wait_seconds,
                 "seconds_left": clobby.seconds_left(),
+                "owner_joined": clobby.owner_joined,
                 "total": len(cplan), "first_length": cplan[0],
             })
             asyncio.create_task(_custom_matchmaker(code))
@@ -676,6 +685,16 @@ async def _custom_matchmaker(code: str):
         clobby = arena_manager.custom_lobby(code)
         if clobby is None or clobby.started:
             return
+        # Kurucu "Arenaya Katıl" demeden arena BAŞLAMAZ; gelen davetliler
+        # lobide bekler. (Kurucu hiç gelmezse lobi bir süre sonra iptal olur.)
+        if not clobby.owner_joined:
+            if time.time() - clobby.created_at > CUSTOM_OWNER_WAIT_LIMIT:
+                # Tek bir görev duyursun (her bağlantı için bir görev dönüyor).
+                if not _runners.get(code):
+                    _runners[code] = True
+                    await _broadcast(code, {"type": "error", "message": "Arenayı kuran katılmadı, arena iptal edildi."})
+                return
+            continue
         left = clobby.seconds_left()
         full = clobby.is_full()
         # Bot açıksa: son 10 sn'de eksikleri botla doldur

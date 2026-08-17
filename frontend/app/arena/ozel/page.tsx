@@ -117,21 +117,36 @@ export default function OzelArenaPage() {
         {/* Link */}
         <div style={{ display: "grid", gap: 8, marginBottom: 12, minWidth: 0 }}>
           <LinkCopyBox link={link} label="🔗 Arena linkini kopyala" />
-          <button
-            onClick={() => router.push(`/arena/ozel/${created.code}`)}
-            style={{
-              width: "100%", minWidth: 0, boxSizing: "border-box",
-              padding: "12px", borderRadius: 10, border: "none",
-              background: "var(--tile-correct)", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer",
-            }}
-          >
-            Arenaya Gir →
-          </button>
         </div>
 
         {/* Sosyal medyada davet */}
-        <div style={{ marginBottom: 24 }}>
+        <div style={{ marginBottom: 18 }}>
           <ShareButtons url={link} title={shareTitle} label="Davet et" />
+        </div>
+
+        {/* Katıl — davetler gönderildikten sonra tek adımda arenaya girer.
+            Bekleme geri sayımı bu butona basılınca başlar (sunucu tarafı). */}
+        <div style={{
+          border: "1px solid var(--accent)", borderRadius: 14, padding: 14,
+          background: "var(--bg-panel)", marginBottom: 26,
+        }}>
+          <p style={{ color: "var(--text-soft)", fontSize: 13.5, lineHeight: 1.6, margin: "0 0 12px" }}>
+            Yukarıdaki <strong style={{ color: "var(--text-strong)" }}>davet linkini kopyalayıp</strong> katılımcılara
+            gönderdikten <strong style={{ color: "var(--text-strong)" }}>veya</strong> aşağıdaki listeden
+            <strong style={{ color: "var(--text-strong)" }}> arkadaşlarını davet ettikten sonra</strong> “Arenaya
+            Katıl”a dokun. Bekleme süresi ancak sen katılınca başlar; sensiz arena başlamaz.
+          </p>
+          <button
+            onClick={() => router.push(`/arena/ozel/${created.code}?katil=1`)}
+            style={{
+              width: "100%", minWidth: 0, boxSizing: "border-box",
+              padding: "17px", borderRadius: 12, border: "none",
+              background: "var(--tile-correct)", color: "#fff", fontWeight: 800, fontSize: 18,
+              cursor: "pointer", boxShadow: "0 6px 20px rgba(58,167,109,.35)", letterSpacing: "0.02em",
+            }}
+          >
+            🎪 Arenaya Katıl
+          </button>
         </div>
 
         {/* Arkadaş davet */}

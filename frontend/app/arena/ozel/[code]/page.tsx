@@ -14,6 +14,8 @@ type LobbyInfo = {
   bots_enabled: boolean; word_plan: number[];
   players: { pid: string; name: string; avatar_url: string }[];
   started: boolean;
+  /** Geri sayım kurucu arenaya katılınca başlar. */
+  owner_joined?: boolean;
 };
 
 export default function OzelArenaLobbyPage({ params }: { params: { code: string } }) {
@@ -38,6 +40,17 @@ export default function OzelArenaLobbyPage({ params }: { params: { code: string 
 
   // Üye ya da adını yazmış misafir için lobi bilgisini tazele.
   const canView = !!user || !!guestName;
+
+  // Arenayı kuran, davet ekranındaki "Arenaya Katıl" butonuyla ?katil=1 ile
+  // gelir — ara lobi adımı olmadan doğrudan arenaya girer (iki aşama kalktı).
+  const [autoJoin, setAutoJoin] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (new URLSearchParams(window.location.search).get("katil") === "1") setAutoJoin(true);
+  }, []);
+  useEffect(() => {
+    if (autoJoin && canView && !joined) setJoined(true);
+  }, [autoJoin, canView, joined]);
   useEffect(() => {
     if (!canView || joined) return;
     loadInfo();
@@ -102,7 +115,9 @@ export default function OzelArenaLobbyPage({ params }: { params: { code: string 
       </div>
 
       <p style={{ color: "var(--text-dim)", fontSize: 13, textAlign: "center", marginBottom: 20 }}>
-        Kalan süre: {info.seconds_left} sn
+        {info.owner_joined === false
+          ? "Arenayı kuran katılmadan yarış başlamaz — sen şimdiden katılabilirsin."
+          : `Kalan süre: ${info.seconds_left} sn`}
       </p>
 
       {/* Katıl butonu — WS bağlantısı Parça 3'te tamamlanacak */}
