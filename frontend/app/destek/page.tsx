@@ -23,14 +23,25 @@ export default function DestekPage() {
   const router = useRouter();
   const [list, setList] = useState<Ticket[] | null>(null);
 
-  useEffect(() => {
-    if (!user) return;
-    const token = localStorage.getItem("kt_token");
-    fetch(apiUrl("/api/support/my"), { headers: { Authorization: `Bearer ${token}` } })
+  function token() { return typeof window !== "undefined" ? localStorage.getItem("kt_token") : null; }
+
+  function load() {
+    fetch(apiUrl("/api/support/my"), { headers: { Authorization: `Bearer ${token()}` } })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => setList(d?.tickets || []))
       .catch(() => setList([]));
-  }, [user]);
+  }
+  useEffect(() => { if (user) load(); }, [user]);
+
+  // Silmek kaydı yok etmez: talep yalnız senin listenden kalkar, destek ekibi
+  // yazışmayı görmeye devam eder (sunucu tarafında "üye sildi" işaretlenir).
+  async function removeTicket(code: string) {
+    if (!confirm("Bu destek talebi listenden kaldırılsın mı?")) return;
+    await fetch(apiUrl(`/api/support/my/${encodeURIComponent(code)}`), {
+      method: "DELETE", headers: { Authorization: `Bearer ${token()}` },
+    });
+    load();
+  }
 
   if (loading) return <Wrap><Center>Yükleniyor…</Center></Wrap>;
   if (!user) {
@@ -68,8 +79,8 @@ export default function DestekPage() {
         {(list || []).map((t) => {
           const st = STATUS_TR[t.status] || STATUS_TR.open;
           return (
-            <button key={t.id} onClick={() => router.push(`/destek/${t.code}`)} style={{
-              textAlign: "left", cursor: "pointer", width: "100%",
+            <div key={t.id} onClick={() => router.push(`/destek/${t.code}`)} style={{
+              textAlign: "left", cursor: "pointer", width: "100%", boxSizing: "border-box",
               background: "var(--bg-panel)", borderRadius: 14, padding: 16,
               border: `1px solid ${t.unread ? "var(--accent)" : "var(--border-soft)"}`,
             }}>
@@ -82,6 +93,15 @@ export default function DestekPage() {
                   }}>YENİ YANIT</span>
                 )}
                 <span style={{ marginLeft: "auto", fontSize: 12, color: st.color, fontWeight: 700 }}>{st.label}</span>
+                <button
+                  title="Listemden kaldır"
+                  onClick={(e) => { e.stopPropagation(); removeTicket(t.code); }}
+                  style={{
+                    width: 28, height: 28, borderRadius: 8, flexShrink: 0, cursor: "pointer",
+                    border: "1px solid var(--border-soft)", background: "var(--bg-elevated)",
+                    color: "var(--text-dim)", fontSize: 13, lineHeight: 1,
+                  }}
+                >✕</button>
               </div>
               <p style={{
                 margin: "6px 0 0", color: "var(--text-dim)", fontSize: 13.5,
@@ -91,7 +111,7 @@ export default function DestekPage() {
                 #{t.code} · {t.messages} mesaj
                 {t.updated_at ? ` · ${new Date(t.updated_at).toLocaleDateString("tr-TR")}` : ""}
               </div>
-            </button>
+            </div>
           );
         })}
       </div>

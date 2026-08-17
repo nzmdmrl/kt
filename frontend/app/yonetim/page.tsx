@@ -239,6 +239,15 @@ function SupportBox({ onChanged }: { onChanged: () => void }) {
             {t.user_id ? ` · üye #${t.user_id}` : " · misafir (bildirim gitmez)"}
             {" · "}<span style={{ fontWeight: 700 }}>{STATUS_LABEL[t.status] || t.status}</span>
           </div>
+          {t.user_deleted && (
+            <div style={{
+              marginTop: 8, padding: "8px 10px", borderRadius: 8, fontSize: 12.5, lineHeight: 1.6,
+              background: "rgba(217,90,90,.12)", color: "var(--accent-hot)", fontWeight: 600,
+            }}>
+              🗑️ Üye bu destek talebini kendi listesinden sildi. Kayıt sende duruyor;
+              yanıt yazsan da üyeye bildirim GİTMEZ. Kalıcı silmek için “Sil” butonunu kullan.
+            </div>
+          )}
         </div>
 
         <div style={{ display: "grid", gap: 8 }}>
@@ -306,6 +315,7 @@ function SupportBox({ onChanged }: { onChanged: () => void }) {
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
             <strong style={{ color: "var(--text-strong)" }}>{t.subject || "(konusuz)"}</strong>
             {t.admin_unread && <span style={{ fontSize: 11, fontWeight: 800, color: "#1a1330", background: "var(--accent)", padding: "2px 8px", borderRadius: 20 }}>YENİ</span>}
+            {t.user_deleted && <span style={{ fontSize: 11, fontWeight: 800, color: "#fff", background: "var(--accent-hot)", padding: "2px 8px", borderRadius: 20 }}>🗑️ ÜYE SİLDİ</span>}
             <span style={{ marginLeft: "auto", fontSize: 12, color: "var(--text-dim)" }}>
               {t.updated_at ? new Date(t.updated_at).toLocaleString("tr-TR") : ""}
             </span>

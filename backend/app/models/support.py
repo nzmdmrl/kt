@@ -46,6 +46,9 @@ class SupportTicket(Base):
     email: Mapped[str] = mapped_column(String(160), default="")
     subject: Mapped[str] = mapped_column(String(160), default="")
     status: Mapped[str] = mapped_column(String(16), default=STATUS_OPEN, index=True)
+    # Üye bileti kendi listesinden SİLDİ mi? Kayıt silinmez; yalnızca üyeden
+    # gizlenir. Admin "üye sildi" olarak görür ve kalıcı silme kararı onundur.
+    user_deleted: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     # Okunmamış işaretleri: rozetler ve "yeni yanıt" vurgusu bunlara bakar.
     user_unread: Mapped[bool] = mapped_column(Boolean, default=False)
     admin_unread: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
@@ -74,6 +77,7 @@ class SupportTicket(Base):
             "name": self.name,
             "email": self.email,
             "admin_unread": bool(self.admin_unread),
+            "user_deleted": bool(self.user_deleted),
         })
         return d
 

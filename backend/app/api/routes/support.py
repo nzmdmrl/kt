@@ -162,7 +162,8 @@ async def create_ticket(
 @router.get("/support/my")
 async def my_tickets(user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     rows = list((await db.execute(
-        select(SupportTicket).where(SupportTicket.user_id == user.id)
+        select(SupportTicket)
+        .where(SupportTicket.user_id == user.id, SupportTicket.user_deleted == False)  # noqa: E712
         .order_by(SupportTicket.id.desc()).limit(100)
     )).scalars().all())
     summ = await _summary(db, rows)
@@ -181,6 +182,8 @@ async def my_ticket(key: str, user: User = Depends(get_current_user), db: AsyncS
         # Sahiplik hatası ile "yok" birbirinden ayrılır — kullanıcı hangi
         # hesapla açtığını hemen anlasın (aynı bilet başka hesapta olabilir).
         raise HTTPException(403, "Bu destek talebi başka bir hesaba ait.")
+    if t.user_deleted:
+        raise HTTPException(404, "Bu destek talebini silmiştin.")
     msgs = await _messages(db, t.id)
     if t.user_unread:
         t.user_unread = False
@@ -202,6 +205,8 @@ async def my_reply(
         raise HTTPException(404, "Destek talebi bulunamadı.")
     if t.user_id != user.id:
         raise HTTPException(403, "Bu destek talebi başka bir hesaba ait.")
+    if t.user_deleted:
+        raise HTTPException(404, "Bu destek talebini silmiştin.")
     body = (data.message or "").strip()
     if len(body) < 2:
         raise HTTPException(400, "Mesaj boş olamaz.")
@@ -210,6 +215,23 @@ async def my_reply(
     db.add(SupportMessage(ticket_id=t.id, sender="user", body=body))
     t.status = STATUS_OPEN
     t.admin_unread = True
+    t.user_unread = False
+    await db.commit()
+    return {"ok": True}
+
+
+@router.delete("/support/my/{key}")
+async def my_delete(key: str, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    """
+    Üye bileti kendi listesinden kaldırır.
+
+    Kayıt SİLİNMEZ: yalnız `user_deleted` işaretlenir. Admin panelde bilet
+    "üye sildi" rozetiyle durmaya devam eder; kalıcı silme kararı adminindir.
+    """
+    t = await _find(db, key)
+    if not t or t.user_id != user.id:
+        raise HTTPException(404, "Destek talebi bulunamadı.")
+    t.user_deleted = True
     t.user_unread = False
     await db.commit()
     return {"ok": True}
@@ -270,20 +292,22 @@ async def admin_reply(
     db.add(SupportMessage(ticket_id=t.id, sender="admin", body=body))
     t.status = STATUS_ANSWERED
     t.admin_unread = False
-    t.user_unread = bool(t.user_id)
 
     link = f"/destek/{t.code or t.id}"
     title = "Destek talebin yanıtlandı"
     n_body = f"“{t.subject}” için yanıt geldi. Okumak için dokun."
-    if t.user_id:
+    # Üye bileti kendi tarafında sildiyse bildirim gönderilmez (göremez).
+    notify = bool(t.user_id) and not t.user_deleted
+    t.user_unread = notify
+    if notify:
         db.add(Notification(
             user_id=t.user_id, kind="support", type_code="support_reply",
             title=title, body=n_body, icon="🎫", link=link,
         ))
     await db.commit()
-    if t.user_id:
+    if notify:
         send_to_user_bg(t.user_id, "support_reply", title, n_body, link, ctx={"ticket": t.code or str(t.id)})
-    return {"ok": True, "notified": bool(t.user_id)}
+    return {"ok": True, "notified": notify}
 
 
 class StatusIn(BaseModel):

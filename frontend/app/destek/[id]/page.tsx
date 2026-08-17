@@ -44,6 +44,16 @@ export default function DestekDetayPage({ params }: { params: { id: string } }) 
   }
   useEffect(() => { if (user) load(); }, [user, params.id]);
 
+  // Silmek kaydı yok etmez: talep senin listenden kalkar, destek ekibi
+  // yazışmayı "üye sildi" işaretiyle görmeye devam eder.
+  async function removeTicket() {
+    if (!confirm("Bu destek talebi listenden kaldırılsın mı?")) return;
+    await fetch(apiUrl(`/api/support/my/${encodeURIComponent(params.id)}`), {
+      method: "DELETE", headers: { Authorization: `Bearer ${token()}` },
+    });
+    window.location.href = "/destek";
+  }
+
   async function send(e: React.FormEvent) {
     e.preventDefault();
     if (busy || reply.trim().length < 2) return;
@@ -92,9 +102,16 @@ export default function DestekDetayPage({ params }: { params: { id: string } }) 
         <h1 className="brand-mono" style={{ fontSize: 22, margin: 0 }}>{ticket.subject}</h1>
         <span style={{ marginLeft: "auto", fontSize: 12.5, color: st.color, fontWeight: 700 }}>{st.label}</span>
       </div>
-      <div style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 18 }}>
-        Talep #{ticket.code}
-        {ticket.created_at ? ` · ${new Date(ticket.created_at).toLocaleString("tr-TR")}` : ""}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18, flexWrap: "wrap" }}>
+        <span style={{ fontSize: 12, color: "var(--text-dim)" }}>
+          Talep #{ticket.code}
+          {ticket.created_at ? ` · ${new Date(ticket.created_at).toLocaleString("tr-TR")}` : ""}
+        </span>
+        <button onClick={removeTicket} style={{
+          marginLeft: "auto", padding: "7px 12px", borderRadius: 8, cursor: "pointer",
+          border: "1px solid var(--border-soft)", background: "var(--bg-elevated)",
+          color: "var(--accent-hot)", fontSize: 12.5, fontWeight: 600,
+        }}>🗑️ Listemden kaldır</button>
       </div>
 
       <div style={{ display: "grid", gap: 10, marginBottom: 22 }}>
