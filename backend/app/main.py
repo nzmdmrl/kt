@@ -233,6 +233,24 @@ async def on_startup():
     except Exception as e:
         print(f"[startup] Sayfa içeriği seed hatası: {e}")
 
+    # Bilet numarası sonradan eklendi: kodu boş kalan eski destek biletlerine
+    # 5 haneli kod üret (adres ve bildirim linkleri koda göre kuruluyor).
+    try:
+        from app.core.database import AsyncSessionLocal
+        from app.models.support import SupportTicket, new_ticket_code
+        from sqlalchemy import select as _sel, or_ as _or
+        async with AsyncSessionLocal() as db:
+            rows = (await db.execute(
+                _sel(SupportTicket).where(_or(SupportTicket.code == "", SupportTicket.code.is_(None)))
+            )).scalars().all()
+            for r in rows:
+                r.code = new_ticket_code()
+            if rows:
+                await db.commit()
+                print(f"[startup] {len(rows)} destek biletine numara verildi.")
+    except Exception as e:
+        print(f"[startup] Destek bileti numara hatası: {e}")
+
     # Sonuç paylaşım metinlerini seed et — sadece BOŞ olan gruplara ekler,
     # admin sildiyse/düzenlediyse dokunmaz.
     try:

@@ -194,8 +194,8 @@ function SupportBox({ onChanged }: { onChanged: () => void }) {
   }
   useEffect(load, []);
 
-  async function openTicket(id: number) {
-    const r = await fetch(apiUrl(`/api/admin/support/${id}`), { headers: authHeaders() });
+  async function openTicket(id: string) {
+    const r = await fetch(apiUrl(`/api/admin/support/${encodeURIComponent(String(id))}`), { headers: authHeaders() });
     if (!r.ok) return;
     setOpen(await r.json());
     setReply("");
@@ -205,21 +205,21 @@ function SupportBox({ onChanged }: { onChanged: () => void }) {
     if (!open || reply.trim().length < 2 || busy) return;
     setBusy(true);
     try {
-      const r = await fetch(apiUrl(`/api/admin/support/${open.ticket.id}/reply`), {
+      const r = await fetch(apiUrl(`/api/admin/support/${open.ticket.code}/reply`), {
         method: "POST", headers: authHeaders(), body: JSON.stringify({ message: reply }),
       });
-      if (r.ok) { setReply(""); await openTicket(open.ticket.id); }
+      if (r.ok) { setReply(""); await openTicket(open.ticket.code); }
     } finally { setBusy(false); }
   }
-  async function setStatus(id: number, status: string) {
-    await fetch(apiUrl(`/api/admin/support/${id}/status`), {
+  async function setStatus(id: string, status: string) {
+    await fetch(apiUrl(`/api/admin/support/${encodeURIComponent(id)}/status`), {
       method: "POST", headers: authHeaders(), body: JSON.stringify({ status }),
     });
-    if (open?.ticket?.id === id) await openTicket(id); else { load(); onChanged(); }
+    if (open?.ticket?.code === id) await openTicket(id); else { load(); onChanged(); }
   }
-  async function remove(id: number) {
+  async function remove(id: string) {
     if (!confirm("Bu destek talebi ve tüm yazışması silinsin mi?")) return;
-    await fetch(apiUrl(`/api/admin/support/${id}`), { method: "DELETE", headers: authHeaders() });
+    await fetch(apiUrl(`/api/admin/support/${encodeURIComponent(id)}`), { method: "DELETE", headers: authHeaders() });
     setOpen(null); load(); onChanged();
   }
 
@@ -235,7 +235,7 @@ function SupportBox({ onChanged }: { onChanged: () => void }) {
         <div style={{ background: "var(--bg-panel)", borderRadius: 12, padding: 14 }}>
           <strong style={{ color: "var(--text-strong)", fontSize: 16 }}>{t.subject}</strong>
           <div style={{ fontSize: 13, color: "var(--text-soft)", marginTop: 4 }}>
-            #{t.id} · {t.name} · <a href={`mailto:${t.email}`} style={{ color: "var(--accent)" }}>{t.email}</a>
+            #{t.code} · {t.name} · <a href={`mailto:${t.email}`} style={{ color: "var(--accent)" }}>{t.email}</a>
             {t.user_id ? ` · üye #${t.user_id}` : " · misafir (bildirim gitmez)"}
             {" · "}<span style={{ fontWeight: 700 }}>{STATUS_LABEL[t.status] || t.status}</span>
           </div>
@@ -274,9 +274,9 @@ function SupportBox({ onChanged }: { onChanged: () => void }) {
             opacity: busy || reply.trim().length < 2 ? 0.5 : 1,
           }}>{busy ? "Gönderiliyor…" : "Yanıtla ve bildir"}</button>
           {t.status !== "closed"
-            ? <button onClick={() => setStatus(t.id, "closed")} style={smallBtn}>Kapat</button>
-            : <button onClick={() => setStatus(t.id, "open")} style={smallBtn}>Yeniden aç</button>}
-          <button onClick={() => remove(t.id)} style={{ ...smallBtn, color: "var(--accent-hot)" }}>Sil</button>
+            ? <button onClick={() => setStatus(t.code, "closed")} style={smallBtn}>Kapat</button>
+            : <button onClick={() => setStatus(t.code, "open")} style={smallBtn}>Yeniden aç</button>}
+          <button onClick={() => remove(t.code)} style={{ ...smallBtn, color: "var(--accent-hot)" }}>Sil</button>
         </div>
       </div>
     );
@@ -298,7 +298,7 @@ function SupportBox({ onChanged }: { onChanged: () => void }) {
       {list.length === 0 && <p style={{ color: "var(--text-dim)" }}>Henüz destek talebi yok.</p>}
 
       {list.map((t) => (
-        <button key={t.id} onClick={() => openTicket(t.id)} style={{
+        <button key={t.id} onClick={() => openTicket(t.code)} style={{
           textAlign: "left", cursor: "pointer", width: "100%",
           background: "var(--bg-panel)", borderRadius: 12, padding: 14,
           border: `1px solid ${t.admin_unread ? "var(--accent)" : "var(--border-soft)"}`,
@@ -311,7 +311,7 @@ function SupportBox({ onChanged }: { onChanged: () => void }) {
             </span>
           </div>
           <div style={{ fontSize: 13, color: "var(--text-soft)", marginTop: 4 }}>
-            #{t.id} · {t.name} · {t.email}{t.user_id ? ` · üye #${t.user_id}` : " · misafir"} · {t.messages} mesaj · {STATUS_LABEL[t.status] || t.status}
+            #{t.code} · {t.name} · {t.email}{t.user_id ? ` · üye #${t.user_id}` : " · misafir"} · {t.messages} mesaj · {STATUS_LABEL[t.status] || t.status}
           </div>
           <p style={{ color: "var(--text-dim)", fontSize: 13.5, margin: "6px 0 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.last}</p>
         </button>

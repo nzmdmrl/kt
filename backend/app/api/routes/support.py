@@ -31,6 +31,7 @@ from app.core.database import get_db
 from app.core.deps import get_admin_user, get_current_user, get_optional_user
 from app.models.support import (
     SupportTicket, SupportMessage, STATUS_OPEN, STATUS_ANSWERED, STATUS_CLOSED,
+    new_ticket_code,
 )
 from app.models.user import User
 
@@ -53,6 +54,31 @@ def _rate_ok(ip: str) -> bool:
     hits.append(now)
     _recent[ip] = hits
     return True
+
+
+async def _find(db: AsyncSession, key: str) -> SupportTicket | None:
+    """Bileti 5 haneli KOD ile bulur; eski sayısal id'li linkler de çalışsın diye
+    rakamdan ibaret anahtar id olarak da denenir."""
+    k = (key or "").strip()
+    if not k:
+        return None
+    t = (await db.execute(
+        select(SupportTicket).where(SupportTicket.code == k.upper())
+    )).scalar_one_or_none()
+    if t is None and k.isdigit():
+        t = await db.get(SupportTicket, int(k))
+    return t
+
+
+async def _unique_code(db: AsyncSession) -> str:
+    for _ in range(20):
+        c = new_ticket_code()
+        exists = (await db.execute(
+            select(SupportTicket.id).where(SupportTicket.code == c)
+        )).first()
+        if not exists:
+            return c
+    return new_ticket_code()
 
 
 async def _messages(db: AsyncSession, ticket_id: int) -> list[SupportMessage]:
@@ -121,6 +147,7 @@ async def create_ticket(
         raise HTTPException(429, "Çok fazla destek talebi açtın. Lütfen biraz sonra tekrar dene.")
 
     ticket = SupportTicket(
+        code=await _unique_code(db),
         user_id=user.id if user else None,
         name=name, email=email, subject=subject,
         status=STATUS_OPEN, user_unread=False, admin_unread=True,
@@ -129,7 +156,7 @@ async def create_ticket(
     await db.flush()
     db.add(SupportMessage(ticket_id=ticket.id, sender="user", body=body))
     await db.commit()
-    return {"ok": True, "id": ticket.id, "linked": bool(user)}
+    return {"ok": True, "id": ticket.id, "code": ticket.code, "linked": bool(user)}
 
 
 @router.get("/support/my")
@@ -145,11 +172,15 @@ async def my_tickets(user: User = Depends(get_current_user), db: AsyncSession = 
     }
 
 
-@router.get("/support/my/{tid}")
-async def my_ticket(tid: int, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    t = await db.get(SupportTicket, tid)
-    if not t or t.user_id != user.id:
+@router.get("/support/my/{key}")
+async def my_ticket(key: str, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    t = await _find(db, key)
+    if not t:
         raise HTTPException(404, "Destek talebi bulunamadı.")
+    if t.user_id != user.id:
+        # Sahiplik hatası ile "yok" birbirinden ayrılır — kullanıcı hangi
+        # hesapla açtığını hemen anlasın (aynı bilet başka hesapta olabilir).
+        raise HTTPException(403, "Bu destek talebi başka bir hesaba ait.")
     msgs = await _messages(db, t.id)
     if t.user_unread:
         t.user_unread = False
@@ -161,14 +192,16 @@ class ReplyIn(BaseModel):
     message: str = ""
 
 
-@router.post("/support/my/{tid}/reply")
+@router.post("/support/my/{key}/reply")
 async def my_reply(
-    tid: int, data: ReplyIn,
+    key: str, data: ReplyIn,
     user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db),
 ):
-    t = await db.get(SupportTicket, tid)
-    if not t or t.user_id != user.id:
+    t = await _find(db, key)
+    if not t:
         raise HTTPException(404, "Destek talebi bulunamadı.")
+    if t.user_id != user.id:
+        raise HTTPException(403, "Bu destek talebi başka bir hesaba ait.")
     body = (data.message or "").strip()
     if len(body) < 2:
         raise HTTPException(400, "Mesaj boş olamaz.")
@@ -204,9 +237,9 @@ async def admin_list(
     }
 
 
-@router.get("/admin/support/{tid}")
-async def admin_ticket(tid: int, admin: User = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
-    t = await db.get(SupportTicket, tid)
+@router.get("/admin/support/{key}")
+async def admin_ticket(key: str, admin: User = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+    t = await _find(db, key)
     if not t:
         raise HTTPException(404, "Destek talebi bulunamadı.")
     msgs = await _messages(db, t.id)
@@ -216,16 +249,16 @@ async def admin_ticket(tid: int, admin: User = Depends(get_admin_user), db: Asyn
     return {"ticket": t.to_admin(), "messages": [m.to_public() for m in msgs]}
 
 
-@router.post("/admin/support/{tid}/reply")
+@router.post("/admin/support/{key}/reply")
 async def admin_reply(
-    tid: int, data: ReplyIn,
+    key: str, data: ReplyIn,
     admin: User = Depends(get_admin_user), db: AsyncSession = Depends(get_db),
 ):
     """Admin yanıtı — üyeye uygulama içi bildirim + push gider."""
     from app.models.notification import Notification
     from app.services.push import send_to_user_bg
 
-    t = await db.get(SupportTicket, tid)
+    t = await _find(db, key)
     if not t:
         raise HTTPException(404, "Destek talebi bulunamadı.")
     body = (data.message or "").strip()
@@ -239,7 +272,7 @@ async def admin_reply(
     t.admin_unread = False
     t.user_unread = bool(t.user_id)
 
-    link = f"/destek/{t.id}"
+    link = f"/destek/{t.code or t.id}"
     title = "Destek talebin yanıtlandı"
     n_body = f"“{t.subject}” için yanıt geldi. Okumak için dokun."
     if t.user_id:
@@ -249,7 +282,7 @@ async def admin_reply(
         ))
     await db.commit()
     if t.user_id:
-        send_to_user_bg(t.user_id, "support_reply", title, n_body, link, ctx={"ticket": t.id})
+        send_to_user_bg(t.user_id, "support_reply", title, n_body, link, ctx={"ticket": t.code or str(t.id)})
     return {"ok": True, "notified": bool(t.user_id)}
 
 
@@ -257,14 +290,14 @@ class StatusIn(BaseModel):
     status: str = STATUS_OPEN
 
 
-@router.post("/admin/support/{tid}/status")
+@router.post("/admin/support/{key}/status")
 async def admin_status(
-    tid: int, data: StatusIn,
+    key: str, data: StatusIn,
     admin: User = Depends(get_admin_user), db: AsyncSession = Depends(get_db),
 ):
     if data.status not in (STATUS_OPEN, STATUS_ANSWERED, STATUS_CLOSED):
         raise HTTPException(400, "Geçersiz durum.")
-    t = await db.get(SupportTicket, tid)
+    t = await _find(db, key)
     if not t:
         raise HTTPException(404, "Destek talebi bulunamadı.")
     t.status = data.status
@@ -274,9 +307,9 @@ async def admin_status(
     return {"ok": True}
 
 
-@router.delete("/admin/support/{tid}")
-async def admin_delete(tid: int, admin: User = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
-    t = await db.get(SupportTicket, tid)
+@router.delete("/admin/support/{key}")
+async def admin_delete(key: str, admin: User = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
+    t = await _find(db, key)
     if not t:
         raise HTTPException(404, "Destek talebi bulunamadı.")
     for m in await _messages(db, t.id):

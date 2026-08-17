@@ -6,7 +6,7 @@ import { apiUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
 type Msg = { id: number; sender: "user" | "admin"; body: string; created_at: string | null };
-type Ticket = { id: number; subject: string; status: string; created_at: string | null };
+type Ticket = { id: number; code: string; subject: string; status: string; created_at: string | null };
 
 const STATUS_TR: Record<string, { label: string; color: string }> = {
   open: { label: "Yanıt bekliyor", color: "var(--accent)" },
@@ -22,15 +22,25 @@ export default function DestekDetayPage({ params }: { params: { id: string } }) 
   const [reply, setReply] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
-  const [notFound, setNotFound] = useState(false);
+  const [loadErr, setLoadErr] = useState("");
 
   function token() { return typeof window !== "undefined" ? localStorage.getItem("kt_token") : null; }
 
   function load() {
-    fetch(apiUrl(`/api/support/my/${params.id}`), { headers: { Authorization: `Bearer ${token()}` } })
-      .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
-      .then((d) => { setTicket(d.ticket); setMsgs(d.messages || []); })
-      .catch(() => setNotFound(true));
+    fetch(apiUrl(`/api/support/my/${encodeURIComponent(params.id)}`), {
+      headers: { Authorization: `Bearer ${token()}` },
+    })
+      .then(async (r) => {
+        if (r.status === 401) throw new Error("Oturumun sona ermiş. Tekrar giriş yap.");
+        if (r.status === 403 || r.status === 404) {
+          const d = await r.json().catch(() => null);
+          throw new Error(d?.detail || "Destek talebi bulunamadı.");
+        }
+        if (!r.ok) throw new Error("Destek talebi yüklenemedi. Lütfen tekrar dene.");
+        return r.json();
+      })
+      .then((d) => { setTicket(d.ticket); setMsgs(d.messages || []); setLoadErr(""); })
+      .catch((e) => setLoadErr(e?.message || "Destek talebi yüklenemedi."));
   }
   useEffect(() => { if (user) load(); }, [user, params.id]);
 
@@ -39,7 +49,7 @@ export default function DestekDetayPage({ params }: { params: { id: string } }) 
     if (busy || reply.trim().length < 2) return;
     setBusy(true); setErr("");
     try {
-      const r = await fetch(apiUrl(`/api/support/my/${params.id}/reply`), {
+      const r = await fetch(apiUrl(`/api/support/my/${encodeURIComponent(params.id)}/reply`), {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
         body: JSON.stringify({ message: reply }),
@@ -60,7 +70,17 @@ export default function DestekDetayPage({ params }: { params: { id: string } }) 
   if (!user) {
     return <Wrap><Center>Bu sayfa için giriş yapmalısın. <a href="/giris" style={{ color: "var(--accent)", fontWeight: 700 }}>Giriş →</a></Center></Wrap>;
   }
-  if (notFound) return <Wrap><Center>Destek talebi bulunamadı.</Center></Wrap>;
+  if (loadErr) {
+    return (
+      <Wrap>
+        <Center>
+          {loadErr}
+          <br />
+          <a href="/destek" style={{ color: "var(--accent)", fontWeight: 700 }}>← Destek</a>
+        </Center>
+      </Wrap>
+    );
+  }
   if (!ticket) return <Wrap><Center>Yükleniyor…</Center></Wrap>;
 
   const st = STATUS_TR[ticket.status] || STATUS_TR.open;
@@ -73,7 +93,7 @@ export default function DestekDetayPage({ params }: { params: { id: string } }) 
         <span style={{ marginLeft: "auto", fontSize: 12.5, color: st.color, fontWeight: 700 }}>{st.label}</span>
       </div>
       <div style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 18 }}>
-        Talep #{ticket.id}
+        Talep #{ticket.code}
         {ticket.created_at ? ` · ${new Date(ticket.created_at).toLocaleString("tr-TR")}` : ""}
       </div>
 

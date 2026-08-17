@@ -7,7 +7,7 @@ import { apiUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
 type Ticket = {
-  id: number; subject: string; status: string; unread: boolean;
+  id: number; code: string; subject: string; status: string; unread: boolean;
   messages: number; last: string; updated_at: string | null;
 };
 
@@ -68,7 +68,7 @@ export default function DestekPage() {
         {(list || []).map((t) => {
           const st = STATUS_TR[t.status] || STATUS_TR.open;
           return (
-            <button key={t.id} onClick={() => router.push(`/destek/${t.id}`)} style={{
+            <button key={t.id} onClick={() => router.push(`/destek/${t.code}`)} style={{
               textAlign: "left", cursor: "pointer", width: "100%",
               background: "var(--bg-panel)", borderRadius: 14, padding: 16,
               border: `1px solid ${t.unread ? "var(--accent)" : "var(--border-soft)"}`,
@@ -88,7 +88,7 @@ export default function DestekPage() {
                 overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
               }}>{t.last}</p>
               <div style={{ marginTop: 6, fontSize: 12, color: "var(--text-dim)" }}>
-                #{t.id} · {t.messages} mesaj
+                #{t.code} · {t.messages} mesaj
                 {t.updated_at ? ` · ${new Date(t.updated_at).toLocaleDateString("tr-TR")}` : ""}
               </div>
             </button>

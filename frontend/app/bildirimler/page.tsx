@@ -12,6 +12,7 @@ type Notif = { id: number; kind?: string; title: string; body: string; read: boo
 // DİKKAT: lig ödülleri tek bir "award" kind'ı ile yazılıyor (league_scheduler.py);
 // günlük/aylık/yıllık ayrımı yalnızca bildirim türü kataloğunda var. Kod ileride
 // üçe bölünürse diye o kodlar da eşlendi.
+// 'support' -> destek bileti yanıtı; kart altındaki eylem metni.
 const ACTION_LABELS: Record<string, string> = {
   system_announcement: "Duyuruya git →",
   arena_invite: "Arenaya git →",
@@ -25,6 +26,7 @@ const ACTION_LABELS: Record<string, string> = {
   award_daily: "Lige git →",
   award_monthly: "Lige git →",
   award_yearly: "Lige git →",
+  support: "Destek talebine git →",
 };
 
 // Eşlenmemiş yeni bir tür yanlış yönlendirme yazmasın diye nötr yedek.

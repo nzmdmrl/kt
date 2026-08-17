@@ -11,12 +11,21 @@ içinden yanıt okuyamaz (bilet paneli üyeye özeldir).
 
 from __future__ import annotations
 
+import secrets
 from datetime import datetime
 
 from sqlalchemy import String, Text, Boolean, Integer, DateTime, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
+
+# Bilet numarası: 5 haneli, karıştırılması kolay harfler (I/O/0/1) çıkarılmış.
+CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+CODE_LEN = 5
+
+
+def new_ticket_code() -> str:
+    return "".join(secrets.choice(CODE_ALPHABET) for _ in range(CODE_LEN))
 
 # Bilet durumları.
 STATUS_OPEN = "open"          # yanıt bekliyor (üye yazdı)
@@ -28,6 +37,9 @@ class SupportTicket(Base):
     __tablename__ = "support_tickets"
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    # Kullanıcıya gösterilen bilet numarası (5 haneli harf+rakam, ör. "K7M2P").
+    # Adres ve bildirim linki bu koda göre kurulur; sıralı id dışarı sızmaz.
+    code: Mapped[str] = mapped_column(String(8), default="", index=True)
     # Giriş yapmış kullanıcı (misafir bilette None).
     user_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     name: Mapped[str] = mapped_column(String(80), default="")
@@ -45,6 +57,7 @@ class SupportTicket(Base):
     def to_public(self, last: str = "", count: int = 0) -> dict:
         return {
             "id": self.id,
+            "code": self.code or str(self.id),
             "subject": self.subject,
             "status": self.status,
             "unread": bool(self.user_unread),
