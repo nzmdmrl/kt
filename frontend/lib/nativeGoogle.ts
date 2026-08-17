@@ -27,6 +27,8 @@
 
 import { loadAppConfig, type FlagsConfig } from "./appConfig";
 import { detectPlatform } from "./platform";
+// GEÇİCİ teşhis — bkz. lib/debugLastError.ts (iş bitince bu satır da gider).
+import { recordDebugError } from "./debugLastError";
 
 /** Hesap seçicinin sonucu — arayüz buna göre Türkçe mesaj basar. */
 export type NativeGoogleOutcome =
@@ -93,7 +95,10 @@ function classify(raw: unknown): NativeGoogleOutcome {
  */
 export async function nativeGoogleSignIn(webClientId: string): Promise<NativeGoogleOutcome> {
   const clientId = (webClientId || "").trim();
-  if (!clientId) return { status: "error", message: "client-id-yok" };
+  if (!clientId) {
+    recordDebugError("yapılandırma", { message: "google_web_client_id boş" });
+    return { status: "error", message: "client-id-yok" };
+  }
 
   try {
     const { SocialLogin } = await import("@capgo/capacitor-social-login");
@@ -132,6 +137,9 @@ export async function nativeGoogleSignIn(webClientId: string): Promise<NativeGoo
     const idToken: unknown = result?.idToken;
     if (typeof idToken !== "string" || !idToken) {
       console.error(`${TAG} id_token gelmedi. Ham sonuç:`, res);
+      recordDebugError("eklenti", {
+        message: `id_token gelmedi (responseType=${result?.responseType ?? "?"})`,
+      });
       return { status: "error", message: "id-token-yok" };
     }
     // Teşhis satırı: "email=VAR" görüyorsan backend'in ihtiyacı karşılanıyor.
@@ -140,6 +148,9 @@ export async function nativeGoogleSignIn(webClientId: string): Promise<NativeGoo
   } catch (e) {
     // EKLENTİNİN HAM MESAJI: genel Türkçe uyarının arkasında kaybolmasın.
     console.error(`${TAG} eklenti hatası:`, (e as any)?.message ?? e, e);
+    // Kablosuz teşhis: /menu'deki kutuda okunabilsin diye cihazda saklanır.
+    // İptal de kaydedilir — "hiç hata yok" ile "kullanıcı vazgeçti" ayrılabilsin.
+    recordDebugError("eklenti", e);
     return classify(e);
   }
 }

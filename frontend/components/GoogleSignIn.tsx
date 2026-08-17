@@ -25,6 +25,8 @@ import { useAuth } from "@/lib/auth";
 import { useAppConfig, type FlagsConfig } from "@/lib/appConfig";
 import { usePlatform } from "@/lib/platform";
 import { effectiveTheme, onThemeChange } from "@/lib/theme";
+// GEÇİCİ teşhis — bkz. lib/debugLastError.ts (iş bitince bu satır da gider).
+import { recordDebugError } from "@/lib/debugLastError";
 
 const GSI_SRC = "https://accounts.google.com/gsi/client";
 
@@ -140,6 +142,8 @@ function GoogleSignInNative({
       // Buraya token ALINDIKTAN SONRAKİ hatalar düşer: /auth/google/native'in
       // reddi (503 yapılandırma yok, 401 audience/exp tutmadı) ya da ağ hatası.
       console.error("[google-native] sunucu tarafı başarısız:", e?.message ?? e, e);
+      // GEÇİCİ teşhis — /menu kutusunda okunsun (bkz. lib/debugLastError.ts).
+      recordDebugError("sunucu", e);
       setErr(e?.message || "Google girişi başarısız.");
     } finally {
       if (aliveRef.current) setBusy(false);

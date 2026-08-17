@@ -8,6 +8,7 @@ import { getThemeMode, setThemeMode, effectiveTheme } from "@/lib/theme";
 import { isSoundEnabled, setSoundEnabled } from "@/lib/sound";
 import { usePlatform } from "@/lib/platform";
 import { useAppConfig, type FlagsConfig } from "@/lib/appConfig";
+import { readDebugError, clearDebugError, type DebugError } from "@/lib/debugLastError";
 
 // Menü — ayar odaklı. Mod butonları ana sayfada olduğu için burada YOK.
 export default function MenuPage() {
@@ -190,6 +191,8 @@ function TokenDebug() {
   const { isNative, ready } = usePlatform();
   const config = useAppConfig();
   const [lines, setLines] = useState<string[] | null>(null);
+  const [version, setVersion] = useState("okunuyor…");
+  const [lastErr, setLastErr] = useState<DebugError | null>(null);
 
   const flags: FlagsConfig = (config?.["app.flags"] as FlagsConfig) || {};
   const enabled = ready && isNative && flags.debug_panel === true;
@@ -201,6 +204,26 @@ function TokenDebug() {
       return;
     }
     setLines(readTokenLines());
+    setLastErr(readDebugError());
+  }, [enabled]);
+
+  // Sürüm adı manifest'ten gelir; WebView okuyamaz, native eklenti okur.
+  // Hangi paketi test ettiğini kesin görmek için: versionName (versionCode).
+  useEffect(() => {
+    if (!enabled) return;
+    let alive = true;
+    (async () => {
+      try {
+        const { App } = await import("@capacitor/app");
+        const info = await App.getInfo();
+        if (alive) setVersion(`${info.version} (${info.build})`);
+      } catch {
+        if (alive) setVersion("okunamadı");
+      }
+    })();
+    return () => {
+      alive = false;
+    };
   }, [enabled]);
 
   if (!enabled || !lines) return null;
@@ -218,12 +241,52 @@ function TokenDebug() {
         lineHeight: 1.7,
         fontFamily: "ui-monospace, monospace",
         wordBreak: "break-word",
+        // Ekrandan okunup kopyalanabilsin (uzun basınca seçim çıksın).
+        userSelect: "text",
+        WebkitUserSelect: "text",
+        WebkitTouchCallout: "default",
       }}
     >
       <div style={{ fontWeight: 700, marginBottom: 4 }}>🔧 teşhis (geçici)</div>
+
+      <div>sürüm: {version}</div>
       {lines.map((l, i) => (
         <div key={i}>{l}</div>
       ))}
+
+      <div style={{ borderTop: "1px dashed var(--border-soft)", margin: "8px 0 6px" }} />
+
+      {lastErr ? (
+        <>
+          <div style={{ fontWeight: 700 }}>
+            son giriş hatası · {fmtTime(lastErr.at)} · aşama: {lastErr.stage}
+          </div>
+          {lastErr.code && <div>kod: {lastErr.code}</div>}
+          {lastErr.name && <div>tür: {lastErr.name}</div>}
+          <div style={{ color: "var(--accent-hot)" }}>{lastErr.message || "(mesaj boş)"}</div>
+          <button
+            onClick={() => {
+              clearDebugError();
+              setLastErr(null);
+            }}
+            style={{
+              marginTop: 6,
+              padding: "3px 8px",
+              fontSize: 10,
+              fontFamily: "inherit",
+              borderRadius: 6,
+              border: "1px solid var(--border-soft)",
+              background: "var(--bg-elevated)",
+              color: "var(--text-dim)",
+              cursor: "pointer",
+            }}
+          >
+            temizle
+          </button>
+        </>
+      ) : (
+        <div>son giriş hatası: yok</div>
+      )}
     </div>
   );
 }
