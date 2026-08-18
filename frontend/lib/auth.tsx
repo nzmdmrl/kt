@@ -22,6 +22,7 @@ export type AuthUser = {
   email?: string | null;
   has_password?: boolean;
   google_linked?: boolean;
+  play_games_linked?: boolean;
   /** Reklamsız hak — tüm reklam yolları buna bakar (AdSlot, AdMob bandı, geçiş). */
   ad_free?: boolean;
   /** manual | play | apple | web */
@@ -49,8 +50,23 @@ type AuthContextType = {
    * token değişince NativeBootstrap bekleyen push token'ını yeniden kaydeder.
    */
   loginGoogleNative: (idToken: string) => Promise<void>;
+  /**
+   * Play Games SESSİZ girişi (uygulama açılışı). İki sonuçtan biri döner:
+   *  - "signed-in": oturum açıldı, iş bitti,
+   *  - "new": bu kimlik yeni — HESAP AÇILMADI, isim ekranı gösterilmeli.
+   * Ayrıntı: backend/app/api/routes/auth.py → play_games_login.
+   */
+  playGamesSilent: (serverAuthCode: string) => Promise<PlayGamesSilentResult>;
+  /** İsim ekranı — hesap burada açılır. */
+  playGamesComplete: (pendingToken: string, name: string) => Promise<void>;
+  /** "Zaten hesabım var" — kimliği ŞU AN girişli hesaba bağlar. */
+  playGamesLink: (pendingToken: string) => Promise<void>;
   logout: () => void;
 };
+
+export type PlayGamesSilentResult =
+  | { status: "signed-in" }
+  | { status: "new"; pendingToken: string; suggestedName: string | null };
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
@@ -200,6 +216,67 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [postGoogleToken]
   );
 
+  // --- Play Games ---------------------------------------------------------
+  // Üç uç da aynı applyAuth'tan geçer; oturum jetonu bu dosyanın dışına çıkmaz.
+  const playGamesSilent = useCallback(
+    async (serverAuthCode: string): Promise<PlayGamesSilentResult> => {
+      const saved = localStorage.getItem(TOKEN_KEY);
+      const res = await fetch(apiUrl("/api/auth/play-games"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          // Kişi zaten girişliyse kimlik O hesaba bağlanır (yeni hesap açılmaz).
+          ...(saved ? { Authorization: `Bearer ${saved}` } : {}),
+        },
+        body: JSON.stringify({ server_auth_code: serverAuthCode }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || "Play Games girişi başarısız");
+      if (data.new_account) {
+        return {
+          status: "new",
+          pendingToken: String(data.pending_token || ""),
+          suggestedName: data.suggested_name || null,
+        };
+      }
+      applyAuth(data);
+      return { status: "signed-in" };
+    },
+    [applyAuth]
+  );
+
+  const playGamesComplete = useCallback(
+    async (pendingToken: string, name: string) => {
+      const res = await fetch(apiUrl("/api/auth/play-games/complete"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pending_token: pendingToken, name }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || "Hesap oluşturulamadı");
+      applyAuth(data);
+    },
+    [applyAuth]
+  );
+
+  const playGamesLink = useCallback(
+    async (pendingToken: string) => {
+      // Bu çağrı e-posta girişinin HEMEN ardından yapılır; jeton state'e daha
+      // yansımamış olabilir, bu yüzden localStorage'dan okunur.
+      const saved = localStorage.getItem(TOKEN_KEY);
+      if (!saved) throw new Error("Önce giriş yapmalısın");
+      const res = await fetch(apiUrl("/api/auth/play-games/link"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${saved}` },
+        body: JSON.stringify({ pending_token: pendingToken }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || "Play Games hesabı bağlanamadı");
+      applyAuth(data);
+    },
+    [applyAuth]
+  );
+
   const logout = useCallback(() => {
     // 1) Bizim oturumumuz — KOŞULSUZ ve ÖNCE. Aşağıdaki native adım ne yaparsa
     //    yapsın (hata da verse) kullanıcı çıkmış olur; arayüz beklemez.
@@ -220,7 +297,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, token, loading, register, login, loginGoogle, loginGoogleNative, logout }}
+      value={{
+        user, token, loading, register, login, loginGoogle, loginGoogleNative,
+        playGamesSilent, playGamesComplete, playGamesLink, logout,
+      }}
     >
       {children}
     </AuthContext.Provider>

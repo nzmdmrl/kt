@@ -319,3 +319,30 @@ etkiler, mevcut kullanıcı adlarına dokunmaz.
 
 **Play Games e-posta vermez:** yukarıdaki `complete` ile açılan hesabın e-postası
 boştur. Kişi sonradan profilinden e-posta/şifre ekleyebilir.
+
+### Uygulama tarafı (adım 3b — arayüz)
+
+| Dosya | Görevi |
+|---|---|
+| `frontend/lib/playGames.ts` | Native köprü: eklentiye "oturum var mı?" sorar, varsa yetki kodu ister |
+| `frontend/components/PlayGamesAuth.tsx` | Sessiz giriş akışı + "isim belirle" / "Zaten hesabım var" ekranı |
+| `frontend/lib/auth.tsx` | `playGamesSilent` / `playGamesComplete` / `playGamesLink` — jeton bu dosyanın dışına çıkmaz |
+| `frontend/components/Providers.tsx` | `<PlayGamesAuth />` buraya bağlandı |
+
+**Giriş ekranı asla kendiliğinden açılmaz.** `playGames.ts` yalnızca
+`isAuthenticated()` sorar; oturum yoksa `signIn()` **çağırmaz** — çağırsaydı
+uygulama açılışında kullanıcının istemediği bir Google ekranı yüzüne çıkardı.
+Oturum yoksa sessizce vazgeçilir.
+
+**Hiç kimse kilitli kalmaz.** Şu durumların hepsinde hiçbir şey gösterilmez ve
+site her zamanki gibi çalışır (kullanıcı normal giriş ekranını kullanır):
+sunucuda `PLAY_GAMES_*` boş, cihazda Play Games yok, eski sürüm uygulamada
+eklenti yok, sessiz oturum açılmamış, kod alınamamış, ağ hatası. İsim ekranının
+altında ayrıca **"Şimdi değil"** var.
+
+**Tarayıcıda tamamen etkisiz:** bileşen `isNative` değilse tek istek bile yapmaz,
+eklenti chunk'ı `import()` ile ayrı tutulduğu için indirilmez bile.
+
+**Bir kez çalışır:** modül düzeyindeki bayrak sayesinde sayfa gezinmelerinde
+tekrarlanmaz. Kişi zaten girişliyse sessiz giriş hiç denenmez — kimliği izinsiz
+bağlamak yerine kullanıcının kendi seçimine bırakılır.
