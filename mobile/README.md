@@ -190,3 +190,43 @@ uyarı çıkar ve oyun klavyeyle tam olarak oynanmaya devam eder.
 Play Store'da uygulama, mikrofon izni yüzünden **veri güvenliği formunda** ses
 kullanımını beyan etmeni isteyebilir: ses yalnızca cihazdaki tanıma servisine gider,
 kelimetahmin.com sunucularına **ses gönderilmez** (yalnız tanınan metin oyuna yazılır).
+
+---
+
+## Play Games girişi (yerel eklenti — npm paketi yok)
+
+Play Games Services v2 ile giriş için **kendi Capacitor eklentimiz** var; npm'den
+eklenti kurulmadı, Firebase de gerekmiyor. Kullanılan tek kütüphane
+`com.google.android.gms:play-services-games-v2` (sürüm `android/variables.gradle`
+içinde `playServicesGamesVersion`).
+
+| Dosya | Görevi |
+|---|---|
+| `android/app/src/main/java/com/kelimetahmin/app/PlayGamesPlugin.java` | Eklentinin kendisi |
+| `android/app/src/main/java/com/kelimetahmin/app/MainActivity.java` | `registerPlugin(PlayGamesPlugin.class)` |
+| `android/app/src/main/res/values/strings.xml` | `game_services_project_id` (Play Console proje kimliği) |
+| `android/app/src/main/AndroidManifest.xml` | `com.google.android.gms.games.APP_ID` meta-data |
+
+> Bu dosyaların dördü de `npx cap sync` tarafından **üretilmez**, elle bakılan
+> kaynaklardır; sync üzerine yazmaz.
+
+**Neden MainActivity'de kayıt gerekiyor:** npm'den gelen eklentiler `cap sync`'in
+ürettiği `capacitor.plugins.json` üzerinden köprüye otomatik tanıtılır. Bizimki
+npm paketi olmadığı için o listede yoktur — `registerPlugin` çağrısı olmazsa JS
+tarafında eklenti "yok" görünür. Çağrı `super.onCreate()`'ten **önce** olmalıdır.
+
+JS tarafından üç metot çağrılır (`Capacitor.Plugins.PlayGames`):
+
+| Metot | Döndürür | Ne yapar |
+|---|---|---|
+| `isAuthenticated()` | `{ authenticated }` | Ekran **açmadan** sorar: oturum zaten açık mı |
+| `signIn()` | `{ authenticated }` | Gerekirse Play Games giriş ekranını açar |
+| `requestServerSideAccess({ serverClientId, forceRefreshToken })` | `{ serverAuthCode }` | Sunucuya verilecek tek kullanımlık yetki kodu |
+
+`serverClientId` = Google Cloud'daki **web** istemci kimliği (Android'inki değil).
+Kod içine gömülmedi, JS'ten parametre olarak geçilir.
+
+`PlayGamesSdk.initialize()` eklentinin `load()` metodunda, yani uygulama açılırken
+bir kez çalışır; sessiz giriş denemesini SDK kendisi yapar.
+
+**Henüz web/JS tarafı bağlanmadı** — bu adım yalnız native eklentiyi ekler.
