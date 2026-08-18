@@ -37,6 +37,21 @@ class Settings:
     GOOGLE_CLIENT_ID: str = os.getenv("GOOGLE_CLIENT_ID", "")
     GOOGLE_CLIENT_SECRET: str = os.getenv("GOOGLE_CLIENT_SECRET", "")
 
+    # --- Play Games Services (yalnız Android uygulaması) ---
+    # DİKKAT — bunlar yukarıdaki GOOGLE_CLIENT_ID/SECRET'ten BAŞKA bir Google
+    # Cloud projesine aittir ve BİRBİRİNİN YERİNE KULLANILAMAZ:
+    #   GOOGLE_CLIENT_*      -> sitedeki web Google girişi (ayrı proje)
+    #   PLAY_GAMES_CLIENT_*  -> uygulamanın Play Games projesi (958058877022)
+    # Bilerek fallback YOK: biri boşsa Play Games girişi kapalıdır, sessizce
+    # diğer projenin kimliğine düşmez (düşseydi kod takası "invalid_client"
+    # ile reddedilir, hata da yanıltıcı olurdu).
+    #
+    # Değer: Play Games projesindeki **Web** istemcisinin kimliği ve gizli
+    # anahtarı (Android istemcisininki DEĞİL — Android istemcisinin secret'ı
+    # zaten yoktur).
+    PLAY_GAMES_CLIENT_ID: str = os.getenv("PLAY_GAMES_CLIENT_ID", "")
+    PLAY_GAMES_CLIENT_SECRET: str = os.getenv("PLAY_GAMES_CLIENT_SECRET", "")
+
     # --- reCAPTCHA v2 ("Ben robot değilim") — e-posta ile kayıtta bot koruması ---
     # İkisi de doluysa devreye girer; boşsa kayıt eskisi gibi captcha'sız çalışır.
     RECAPTCHA_SITE_KEY: str = os.getenv("RECAPTCHA_SITE_KEY", "")
@@ -49,6 +64,10 @@ class Settings:
     @property
     def google_oauth_configured(self) -> bool:
         return bool(self.GOOGLE_CLIENT_ID and self.GOOGLE_CLIENT_SECRET)
+
+    @property
+    def play_games_configured(self) -> bool:
+        return bool(self.PLAY_GAMES_CLIENT_ID and self.PLAY_GAMES_CLIENT_SECRET)
 
     @property
     def recaptcha_configured(self) -> bool:

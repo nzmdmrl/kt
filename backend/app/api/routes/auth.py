@@ -14,7 +14,7 @@ from app.core.database import get_db
 from app.core.config import get_settings
 from app.core import captcha
 from app.core.security import create_access_token
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, get_optional_user
 from app.core import auth_service
 from app.models.user import User
 
@@ -39,6 +39,12 @@ class LoginIn(BaseModel):
 class GoogleIn(BaseModel):
     # İstemci Google'dan aldığı id_token'ı gönderir.
     id_token: str
+
+
+class PlayGamesIn(BaseModel):
+    # Uygulama, PlayGames.requestServerSideAccess'ten aldığı TEK KULLANIMLIK
+    # yetki kodunu gönderir (id_token DEĞİL — Play Games id_token vermez).
+    server_auth_code: str
 
 
 def _auth_response(user: User) -> dict:
@@ -194,6 +200,115 @@ async def google_login_native(data: GoogleIn, db: AsyncSession = Depends(get_db)
         )
     info = await _verify_google_id_token(data.id_token, client_id)
     return await _google_sign_in(db, info)
+
+
+# ---- Play Games (yalnız Android uygulaması) ----
+@router.get("/play-games/status")
+def play_games_status():
+    """Uygulama "Play Games ile gir" düğmesini gösterecek mi, buradan öğrenir.
+
+    client_id ayrıca İŞE YARAR: native eklenti requestServerSideAccess'i bu
+    kimlikle çağırmak zorundadır (kodun hangi proje için üretileceğini o belirler).
+    Kimlik gizli bilgi değildir; gizli anahtar (secret) buradan ASLA dönmez.
+    """
+    return {
+        "configured": settings.play_games_configured,
+        "client_id": settings.PLAY_GAMES_CLIENT_ID or None,
+    }
+
+
+GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
+PLAY_GAMES_PLAYER_URL = "https://games.googleapis.com/games/v1/players/me"
+
+
+async def _exchange_play_games_code(code: str) -> str:
+    """Tek kullanımlık yetki kodunu access_token'a çevirir.
+
+    KİMLİK KARIŞMASIN: burada KESİNLİKLE settings.GOOGLE_CLIENT_ID/SECRET
+    kullanılmaz. Onlar sitedeki web Google girişinin (başka bir Google Cloud
+    projesi) kimlikleridir; kod ise Play Games projesinde (958058877022)
+    üretilmiştir. Yanlış projenin kimliğiyle takas Google tarafından
+    "invalid_grant/invalid_client" ile reddedilir.
+    """
+    data = {
+        "code": code,
+        "client_id": settings.PLAY_GAMES_CLIENT_ID,
+        "client_secret": settings.PLAY_GAMES_CLIENT_SECRET,
+        "grant_type": "authorization_code",
+        # redirect_uri YOK: sunucu tarafı erişim (server-side access) akışında
+        # Google yönlendirme adresi beklemez.
+    }
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.post(GOOGLE_TOKEN_URL, data=data)
+    except httpx.HTTPError:
+        raise HTTPException(status_code=503, detail="Google'a ulaşılamadı, tekrar dene.")
+    if resp.status_code != 200:
+        # Google'ın hata gövdesi kullanıcıya gösterilmez; log'a düşsün diye yazılır.
+        print(f"[play-games] kod takası başarısız: {resp.status_code} {resp.text[:300]}")
+        raise HTTPException(status_code=401, detail="Play Games kodu doğrulanamadı.")
+    token = resp.json().get("access_token")
+    if not token:
+        raise HTTPException(status_code=401, detail="Play Games kodu doğrulanamadı.")
+    return token
+
+
+async def _fetch_play_games_player(access_token: str) -> dict:
+    """access_token ile oyuncunun kimliğini ve takma adını Google'dan okur.
+
+    Kimliğin tek güvenilir kaynağı budur: istemcinin gönderdiği hiçbir isim/kimlik
+    alanına bakılmaz, yalnız Google'ın bu yanıtına bakılır.
+    """
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(
+                PLAY_GAMES_PLAYER_URL,
+                headers={"Authorization": f"Bearer {access_token}"},
+            )
+    except httpx.HTTPError:
+        raise HTTPException(status_code=503, detail="Google'a ulaşılamadı, tekrar dene.")
+    if resp.status_code != 200:
+        print(f"[play-games] oyuncu okunamadı: {resp.status_code} {resp.text[:300]}")
+        raise HTTPException(status_code=401, detail="Play Games oyuncusu okunamadı.")
+    info = resp.json()
+    if not info.get("playerId"):
+        raise HTTPException(status_code=401, detail="Play Games kimliği okunamadı.")
+    return info
+
+
+@router.post("/play-games")
+async def play_games_login(
+    data: PlayGamesIn,
+    db: AsyncSession = Depends(get_db),
+    current: User | None = Depends(get_optional_user),
+):
+    """Uygulama akışı — Play Games girişi.
+
+    NEDEN AYRI UÇ: /auth/google ve /auth/google/native bir **id_token** doğrular.
+    Play Games id_token vermez; tek kullanımlık bir **yetki kodu** verir. Bu yüzden
+    iki adım gerekir: (1) kodu access_token'a takas et, (2) o token'la oyuncunun
+    kimliğini Google'dan oku. Kimlik uzayı da farklıdır — Play Games oyuncu kimliği
+    Google 'sub' değeri DEĞİLDİR, bu yüzden ayrı sütunda (users.play_games_id) tutulur.
+
+    Authorization başlığı VARSA (kişi zaten giriş yapmış): oyuncu kimliği mevcut
+    hesaba BAĞLANIR, yeni hesap açılmaz. Yoksa kimliğe ait hesap bulunur ya da
+    yeni hesap açılır.
+    """
+    if not settings.play_games_configured:
+        raise HTTPException(status_code=503, detail="Play Games girişi yapılandırılmamış.")
+    access_token = await _exchange_play_games_code(data.server_auth_code.strip())
+    info = await _fetch_play_games_player(access_token)
+    try:
+        user = await auth_service.get_or_create_play_games_user(
+            db,
+            player_id=str(info["playerId"]),
+            name=info.get("displayName"),
+            picture=(info.get("avatarImageUrl") or "").strip() or None,
+            link_to=current,
+        )
+    except auth_service.AuthError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    return _auth_response(user)
 
 
 # ---- profil ----

@@ -32,6 +32,11 @@ async def get_user_by_google_sub(db: AsyncSession, sub: str) -> User | None:
     return res.scalar_one_or_none()
 
 
+async def get_user_by_play_games_id(db: AsyncSession, player_id: str) -> User | None:
+    res = await db.execute(select(User).where(User.play_games_id == player_id))
+    return res.scalar_one_or_none()
+
+
 async def get_user_by_id(db: AsyncSession, user_id: int) -> User | None:
     res = await db.execute(select(User).where(User.id == user_id))
     return res.scalar_one_or_none()
@@ -129,6 +134,60 @@ async def get_or_create_google_user(
         email=email.lower() if email else None,
         username=username,
         google_sub=sub,
+        display_name=display,
+        avatar_url=picture,
+        name_status=_initial_name_status(),
+    )
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+    return user
+
+
+async def get_or_create_play_games_user(
+    db: AsyncSession, player_id: str, name: str | None, picture: str | None,
+    link_to: User | None = None,
+) -> User:
+    """Play Games ile giriş: mevcut kullanıcıyı bul, hesaba bağla veya yeni oluştur.
+
+    GOOGLE AKIŞINDAN FARKI — E-POSTA İLE EŞLEŞTİRME YOK. Play Games yalnızca bir
+    oyuncu kimliği ve takma ad verir; e-posta VERMEZ. Dolayısıyla "aynı e-posta
+    varsa o hesaba bağla" adımı burada uygulanamaz. Kişi siteye e-posta ile
+    kaydolmuşsa ve uygulamada Play Games'e basarsa AYRI bir hesap açılır.
+
+    Bunun tek çaresi kullanıcının kendi isteğiyle bağlamasıdır: istek Authorization
+    başlığıyla gelirse (yani kişi zaten giriş yapmışsa) `link_to` dolu gelir ve
+    oyuncu kimliği MEVCUT hesaba eklenir, yeni hesap açılmaz.
+    """
+    existing = await get_user_by_play_games_id(db, player_id)
+
+    if link_to is not None:
+        if existing and existing.id != link_to.id:
+            # Bu oyuncu kimliği BAŞKA bir hesaba bağlı. Sessizce taşımak, iki
+            # hesabın istatistiklerini karıştırmak demek olurdu.
+            raise AuthError("Bu Play Games hesabı başka bir kullanıcıya bağlı.")
+        if not existing:
+            link_to.play_games_id = player_id
+            if picture and not link_to.avatar_url:
+                link_to.avatar_url = picture
+            await db.commit()
+            await db.refresh(link_to)
+        return link_to
+
+    if existing:
+        return existing
+
+    # Yeni Play Games kullanıcısı. E-posta YOK (sütun nullable) — kişi isterse
+    # sonradan profilinden e-posta/şifre ekleyebilir.
+    from app.game import name_rules
+    _lim = await name_rules.limits(db)
+    display = " ".join((name or "Oyuncu").split())
+    display = display[:_lim["display_name_max_len"]] or "Oyuncu"
+    username = await _unique_username(db, display)
+    user = User(
+        email=None,
+        username=username,
+        play_games_id=player_id,
         display_name=display,
         avatar_url=picture,
         name_status=_initial_name_status(),

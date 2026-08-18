@@ -230,3 +230,42 @@ Kod içine gömülmedi, JS'ten parametre olarak geçilir.
 bir kez çalışır; sessiz giriş denemesini SDK kendisi yapar.
 
 **Henüz web/JS tarafı bağlanmadı** — bu adım yalnız native eklentiyi ekler.
+
+### Backend ucu ve kimlik ayrımı (adım 3a)
+
+`POST /api/auth/play-games` — gövde: `{ "server_auth_code": "..." }`, yanıt web
+girişiyle **birebir aynı**: `{ token, user }`. Yani giriş yapıldıktan sonraki her
+şey (WebSocket kimliği, admin kontrolü, push kaydı) aradaki farkı görmez.
+
+İki adımlı, çünkü Play Games `id_token` vermez:
+
+1. Tek kullanımlık yetki kodu Google'ın token ucunda `access_token`'a takas edilir,
+2. O token'la `games.googleapis.com/games/v1/players/me` okunur → oyuncu kimliği
+   ve takma ad. Kimliğin **tek** kaynağı bu yanıttır; istemcinin gönderdiği hiçbir
+   isim/kimlik alanına güvenilmez.
+
+**İKİ GOOGLE PROJESİ BİRBİRİNE KARIŞTIRILMAZ:**
+
+| Akış | Kimlik nereden |
+|---|---|
+| Sitedeki web Google girişi (`/auth/google`) | Coolify env: `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` (ayrı proje) |
+| Uygulamadaki native Google girişi (`/auth/google/native`) | Admin panel: `app.flags` → `google_web_client_id` |
+| **Play Games** (`/auth/play-games`) | Coolify env: **`PLAY_GAMES_CLIENT_ID` / `PLAY_GAMES_CLIENT_SECRET`** |
+
+Play Games değerleri **958058877022** numaralı projedeki **Web** istemcisine aittir
+(Android istemcisinin gizli anahtarı zaten yoktur). Bilerek fallback konmadı: ikisi
+birden dolu değilse uç `503` döner, sessizce web girişinin kimliğine düşmez.
+Durum kontrolü: `/api/health` → `play_games_configured`, düğme için
+`/api/auth/play-games/status` → `{configured, client_id}` (secret asla dönmez).
+
+**Kimlik uzayı ayrı:** Play Games oyuncu kimliği Google `sub` değeri **değildir**;
+`users.play_games_id` sütununda ayrı tutulur (benzersiz indeks migration 15).
+
+**Play Games e-posta vermez** — bunun iki sonucu var:
+
+- İstek `Authorization` başlığıyla gelirse (kişi zaten giriş yapmış), oyuncu kimliği
+  **mevcut hesaba bağlanır**. Kimlik başkasına bağlıysa `409` döner.
+- Giriş yapılmamışsa ve kimlik tanınmıyorsa **yeni hesap** açılır; e-postası boştur.
+  Yani siteye e-posta ile kaydolmuş biri uygulamada doğrudan Play Games'e basarsa
+  ikinci bir hesap oluşur. Hesapları birleştirmenin yolu, önce normal giriş yapıp
+  sonra Play Games'e basmaktır.

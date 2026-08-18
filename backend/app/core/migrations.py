@@ -443,6 +443,19 @@ DATA_MIGRATIONS: list[tuple[str, list[str]]] = [
             "WHERE key = 'app.flags'"
         ),
     ]),
+
+    # 15) users.play_games_id için BENZERSİZ indeks.
+    #     Sütunun kendisini otomatik migration ekler (app/core/database.py) —
+    #     ama o YALNIZCA sütun ekler, indeks/kısıt EKLEMEZ. Modelde unique=True
+    #     yazması sıfırdan kurulan veritabanını kapsar, canlıdaki tabloyu değil.
+    #     Bu indeks olmadan iki farklı hesaba aynı Play Games oyuncu kimliği
+    #     yazılabilirdi (uygulama kodu bunu zaten engelliyor, ama tek savunma
+    #     hattı olarak bırakılmaz).
+    #     IF NOT EXISTS: iki motorda da var, tekrar çalışsa bile zararsız.
+    ("2026_08_users_play_games_id_index", [
+        "CREATE UNIQUE INDEX IF NOT EXISTS ix_users_play_games_id "
+        "ON users (play_games_id)",
+    ]),
 ]
 
 

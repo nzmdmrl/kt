@@ -21,6 +21,8 @@ def health():
         "word_pools": pool_stats(),
         "google_oauth_configured": settings.google_oauth_configured,
         "recaptcha_configured": settings.recaptcha_configured,
+        # PLAY_GAMES_CLIENT_ID/SECRET dolu mu? (web Google girişinden AYRI proje)
+        "play_games_configured": settings.play_games_configured,
         # FIREBASE_CREDENTIALS_B64 geçerli mi? (push gönderimi bunsuz sessizce atlanır)
         "push_configured": _push_configured(),
     }

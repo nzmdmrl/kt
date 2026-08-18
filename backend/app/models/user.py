@@ -50,6 +50,11 @@ class User(Base):
     username: Mapped[str] = mapped_column(String(32), unique=True, index=True)
     password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
     google_sub: Mapped[str | None] = mapped_column(String(255), unique=True, index=True, nullable=True)
+    # Play Games oyuncu kimliği (yalnız Android uygulaması). google_sub'dan AYRI
+    # bir kimlik uzayıdır: aynı kişinin Google hesabı ile Play Games oyuncu
+    # kimliği FARKLI değerlerdir, birbirine eşitlenemez. Play Games e-posta
+    # vermez — bu yüzden e-posta ile eşleştirme de yapılmaz (bkz. auth_service).
+    play_games_id: Mapped[str | None] = mapped_column(String(64), unique=True, index=True, nullable=True)
 
     # Profil
     display_name: Mapped[str] = mapped_column(String(48))
@@ -148,6 +153,7 @@ class User(Base):
         data["email"] = self.email
         data["has_password"] = self.password_hash is not None
         data["google_linked"] = self.google_sub is not None
+        data["play_games_linked"] = self.play_games_id is not None
         # Reklamsız hak: istemci reklam yollarını buna göre kapatır (AdSense,
         # AdMob bandı, geçiş reklamı). Herkese açık görünümde YER ALMAZ.
         data["ad_free"] = bool(self.ad_free)
