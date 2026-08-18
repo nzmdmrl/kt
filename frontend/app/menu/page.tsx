@@ -131,6 +131,17 @@ export default function MenuPage() {
 /** backend/app/core/security.py:21 → TOKEN_EXPIRE_DAYS ile AYNI olmalı. */
 const TOKEN_EXPIRE_DAYS = 30;
 
+const dbgBtn: React.CSSProperties = {
+  padding: "3px 8px",
+  fontSize: 10,
+  fontFamily: "inherit",
+  borderRadius: 6,
+  border: "1px solid var(--border-soft)",
+  background: "var(--bg-elevated)",
+  color: "var(--text-dim)",
+  cursor: "pointer",
+};
+
 function fmtTime(ms: number): string {
   try {
     return new Date(ms).toLocaleString("tr-TR");
@@ -327,6 +338,8 @@ function TokenDebug() {
   const [envLines, setEnvLines] = useState<string[]>([]);
   const [version, setVersion] = useState("okunuyor…");
   const [lastErr, setLastErr] = useState<DebugError | null>(null);
+  // Artınca ortam raporu yeniden okunur ("yenile" / "signIn dene" düğmeleri).
+  const [nonce, setNonce] = useState(0);
 
   const flags: FlagsConfig = (config?.["app.flags"] as FlagsConfig) || {};
   const clientId = (flags.google_web_client_id || "").trim();
@@ -378,7 +391,7 @@ function TokenDebug() {
     return () => {
       alive = false;
     };
-  }, [enabled, platform, isNative, ready, clientId]);
+  }, [enabled, platform, isNative, ready, clientId, nonce]);
 
   if (!enabled || !lines) return null;
 
@@ -409,6 +422,34 @@ function TokenDebug() {
       {envLines.map((l, i) => (
         <div key={`env${i}`}>{l}</div>
       ))}
+
+      <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
+        <button onClick={() => setNonce((n) => n + 1)} style={dbgBtn}>
+          yenile
+        </button>
+        {/* Uygulamayı kapatıp açmadan Play Games girişini elle tetikler.
+            playGamesSilentCode'daki "bir kez" kilidini AŞAR — teşhis içindir. */}
+        <button
+          onClick={async () => {
+            try {
+              const { playGamesPlugin, recordTrace } = await import("@/lib/playGames");
+              const { pg } = await playGamesPlugin();
+              if (!pg) { recordTrace("elle signIn", "eklenti yok"); setNonce((n) => n + 1); return; }
+              recordTrace("elle signIn", "deneniyor");
+              const res = await pg.signIn();
+              recordTrace("elle signIn sonucu", `authenticated=${res?.authenticated === true}`);
+            } catch (e: any) {
+              const { recordTrace } = await import("@/lib/playGames");
+              recordTrace("elle signIn HATASI", `[${e?.code ?? ""}] ${String(e?.message ?? e).slice(0, 250)}`);
+            } finally {
+              setNonce((n) => n + 1);
+            }
+          }}
+          style={dbgBtn}
+        >
+          Play Games: signIn dene
+        </button>
+      </div>
 
       <div style={{ borderTop: "1px dashed var(--border-soft)", margin: "8px 0 6px" }} />
       {lines.map((l, i) => (

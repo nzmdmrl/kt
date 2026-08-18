@@ -329,10 +329,16 @@ boştur. Kişi sonradan profilinden e-posta/şifre ekleyebilir.
 | `frontend/lib/auth.tsx` | `playGamesSilent` / `playGamesComplete` / `playGamesLink` — jeton bu dosyanın dışına çıkmaz |
 | `frontend/components/Providers.tsx` | `<PlayGamesAuth />` buraya bağlandı |
 
-**Giriş ekranı asla kendiliğinden açılmaz.** `playGames.ts` yalnızca
-`isAuthenticated()` sorar; oturum yoksa `signIn()` **çağırmaz** — çağırsaydı
-uygulama açılışında kullanıcının istemediği bir Google ekranı yüzüne çıkardı.
-Oturum yoksa sessizce vazgeçilir.
+**İki aşamalı giriş.** `playGames.ts` önce `isAuthenticated()` sorar (ekran
+açmadan). Oturum yoksa `signIn()` **bir kez** denenir — Play Games v2'de doğru
+davranış budur: SDK oturumu kendiliğinden açamadıysa (kullanıcı daha önce
+reddetmiş, profil seçilmemiş) girişi yalnız `signIn()` başlatabilir.
+
+`signIn()` kullanıcıya ekran gösterebilir; bu bilinçli bir tercih. İlk tasarımda
+çağrılmıyordu ve sonuç şuydu: cihazda oturum bir kez açılmayınca akış bir daha
+asla toparlanamıyordu (`isAuthenticated: false` → pes). Uygulama oturumu başına
+yalnız **bir** deneme yapılır (`signInTried`), yani kullanıcı reddettiyse her
+sayfa gezinmesinde yeniden sıkıştırılmaz.
 
 **Hiç kimse kilitli kalmaz.** Şu durumların hepsinde hiçbir şey gösterilmez ve
 site her zamanki gibi çalışır (kullanıcı normal giriş ekranını kullanır):

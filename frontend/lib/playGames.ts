@@ -23,12 +23,19 @@
  * Bu, akış ilk denemede sessizce çalışmamasının sebebiydi: köprüdeki hazır
  * proxy'ye bakılıyordu, o da hep undefined dönüyordu.
  *
- * GİRİŞ EKRANI AÇILMAZ
- * --------------------
- * Sessiz giriş başarısızsa (cihazda Play Games yok, kullanıcı daha önce
- * reddetmiş, hesap yok...) `signIn()` ÇAĞRILMAZ — çağrılsaydı kullanıcının
- * istemediği bir Google ekranı uygulama açılışında yüzüne çıkardı. Bunun yerine
- * sessizce vazgeçilir ve kullanıcı her zamanki giriş ekranını görür.
+ * İKİ AŞAMA: önce sessiz, sonra bir kez signIn()
+ * ---------------------------------------------
+ * 1) `isAuthenticated()` — ekran açmadan sorar. Oturum zaten açıksa iş biter.
+ * 2) Açık değilse `signIn()` BİR KEZ denenir. Play Games v2'de doğru davranış
+ *    budur: SDK oturumu kendiliğinden açamadıysa (ör. kullanıcı daha önce
+ *    reddetmiş, profil seçilmemiş) girişi yalnız signIn() başlatabilir.
+ *
+ * signIn() KULLANICIYA EKRAN GÖSTEREBİLİR. Bilinçli bir tercih: aksi halde
+ * sessiz giriş ilk kurulumdan sonra hiçbir zaman toparlanamıyordu. O da
+ * başarısızsa vazgeçilir ve kullanıcı her zamanki giriş ekranını görür.
+ *
+ * BİR KEZ: signIn yalnız uygulama oturumu başına bir defa denenir (signInTried).
+ * Kullanıcı reddettiyse her sayfa gezinmesinde tekrar tekrar sorulmaz.
  *
  * HER ÇIKIŞ YOLU İZ BIRAKIR
  * -------------------------
@@ -71,6 +78,15 @@ export type PlayGamesOutcome =
 const PLUGIN_NAME = "PlayGames";
 
 let cached: any | null = null;
+/** signIn bu uygulama oturumunda denendi mi — kullanıcı üst üste sıkıştırılmasın. */
+let signInTried = false;
+
+/** Hata metnini kodu ile birlikte tek satıra indirir (teşhis kutusu için). */
+function errText(e: any): string {
+  const code = e?.code ?? e?.errorCode ?? "";
+  const msg = String(e?.message ?? e ?? "bilinmeyen");
+  return (code ? `[${code}] ` : "") + msg.slice(0, 250);
+}
 
 /** Eklenti proxy'si + nasıl bulunduğu (teşhis için). */
 export async function playGamesPlugin(): Promise<{ pg: any | null; how: string }> {
@@ -118,12 +134,37 @@ export async function playGamesSilentCode(serverClientId: string): Promise<PlayG
   recordTrace("eklenti bulundu", how);
 
   try {
-    const auth = await pg.isAuthenticated();
-    if (!auth?.authenticated) {
-      // signIn() BİLEREK çağrılmaz — yukarıdaki "giriş ekranı açılmaz" notu.
-      recordTrace("sessiz oturum yok", "normal giriş ekranına düşülüyor");
-      return { status: "unavailable", reason: "oturum-yok" };
+    let authed = false;
+    try {
+      const auth = await pg.isAuthenticated();
+      authed = auth?.authenticated === true;
+      recordTrace("sessiz kontrol", `authenticated=${authed}`);
+    } catch (e: any) {
+      recordTrace("isAuthenticated hatası", errText(e));
     }
+
+    // Sessiz oturum yoksa Play Games girişini BİR KEZ başlat.
+    if (!authed) {
+      if (signInTried) {
+        recordTrace("signIn atlandı", "bu oturumda zaten denendi");
+        return { status: "unavailable", reason: "signin-denendi" };
+      }
+      signInTried = true;
+      recordTrace("signIn deneniyor", "ekran çıkabilir");
+      try {
+        const res = await pg.signIn();
+        authed = res?.authenticated === true;
+        recordTrace("signIn sonucu", `authenticated=${authed}`);
+      } catch (e: any) {
+        recordTrace("signIn HATASI", errText(e));
+        return { status: "unavailable", reason: `signin-hata: ${errText(e)}` };
+      }
+      if (!authed) {
+        recordTrace("signIn başarısız", "oturum yine açılmadı");
+        return { status: "unavailable", reason: "signin-basarisiz" };
+      }
+    }
+
     recordTrace("oturum var", "yetki kodu isteniyor");
 
     const res = await pg.requestServerSideAccess({ serverClientId: clientId });
