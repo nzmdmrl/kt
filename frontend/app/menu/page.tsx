@@ -437,7 +437,12 @@ function TokenDebug() {
               if (!pg) { recordTrace("elle signIn", "eklenti yok"); setNonce((n) => n + 1); return; }
               recordTrace("elle signIn", "deneniyor");
               const res = await pg.signIn();
-              recordTrace("elle signIn sonucu", `authenticated=${res?.authenticated === true}`);
+              // HAM yanıt: eklenti başarısızlıkta da teşhis alanları döndürüyor
+              // (taskSuccessful / statusCode / statusName / probe). Kırpmadan yaz.
+              recordTrace(
+                `elle signIn sonucu authenticated=${res?.authenticated === true}`,
+                JSON.stringify(res ?? null).slice(0, 600),
+              );
             } catch (e: any) {
               const { recordTrace } = await import("@/lib/playGames");
               recordTrace("elle signIn HATASI", `[${e?.code ?? ""}] ${String(e?.message ?? e).slice(0, 250)}`);

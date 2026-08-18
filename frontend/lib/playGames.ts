@@ -78,8 +78,53 @@ export type PlayGamesOutcome =
 const PLUGIN_NAME = "PlayGames";
 
 let cached: any | null = null;
-/** signIn bu uygulama oturumunda denendi mi — kullanıcı üst üste sıkıştırılmasın. */
-let signInTried = false;
+/**
+ * Bu uygulama oturumunda giriş denendi mi?
+ *
+ * NEDEN sessionStorage, neden modül değişkeni DEĞİL: sitede bazı bağlantılar
+ * düz `<a href>` — uygulamada bunlar TAM SAYFA YÜKLEMESİ yapar ve JS modülleri
+ * baştan kurulur, yani modül değişkeni sıfırlanır. Deneme her sayfa geçişinde
+ * tekrarlanıyordu. sessionStorage sayfa yüklemelerini aşar ama uygulama
+ * tamamen kapanınca temizlenir — istenen davranış tam olarak bu:
+ * "oturum başına tek deneme".
+ */
+const TRIED_KEY = "kt_pg_tried";
+
+export function triedThisSession(): boolean {
+  try {
+    return sessionStorage.getItem(TRIED_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function markTried() {
+  try {
+    sessionStorage.setItem(TRIED_KEY, "1");
+  } catch {}
+}
+
+/**
+ * Eklentinin teşhis alanlarını tek satıra indirir.
+ * Play Games v2'de signIn başarısız olsa bile Task çoğu zaman "successful"
+ * döner ve ortada exception olmaz; o yüzden Google'ın gerçek kodu genelde
+ * `probe` içindedir (getCurrentPlayer denemesinin ApiException'ı).
+ */
+function describe(res: any): string {
+  if (!res) return "(yanıt yok)";
+  const parts: string[] = [];
+  parts.push(`task=${res.taskSuccessful}`);
+  if (res.statusCode !== undefined) parts.push(`kod=${res.statusCode} ${res.statusName ?? ""}`);
+  if (res.exceptionClass) parts.push(`istisna=${res.exceptionClass}`);
+  if (res.message && res.message !== "null") parts.push(`msg=${String(res.message).slice(0, 200)}`);
+  if (res.playerProbe) parts.push(`oyuncuSorgusu=${res.playerProbe}`);
+  const p = res.probe;
+  if (p) {
+    if (p.statusCode !== undefined) parts.push(`PROBE kod=${p.statusCode} ${p.statusName ?? ""}`);
+    if (p.message && p.message !== "null") parts.push(`PROBE msg=${String(p.message).slice(0, 200)}`);
+  }
+  return parts.join(" · ");
+}
 
 /** Hata metnini kodu ile birlikte tek satıra indirir (teşhis kutusu için). */
 function errText(e: any): string {
@@ -138,29 +183,30 @@ export async function playGamesSilentCode(serverClientId: string): Promise<PlayG
     try {
       const auth = await pg.isAuthenticated();
       authed = auth?.authenticated === true;
-      recordTrace("sessiz kontrol", `authenticated=${authed}`);
+      recordTrace("sessiz kontrol", `authenticated=${authed} · ${describe(auth)}`);
     } catch (e: any) {
       recordTrace("isAuthenticated hatası", errText(e));
     }
 
-    // Sessiz oturum yoksa Play Games girişini BİR KEZ başlat.
+    // Sessiz oturum yoksa Play Games girişini başlat.
+    //
+    // BURADA AYRI BİR "bir kez" KİLİDİ YOK — bilerek. Kilit çağıran taraftadır
+    // (PlayGamesAuth.tsx, akışın başında markTried çağırır). Burada da ikinci
+    // bir kontrol olsaydı, çağıran zaten işaretlemiş olduğu için signIn HİÇ
+    // çalışmazdı. Tek kilit, tek yer.
     if (!authed) {
-      if (signInTried) {
-        recordTrace("signIn atlandı", "bu oturumda zaten denendi");
-        return { status: "unavailable", reason: "signin-denendi" };
-      }
-      signInTried = true;
       recordTrace("signIn deneniyor", "ekran çıkabilir");
       try {
         const res = await pg.signIn();
         authed = res?.authenticated === true;
-        recordTrace("signIn sonucu", `authenticated=${authed}`);
+        // Eklenti artık BAŞARISIZLIKTA da reject etmiyor, teşhis alanları
+        // döndürüyor (bkz. PlayGamesPlugin.java → signIn). Ham metni ize yaz.
+        recordTrace(authed ? "signIn başarılı" : "signIn BAŞARISIZ", describe(res));
       } catch (e: any) {
         recordTrace("signIn HATASI", errText(e));
         return { status: "unavailable", reason: `signin-hata: ${errText(e)}` };
       }
       if (!authed) {
-        recordTrace("signIn başarısız", "oturum yine açılmadı");
         return { status: "unavailable", reason: "signin-basarisiz" };
       }
     }

@@ -33,8 +33,14 @@ import { useEffect, useState } from "react";
 import { apiUrl, getJSON } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { usePlatform } from "@/lib/platform";
+import { triedThisSession, markTried } from "@/lib/playGames";
 
-/** Bu uygulama oturumunda sessiz giriş denendi mi? */
+/**
+ * Bu SAYFA YÜKLEMESİNDE denendi mi (React'ın çift mount'una karşı).
+ * Oturum genelindeki "tek deneme" kilidi burada DEĞİL, lib/playGames.ts'teki
+ * sessionStorage'dadır — modül değişkeni tam sayfa yüklemesinde sıfırlanır ve
+ * sitedeki düz `<a href>` bağlantıları uygulamada tam yükleme yapar.
+ */
 let attempted = false;
 
 type View = null | "name" | "login";
@@ -58,6 +64,10 @@ export default function PlayGamesAuth() {
     if (!isNative) return;
     if (attempted) return;
     attempted = true;
+    // Oturum başına TEK deneme: başarısız olduysa sayfa geçişlerinde bir daha
+    // denenmez (ne sunucuya gidilir ne kullanıcıya ekran çıkar). Uygulama
+    // tamamen kapanıp açılınca sessionStorage temizlenir ve yeniden denenir.
+    if (triedThisSession()) return;
     // Zaten girişliyse sessiz girişe gerek yok: kullanıcı oturumunu açmış,
     // kimliği bağlamak için ondan izinsiz bir şey yapılmaz.
     if (token) {
@@ -71,6 +81,7 @@ export default function PlayGamesAuth() {
     (async () => {
       const { playGamesSilentCode, recordTrace } = await import("@/lib/playGames");
       try {
+        markTried();
         recordTrace("başladı", `platform=${platform}`);
 
         // 1) Sunucu Play Games'i yapılandırmış mı, hangi kimlikle kod istenecek?
