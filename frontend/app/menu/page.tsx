@@ -9,6 +9,7 @@ import { isSoundEnabled, setSoundEnabled } from "@/lib/sound";
 import { usePlatform } from "@/lib/platform";
 import { useAppConfig, type FlagsConfig } from "@/lib/appConfig";
 import { readDebugError, clearDebugError, type DebugError } from "@/lib/debugLastError";
+import { apiUrl } from "@/lib/api";
 
 // Menü — ayar odaklı. Mod butonları ana sayfada olduğu için burada YOK.
 export default function MenuPage() {
@@ -250,6 +251,58 @@ async function readEnvLines(
     mod = `YÜKLENEMEDİ: ${e?.message ?? e}`;
   }
   out.push(`SocialLogin JS modülü: ${mod}`);
+
+  // ---- Play Games (sessiz giriş) ----
+  // DİKKAT: bizim eklentimizin npm paketi YOK, bu yüzden köprüdeki hazır
+  // Capacitor.Plugins listesinde GÖRÜNMEZ — orası npm eklentileriyle dolar.
+  // Doğru soru isPluginAvailable ve registerPlugin ile kurulan proxy'dir
+  // (frontend/lib/playGames.ts). İlk hatanın sebebi tam olarak buydu.
+  let pgBridge = "?";
+  try {
+    pgBridge = (window as any).Capacitor?.Plugins?.PlayGames ? "VAR" : "YOK (normal)";
+  } catch {}
+  let pgAvailable = "?";
+  try {
+    const { Capacitor } = await import("@capacitor/core");
+    pgAvailable = String(Capacitor.isPluginAvailable("PlayGames"));
+  } catch (e: any) {
+    pgAvailable = `(@capacitor/core yüklenemedi: ${e?.message ?? e})`;
+  }
+  out.push(`PlayGames köprüde: ${pgBridge} · isPluginAvailable: ${pgAvailable}`);
+
+  try {
+    const { playGamesPlugin } = await import("@/lib/playGames");
+    const { pg, how } = await playGamesPlugin();
+    out.push(`PlayGames proxy: ${pg ? "kuruldu" : "YOK"} (${how})`);
+    if (pg) {
+      try {
+        const auth = await pg.isAuthenticated();
+        out.push(`PlayGames oturum: ${auth?.authenticated ? "AÇIK" : "kapalı"}`);
+      } catch (e: any) {
+        out.push(`PlayGames oturum sorgusu HATA: ${e?.message ?? e}`);
+      }
+    }
+  } catch (e: any) {
+    out.push(`PlayGames modülü yüklenemedi: ${e?.message ?? e}`);
+  }
+
+  try {
+    const res = await fetch(apiUrl("/api/auth/play-games/status"), { cache: "no-store" });
+    const j = await res.json().catch(() => ({}));
+    out.push(`PlayGames sunucu: ${res.status} · configured=${j?.configured} · id=${String(j?.client_id || "").slice(0, 12)}…`);
+  } catch (e: any) {
+    out.push(`PlayGames sunucu: ULAŞILAMADI (${e?.message ?? e})`);
+  }
+
+  try {
+    const { readTrace } = await import("@/lib/playGames");
+    const t = readTrace();
+    out.push(
+      t
+        ? `PlayGames son adım: ${t.step}${t.detail ? " — " + t.detail : ""} (${fmtTime(t.at)})`
+        : "PlayGames son adım: (hiç çalışmadı)"
+    );
+  } catch {}
 
   // ---- buton hangi yolu seçer (GoogleSignIn.tsx ile AYNI mantık) ----
   const path = !ready

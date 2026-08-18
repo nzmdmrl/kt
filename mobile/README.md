@@ -340,6 +340,20 @@ sunucuda `PLAY_GAMES_*` boş, cihazda Play Games yok, eski sürüm uygulamada
 eklenti yok, sessiz oturum açılmamış, kod alınamamış, ağ hatası. İsim ekranının
 altında ayrıca **"Şimdi değil"** var.
 
+**Eklentiye nasıl ulaşılır — İLK HATANIN SEBEBİ.**
+`window.Capacitor.Plugins.PlayGames` **boştur ve boş kalacaktır.** O liste
+npm'den kurulan eklentilerle dolar: paketin JS'i yüklenince kendisi
+`registerPlugin("SocialLogin")` gibi bir çağrı yapar ve proxy oraya yazılır.
+Bizim eklentimizin npm paketi yok (yalnız native tarafta duruyor), o çağrıyı
+yapacak kimse de yok. Proxy'yi `lib/playGames.ts` kendisi kurar:
+`registerPlugin("PlayGames")` — isim, Java'daki
+`@CapacitorPlugin(name = "PlayGames")` ile birebir aynı olmalı.
+
+İlk denemede köprüdeki hazır listeye bakılıyordu; hep `undefined` dönüyor,
+fonksiyon sessizce vazgeçiyor ve **tek satır log bile bırakmıyordu**. Bu yüzden
+artık her çıkış yolu iz bırakıyor (`recordTrace`): hem konsola yazar hem cihazda
+son adımı saklar, `/menu` teşhis kutusundan okunur.
+
 **Tarayıcıda tamamen etkisiz:** bileşen `isNative` değilse tek istek bile yapmaz,
 eklenti chunk'ı `import()` ile ayrı tutulduğu için indirilmez bile.
 

@@ -40,7 +40,7 @@ let attempted = false;
 type View = null | "name" | "login";
 
 export default function PlayGamesAuth() {
-  const { isNative, ready } = usePlatform();
+  const { isNative, ready, platform } = usePlatform();
   const { token, loading, playGamesSilent, playGamesComplete, playGamesLink, login } = useAuth();
 
   const [view, setView] = useState<View>(null);
@@ -52,45 +52,60 @@ export default function PlayGamesAuth() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    // Platform belli olmadan, oturum çözülmeden ya da tarayıcıda hiçbir şey yapma.
-    if (!ready || !isNative || loading) return;
-    // Zaten girişliyse sessiz girişe gerek yok: kullanıcı oturumunu açmış,
-    // kimliği bağlamak için ondan izinsiz bir şey yapılmaz.
-    if (token) return;
+    // Platform belli olmadan ya da oturum çözülmeden bekle (henüz karar değil).
+    if (!ready || loading) return;
+    // Tarayıcıda tamamen etkisiz — iz bile bırakmaz.
+    if (!isNative) return;
     if (attempted) return;
     attempted = true;
+    // Zaten girişliyse sessiz girişe gerek yok: kullanıcı oturumunu açmış,
+    // kimliği bağlamak için ondan izinsiz bir şey yapılmaz.
+    if (token) {
+      void import("@/lib/playGames").then((m) =>
+        m.recordTrace("atlandı", "kullanıcı zaten girişli")
+      );
+      return;
+    }
 
     let cancelled = false;
     (async () => {
+      const { playGamesSilentCode, recordTrace } = await import("@/lib/playGames");
       try {
+        recordTrace("başladı", `platform=${platform}`);
+
         // 1) Sunucu Play Games'i yapılandırmış mı, hangi kimlikle kod istenecek?
         const status = await getJSON<{ configured: boolean; client_id: string | null }>(
           "/api/auth/play-games/status"
         );
-        if (!status.configured || !status.client_id) return;
+        if (!status.configured || !status.client_id) {
+          recordTrace("sunucu kapalı", `configured=${status.configured}`);
+          return;
+        }
 
         // 2) Cihazda sessiz oturum var mı? Yoksa sessizce vazgeç.
-        const { playGamesSilentCode } = await import("@/lib/playGames");
         const outcome = await playGamesSilentCode(status.client_id);
-        if (outcome.status !== "ok" || cancelled) return;
+        if (cancelled) return;
+        if (outcome.status !== "ok") return;   // iz zaten playGames.ts'te yazıldı
 
         // 3) Kodu sunucuya götür.
         const result = await playGamesSilent(outcome.serverAuthCode);
         if (cancelled) return;
         if (result.status === "new") {
+          recordTrace("yeni kimlik", "isim ekranı açılıyor");
           setPendingToken(result.pendingToken);
           setName(result.suggestedName || "");
           setView("name");
+        } else {
+          recordTrace("giriş tamam", "oturum açıldı");
         }
-        // "signed-in" ise hiçbir şey gösterilmez — kullanıcı zaten içeride.
-      } catch (e) {
+      } catch (e: any) {
         // Sessiz akış: kullanıcıya hata gösterilmez, normal giriş ekranı devrede.
-        console.warn("[play-games] sessiz giriş tamamlanamadı:", (e as any)?.message ?? e);
+        recordTrace("sunucu hatası", String(e?.message ?? e).slice(0, 300));
       }
     })();
 
     return () => { cancelled = true; };
-  }, [ready, isNative, loading, token, playGamesSilent]);
+  }, [ready, isNative, platform, loading, token, playGamesSilent]);
 
   if (!view) return null;
 
