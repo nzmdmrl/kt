@@ -21,6 +21,10 @@ ext {
     // 1.8.0 tavan: 1.9.0 ve 1.10.0 aar-metadata'da minCompileSdk=36 istiyor,
     // biz compileSdk 35'teyiz. compileSdk 36'ya çıkılırsa buradan yükseltilir.
     androidxBrowserVersion = '1.8.0'
+    // Play Games Services v2 (Play Games girisi fizibilite testi).
+    // npm eklentisi YOK — mobile/android icindeki yerel Capacitor eklentimiz
+    // dogrudan bu kutuphaneyi kullanir. Firebase gerektirmez.
+    playServicesGamesVersion = '21.0.0'
     junitVersion = '4.13.2'
     androidxJunitVersion = '1.2.1'
     androidxEspressoCoreVersion = '3.6.1'
