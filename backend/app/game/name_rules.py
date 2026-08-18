@@ -26,6 +26,35 @@ USERNAME_HARD_MAX = 32
 DISPLAY_HARD_MAX = 48
 
 
+# Görünen ad -> kullanıcı adı dönüşümü.
+#
+# Kullanıcı isim ekranına TEK bir isim yazar; o isim hem görünen ad (yazdığı gibi)
+# hem de kullanıcı adı olur. Ama ikisinin karakter kuralları farklı: görünen ad
+# boşluk ve Türkçe harf kabul eder, kullanıcı adı YALNIZ [a-zA-Z0-9_].
+#
+# Kural (Nazım'ın seçimi): Türkçe harfler ASCII karşılığına çevrilir, boşluk
+# SİLİNİR, sonuç küçük harfe indirilir.
+#     "Ayşe Gül" -> aysegul     "Çağrı Öz" -> cagrioz     "Nazım" -> nazim
+#
+# NEDEN çevirip silmek: eskiden Türkçe harfler tamamen atılıyordu ("Ayşe" -> "aye"),
+# bu da tanınmaz kullanıcı adları üretiyordu.
+TR_TO_ASCII = str.maketrans({
+    "ç": "c", "Ç": "c", "ğ": "g", "Ğ": "g", "ı": "i", "I": "i", "İ": "i",
+    "ö": "o", "Ö": "o", "ş": "s", "Ş": "s", "ü": "u", "Ü": "u",
+})
+
+
+def slugify_username(raw: str) -> str:
+    """Serbest bir ismi kullanıcı adı alfabesine indirger. Uzunluk KONTROL ETMEZ.
+
+    Boş dönebilir (ör. isim yalnız emoji ise) — çağıran tarafın buna karar vermesi
+    gerekir: ilk isim ekranı hata gösterir, otomatik hesap açan yollar 'oyuncu'ya
+    düşer.
+    """
+    text = (raw or "").translate(TR_TO_ASCII).lower()
+    return re.sub(r"[^a-z0-9_]", "", text)
+
+
 class NameError_(ValueError):
     """Kullanıcıya gösterilecek Türkçe hata mesajı taşır."""
 

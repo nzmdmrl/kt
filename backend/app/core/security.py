@@ -48,7 +48,38 @@ def create_access_token(user_id: int) -> str:
 def decode_token(token: str) -> int | None:
     try:
         payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
+        # Oturum jetonunda 'typ' YOKTUR. Aşağıdaki kısa ömürlü ara jetonlar aynı
+        # anahtarla imzalandığı için, biri Authorization başlığına konsa bile
+        # oturum jetonu sayılmamalı — açıkça reddedilir.
+        if payload.get("typ") is not None:
+            return None
         sub = payload.get("sub")
         return int(sub) if sub is not None else None
     except (JWTError, ValueError):
         return None
+
+
+# --- kısa ömürlü ara jeton ---
+# "Kimliği doğruladım ama ortada henüz hesap yok" durumunu taşır. Örnek: Play
+# Games sessiz girişi başarılı, oyuncu kimliği Google'a doğrulatıldı, ama kişi
+# daha adını yazmadı. Bu jeton O KİMLİĞİ taşır; hesap açma isteği geldiğinde
+# Google'a ikinci kez gitmeye gerek kalmaz (yetki kodu zaten TEK KULLANIMLIKTIR).
+PENDING_EXPIRE_MINUTES = 20
+
+
+def create_pending_token(kind: str, subject: str) -> str:
+    expire = datetime.now(timezone.utc) + timedelta(minutes=PENDING_EXPIRE_MINUTES)
+    payload = {"typ": kind, "pid": subject, "exp": expire}
+    return jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
+
+
+def decode_pending_token(kind: str, token: str) -> str | None:
+    """Doğrulanmış kimliği döner; imza/süre/tür tutmazsa None."""
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
+    except JWTError:
+        return None
+    if payload.get("typ") != kind:
+        return None
+    pid = payload.get("pid")
+    return str(pid) if pid else None

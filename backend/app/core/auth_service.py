@@ -43,20 +43,55 @@ async def get_user_by_id(db: AsyncSession, user_id: int) -> User | None:
 
 
 async def _unique_username(db: AsyncSession, base: str) -> str:
-    """Verilen tabandan benzersiz bir username üretir (admin limitlerine uyar)."""
+    """Verilen tabandan benzersiz bir username üretir (admin limitlerine uyar).
+
+    Kısalık burada HATA DEĞİLDİR, sonuna 0 eklenerek doldurulur: bu yol otomatik
+    hesap açan akışlar içindir (Google, Play Games) — kullanıcı orada bir isim
+    yazmadığı için ona hata gösterilecek bir ekran da yoktur. Kullanıcının kendi
+    yazdığı isim ise `unique_username_from_name` ile geçer; orası kısalığı
+    reddeder ve ekranda uyarı çıkar.
+    """
     from app.game import name_rules
     lim = await name_rules.limits(db)
-    base = re.sub(r"[^a-zA-Z0-9_]", "", base) or "oyuncu"
+    base = name_rules.slugify_username(base) or "oyuncu"
     # Sonuna sıra numarası eklenebilir; üst sınırı aşmamak için pay bırak.
     base = base[:max(1, lim["username_max_len"] - 2)]
     while len(base) < lim["username_min_len"]:
         base += "0"
+    return await _first_free(db, base)
+
+
+async def _first_free(db: AsyncSession, base: str) -> str:
+    """base, base2, base3... sırasıyla dener; boşta olan ilkini döner.
+
+    Numara 2'den başlar: "nazim" doluysa sıradaki "nazim2" olur ("nazim1" değil).
+    """
     candidate = base
-    i = 0
+    i = 1
     while await get_user_by_username(db, candidate):
         i += 1
         candidate = f"{base}{i}"
     return candidate
+
+
+async def unique_username_from_name(db: AsyncSession, display_name: str) -> str:
+    """Kullanıcının YAZDIĞI isimden kullanıcı adı üretir (ilk isim ekranı).
+
+    _unique_username'den farkı: kısa/boş sonucu doldurmaz, NameError_ fırlatır —
+    kullanıcı ekranda uyarıyı görüp daha uzun bir isim yazsın diye.
+    """
+    from app.game import name_rules
+    lim = await name_rules.limits(db)
+    base = name_rules.slugify_username(display_name)
+    lo, hi = lim["username_min_len"], lim["username_max_len"]
+    if len(base) < lo:
+        raise AuthError(
+            f"Adın en az {lo} harf/rakam içermeli. "
+            "(Boşluk ve noktalama kullanıcı adına girmez.)"
+        )
+    # Sıra numarası eklenebilsin diye üst sınırdan pay bırak.
+    base = base[:max(lo, hi - 2)]
+    return await _first_free(db, base)
 
 
 def _initial_name_status() -> str:
@@ -144,46 +179,47 @@ async def get_or_create_google_user(
     return user
 
 
-async def get_or_create_play_games_user(
-    db: AsyncSession, player_id: str, name: str | None, picture: str | None,
-    link_to: User | None = None,
+async def link_play_games_id(
+    db: AsyncSession, user: User, player_id: str, picture: str | None = None
 ) -> User:
-    """Play Games ile giriş: mevcut kullanıcıyı bul, hesaba bağla veya yeni oluştur.
+    """Play Games oyuncu kimliğini MEVCUT hesaba bağlar.
 
-    GOOGLE AKIŞINDAN FARKI — E-POSTA İLE EŞLEŞTİRME YOK. Play Games yalnızca bir
-    oyuncu kimliği ve takma ad verir; e-posta VERMEZ. Dolayısıyla "aynı e-posta
-    varsa o hesaba bağla" adımı burada uygulanamaz. Kişi siteye e-posta ile
-    kaydolmuşsa ve uygulamada Play Games'e basarsa AYRI bir hesap açılır.
-
-    Bunun tek çaresi kullanıcının kendi isteğiyle bağlamasıdır: istek Authorization
-    başlığıyla gelirse (yani kişi zaten giriş yapmışsa) `link_to` dolu gelir ve
-    oyuncu kimliği MEVCUT hesaba eklenir, yeni hesap açılmaz.
+    Kişi zaten giriş yapmışken kullanılır — "Zaten hesabım var" yolu buradan geçer.
+    Kimlik başka bir hesaba bağlıysa taşınmaz: iki hesabın istatistikleri
+    karışmasın diye hata verilir.
     """
     existing = await get_user_by_play_games_id(db, player_id)
+    if existing and existing.id != user.id:
+        raise AuthError("Bu Play Games hesabı başka bir kullanıcıya bağlı.")
+    if not existing:
+        user.play_games_id = player_id
+        if picture and not user.avatar_url:
+            user.avatar_url = picture
+        await db.commit()
+        await db.refresh(user)
+    return user
 
-    if link_to is not None:
-        if existing and existing.id != link_to.id:
-            # Bu oyuncu kimliği BAŞKA bir hesaba bağlı. Sessizce taşımak, iki
-            # hesabın istatistiklerini karıştırmak demek olurdu.
-            raise AuthError("Bu Play Games hesabı başka bir kullanıcıya bağlı.")
-        if not existing:
-            link_to.play_games_id = player_id
-            if picture and not link_to.avatar_url:
-                link_to.avatar_url = picture
-            await db.commit()
-            await db.refresh(link_to)
-        return link_to
 
-    if existing:
-        return existing
+async def create_play_games_user(
+    db: AsyncSession, player_id: str, display_name: str, picture: str | None = None
+) -> User:
+    """Play Games kimliğiyle YENİ hesap açar — kullanıcının yazdığı isimle.
 
-    # Yeni Play Games kullanıcısı. E-posta YOK (sütun nullable) — kişi isterse
-    # sonradan profilinden e-posta/şifre ekleyebilir.
+    NEDEN İSİM PARAMETRE: hesap, sessiz giriş anında DEĞİL, kullanıcı "isim
+    belirle" ekranında adını yazdıktan sonra açılır. Böylece kimsenin istemediği
+    hayalet hesaplar oluşmaz (bkz. app/api/routes/auth.py'deki uzun not).
+
+    Kullanıcı adı yazılan isimden türetilir; kısa/uygunsuzsa AuthError fırlar ve
+    kullanıcı ekranda uyarıyı görür. E-posta YOKTUR (Play Games e-posta vermez).
+    """
     from app.game import name_rules
-    _lim = await name_rules.limits(db)
-    display = " ".join((name or "Oyuncu").split())
-    display = display[:_lim["display_name_max_len"]] or "Oyuncu"
-    username = await _unique_username(db, display)
+    try:
+        display = await name_rules.clean_display_name(db, display_name)
+    except name_rules.NameError_ as e:
+        raise AuthError(str(e))
+    if await get_user_by_play_games_id(db, player_id):
+        raise AuthError("Bu Play Games hesabı zaten kayıtlı.")
+    username = await unique_username_from_name(db, display)
     user = User(
         email=None,
         username=username,

@@ -261,11 +261,61 @@ Durum kontrolü: `/api/health` → `play_games_configured`, düğme için
 **Kimlik uzayı ayrı:** Play Games oyuncu kimliği Google `sub` değeri **değildir**;
 `users.play_games_id` sütununda ayrı tutulur (benzersiz indeks migration 15).
 
-**Play Games e-posta vermez** — bunun iki sonucu var:
+### Sessiz giriş akışı (adım 3b — backend)
 
-- İstek `Authorization` başlığıyla gelirse (kişi zaten giriş yapmış), oyuncu kimliği
-  **mevcut hesaba bağlanır**. Kimlik başkasına bağlıysa `409` döner.
-- Giriş yapılmamışsa ve kimlik tanınmıyorsa **yeni hesap** açılır; e-postası boştur.
-  Yani siteye e-posta ile kaydolmuş biri uygulamada doğrudan Play Games'e basarsa
-  ikinci bir hesap oluşur. Hesapları birleştirmenin yolu, önce normal giriş yapıp
-  sonra Play Games'e basmaktır.
+Uygulamada **düğme yok**: Play Games girişi uygulama açılınca kendiliğinden denenir.
+`POST /api/auth/play-games` üç sonuçtan birini döner:
+
+| Durum | Yanıt | Uygulama ne yapar |
+|---|---|---|
+| `Authorization` başlığı var (kişi zaten girişli) | `{token, user}` — kimlik mevcut hesaba bağlandı | devam |
+| Kimlik tanınıyor | `{token, user}` — oturum açıldı | devam |
+| Kimlik yeni | `{new_account: true, pending_token, suggested_name}` — **hesap AÇILMAZ** | "isim belirle" ekranı |
+
+**Neden yeni kimlikte hesap açılmıyor** — bu akışın en kritik kararı. Sessiz giriş
+kullanıcının bir şeye basmasıyla başlamaz. Hemen hesap açsaydık, siteye e-posta ile
+kaydolmuş biri uygulamayı ilk açtığında istemediği **ikinci** bir hesap edinirdi.
+Dahası "Zaten hesabım var" deyip e-posta ile giriş yaptığında, oyuncu kimliği o
+hayalet hesaba bağlı kaldığı için gerçek hesabına **bağlanamazdı** (409).
+
+Onun yerine kimlik, hesap açılana kadar **kısa ömürlü bir ara jetonda** taşınır
+(`pending_token`, 20 dk, `app/core/security.py`). İki çıkış var:
+
+| Uç | Ne zaman | Sonuç |
+|---|---|---|
+| `POST /api/auth/play-games/complete` `{pending_token, name}` | Kullanıcı ismini yazdı | hesap **burada** açılır |
+| `POST /api/auth/play-games/link` `{pending_token}` + `Authorization` | "Zaten hesabım var" → e-posta ile giriş yaptı | kimlik mevcut hesaba bağlanır |
+
+İkisi de olmazsa geriye **tek bir kayıt bile kalmaz**.
+
+Ara jeton neden gerekli: Play Games yetki kodu **tek kullanımlıktır**, ikinci adımda
+tekrar kullanılamaz. Jeton, Google'a doğrulatılmış oyuncu kimliğini taşır ve sunucu
+anahtarıyla imzalıdır — istemci kendi kimliğini yazamaz. Oturum jetonuyla
+karışmaması için `typ` alanı taşır; `decode_token` `typ` gören jetonu reddeder.
+
+### İsim → kullanıcı adı dönüşümü
+
+Kullanıcı **tek** bir isim yazar. Görünen ad yazıldığı gibi kalır; kullanıcı adı
+ondan türetilir (`name_rules.slugify_username`): Türkçe harfler ASCII karşılığına
+çevrilir, boşluk silinir, küçük harfe inilir. Ad doluysa sonuna sıra numarası
+eklenir — numara **2'den** başlar.
+
+| Yazılan | Görünen ad | Kullanıcı adı |
+|---|---|---|
+| `Ayşe Gül` | Ayşe Gül | `aysegul` |
+| `Çağrı Öz` | Çağrı Öz | `cagrioz` |
+| `Nazım` | Nazım | `nazim` |
+| `Ayşe Gül` (aysegul dolu) | Ayşe Gül | `aysegul2` |
+| `Ay` | — | **hata:** "Adın en az 3 harf/rakam içermeli." |
+
+Kısalık burada bilerek **hata**: kullanıcı ekranda uyarıyı görüp düzeltsin diye.
+Otomatik hesap açan yollarda (Google girişi) kullanıcıya gösterilecek ekran
+olmadığı için orada eski davranış sürüyor — kısa ad sonuna `0` eklenerek doldurulur
+(`auth_service._unique_username`).
+
+Aynı dönüşüm artık **Google kayıtlarında da** kullanılıyor. Eskiden Türkçe harfler
+tamamen atılıyordu ("Ayşe" → `aye`); şimdi `ayse` oluyor. Yalnızca YENİ kayıtları
+etkiler, mevcut kullanıcı adlarına dokunmaz.
+
+**Play Games e-posta vermez:** yukarıdaki `complete` ile açılan hesabın e-postası
+boştur. Kişi sonradan profilinden e-posta/şifre ekleyebilir.

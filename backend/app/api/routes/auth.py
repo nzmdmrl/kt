@@ -13,7 +13,7 @@ from app.api.routes import app_settings as app_settings_routes
 from app.core.database import get_db
 from app.core.config import get_settings
 from app.core import captcha
-from app.core.security import create_access_token
+from app.core.security import create_access_token, create_pending_token, decode_pending_token
 from app.core.deps import get_current_user, get_optional_user
 from app.core import auth_service
 from app.models.user import User
@@ -45,6 +45,18 @@ class PlayGamesIn(BaseModel):
     # Uygulama, PlayGames.requestServerSideAccess'ten aldığı TEK KULLANIMLIK
     # yetki kodunu gönderir (id_token DEĞİL — Play Games id_token vermez).
     server_auth_code: str
+
+
+class PlayGamesNameIn(BaseModel):
+    # "İsim belirle" ekranı: sessiz girişten dönen ara jeton + kullanıcının yazdığı ad.
+    pending_token: str
+    name: str
+
+
+class PlayGamesLinkIn(BaseModel):
+    # "Zaten hesabım var" yolu: kişi e-posta ile giriş yaptıktan sonra aynı ara
+    # jetonla kimliğini mevcut hesabına bağlar.
+    pending_token: str
 
 
 def _auth_response(user: User) -> dict:
@@ -276,13 +288,22 @@ async def _fetch_play_games_player(access_token: str) -> dict:
     return info
 
 
+PLAY_GAMES_PENDING = "pg_pending"
+
+
+async def _play_games_player_from_code(code: str) -> dict:
+    """Yetki kodunu doğrular ve oyuncu bilgisini döner (iki adım tek yerde)."""
+    access_token = await _exchange_play_games_code(code)
+    return await _fetch_play_games_player(access_token)
+
+
 @router.post("/play-games")
 async def play_games_login(
     data: PlayGamesIn,
     db: AsyncSession = Depends(get_db),
     current: User | None = Depends(get_optional_user),
 ):
-    """Uygulama akışı — Play Games girişi.
+    """Uygulama akışı — Play Games SESSİZ girişi (kullanıcı hiçbir şeye basmaz).
 
     NEDEN AYRI UÇ: /auth/google ve /auth/google/native bir **id_token** doğrular.
     Play Games id_token vermez; tek kullanımlık bir **yetki kodu** verir. Bu yüzden
@@ -290,22 +311,98 @@ async def play_games_login(
     kimliğini Google'dan oku. Kimlik uzayı da farklıdır — Play Games oyuncu kimliği
     Google 'sub' değeri DEĞİLDİR, bu yüzden ayrı sütunda (users.play_games_id) tutulur.
 
-    Authorization başlığı VARSA (kişi zaten giriş yapmış): oyuncu kimliği mevcut
-    hesaba BAĞLANIR, yeni hesap açılmaz. Yoksa kimliğe ait hesap bulunur ya da
-    yeni hesap açılır.
+    Üç sonuçtan biri döner:
+
+    a) Authorization başlığı VAR (kişi zaten giriş yapmış)  -> kimlik mevcut hesaba
+       BAĞLANIR, {token, user} döner.
+    b) Kimlik tanınıyor                                     -> oturum açılır, {token, user}.
+    c) Kimlik yeni  ->  HESAP AÇILMAZ. {new_account: true, pending_token, suggested_name}
+       döner; uygulama "isim belirle" ekranını gösterir.
+
+    (c) NEDEN HESAP AÇMIYOR — bu akışın en kritik kararı:
+    Sessiz giriş kullanıcının bir şeye basmasıyla başlamaz, uygulama açılınca
+    kendiliğinden olur. Burada hemen hesap açsaydık, siteye e-posta ile kaydolmuş
+    biri uygulamayı ilk açtığında istemediği İKİNCİ bir hesap edinirdi. Dahası
+    "Zaten hesabım var" deyip e-posta ile giriş yaptığında, oyuncu kimliği o
+    hayalet hesaba bağlı kaldığı için gerçek hesabına BAĞLANAMAZDI (409).
+    Bu yüzden kimlik, hesap açılana kadar kısa ömürlü bir ara jetonda taşınır:
+    hesabı ya kullanıcı adını yazınca /play-games/complete açar, ya da kişi
+    e-posta ile girip /play-games/link ile kimliği mevcut hesabına bağlar.
+    Hiçbiri olmazsa geriye tek bir kayıt bile kalmaz.
+
+    Ara jeton neden gerekli: yetki kodu TEK KULLANIMLIKTIR, ikinci adımda tekrar
+    kullanılamaz. Jeton, Google'a doğrulatılmış oyuncu kimliğini taşır — istemci
+    kendi kimliğini yazamaz, çünkü jeton sunucu anahtarıyla imzalıdır.
     """
     if not settings.play_games_configured:
         raise HTTPException(status_code=503, detail="Play Games girişi yapılandırılmamış.")
-    access_token = await _exchange_play_games_code(data.server_auth_code.strip())
-    info = await _fetch_play_games_player(access_token)
+    info = await _play_games_player_from_code(data.server_auth_code.strip())
+    player_id = str(info["playerId"])
+    picture = (info.get("avatarImageUrl") or "").strip() or None
+
+    # (a) Kişi zaten giriş yapmış — kimliği bu hesaba bağla.
+    if current is not None:
+        try:
+            user = await auth_service.link_play_games_id(db, current, player_id, picture)
+        except auth_service.AuthError as e:
+            raise HTTPException(status_code=409, detail=str(e))
+        return _auth_response(user)
+
+    # (b) Kimlik tanınıyor — oturum aç.
+    user = await auth_service.get_user_by_play_games_id(db, player_id)
+    if user:
+        return _auth_response(user)
+
+    # (c) Yeni kimlik — hesap AÇILMAZ, isim ekranına yönlendirilir.
+    return {
+        "new_account": True,
+        "pending_token": create_pending_token(PLAY_GAMES_PENDING, player_id),
+        # Ekrandaki alan bununla ön doldurulur; kullanıcı silip kendi adını yazabilir.
+        "suggested_name": (info.get("displayName") or "").strip() or None,
+    }
+
+
+def _pending_player_id(token: str) -> str:
+    player_id = decode_pending_token(PLAY_GAMES_PENDING, token)
+    if not player_id:
+        # Süre 20 dk; dolmuşsa uygulama sessiz girişi baştan yapar.
+        raise HTTPException(status_code=401, detail="Oturum süresi doldu, tekrar dene.")
+    return player_id
+
+
+@router.post("/play-games/complete")
+async def play_games_complete(data: PlayGamesNameIn, db: AsyncSession = Depends(get_db)):
+    """"İsim belirle" ekranı — hesap BURADA açılır.
+
+    Yazılan isim hem görünen ad (yazıldığı gibi) hem de kullanıcı adı olur;
+    kullanıcı adı türetilirken Türkçe harfler ASCII'ye çevrilir, boşluk silinir,
+    küçük harfe inilir ve ad doluysa sonuna sıra numarası eklenir
+    ("Ayşe Gül" -> aysegul, "nazim" dolu ise -> nazim2).
+    """
+    player_id = _pending_player_id(data.pending_token)
     try:
-        user = await auth_service.get_or_create_play_games_user(
-            db,
-            player_id=str(info["playerId"]),
-            name=info.get("displayName"),
-            picture=(info.get("avatarImageUrl") or "").strip() or None,
-            link_to=current,
-        )
+        user = await auth_service.create_play_games_user(db, player_id, data.name)
+    except auth_service.AuthError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return _auth_response(user)
+
+
+@router.post("/play-games/link")
+async def play_games_link(
+    data: PlayGamesLinkIn,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """"Zaten hesabım var" — kişi e-posta ile giriş yaptıktan sonra kimliği bağlar.
+
+    Aynı işi Authorization başlığıyla /play-games da yapar; fark, orada YENİ bir
+    yetki kodu gerekmesi. Kullanıcı isim ekranındayken kodu çoktan harcadık, bu
+    yüzden burada elimizdeki ara jeton kullanılır — native tarafa dönüp ikinci bir
+    kod istemeye gerek kalmaz.
+    """
+    player_id = _pending_player_id(data.pending_token)
+    try:
+        user = await auth_service.link_play_games_id(db, user, player_id)
     except auth_service.AuthError as e:
         raise HTTPException(status_code=409, detail=str(e))
     return _auth_response(user)
