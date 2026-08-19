@@ -1406,6 +1406,8 @@ function Users() {
         </label>
       </div>
 
+      <UsernameAudit />
+
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         {USER_FILTERS.map((f) => {
           const on = status === f.key;
@@ -1541,6 +1543,111 @@ function Users() {
           disabled={loading} onPage={setPage}
         />
       )}
+    </div>
+  );
+}
+
+// ---- Kural dışı kalmış kullanıcı adları ------------------------------------
+// SADECE LİSTELER. Kural sonradan sıkılaştı (yalnız a-z0-9, benzersizlik harf
+// duyarsız); önceden açılmış hesaplarda sapma olabilir. Ne yapılacağına
+// yönetici karar verir — hiçbir kayıt kendiliğinden değişmez.
+function UsernameAudit() {
+  const [d, setD] = useState<any>(null);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    fetch(apiUrl("/api/admin/username-audit"), { headers: authHeaders() })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((x) => { if (x) setD(x); })
+      .catch(() => {});
+  }, []);
+
+  if (!d) return null;
+  const sorun = (d.conflict_groups || 0) + (d.invalid_count || 0);
+  if (sorun === 0 && d.index_ready) return null;
+
+  return (
+    <div style={{
+      background: "rgba(255,193,74,.10)", border: "1px solid rgba(255,193,74,.45)",
+      borderRadius: 12, padding: "12px 14px",
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+        <span style={{ fontSize: 17 }}>⚠️</span>
+        <span style={{ fontWeight: 700, color: "var(--text-strong)", fontSize: 14, flex: 1 }}>
+          Kullanıcı adı denetimi: {d.conflict_groups || 0} çakışma,{" "}
+          {d.invalid_count || 0} kural dışı ad
+        </span>
+        <button onClick={() => setOpen((v) => !v)} style={{
+          padding: "6px 12px", borderRadius: 8, cursor: "pointer",
+          border: "1px solid var(--border-soft)", background: "transparent",
+          color: "var(--text-soft)", fontSize: 12.5, fontWeight: 700,
+        }}>{open ? "Gizle ▲" : "Listele ▼"}</button>
+      </div>
+
+      {!d.index_ready && (
+        <div style={{ fontSize: 12.5, color: "var(--accent-hot)", marginTop: 6, lineHeight: 1.6 }}>
+          Harf duyarsız benzersizlik indeksi HENÜZ KURULMADI — çakışmalar
+          çözülünce ilk açılışta kendiliğinden kurulur.
+        </div>
+      )}
+
+      {open && (
+        <div style={{ marginTop: 12, display: "grid", gap: 12 }}>
+          {(d.conflicts || []).length > 0 && (
+            <div>
+              <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-soft)", marginBottom: 6 }}>
+                Yalnız harf büyüklüğüyle ayrılan hesaplar
+              </div>
+              {d.conflicts.map((g: any) => (
+                <div key={g.key} style={{ ...auditBox, marginBottom: 6 }}>
+                  <div className="brand-mono" style={{ fontSize: 12.5, color: "var(--accent-hot)", marginBottom: 4 }}>
+                    {g.key}
+                  </div>
+                  {g.users.map((u: any) => <AuditRow key={u.id} u={u} />)}
+                </div>
+              ))}
+            </div>
+          )}
+          {(d.invalid || []).length > 0 && (
+            <div>
+              <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-soft)", marginBottom: 6 }}>
+                Kurala uymayan adlar (yalnız a-z ve 0-9 olmalı)
+              </div>
+              <div style={auditBox}>
+                {d.invalid.map((u: any) => <AuditRow key={u.id} u={u} showTarget />)}
+              </div>
+            </div>
+          )}
+          <p style={{ fontSize: 11.5, color: "var(--text-dim)", margin: 0, lineHeight: 1.6 }}>
+            Bu liste bilgi amaçlıdır; hiçbir kayıt kendiliğinden değiştirilmez.
+            Kullanıcı adını değiştirmek istersen ilgili üyeye kendi profilinden
+            yaptırabilir ya da veritabanında elle düzeltebilirsin.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const auditBox: React.CSSProperties = {
+  background: "var(--bg-panel)", borderRadius: 10, padding: "8px 10px",
+};
+
+function AuditRow({ u, showTarget }: { u: any; showTarget?: boolean }) {
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
+      fontSize: 12.5, color: "var(--text-soft)", padding: "3px 0",
+    }}>
+      <span style={{ color: "var(--text-dim)" }}>#{u.id}</span>
+      <b className="brand-mono" style={{ color: "var(--text-strong)" }}>{u.username}</b>
+      {showTarget && u.would_become && u.would_become !== u.username && (
+        <span style={{ color: "var(--accent)" }}>→ {u.would_become}</span>
+      )}
+      <span>{u.display_name}</span>
+      <span style={{ color: "var(--text-dim)" }}>{u.email || "e-posta yok"}</span>
+      <span style={{ color: "var(--text-dim)" }}>{u.matches_played} maç · {u.xp} XP</span>
+      {u.deleted && <span style={{ color: "var(--text-dim)" }}>(silinmiş)</span>}
     </div>
   );
 }

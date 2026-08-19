@@ -110,6 +110,25 @@ async def dashboard(admin: User = Depends(get_admin_user), db: AsyncSession = De
     }
 
 
+@router.get("/username-audit")
+async def username_audit(
+    admin: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Kural dışı kalmış kullanıcı adları — SADECE LİSTELER, değiştirmez.
+
+    İki grup döner:
+      conflicts -> yalnız harf büyüklüğüyle ayrılan hesaplar ("Yasemin"/"yasemin")
+      invalid   -> içinde Türkçe harf / büyük harf / alt çizgi olan adlar
+
+    Ne yapılacağına yönetici karar verir; bu uç hiçbir kaydı DEĞİŞTİRMEZ.
+    `index_ready` false ise harf duyarsız benzersiz indeks henüz kurulamamıştır
+    (çakışmalar çözülünce ilk açılışta kendiliğinden kurulur).
+    """
+    from app.services.username_audit import audit
+    return await audit(db)
+
+
 @router.get("/platform-stats")
 async def get_platform_stats(
     range: str = Query("today", max_length=12),

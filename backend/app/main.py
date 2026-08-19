@@ -323,6 +323,13 @@ async def on_startup():
         _asyncio.create_task(notification_cleanup_loop())
     except Exception as e:
         print(f"[startup] Bildirim temizlik görevi atlandı: {e}")
+    # Kullanıcı adı denetimi: harf duyarsız benzersiz indeksi kurmayı dener.
+    # HİÇBİR KAYDI DEĞİŞTİRMEZ; çakışma varsa yalnız log'a yazar.
+    try:
+        from app.services.username_audit import startup_report
+        await startup_report()
+    except Exception as e:
+        print(f"[kullanıcı adı] denetim atlandı: {e}")
     # Doğrulama hatırlatması döngüsü (isimle açılmış, henüz e-posta/şifre
     # eklememiş kullanıcılara nazik hatırlatma). Saatte bir çalışır.
     try:

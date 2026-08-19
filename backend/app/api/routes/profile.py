@@ -255,8 +255,9 @@ async def search_users(
 
 @router.get("/{username}")
 async def public_profile(username: str, request: Request, db: AsyncSession = Depends(get_db)):
-    res = await db.execute(select(User).where(User.username == username))
-    user = res.scalar_one_or_none()
+    # Profil adresi HARF DUYARSIZ: /profil/Yasemin de /profil/yasemin de açar.
+    from app.core.auth_service import get_user_by_username
+    user = await get_user_by_username(db, username)
     # Silinen hesabın profili AÇILMAZ. Satır anonim olarak duruyor (rakiplerin
     # maç geçmişi bozulmasın diye) ama kimse profiline bakamaz.
     if not user or user.deleted:
@@ -279,9 +280,14 @@ async def user_matches(username: str, db: AsyncSession = Depends(get_db), limit:
     from app.models.match_history import MatchHistory
     from sqlalchemy import or_
 
-    user = (await db.execute(select(User).where(User.username == username))).scalar_one_or_none()
+    from app.core.auth_service import get_user_by_username
+    user = await get_user_by_username(db, username)
     if not user or user.deleted:
         raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
+
+    # Maç geçmişi kayıtlı kullanıcı adını tutar — adresteki yazımı değil,
+    # hesabın GERÇEK adını kullan (adres "Yasemin" olsa da kayıt "yasemin").
+    username = user.username
 
     rows = (await db.execute(
         select(MatchHistory)
@@ -336,7 +342,8 @@ async def head_to_head(
     from app.models.match_history import MatchHistory
     from sqlalchemy import or_, and_
 
-    other = (await db.execute(select(User).where(User.username == username))).scalar_one_or_none()
+    from app.core.auth_service import get_user_by_username
+    other = await get_user_by_username(db, username)
     if not other:
         raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
 

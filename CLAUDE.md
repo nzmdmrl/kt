@@ -460,6 +460,33 @@ Aynı kod hem sitede hem uygulamada çalışır (uygulama web içeriğini canlı
 - Testler: `hesap_silme_ve_uye_yonetimi_senaryo.py` 110 senaryoya çıktı
   (sayaç kurgusu + dört aralık), `frontend/tests/hesap_silme_ve_panel.mjs` 49.
 
+
+**Ara iş 4 (kullanıcı adı kuralı + harf duyarsız benzersizlik) — TAMAM:**
+- BULUNAN HATA: benzersizlik büyük/küçük harfe DUYARLIYDI; canlıda "yasemin"
+  (#2) ve "Yasemin" (#7) yan yana oluşmuştu.
+- **Karakter kuralı**: kullanıcı adı artık yalnız `a-z` ve `0-9`. Türkçe harfler
+  çevrilir (ş→s, ı/I/İ→i, ç→c, ğ→g, ö→o, ü→u), büyük harf küçüğe iner, alt
+  çizgi ve noktalama SİLİNİR. "IŞIK" = "Işık" = "ışık" → **isik**.
+  Görünen ad Türkçe harfleri KORUR — kısıt yalnız kullanıcı adında.
+  Tek fonksiyon: `app/game/name_rules.py` → `slugify_username()`; isimden
+  türetme, ad değiştirme, Google ve e-posta kaydı hepsi buradan geçer.
+  `clean_username` artık REDDETMEZ, ÇEVİRİR (arayüz "Kaydedilecek: …" gösterir).
+- **Benzersizlik harf duyarsız**: `auth_service.get_user_by_username` artık
+  `lower(username)` ile arar; bütün çakışma kontrolleri oradan geçer.
+  Ayrıca DB'de `ux_users_username_lower` (unique index on `lower(username)`)
+  — uygulama kodu atlansa bile çakışma oluşamaz.
+- **Aramalar**: profil adresi (`/profil/Yasemin` de açar), maç geçmişi, karşılıklı
+  skor, üye arama ve moderasyon yedek adı — hepsi harf duyarsız.
+  Giriş zaten e-posta ile ve e-posta küçük harfe indiriliyor.
+- **Mevcut kayıtlara DOKUNULMADI**: `app/services/username_audit.py` yalnız
+  LİSTELER. Açılışta indeksi kurmayı dener; çakışma varsa kurmaz, log'a
+  uyarı + liste yazar. Çakışmalar çözülünce indeks ilk açılışta kendiliğinden
+  kurulur. Admin → 👥 Üyeler sekmesinin üstünde uyarı kutusu
+  (`GET /admin/username-audit`), "ne olurdu" önizlemesiyle.
+- Testler: `backend/tests/kullanici_adi_senaryo.py` (78 senaryo, SQLite +
+  PostgreSQL). Canlıdaki çakışma durumu Postgres'te birebir taklit edilip
+  açılışın çökmediği ve kayıtlara dokunmadığı doğrulandı.
+
 - SONRAKİ AŞAMA: 5) mobilden Google/Play Games düğmelerinin sökülmesi.
 
 ### Misafir (üye olmayan ziyaretçi) erişimi

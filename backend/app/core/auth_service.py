@@ -42,7 +42,17 @@ async def get_user_by_email(db: AsyncSession, email: str) -> User | None:
 
 
 async def get_user_by_username(db: AsyncSession, username: str) -> User | None:
-    res = await db.execute(select(User).where(User.username == username))
+    """Kullanıcı adıyla arama — BÜYÜK/KÜÇÜK HARF AYRIMI YAPMAZ.
+
+    "Yasemin" ile "yasemin" AYNI hesaptır. Benzersizlik kontrolü de bu
+    fonksiyondan geçtiği için iki kullanıcı adı yalnız harf büyüklüğüyle
+    birbirinden ayrılamaz. (Eskiden ayrılabiliyordu; iki test hesabı bu yüzden
+    yan yana oluşmuştu.)
+    """
+    from sqlalchemy import func as _f
+    res = await db.execute(
+        select(User).where(_f.lower(User.username) == (username or "").strip().lower())
+    )
     return res.scalar_one_or_none()
 
 

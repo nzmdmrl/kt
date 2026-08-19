@@ -8,6 +8,19 @@ import AlertPopup from "@/components/AlertPopup";
 import PhotoUpload from "@/components/PhotoUpload";
 
 // Profil düzenleme modalı: görünen ad/username/email/şifre + gizlilik ayarları.
+// Kullanıcı adı önizlemesi — backend'deki app/game/name_rules.py →
+// slugify_username ile AYNI kural. Burada yalnız "ne kaydedilecek" gösterilir;
+// asıl dönüşümü her zaman sunucu yapar.
+const TR_MAP: Record<string, string> = {
+  "ç": "c", "Ç": "c", "ğ": "g", "Ğ": "g", "ı": "i", "I": "i", "İ": "i",
+  "ö": "o", "Ö": "o", "ş": "s", "Ş": "s", "ü": "u", "Ü": "u",
+};
+
+function slugifyUsername(raw: string): string {
+  const mapped = [...(raw || "")].map((ch) => TR_MAP[ch] ?? ch).join("").toLowerCase();
+  return mapped.replace(/[^a-z0-9]/g, "");
+}
+
 export default function ProfileEditModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
   const router = useRouter();
   const { logout } = useAuth();
@@ -78,18 +91,21 @@ export default function ProfileEditModal({ onClose, onSaved }: { onClose: () => 
   }
 
   async function saveUsername() {
-    const uname = username.trim();
+    // Sunucu kuralı uygular (Türkçe harf -> ASCII, küçük harf, yalnız a-z0-9);
+    // burada aynı dönüşümü uygulayıp uzunluğu önden kontrol ediyoruz ki
+    // kullanıcı boşuna istek göndermesin.
+    const uname = slugifyUsername(username);
     if (uname === data.username) { setPopup("Kullanıcı adın zaten bu."); return; }
+    if (uname.length === 0) {
+      setPopup("Kullanıcı adı en az bir harf ya da rakam içermeli.");
+      return;
+    }
     if (uname.length < lim.unameMin) {
-      setPopup(`Kullanıcı adı en az ${lim.unameMin} karakter olmalı (girdiğin: ${uname.length}).`);
+      setPopup(`Kullanıcı adı en az ${lim.unameMin} karakter olmalı (“${username.trim()}” → “${uname}”).`);
       return;
     }
     if (uname.length > lim.unameMax) {
       setPopup(`Kullanıcı adı en fazla ${lim.unameMax} karakter olabilir (girdiğin: ${uname.length}).`);
-      return;
-    }
-    if (!/^[a-zA-Z0-9_]+$/.test(uname)) {
-      setPopup("Kullanıcı adı sadece harf, rakam ve alt çizgi (_) içerebilir.");
       return;
     }
     const ok = await post("/api/account/username", { username: uname }, "Kullanıcı adı güncellendi");
@@ -219,12 +235,26 @@ export default function ProfileEditModal({ onClose, onSaved }: { onClose: () => 
             Kaydet
           </button>
         </div>
+        {/* Yazarken NE KAYDEDİLECEĞİNİ göster — sürpriz olmasın. */}
+        {(() => {
+          const pv = slugifyUsername(username);
+          const farkli = pv !== username.trim();
+          if (!username.trim() || !farkli) return null;
+          return (
+            <div style={{ ...hint, marginTop: 6, color: "var(--accent)" }}>
+              Kaydedilecek: <b className="brand-mono">{pv || "—"}</b>
+              {pv ? "" : " (geçerli karakter kalmadı)"}
+            </div>
+          );
+        })()}
         <div style={hint}>
           Profil adresin: kelimetahmin.com/profil/<b>{data.username}</b>{" "}
           — arkadaşların seni bu adla bulur.
           <br />
-          {lim.unameMin}-{lim.unameMax} karakter; harf, rakam ve alt çizgi (_).{" "}
-          <Counter len={username.trim().length} max={lim.unameMax} />
+          Yalnız küçük harf (a-z) ve rakam (0-9) kullanılır; Türkçe harfler
+          karşılığına çevrilir (ş→s, ı→i, İ→i, ç→c, ğ→g, ö→o, ü→u).{" "}
+          {lim.unameMin}-{lim.unameMax} karakter.{" "}
+          <Counter len={slugifyUsername(username).length} max={lim.unameMax} />
           <br />
           {unameLeft > 0
             ? `${data.username_window_days ?? 30} günde ${data.username_limit ?? 2} kez değiştirebilirsin — kalan hak: ${unameLeft}.`

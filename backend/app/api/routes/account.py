@@ -134,13 +134,17 @@ async def change_username(data: UsernameIn, user: User = Depends(get_current_use
     except name_rules.NameError_ as e:
         raise HTTPException(400, str(e))
     old = user.username
+    # Yalnız harf büyüklüğü değiştiyse (ör. "Yasemin" -> "yasemin") bu bir
+    # değişiklik sayılır ve kaydedilir; aynı metinse kotadan hak yakılmaz.
     if uname == old:
         # Aynı ad — kotadan hak yakmaya gerek yok.
         left, next_at = await _username_quota(db, user.id)
         return {"ok": True, "username": uname, "username_changes_left": left,
                 "username_next_change_at": next_at.isoformat() if next_at else None}
-    # Benzersiz mi (kendisi hariç)?
-    existing = (await db.execute(select(User).where(User.username == uname))).scalar_one_or_none()
+    # Benzersiz mi (kendisi hariç)? Kontrol HARF DUYARSIZ — "Yasemin" varken
+    # "yasemin" alınamaz (auth_service.get_user_by_username).
+    from app.core.auth_service import get_user_by_username
+    existing = await get_user_by_username(db, uname)
     if existing and existing.id != user.id:
         raise HTTPException(409, "Bu kullanıcı adı alınmış.")
     # Kota: 30 günde en fazla 2 değişiklik.

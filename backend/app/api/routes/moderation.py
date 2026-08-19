@@ -176,7 +176,9 @@ async def _safe_generic_name(db: AsyncSession, uid: int) -> str:
     """Benzersiz 'user123456' biçimi üret (çakışırsa yeniden dener)."""
     for _ in range(20):
         candidate = f"user{uid}{secrets.randbelow(900) + 100}"
-        exists = (await db.execute(select(User.id).where(User.username == candidate))).scalar_one_or_none()
+        exists = (await db.execute(
+            select(User.id).where(func.lower(User.username) == candidate)
+        )).scalar_one_or_none()
         if not exists:
             return candidate
     return f"user{uid}{secrets.randbelow(900000) + 100000}"
