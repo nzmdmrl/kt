@@ -26,6 +26,12 @@
  * kendiliğinden açılır. Kişi ✕ ile kapatırsa bir daha kendiliğinden açılmaz —
  * ama bir oyuna tıkladığında yine çıkar (o zaman gerçekten gerekiyor).
  *
+ * ÇIKIŞ YAPMIŞ DOĞRULANMAMIŞ HESAP
+ * --------------------------------
+ * Cihazda "son hesap" hatırası varsa popup önce "<İsim> olarak devam et" der.
+ * O hesabın tek anahtarı jetondu; yeni bir isim yazılsaydı eski hesap sonsuza
+ * dek erişilemez kalırdı (bkz. lib/tokenStore.ts → LAST_KEY).
+ *
  * ADMİN KAPATIRSA
  * ---------------
  * quick_signup_enabled kapalıysa popup hiç açılmaz; kişi normal giriş sayfasına
@@ -36,6 +42,9 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import NamePrompt from "@/components/NamePrompt";
 import { useAuth } from "./auth";
 import { getJSON } from "./api";
+import {
+  readLastAccountSync, restoreLastAccount, forgetLastAccount, type LastAccount,
+} from "./tokenStore";
 
 type QuickStatus = { enabled: boolean; verify_banner_days: number };
 
@@ -63,14 +72,27 @@ const GateContext = createContext<GateContextType | null>(null);
 let statusCache: QuickStatus | null = null;
 
 export function AccountGateProvider({ children }: { children: React.ReactNode }) {
-  const { user, loading, quickSignup } = useAuth();
+  const { user, loading, quickSignup, continueAsLast } = useAuth();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  // Cihazda hatırlanan (çıkış yapılmış, doğrulanmamış) hesap.
+  const [last, setLast] = useState<LastAccount | null>(null);
   const [status, setStatus] = useState<QuickStatus>(statusCache || DEFAULT_STATUS);
   // Popup kapanınca çalışacak iş (ör. "arenaya git"). Render'ı tetiklemesine
   // gerek yok, bu yüzden state değil ref.
   const pending = useRef<(() => void) | null>(null);
+
+  // Hatırayı oku: önce hızlı yol (localStorage), uygulamada gerekirse native
+  // depodan geri yükle. Girişliyken hatırlatmaya gerek yok.
+  useEffect(() => {
+    if (user) { setLast(null); return; }
+    const sync = readLastAccountSync();
+    if (sync) { setLast(sync); return; }
+    let alive = true;
+    restoreLastAccount().then((l) => { if (alive && l) setLast(l); }).catch(() => {});
+    return () => { alive = false; };
+  }, [user, open]);
 
   useEffect(() => {
     if (statusCache) return;
@@ -110,6 +132,27 @@ export function AccountGateProvider({ children }: { children: React.ReactNode })
     openNamePrompt();
   }, [user, loading, open, openNamePrompt]);
 
+  const continueAs = useCallback(() => {
+    if (!last) return;
+    const next = pending.current;
+    setOpen(false);
+    setBusy(true);
+    continueAsLast(last.token)
+      .then(() => { next?.(); })
+      .catch((e: any) => {
+        pending.current = next;
+        setLast(null);   // hatıra geçersizdi, normal forma düş
+        setError(e?.message || "Bu hesaba dönülemedi.");
+        setOpen(true);
+      })
+      .finally(() => setBusy(false));
+  }, [last, continueAsLast]);
+
+  const forget = useCallback(() => {
+    forgetLastAccount();
+    setLast(null);
+  }, []);
+
   const close = useCallback(() => {
     // ✕ ile kapatma: iş iptal. Kişi giriş yapmamış olur; oyuna tıklayınca
     // popup yeniden çıkar.
@@ -119,6 +162,8 @@ export function AccountGateProvider({ children }: { children: React.ReactNode })
   }, []);
 
   const submit = useCallback((name: string) => {
+    // Kişi yeni bir isim yazdıysa eski hatıra artık geçersiz.
+    forgetLastAccount();
     // BEKLETME: popup hemen kapanır. İstek arka planda sürer; başarılıysa
     // bekleyen iş (oyuna gitmek) çalışır, aksilikte popup hatayla geri açılır.
     const next = pending.current;
@@ -138,7 +183,15 @@ export function AccountGateProvider({ children }: { children: React.ReactNode })
     <GateContext.Provider value={{ ensureAccount, openNamePrompt, autoPrompt, status }}>
       {children}
       {open && (
-        <NamePrompt error={error} busy={busy} onSubmit={submit} onClose={close} />
+        <NamePrompt
+          error={error}
+          busy={busy}
+          lastName={last?.name || undefined}
+          onSubmit={submit}
+          onContinue={continueAs}
+          onForget={forget}
+          onClose={close}
+        />
       )}
     </GateContext.Provider>
   );

@@ -3,7 +3,10 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { apiUrl } from "./api";
 import { detectPlatform } from "./platform";
-import { TOKEN_KEY, readTokenSync, restoreToken, saveToken, clearToken } from "./tokenStore";
+import {
+  TOKEN_KEY, readTokenSync, restoreToken, saveToken, clearToken,
+  rememberAccount, forgetLastAccount, type LastAccount,
+} from "./tokenStore";
 import { useIsoLayoutEffect } from "./useIsoLayoutEffect";
 
 export type AuthUser = {
@@ -80,6 +83,11 @@ type AuthContextType = {
   transferAccount: (transferToken: string) => Promise<TransferSummary>;
   /** /auth/me'yi yeniden çeker (ör. doğrulamadan sonra `verified` tazelensin). */
   refreshUser: () => Promise<void>;
+  /**
+   * Cihazda hatırlanan (çıkış yapılmış ama doğrulanmamış) hesaba geri döner.
+   * Jeton artık geçersizse hatırayı siler ve hata fırlatır.
+   */
+  continueAsLast: (token: string) => Promise<void>;
   logout: () => void;
 };
 
@@ -167,6 +175,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .then((data) => {
           setUser(data.user);
           writeCachedUser(data.user);
+          // Hesap arada doğrulanmış olabilir -> hatıra silinir; hâlâ
+          // doğrulanmamışsa tazelenir (ad değişmiş olabilir).
+          syncLastAccount(saved, data.user);
           try { if (data.user?.id) localStorage.setItem("kt_uid", String(data.user.id)); } catch {}
         })
         .catch(() => {
@@ -195,16 +206,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       })
       .catch(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /**
+   * Hesap doğrulanmamışsa cihazda "son hesap" hatırası bırakılır; doğrulanmışsa
+   * varsa silinir. Böylece kullanıcı çıkış yapsa bile doğrulanmamış hesabına
+   * tek dokunuşla dönebilir (bkz. lib/tokenStore.ts → LAST_KEY).
+   */
+  const syncLastAccount = useCallback((token: string, u: AuthUser) => {
+    if (u?.verified === false) rememberAccount(token, u.display_name || u.username || "");
+    else forgetLastAccount();
   }, []);
 
   const applyAuth = useCallback((data: { token: string; user: AuthUser }) => {
     // saveToken: localStorage + (uygulamada) native depo — bkz. lib/tokenStore.ts
     saveToken(data.token);
+    syncLastAccount(data.token, data.user);
     writeCachedUser(data.user);
     try { if (data.user?.id) localStorage.setItem("kt_uid", String(data.user.id)); } catch {}
     setToken(data.token);
     setUser(data.user);
-  }, []);
+  }, [syncLastAccount]);
 
   const register = useCallback(
     async (email: string, password: string, displayName: string, captchaToken?: string | null) => {
@@ -399,12 +422,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await res.json();
       setUser(data.user);
       writeCachedUser(data.user);
+      syncLastAccount(saved, data.user);
     } catch {}
-  }, []);
+  }, [syncLastAccount]);
+
+  const continueAsLast = useCallback(async (savedToken: string) => {
+    const res = await fetch(apiUrl("/api/auth/me"), {
+      headers: { Authorization: `Bearer ${savedToken}` },
+    });
+    if (!res.ok) {
+      // Jeton süresi dolmuş ya da hesap kapatılmış — hatırayı taşımanın anlamı yok.
+      forgetLastAccount();
+      throw new Error(
+        res.status === 403
+          ? "Bu hesap şu an kullanılamıyor."
+          : "Bu hesaba dönülemedi, yeni bir isimle başlayabilirsin."
+      );
+    }
+    const data = await res.json();
+    applyAuth({ token: savedToken, user: data.user });
+  }, [applyAuth]);
 
   const logout = useCallback(() => {
     // 1) Bizim oturumumuz — KOŞULSUZ ve ÖNCE. Aşağıdaki native adım ne yaparsa
     //    yapsın (hata da verse) kullanıcı çıkmış olur; arayüz beklemez.
+    // Oturum jetonu gider. "Son hesap" hatırası SADECE doğrulanmamış hesapta
+    // kalır — o kişinin başka anahtarı yok, hesabını kaybetmesin diye.
+    // Doğrulanmış hesap çıkış yapıyorsa hatıra da silinir; e-postasıyla girer.
+    if (user?.verified !== false) forgetLastAccount();
     clearToken();
     writeCachedUser(null);
     setToken(null);
@@ -418,14 +463,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (detectPlatform() !== "web") {
       void import("./nativeGoogle").then((m) => m.nativeGoogleSignOut()).catch(() => {});
     }
-  }, []);
+  }, [user]);
 
   return (
     <AuthContext.Provider
       value={{
         user, token, loading, register, login, loginGoogle, loginGoogleNative,
         playGamesSilent, playGamesComplete, playGamesLink,
-        quickSignup, verifyAccount, transferAccount, refreshUser, logout,
+        quickSignup, verifyAccount, transferAccount, refreshUser,
+        continueAsLast, logout,
       }}
     >
       {children}

@@ -95,12 +95,31 @@ export default function MenuPage() {
         <NavRow icon="🍪" label="Çerezler" onClick={() => router.push("/cerez")} />
         <NavRow icon="✉️" label="İletişim" onClick={() => router.push("/iletisim")} />
         {user && <NavRow icon="🎫" label="Destek" onClick={() => router.push("/destek")} />}
-        {user && (
+        {/* DOĞRULANMAMIŞ hesaba "Çıkış Yap" GÖSTERİLMEZ.
+            Sebep: o hesabın tek anahtarı cihazdaki jetondur. Çıkış yapan kişi
+            aynı ismi yazsa bile "nazim2" diye YENİ bir hesap açardı; eski
+            hesap ve bütün ilerlemesi erişilemez kalırdı. Onun yerine hesabı
+            kalıcı hâle getiren düğme durur. Doğrulandıktan sonra normal
+            çıkış düğmesi gelir. */}
+        {user && user.verified === false ? (
+          <button
+            onClick={() => router.push("/dogrula")}
+            style={{ ...rowStyle, cursor: "pointer", width: "100%", textAlign: "left", gridColumn: "1 / -1" }}
+          >
+            <span style={{ fontSize: 22, width: 40, height: 40, flexShrink: 0, borderRadius: 11, background: "rgba(255,193,74,.16)", display: "grid", placeItems: "center" }}>🔒</span>
+            <span style={{ flex: 1 }}>
+              <span style={{ display: "block", fontWeight: 600, fontSize: 16, color: "var(--text-strong)" }}>Profili doğrula ve kaydet</span>
+              <span style={{ display: "block", fontSize: 12.5, color: "var(--text-dim)", marginTop: 2 }}>
+                E-posta ve şifre ekle; başka cihazdan da girebil
+              </span>
+            </span>
+          </button>
+        ) : user ? (
           <button onClick={logout} style={{ ...rowStyle, color: "var(--accent-hot)", cursor: "pointer", width: "100%", textAlign: "left", gridColumn: "1 / -1" }}>
             <span style={{ fontSize: 22, width: 40, height: 40, flexShrink: 0, borderRadius: 11, background: "rgba(217,90,90,.12)", display: "grid", placeItems: "center" }}>🚪</span>
             <span style={{ flex: 1, fontWeight: 600, fontSize: 16, color: "var(--accent-hot)" }}>Çıkış Yap</span>
           </button>
-        )}
+        ) : null}
       </div>
 
       <TokenDebug />

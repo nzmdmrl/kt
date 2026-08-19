@@ -42,6 +42,10 @@ export default function DogrulaPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  // Şifre İKİ KEZ yazılır. Sebep: yanlış yazılırsa kişi hesabını "kaydettim"
+  // sanır, ama başka cihazdan bir daha giremez ve nedenini de anlayamaz —
+  // hesabın tek anahtarı o şifre olduğu için geri dönüşü yoktur.
+  const [password2, setPassword2] = useState("");
   const [oldPassword, setOldPassword] = useState("");   // taşıma adımı: ESKİ hesabın şifresi
   const [busy, setBusy] = useState(false);
   const [popup, setPopup] = useState("");
@@ -55,10 +59,15 @@ export default function DogrulaPage() {
   // Hesap zaten doğrulanmışsa (ör. şerit eski kalmışsa) bilgi ver ve çık.
   const alreadyVerified = !!user && user.verified !== false;
 
+  // Şifreler uyuşuyor mu? (ikinci alana yazılmaya başlanınca gösterilir)
+  const pwMismatch = password2.length > 0 && password !== password2;
+  const canSave = password.length >= 6 && password === password2;
+
   async function submitVerify() {
     const mail = email.trim().toLowerCase();
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) { setPopup("Geçerli bir e-posta gir."); return; }
     if (password.length < 6) { setPopup("Şifre en az 6 karakter olmalı."); return; }
+    if (password !== password2) { setPopup("Şifreler birbiriyle uyuşmuyor."); return; }
     setBusy(true);
     try {
       const res = await verifyAccount(mail, password);
@@ -219,13 +228,41 @@ export default function DogrulaPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") submitVerify(); }}
               placeholder="En az 6 karakter"
-              style={input}
+              style={{ ...input, marginBottom: 10 }}
               autoComplete="new-password"
             />
 
-            <button style={cta} onClick={submitVerify} disabled={busy}>
+            <label style={label}>Şifre (tekrar)</label>
+            <input
+              type="password"
+              value={password2}
+              onChange={(e) => setPassword2(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && canSave) submitVerify(); }}
+              placeholder="Aynı şifreyi bir daha yaz"
+              style={{
+                ...input,
+                // Altında uyarı satırı çıkacaksa boşluk küçülür, yoksa normal.
+                marginBottom: password2.length > 0 ? 6 : 14,
+                borderColor: pwMismatch ? "var(--accent-hot)" : "var(--border-soft)",
+              }}
+              autoComplete="new-password"
+            />
+            {password2.length > 0 && (
+              <p style={{
+                fontSize: 12.5, margin: "0 2px 14px",
+                color: pwMismatch ? "var(--accent-hot)" : "var(--tile-correct)",
+              }}>
+                {pwMismatch ? "Şifreler birbiriyle uyuşmuyor" : "✓ Şifreler eşleşiyor"}
+              </p>
+            )}
+
+            <button
+              style={{ ...cta, opacity: canSave && !busy ? 1 : 0.55,
+                       cursor: canSave && !busy ? "pointer" : "default" }}
+              onClick={submitVerify}
+              disabled={busy || !canSave}
+            >
               {busy ? "Kaydediliyor…" : "Kaydet"}
             </button>
 

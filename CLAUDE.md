@@ -365,6 +365,31 @@ Aynı kod hem sitede hem uygulamada çalışır (uygulama web içeriğini canlı
 - **OpenAI maliyeti**: isim başına ~300 girdi + ~25 çıktı jetonu →
   gpt-4o-mini ile ~0,00006 $ (1.000 isim ≈ 6 sent, 10.000 yeni kullanıcı ≈ 0,60 $).
 
+
+**Ara iş (çıkışta hesap kaybı + şifre tekrarı) — TAMAM:**
+- SORUN: doğrulanmamış hesabın tek anahtarı jetondu. "Çıkış yap"a basan kişi
+  aynı ismi yazınca `nazim2` diye YENİ hesap açıyor, eskisi ve bütün ilerlemesi
+  sonsuza dek erişilemez kalıyordu. İki katmanlı çözüldü:
+  1. **Çıkış düğmesi gizlendi**: `user.verified === false` iken `/menu` ve
+     `TopBar` "Çıkış Yap" yerine "Profili doğrula ve kaydet" gösterir.
+     Doğrulandıktan sonra normal çıkış geri gelir.
+  2. **"Son hesap" hatırası**: `lib/tokenStore.ts` → `LAST_KEY`
+     (`kt_last_account`, {token, name}). ÇIKIŞ BU ANAHTARI SİLMEZ; web'de
+     localStorage, mobilde ayrıca Capacitor Preferences. İsim popup'ı hatıra
+     varsa önce "Tekrar hoş geldin + <İsim> olarak devam et" gösterir
+     (`NamePrompt` → `lastName/onContinue/onForget`), isim alanını hiç açmaz.
+     "Farklı isimle başla" hatırayı siler ve formu açar; yeni isim yazmak da siler.
+  - GÜVENLİK: hatıra YALNIZCA doğrulanmamış hesaplarda tutulur. `applyAuth` ve
+    `/auth/me` her seferinde `syncLastAccount` çağırır: doğrulanınca hatıra
+    SİLİNİR, doğrulanmış hesap çıkış yaptığında da bırakılmaz (e-postasıyla girer).
+  - `useAuth().continueAsLast(token)`: /auth/me ile jetonu doğrular; geçersiz ya
+    da hesap kapatılmışsa hatırayı siler ve Türkçe hata döner.
+- `/dogrula`: şifre **iki kez** yazılır. Uyuşmazsa alan altında uyarı, Kaydet
+  pasif. Sebep: yanlış yazılan şifreyle kişi hesabını "kaydettim" sanır ama
+  başka cihazdan bir daha giremez ve nedenini anlayamaz.
+- Testler: `frontend/tests/hesap_kaybi_ve_sifre.mjs` (31 tarayıcı senaryosu).
+  `hizli_giris_arayuz.mjs` şifre tekrarına göre güncellendi (50 senaryo).
+
 - SONRAKİ AŞAMA: 5) mobilden Google/Play Games düğmelerinin sökülmesi.
 
 ### Misafir (üye olmayan ziyaretçi) erişimi

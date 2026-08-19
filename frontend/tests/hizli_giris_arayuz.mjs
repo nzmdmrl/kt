@@ -166,10 +166,14 @@ console.log("\n5) Doğrulama sayfası — normal akış");
     body.includes("Başka bir cihazda oynayabilmek için gerekli") &&
     body.includes("doğrulanmamış hesabın kaybolur"));
   check("e-posta alanı BOŞ", (await page.inputValue('input[type="email"]')) === "");
-  check("şifre alanı BOŞ", (await page.inputValue('input[type="password"]')) === "");
+  check("şifre alanı BOŞ",
+    (await page.locator('input[type="password"]').nth(0).inputValue()) === "");
+  check("şifre tekrar alanı var", (await page.locator('input[type="password"]').count()) === 2);
 
   await page.fill('input[type="email"]', "yeni@ornek.com");
-  await page.fill('input[type="password"]', "gizli123");
+  // Şifre İKİ KEZ yazılır — yanlış yazıp hesabını kaybetmesin diye.
+  await page.locator('input[type="password"]').nth(0).fill("gizli123");
+  await page.locator('input[type="password"]').nth(1).fill("gizli123");
   await page.getByRole("button", { name: "Kaydet", exact: true }).click();
   await page.waitForFunction(() => document.body.innerText.includes("Hesabın kaydedildi"), null, { timeout: 8000 });
   check("hesap doğrulandı ekranı geldi", true);
@@ -212,7 +216,8 @@ console.log("\n6) Doğrulama sayfası — e-posta başkasında (taşıma akış�
   await page.goto(`${BASE}/dogrula`, { waitUntil: "networkidle" });
   await page.waitForTimeout(600);
   await page.fill('input[type="email"]', "eski@ornek.com");
-  await page.fill('input[type="password"]', "yenisifre");
+  await page.locator('input[type="password"]').nth(0).fill("yenisifre");
+  await page.locator('input[type="password"]').nth(1).fill("yenisifre");
   await page.getByRole("button", { name: "Kaydet", exact: true }).click();
   await page.waitForFunction(() => document.body.innerText.includes("Bu e-posta zaten kayıtlı"),
     null, { timeout: 8000 });

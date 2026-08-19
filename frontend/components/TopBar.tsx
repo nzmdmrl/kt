@@ -34,20 +34,42 @@ export default function TopBar() {
           <a href={`/profil/${user.username}`} style={{ fontSize: 14, color: "var(--text-soft)", textDecoration: "none" }}>
             <span style={{ color: "var(--accent)", fontWeight: 600 }}>{user.display_name}</span>
           </a>
-          <button
-            onClick={logout}
-            style={{
-              background: "transparent",
-              border: "1px solid var(--border-soft)",
-              color: "var(--text-soft)",
-              borderRadius: 8,
-              padding: "6px 12px",
-              fontSize: 13,
-              cursor: "pointer",
-            }}
-          >
-            Çıkış
-          </button>
+          {/* Doğrulanmamış hesaba "Çıkış" GÖSTERİLMEZ — jeton o hesabın tek
+              anahtarı; çıkış yapan kişi hesabını kaybederdi. Yerine hesabı
+              kalıcı hâle getiren düğme durur (aynı kural /menu sayfasında da). */}
+          {user.verified === false ? (
+            <a
+              href="/dogrula"
+              style={{
+                background: "rgba(255,193,74,.16)",
+                border: "1px solid rgba(255,193,74,.42)",
+                color: "var(--text-strong)",
+                borderRadius: 8,
+                padding: "6px 12px",
+                fontSize: 13,
+                fontWeight: 700,
+                textDecoration: "none",
+                whiteSpace: "nowrap",
+              }}
+            >
+              🔒 Profili doğrula
+            </a>
+          ) : (
+            <button
+              onClick={logout}
+              style={{
+                background: "transparent",
+                border: "1px solid var(--border-soft)",
+                color: "var(--text-soft)",
+                borderRadius: 8,
+                padding: "6px 12px",
+                fontSize: 13,
+                cursor: "pointer",
+              }}
+            >
+              Çıkış
+            </button>
+          )}
         </>
       ) : (
         <a

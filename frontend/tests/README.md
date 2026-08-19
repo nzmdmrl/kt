@@ -41,6 +41,11 @@ docker run --rm --network host -v "$PWD/tests":/w -w /w \
 - `hizli_giris_mobil.mjs` — uygulama (Capacitor) taklidi: jetonun native depoya
   da yazılması ve tarayıcı verisi silinince oturumun oradan geri gelmesi.
   Capacitor Preferences eklentisi SAHTE bir köprüyle taklit edilir.
+- `hesap_kaybi_ve_sifre.mjs` — çıkışta hesap kaybının önlenmesi: doğrulanmamış
+  kullanıcıya "Çıkış Yap" gösterilmemesi, cihazdaki "son hesap" hatırasıyla
+  ("<İsim> olarak devam et") aynı hesaba dönülmesi, "Farklı isimle başla"nın
+  hatırayı silmesi, doğrulanmış hesabın hatıra bırakmaması; ayrıca /dogrula
+  sayfasındaki şifre tekrarı doğrulaması.
 - `isim_kontrol_paneli.mjs` — admin panelindeki 🔎 İsim Kontrol ve ⚡ Hızlı Giriş
   sekmeleri: işaretlenen isimlerin listelenmesi, temiz/pasife al/IP gölge ban
   işlemleri, ayarların kaydedilmesi ve eski sekmelerin bozulmadığı.

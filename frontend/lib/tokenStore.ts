@@ -37,6 +37,31 @@ import { detectPlatform } from "./platform";
 
 export const TOKEN_KEY = "kt_token";
 
+/**
+ * "Son hesap" hatırası — ÇIKIŞIN SİLMEDİĞİ ayrı anahtar.
+ *
+ * NEDEN VAR
+ * ---------
+ * Doğrulanmamış hesabın tek anahtarı oturum jetonudur. Kullanıcı "Çıkış yap"a
+ * basınca o jeton silinir ve hesabına bir daha ULAŞAMAZ: aynı ismi yazsa bile
+ * kullanıcı adı dolu olduğu için "nazim2" diye YENİ bir hesap açılır, eskisi
+ * ve içindeki bütün ilerleme sonsuza dek erişilemez kalır.
+ *
+ * Bu yüzden çıkışta jetonun bir kopyası BURADA bırakılır ve isim popup'ında
+ * "<İsim> olarak devam et" seçeneği çıkar. Kullanıcı "Farklı isimle başla"
+ * derse hatıra silinir.
+ *
+ * GÜVENLİK
+ * --------
+ * Hatıra YALNIZCA doğrulanmamış hesaplar için tutulur. Doğrulanmış hesap
+ * (e-posta + şifre ya da Google) çıkış yaptığında hatıra bırakılmaz — o kişi
+ * zaten e-postasıyla geri girebilir ve "çıktım ama hâlâ girilebiliyor"
+ * durumu doğmamalıdır. Hesap doğrulanır doğrulanmaz hatıra silinir.
+ */
+export const LAST_KEY = "kt_last_account";
+
+export type LastAccount = { token: string; name: string };
+
 /** Native depo proxy'si — ilk kullanımda kurulur, sonra yeniden kullanılır. */
 let nativeStore: any | null = null;
 let nativeStoreTried = false;
@@ -104,4 +129,53 @@ export function saveToken(token: string) {
 export function clearToken() {
   lsRemove(TOKEN_KEY);
   void getNativeStore().then((s) => s?.remove({ key: TOKEN_KEY })).catch(() => {});
+}
+
+
+// ---------------------------------------------------------------- son hesap
+
+function parseLast(raw: string | null): LastAccount | null {
+  if (!raw) return null;
+  try {
+    const o = JSON.parse(raw);
+    if (o && typeof o.token === "string" && o.token.length > 20) {
+      return { token: o.token, name: String(o.name || "") };
+    }
+  } catch {}
+  return null;
+}
+
+/** Hatırayı yazar (localStorage hemen, native depo arka planda). */
+export function rememberAccount(token: string, name: string) {
+  const raw = JSON.stringify({ token, name });
+  lsSet(LAST_KEY, raw);
+  void getNativeStore().then((s) => s?.set({ key: LAST_KEY, value: raw })).catch(() => {});
+}
+
+/** Hızlı yol: hatırayı senkron oku. */
+export function readLastAccountSync(): LastAccount | null {
+  return parseLast(lsGet(LAST_KEY));
+}
+
+/**
+ * Uygulamada localStorage temizlenmişse hatırayı native depodan geri yükler.
+ * Web'de ya da eklenti yoksa null döner.
+ */
+export async function restoreLastAccount(): Promise<LastAccount | null> {
+  const store = await getNativeStore();
+  if (!store) return null;
+  try {
+    const res = await store.get({ key: LAST_KEY });
+    const parsed = parseLast(res?.value ? String(res.value) : null);
+    if (parsed) lsSet(LAST_KEY, JSON.stringify(parsed));
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+/** Hatırayı unut — "Farklı isimle başla" ve hesap doğrulanınca çağrılır. */
+export function forgetLastAccount() {
+  lsRemove(LAST_KEY);
+  void getNativeStore().then((s) => s?.remove({ key: LAST_KEY })).catch(() => {});
 }
