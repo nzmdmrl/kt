@@ -57,6 +57,10 @@ docker run --rm --network host -v "$PWD/tests":/w -w /w \
   denk geliyor mu, dışarıda bırakılması gereken yollar (hesap-silme, yasal
   sayfalar, yönetim) gerçekten dışarıda mı. Manifest'i doğrudan okur:
   `MANIFEST=<yol> BASE=<adres> node app_links_yollar.mjs`.
+- `maraton_joker_arayuz.mjs` — Maraton joker düğmesi (★ Harf Aç): hakkın
+  gösterilmesi, tıklayınca ızgarada bir harfin açılması, hak bitince düğmenin
+  pasifleşmesi; ayrıca alt menüde ana dışındaki 4 öğenin 7px yukarı alınması.
+  ÖN KOŞUL: test backend'inde `solo_jokers_enabled=1`, `solo_joker_per_level=2`.
 - `cerez_bandi_mobil.mjs` — çerez bandı: mobil tarayıcıda çıkıyor ve karar
   verilince kapanıyor, mobil UYGULAMADA (KelimeApp/ ve Capacitor köprüsü)
   hiç çıkmıyor; ölçüm tercihi anahtarı /cerez sayfasında iki ortamda da

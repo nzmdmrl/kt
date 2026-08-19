@@ -5,6 +5,7 @@ Solo (hikaye) modu mantığı.
 - solo_word(user_id, level, attempt): kullanıcıya + level'e + deneme sayısına özel
   deterministik kelime (tekrar oynayınca attempt artar -> kelime değişir).
 - stars_for(seconds_left, s3, s2): kalan süreye göre yıldız (3/2/1).
+- joker_reveal_order(...): jokerin hangi harfi açacağı (deterministik sıra).
 """
 
 from __future__ import annotations
@@ -41,6 +42,22 @@ def solo_word(user_id: int, level: int, attempt: int, lang: str = "tr") -> str:
     seed = f"solo-{user_id}-{level}-{attempt}-{lang}"
     h = int(hashlib.sha256(seed.encode()).hexdigest(), 16)
     return words[h % len(words)]
+
+
+def joker_reveal_order(user_id: int, level: int, attempt: int, length: int) -> list[int]:
+    """Jokerlerin hangi sırayla hangi harfi açacağı — deterministik karışım.
+
+    İlk harf (0. sıra) zaten ipucu olarak veriliyor, o yüzden listeye girmez.
+    Aynı (user, level, attempt) için hep aynı sıra döner: sayfa yenilense de
+    daha önce açılmış harfler değişmez.
+    """
+    positions = list(range(1, max(1, length)))
+    seed = f"solo-joker-{user_id}-{level}-{attempt}"
+    # Her konuma tohumdan türeyen bir anahtar verip ona göre sırala: rastgele
+    # ama tekrarlanabilir (random modülünün global durumuna bağlı değil).
+    def key(pos: int) -> str:
+        return hashlib.sha256(f"{seed}-{pos}".encode()).hexdigest()
+    return sorted(positions, key=key)
 
 
 def stars_for(seconds_left: int, star3_min: int, star2_min: int) -> int:

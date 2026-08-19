@@ -35,6 +35,11 @@ export default function SoloGame({ level, onExit, onComplete }: {
   // gösterilen ok ipucunu kontrol eder (süre bölüme girer girmez işler).
   const [touched, setTouched] = useState(false);
   const [result, setResult] = useState<{ stars: number; total: number; next: number } | null>(null);
+  // Joker: kalan hak + jokerle açılan harfler (konum -> harf).
+  // joker_count sunucudan gelir; sistem kapalıysa 0'dır, düğme hiç çizilmez.
+  const [jokersLeft, setJokersLeft] = useState(0);
+  const [revealed, setRevealed] = useState<Record<number, string>>({});
+  const [jokerBusy, setJokerBusy] = useState(false);
 
   function token() { return typeof window !== "undefined" ? localStorage.getItem("kt_token") : null; }
   function headers() { return { "Content-Type": "application/json", Authorization: `Bearer ${token()}` }; }
@@ -62,6 +67,8 @@ export default function SoloGame({ level, onExit, onComplete }: {
         setSecondsLeft(d.seconds);
         setStatus("playing");
         setTouched(false);
+        setJokersLeft(d.joker_count || 0);
+        setRevealed({});
       })
       .catch(() => setErr("Bölüm başlatılamadı"));
   }, [level]);
@@ -125,6 +132,28 @@ export default function SoloGame({ level, onExit, onComplete }: {
       setErr("Bağlantı hatası");
     }
   }, [info, status, draft, rows, level, secondsLeft]);
+
+  // Joker: sunucu hedeften bir harfi açar (hangi harf olduğunu istemci bilmez,
+  // yalnız açılanı görür). Hak sunucuda da sayılır; buradaki sayaç görsellik.
+  const useJokerNow = useCallback(async () => {
+    if (jokerBusy || status !== "playing" || jokersLeft <= 0) return;
+    setJokerBusy(true);
+    try {
+      const r = await fetch(apiUrl(`/api/solo/level/${level}/joker`), {
+        method: "POST", headers: headers(),
+      });
+      const d = await r.json();
+      if (!r.ok) { setErr(d.detail || "Joker kullanılamadı."); return; }
+      setRevealed((prev) => ({ ...prev, [d.index]: d.letter }));
+      setJokersLeft(typeof d.left === "number" ? d.left : Math.max(0, jokersLeft - 1));
+      setErr("");
+      playSound("joker_green");
+    } catch {
+      setErr("Bağlantı hatası");
+    } finally {
+      setJokerBusy(false);
+    }
+  }, [jokerBusy, status, jokersLeft, level]);
 
   const micRef = useRef<any>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -210,6 +239,8 @@ export default function SoloGame({ level, onExit, onComplete }: {
                   color = "var(--text-strong)";
                 } else if (isCurrent) {
                   if (j === 0 && draft.length === 0) { letter = info.first_letter; color = "var(--text-dim)"; }
+                  // Jokerle açılan harf: yazılmamış kutularda ipucu olarak durur.
+                  else if (revealed[j]) { letter = revealed[j]; color = "var(--tile-correct)"; }
                 }
                 return (
                   <span key={j} style={{
@@ -224,6 +255,33 @@ export default function SoloGame({ level, onExit, onComplete }: {
         })}
         </div>
       </div>
+
+      {/* Joker — hakkı varsa ızgaranın altında, giriş satırının üstünde.
+          Altın rengi ve ★ simgesi 1v1'deki joker düğmesiyle aynı dili konuşur.
+          Hak bitince düğme kaybolmaz, "kalmadı" olarak pasifleşir. */}
+      {status === "playing" && (info.joker_count || 0) > 0 && (
+        <div style={{ display: "grid", placeItems: "center", marginBottom: 14 }}>
+          <button
+            onClick={useJokerNow}
+            disabled={jokersLeft <= 0 || jokerBusy}
+            title={jokersLeft > 0 ? "Joker — kelimeden bir harfi açar" : "Joker hakkın kalmadı"}
+            style={{
+              display: "flex", alignItems: "center", gap: 8,
+              padding: "9px 16px", borderRadius: 22,
+              border: "2px solid #D4AF37",
+              background: jokersLeft > 0 ? "linear-gradient(145deg, #FFD86B 0%, #D4AF37 100%)" : "var(--bg-panel)",
+              color: jokersLeft > 0 ? "#4a3b00" : "var(--text-dim)",
+              fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 15,
+              cursor: jokersLeft > 0 && !jokerBusy ? "pointer" : "not-allowed",
+              opacity: jokersLeft > 0 ? (jokerBusy ? 0.6 : 1) : 0.5,
+              boxShadow: jokersLeft > 0 ? "0 2px 10px rgba(212,175,55,.45)" : "none",
+            }}
+          >
+            <span style={{ fontSize: 19, lineHeight: 1 }}>★</span>
+            {jokersLeft > 0 ? `Harf Aç (${jokersLeft})` : "Joker bitti"}
+          </button>
+        </div>
+      )}
 
       {status === "playing" && (
         <div style={{ display: "grid", gap: 10, justifyItems: "center" }}>

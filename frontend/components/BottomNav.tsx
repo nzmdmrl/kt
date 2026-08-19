@@ -111,6 +111,9 @@ export default function BottomNav() {
               style={{
                 display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
                 background: "none", border: "none", cursor: "pointer", flex: 1, padding: "4px 0",
+                // Ortadaki 🏠 düğmesi yukarı taşındığı için (translateY(-14px)) yan
+                // öğeler çok aşağıda kalıyordu; 7px yukarı alınarak dengelendi.
+                transform: "translateY(-7px)",
               }}>
               <span style={{
                 position: "relative", fontSize: 24, opacity: active ? 1 : 0.85,

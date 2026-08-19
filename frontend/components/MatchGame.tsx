@@ -149,7 +149,7 @@ export default function MatchGame({
   const [nextRoundIn, setNextRoundIn] = useState(0); // tur arası geri sayım (sn)
   const [emoteCount, setEmoteCount] = useState(0);      // bu turda kaç emoji gönderildi (max 2)
   const [jokerPopup, setJokerPopup] = useState<string>("");  // joker bildirim popup metni
-  const [jokerOpen, setJokerOpen] = useState(false);          // yüzen J butonu açık mı
+  const [jokerOpen, setJokerOpen] = useState(false);          // yüzen ★ butonu açık mı
   const [emoteOpen, setEmoteOpen] = useState(false);          // yüzen emoji butonu açık mı
   const [hasFocus, setHasFocus] = useState(false); // input'ta focus var mı
 
@@ -681,7 +681,7 @@ export default function MatchGame({
         </div>
       )}
 
-      {/* Bildirimler POPUP olarak (yer kaplamaz) + yüzen J joker butonu */}
+      {/* Bildirimler POPUP olarak (yer kaplamaz) + yüzen ★ joker butonu */}
       <div style={{ position: "relative", height: 0 }}>
         {/* Süre doldu / sıra / hata / joker — hepsi popup, harf bloklarına yer kalsın */}
         {(error || flash || jokerPopup) && (
@@ -697,7 +697,7 @@ export default function MatchGame({
           </div>
         )}
 
-        {/* Yüzen J joker butonu — tıklayınca etrafında jokerler açılır */}
+        {/* Yüzen ★ joker butonu — tıklayınca etrafında jokerler açılır */}
         {jokers?.[playerId]?.enabled !== false && (
           <FloatingJoker
             jokers={jokers?.[playerId]}
@@ -1020,7 +1020,7 @@ function canUseLetterJoker(round: any): boolean {
 }
 
 // Joker sütunu — grid solunda dikey butonlar.
-// Yüzen J joker butonu — bildirim civarında sabit durur, tıklayınca etrafında
+// Yüzen ★ joker butonu — bildirim civarında sabit durur, tıklayınca etrafında
 // mevcut jokerler açılır. Turda tek joker hakkı (usedThisRound ile pasif).
 function FloatingJoker({ jokers, open, setOpen, canUseLetter, canUse, usedThisRound, onUse }: {
   jokers: any; open: boolean; setOpen: (v: boolean) => void;
@@ -1071,7 +1071,7 @@ function FloatingJoker({ jokers, open, setOpen, canUseLetter, canUse, usedThisRo
         </div>
       )}
 
-      {/* Ana yüzen J butonu — altın temalı */}
+      {/* Ana yüzen ★ butonu — altın temalı */}
       <button
         onClick={() => setOpen(!open)}
         disabled={usedThisRound || totalLeft === 0}
@@ -1090,7 +1090,8 @@ function FloatingJoker({ jokers, open, setOpen, canUseLetter, canUse, usedThisRo
           opacity: (usedThisRound || totalLeft === 0) ? 0.5 : 1,
         }}
       >
-        J
+        {/* Simge YILDIZ: eskiden "J" harfiydi ve harf kutularıyla karışıyordu. */}
+        ★
         {totalLeft > 0 && !usedThisRound && (
           <span style={{
             position: "absolute", right: -3, top: -3, minWidth: 16, height: 16,

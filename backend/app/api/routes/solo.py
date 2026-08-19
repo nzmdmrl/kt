@@ -4,6 +4,7 @@ Solo (hikaye) modu uçları.
 - GET  /solo/progress          -> kullanıcının ilerlemesi (current_level, total_stars, level sonuçları)
 - POST /solo/level/{level}/start   -> level'i başlat: kelime bilgisi (uzunluk, ilk harf) + süre + joker
 - POST /solo/level/{level}/guess   -> tahmin doğrula (tiles + doğru mu)
+- POST /solo/level/{level}/joker   -> joker: hedeften bir harf açar (ayarla açılır)
 - POST /solo/level/{level}/finish  -> level bitir: kalan süre gönder, yıldız hesapla + kaydet
 
 Kelime deterministik (solo_word) olduğu için sunucu her tahminde hedefi yeniden üretir;
@@ -34,6 +35,24 @@ async def _get_setting_int(db: AsyncSession, key: str, default: int) -> int:
         return int(row.value) if row else default
     except (ValueError, TypeError):
         return default
+
+
+async def _get_setting_bool(db: AsyncSession, key: str, default: bool) -> bool:
+    from app.models.game_setting import GameSetting
+    row = (await db.execute(select(GameSetting).where(GameSetting.key == key))).scalar_one_or_none()
+    if not row:
+        return default
+    return str(row.value).strip().lower() in ("1", "true", "yes", "on")
+
+
+# Kullanılan joker sayısı — (user_id, level, attempt) -> adet. BELLEKTE tutulur:
+# tek kişilik moddur, sunucu yeniden başlarsa en kötü ihtimalle oyuncu o bölümde
+# bir joker hakkı daha kazanır. Bunun için tablo açmaya değmez.
+_joker_used: dict[tuple[int, int, int], int] = {}
+
+
+def _joker_key(user_id: int, level: int, attempt: int) -> tuple[int, int, int]:
+    return (user_id, level, attempt)
 
 
 async def _get_progress(db: AsyncSession, user_id: int) -> SoloProgress:
@@ -86,7 +105,12 @@ async def start_level(level: int, user: User = Depends(get_current_user), db: As
     word = solo_service.solo_word(user.id, level, use_attempt, lang)
     length = solo_service.level_length(level)
     seconds = await _get_setting_int(db, "solo_seconds", 120)
+    # Joker hakkı: sistem KAPALIYSA 0 döner (arayüz düğmeyi hiç çizmez).
     joker_per = await _get_setting_int(db, "solo_joker_per_level", 1)
+    if not await _get_setting_bool(db, "solo_jokers_enabled", False):
+        joker_per = 0
+    # Bölüm yeniden başlatıldı: kullanılmış joker sayacı sıfırlanır.
+    _joker_used.pop(_joker_key(user.id, level, use_attempt), None)
 
     return {
         "level": level,
@@ -134,6 +158,49 @@ async def guess_level(level: int, data: GuessIn, user: User = Depends(get_curren
     }
 
 
+@router.post("/level/{level}/joker")
+async def use_joker(level: int, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    """Joker: hedef kelimeden bir harfi açar (yerini ve harfini döner).
+
+    Hangi harfin açılacağı (user, level, attempt) tohumundan DETERMİNİSTİK
+    belirlenir: aynı bölümde ikinci joker hep ikinci sıradaki harfi açar, yani
+    sayfa yenilense de ipuçları tutarlı kalır. İlk harf zaten ipucu olarak
+    verildiği için 0. sıra dışarıda bırakılır.
+    """
+    prog = await _get_progress(db, user.id)
+    if level > prog.current_level:
+        raise HTTPException(403, "Bu level henüz açık değil.")
+    if not await _get_setting_bool(db, "solo_jokers_enabled", False):
+        raise HTTPException(400, "Maratonda joker kapalı.")
+    per = await _get_setting_int(db, "solo_joker_per_level", 1)
+    if per <= 0:
+        raise HTTPException(400, "Maratonda joker hakkı tanımlı değil.")
+
+    existing = (await db.execute(
+        select(SoloLevelResult).where(SoloLevelResult.user_id == user.id, SoloLevelResult.level == level)
+    )).scalar_one_or_none()
+    use_attempt = (existing.attempts + 1) if existing else 0
+
+    key = _joker_key(user.id, level, use_attempt)
+    used = _joker_used.get(key, 0)
+    if used >= per:
+        raise HTTPException(400, "Bu bölümde joker hakkın kalmadı.")
+
+    lang = get_settings().GAME_LANG
+    word = solo_service.solo_word(user.id, level, use_attempt, lang)
+    order = solo_service.joker_reveal_order(user.id, level, use_attempt, len(word))
+    if used >= len(order):
+        raise HTTPException(400, "Açılacak harf kalmadı.")
+    idx = order[used]
+
+    # Sözlük şişmesin: tek kişilik mod, sayaç kritik değil — tavana gelince boşalt.
+    if len(_joker_used) > 5000:
+        _joker_used.clear()
+    _joker_used[key] = used + 1
+
+    return {"index": idx, "letter": word[idx], "left": max(0, per - used - 1)}
+
+
 class FinishIn(BaseModel):
     seconds_left: int
 
@@ -165,6 +232,12 @@ async def finish_level(level: int, data: FinishIn, user: User = Depends(get_curr
         res = SoloLevelResult(user_id=user.id, level=level, best_stars=stars, attempts=1)
         db.add(res)
         star_delta = stars
+
+    # Bölüm bitti: bu denemenin joker sayacı artık gereksiz. Oynanan deneme
+    # numarası ilk geçişte res.attempts-1, tekrar oynayışta res.attempts olur
+    # (yukarıda +1'lendi) — ikisi de silinir, yanlış olan zaten yok.
+    _joker_used.pop(_joker_key(user.id, level, res.attempts - 1), None)
+    _joker_used.pop(_joker_key(user.id, level, res.attempts), None)
 
     prog.total_stars += star_delta
     # Sonraki level'i aç (ilk kez geçildiyse).
