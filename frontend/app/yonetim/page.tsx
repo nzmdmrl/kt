@@ -157,10 +157,10 @@ function Dashboard({ onDenied }: { onDenied: () => void }) {
         </div>
       </div>
 
-      {/* Ortama göre bugün — mobil uygulama / mobil tarayıcı / masaüstü.
-          Ziyaretçi: bugün siteye/uygulamaya giren TEKİL kişi sayısı.
-          Yeni üye:  bugün açılan hesaplar. Doğrulama: bugün e-posta+şifre eklenenler. */}
-      <PlatformStats data={data.platforms} />
+      {/* Ortama göre sayılar — mobil uygulama / mobil tarayıcı / masaüstü.
+          Aralık seçilebilir (bugün / dün / bu hafta / bu ay); veriler mevcut
+          GÜNLÜK sayaç satırları toplanarak gelir, yeni kayıt yazılmaz. */}
+      <PlatformStats />
 
       {/* Genel toplamlar */}
       <div>
@@ -1124,8 +1124,28 @@ function fmtDate(iso: string | null): string {
 // ---- 📊 Özet: ortam kırılımı ------------------------------------------------
 // Üç satır (mobil uygulama / masaüstü / mobil tarayıcı), her satırda üç sayı.
 // Ayrım mobil uygulamanın user agent'ındaki "KelimeApp/" işaretinden yapılır.
-function PlatformStats({ data }: { data?: any }) {
-  if (!data) return null;
+function PlatformStats() {
+  const [range, setRange] = useState("today");
+  const [data, setData] = useState<any>(null);
+
+  useEffect(() => {
+    let alive = true;
+    setData(null);
+    fetch(apiUrl(`/api/admin/platform-stats?range=${range}`), { headers: authHeaders() })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (alive && d) setData(d); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [range]);
+
+  const ranges: { key: string; label: string }[] =
+    data?.ranges || [
+      { key: "today", label: "Bugün" },
+      { key: "yesterday", label: "Dün" },
+      { key: "week", label: "Bu hafta" },
+      { key: "month", label: "Bu ay" },
+    ];
+
   const rows = [
     { key: "app", icon: "📱", label: "Mobil uygulama" },
     { key: "mobile", icon: "🌐", label: "Mobil tarayıcı" },
@@ -1140,10 +1160,33 @@ function PlatformStats({ data }: { data?: any }) {
 
   return (
     <div>
-      <h3 style={{ fontSize: 15, color: "var(--text-soft)", marginBottom: 10 }}>
-        Bugün — Ortama Göre
-      </h3>
-      <div style={{ background: "var(--bg-panel)", borderRadius: 12, overflow: "hidden" }}>
+      <div style={{
+        display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 10,
+      }}>
+        <h3 style={{ fontSize: 15, color: "var(--text-soft)", margin: 0 }}>
+          Ortama Göre
+        </h3>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {ranges.map((r) => {
+            const on = range === r.key;
+            return (
+              <button key={r.key} onClick={() => setRange(r.key)} style={{
+                padding: "6px 12px", borderRadius: 20, cursor: "pointer",
+                fontSize: 12.5, fontWeight: 700,
+                border: `1px solid ${on ? "var(--accent)" : "var(--border-soft)"}`,
+                background: on ? "var(--accent)" : "var(--bg-panel)",
+                color: on ? "#1a1330" : "var(--text-soft)",
+              }}>{r.label}</button>
+            );
+          })}
+        </div>
+        {data?.start && (
+          <span style={{ fontSize: 11.5, color: "var(--text-dim)" }}>
+            {data.start === data.end ? fmtDay(data.start) : `${fmtDay(data.start)} – ${fmtDay(data.end)}`}
+          </span>
+        )}
+      </div>
+      <div style={{ background: "var(--bg-panel)", borderRadius: 12, overflow: "hidden", opacity: data ? 1 : 0.5 }}>
         <div style={{
           display: "grid", gridTemplateColumns: "1.6fr repeat(3, 1fr)",
           padding: "10px 14px", borderBottom: "1px solid var(--border-soft)",
@@ -1186,8 +1229,19 @@ function PlatformStats({ data }: { data?: any }) {
           ))}
         </div>
       </div>
+      <p style={{ fontSize: 11.5, color: "var(--text-dim)", margin: "6px 2px 0", lineHeight: 1.6 }}>
+        Ziyaretçi = günlük tekil sayıların toplamı (bir kişi iki ayrı gün girerse 2 sayılır).
+        Yeni üye ve doğrulama, aralıktaki kayıtlardan kesin hesaplanır.
+      </p>
     </div>
   );
+}
+
+/** "2026-08-19" -> "19 Ağu" */
+function fmtDay(iso: string): string {
+  try {
+    return new Date(iso + "T00:00:00").toLocaleDateString("tr", { day: "numeric", month: "short" });
+  } catch { return iso; }
 }
 
 function Users() {

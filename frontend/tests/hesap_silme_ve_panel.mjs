@@ -157,10 +157,35 @@ console.log("\n4) Admin — üye yönetimi, cihaz simgesi, ortam istatistikleri"
   await page.waitForTimeout(2500);
   let t = await txt(page);
   check("özet açıldı", t.includes("Canlı Durum"), t.slice(0, 200));
-  check("'Bugün — Ortama Göre' tablosu var", t.includes("Bugün — Ortama Göre"), t.slice(0, 600));
+  check("'Ortama Göre' tablosu var", t.includes("Ortama Göre"), t.slice(0, 600));
   for (const label of ["Mobil uygulama", "Mobil tarayıcı", "Masaüstü", "Ziyaretçi", "Yeni üye", "Doğrulama"])
     check(`"${label}" satırı/sütunu var`, t.includes(label), "");
   check("mevcut özet bozulmadı", t.includes("Online kişi") && t.includes("Genel") && t.includes("En İyi Oyuncular"));
+
+  // --- aralık seçici
+  for (const r of ["Bugün", "Dün", "Bu hafta", "Bu ay"])
+    check(`"${r}" aralık düğmesi var`, t.includes(r), "");
+  check("ziyaretçi sayımının anlamı yazılı",
+    t.includes("günlük tekil sayıların toplamı"), t.slice(0, 900));
+
+  // Aralık değiştirince sunucudan YENİ veri gelmeli (istek gözlenir).
+  const istekler = [];
+  page.on("request", (req) => {
+    if (req.url().includes("/admin/platform-stats")) istekler.push(req.url());
+  });
+  await page.getByRole("button", { name: "Bu ay", exact: true }).click();
+  await page.waitForTimeout(2000);
+  check("aralık değişince yeni istek atıldı",
+    istekler.some((u) => u.includes("range=month")), istekler.join(" | "));
+  t = await txt(page);
+  check("tablo aynı kaldı (3 ortam × 3 ölçü)",
+    t.includes("Mobil uygulama") && t.includes("Ziyaretçi") && t.includes("Toplam"), t.slice(0, 400));
+  await page.getByRole("button", { name: "Dün", exact: true }).click();
+  await page.waitForTimeout(2000);
+  check("dün aralığı da çekiliyor",
+    istekler.some((u) => u.includes("range=yesterday")), istekler.join(" | "));
+  await page.getByRole("button", { name: "Bugün", exact: true }).click();
+  await page.waitForTimeout(1500);
 
   await page.click("text=👥 Üyeler");
   await page.waitForTimeout(2500);

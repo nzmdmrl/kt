@@ -122,22 +122,39 @@ async def main() -> None:
               await db_scalar("SELECT last_platform FROM users WHERE id=:i", i=desk_id) == "desktop")
 
         # ---------------------------------------------------------------
-        print("\n3) Ziyaret sayacı")
-        r = await c.post("/api/stats/visit", json={"client_key": "abc123"},
-                         headers={"user-agent": UA_APP})
-        check("girişsiz ziyaret sayıldı", r.json()["counted"] is True, r.text)
+        print("\n3) Ziyaret SAYACI (ziyaretçi başına satır DEĞİL)")
+        r = await c.post("/api/stats/visit", json={}, headers={"user-agent": UA_APP})
+        check("ziyaret sayıldı", r.json()["counted"] is True, r.text)
         check("ortam uygulama olarak tespit edildi", r.json()["platform"] == "app", r.text)
-        r = await c.post("/api/stats/visit", json={"client_key": "abc123"},
-                         headers={"user-agent": UA_APP})
-        check("aynı ziyaretçi iki kez sayılmıyor", r.json()["counted"] is False, r.text)
-        r = await c.post("/api/stats/visit", json={"client_key": "abc123"},
-                         headers={"user-agent": UA_DESKTOP})
-        check("aynı kişi başka ortamdan ayrı sayılıyor", r.json()["counted"] is True, r.text)
-        r = await c.post("/api/stats/visit", json={"client_key": ""},
-                         headers={"user-agent": UA_DESKTOP})
-        check("anahtarsız istek sayacı kirletmiyor", r.json()["counted"] is False, r.text)
-        r = await c.post("/api/stats/visit", json={}, headers=hdr(mob_tok, UA_MOBILE))
-        check("girişli kullanıcı kimliğiyle sayılıyor", r.json()["counted"] is True, r.text)
+        check("gün+ortam başına TEK satır",
+              await db_scalar("SELECT COUNT(*) FROM daily_stats WHERE platform='app'") == 1)
+        check("sayaç 1", await db_scalar(
+            "SELECT count FROM daily_stats WHERE platform='app' AND metric='visitors'") == 1)
+
+        for _ in range(4):
+            await c.post("/api/stats/visit", json={}, headers={"user-agent": UA_APP})
+        check("satır sayısı ARTMIYOR (sayaç kurgusu)",
+              await db_scalar("SELECT COUNT(*) FROM daily_stats WHERE platform='app'") == 1)
+        check("sayaç 5'e çıktı", await db_scalar(
+            "SELECT count FROM daily_stats WHERE platform='app' AND metric='visitors'") == 5)
+
+        await c.post("/api/stats/visit", json={}, headers={"user-agent": UA_DESKTOP})
+        await c.post("/api/stats/visit", json={}, headers=hdr(mob_tok, UA_MOBILE))
+        check("her ortam kendi satırında",
+              await db_scalar("SELECT COUNT(*) FROM daily_stats") == 3)
+        # Eski (ziyaretçi başına satır yazan) tablo düşürülmüş olmalı.
+        # Tablo listesinin sorgulanışı iki motorda farklı.
+        async def _tablo_var(ad: str) -> bool:
+            from app.core.database import engine as _eng
+            if _eng.dialect.name == "postgresql":
+                sql = ("SELECT COUNT(*) FROM information_schema.tables "
+                       "WHERE table_name = :t")
+            else:
+                sql = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name = :t"
+            return (await db_scalar(sql, t=ad) or 0) > 0
+
+        check("eski ziyaretçi tablosu kaldırıldı", not await _tablo_var("daily_visits"))
+        check("sayaç tablosu duruyor", await _tablo_var("daily_stats"))
 
         # ---------------------------------------------------------------
         print("\n4) Admin özet — ortam kırılımı")
@@ -175,7 +192,56 @@ async def main() -> None:
               r.json()["platforms"]["verifications"]["app"] >= 1,
               str(r.json()["platforms"]["verifications"]))
 
+        print("\n   aralıklar: bugün / dün / bu hafta / bu ay")
+        from datetime import timedelta
+        dun = date.today() - timedelta(days=1)
+        # Dünün sayacına elle 7 yaz (yeni ziyaret yazmadan aralık toplanabilsin).
+        await db_exec(
+            "INSERT INTO daily_stats (stat_date, platform, metric, count) "
+            "VALUES (:d, 'app', 'visitors', 7)", d=dun)
+
+        r = await c.get("/api/admin/platform-stats?range=today", headers=hdr(admin_tok))
+        bugun = r.json()
+        check("bugün aralığı çalışıyor", bugun["visitors"]["app"] == 5, str(bugun["visitors"]))
+        check("aralık etiketi dönüyor", bugun["label"] == "Bugün", r.text[:150])
+        check("seçenek listesi dönüyor",
+              [x["key"] for x in bugun["ranges"]] == ["today", "yesterday", "week", "month"],
+              str(bugun.get("ranges")))
+
+        r = await c.get("/api/admin/platform-stats?range=yesterday", headers=hdr(admin_tok))
+        check("dün aralığı yalnız dünü sayıyor", r.json()["visitors"]["app"] == 7,
+              str(r.json()["visitors"]))
+        check("dün aralığında bugün YOK", r.json()["visitors"]["desktop"] == 0,
+              str(r.json()["visitors"]))
+
+        r = await c.get("/api/admin/platform-stats?range=month", headers=hdr(admin_tok))
+        ay = r.json()
+        # Dün ayın son günü değilse aynı aya düşer; ayın 1'iyse dün önceki aydadır.
+        beklenen = 12 if dun.month == date.today().month else 5
+        check("bu ay = günlük satırların TOPLAMI", ay["visitors"]["app"] == beklenen,
+              f"{ay['visitors']} (beklenen {beklenen})")
+
+        r = await c.get("/api/admin/platform-stats?range=week", headers=hdr(admin_tok))
+        hafta = r.json()
+        check("bu hafta pazartesiden başlıyor",
+              hafta["start"] == (date.today() - timedelta(days=date.today().weekday())).isoformat(),
+              hafta["start"])
+
+        r = await c.get("/api/admin/platform-stats?range=uydurma", headers=hdr(admin_tok))
+        check("bilinmeyen aralık bugüne düşüyor", r.json()["range"] == "today", r.text[:150])
+        r = await c.get("/api/admin/platform-stats", headers=hdr(mob_tok))
+        check("admin olmayan erişemiyor", r.status_code == 403, r.text[:120])
+
+        print("\n   yeni üye/doğrulama aralıkla KESİN hesaplanıyor")
+        r = await c.get("/api/admin/platform-stats?range=today", headers=hdr(admin_tok))
+        check("bugünkü yeni üyeler sayılıyor", r.json()["signups"]["app"] >= 1,
+              str(r.json()["signups"]))
+        r = await c.get("/api/admin/platform-stats?range=yesterday", headers=hdr(admin_tok))
+        check("dün yeni üye yok", r.json()["signups"]["total"] == 0, str(r.json()["signups"]))
+
         print("\n   mevcut özet alanları BOZULMADI")
+        # Araya aralık istekleri girdi — özeti yeniden çek.
+        r = await c.get("/api/admin/dashboard", headers=hdr(admin_tok))
         j = r.json()
         for k in ("total_users", "total_matches", "total_bots", "active_bots", "top_players", "live"):
             check(f"'{k}' hâlâ var", k in j, str(list(j.keys())))

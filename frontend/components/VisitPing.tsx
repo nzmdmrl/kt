@@ -3,39 +3,40 @@
 /**
  * Ziyaret sayacı — admin özet ekranındaki "bugün kaç ziyaretçi" sayıları için.
  *
- * Oturum başına BİR KEZ sunucuya küçük bir sinyal gönderir. Ortamı (mobil
- * uygulama / mobil tarayıcı / masaüstü) SUNUCU user agent'tan çıkarır; buradan
- * bir iddiada bulunulmaz.
+ * GÜNDE BİR KEZ sunucuya küçük bir sinyal gönderir; sunucu yalnızca sayacı
+ * bir artırır. Ortamı (mobil uygulama / mobil tarayıcı / masaüstü) SUNUCU
+ * user agent'tan çıkarır; buradan bir iddiada bulunulmaz.
  *
- * Girişsiz ziyaretçiyi saymak için tarayıcıda rastgele bir anahtar üretilir
- * (kt_visitor). Kimlik değil, yalnız "aynı kişi mi" ayrımı için — kişisel
- * hiçbir veri gönderilmez, sunucu da IP/user agent saklamaz.
+ * TEKİLLEŞTİRME BURADA
+ * --------------------
+ * Sunucu artık ziyaretçi başına satır tutmuyor (sayaca geçildi), bu yüzden
+ * "aynı kişiyi gün içinde bir kez say" işi cihaza taşındı: son gönderilen gün
+ * localStorage'da tutulur, aynı gün ikinci kez gönderilmez.
+ *
+ * Oturum yerine GÜN kullanılmasının sebebi: uygulamayı gün içinde beş kez açan
+ * kişi beş oturum açar ama tek ziyaretçidir.
+ *
+ * Kişisel hiçbir veri gönderilmez; sunucu da IP/user agent saklamaz.
  */
 
 import { useEffect } from "react";
 import { apiUrl } from "@/lib/api";
 
-const SESSION_FLAG = "kt_visit_sent";
-const VISITOR_KEY = "kt_visitor";
+/** En son hangi gün sinyal gönderildi (YYYY-AA-GG). */
+const DAY_KEY = "kt_visit_day";
 
-function visitorKey(): string {
-  try {
-    let k = localStorage.getItem(VISITOR_KEY);
-    if (!k) {
-      k = Math.random().toString(36).slice(2, 12) + Date.now().toString(36).slice(-4);
-      localStorage.setItem(VISITOR_KEY, k);
-    }
-    return k;
-  } catch {
-    return "";
-  }
+function today(): string {
+  const d = new Date();
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
 export default function VisitPing() {
   useEffect(() => {
+    const day = today();
     try {
-      if (sessionStorage.getItem(SESSION_FLAG)) return;
-      sessionStorage.setItem(SESSION_FLAG, "1");
+      if (localStorage.getItem(DAY_KEY) === day) return;   // bugün zaten sayıldı
+      localStorage.setItem(DAY_KEY, day);
     } catch { /* gizli sekme — yine de bir kez gönderilir */ }
 
     const token = (() => { try { return localStorage.getItem("kt_token"); } catch { return null; } })();
@@ -45,7 +46,7 @@ export default function VisitPing() {
         "Content-Type": "application/json",
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
-      body: JSON.stringify({ client_key: visitorKey() }),
+      body: JSON.stringify({}),
     }).catch(() => {});
   }, []);
 

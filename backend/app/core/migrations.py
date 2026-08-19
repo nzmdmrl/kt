@@ -477,6 +477,40 @@ DATA_MIGRATIONS: list[tuple[str, list[str]]] = [
         "OR google_sub IS NOT NULL OR play_games_id IS NOT NULL",
         "CREATE INDEX IF NOT EXISTS ix_users_signup_ip ON users (signup_ip)",
     ]),
+
+    # 17) Ziyaret kaydı SAYACA çevrildi.
+    #
+    #     ESKİ: daily_visits — ZİYARETÇİ BAŞINA bir satır (visit_date, platform,
+    #           visitor_key). Tablo ziyaretçi sayısıyla büyüyordu ve "bu ay kaç
+    #           ziyaretçi" sorusu on binlerce satır taramak demekti.
+    #     YENİ: daily_stats — gün + ortam + ölçü başına TEK satır, içinde sayı.
+    #
+    #     Mevcut veri KAYBOLMAZ: eski satırlar gün/ortam bazında toplanıp
+    #     sayaca yazılır, sonra eski tablo düşürülür.
+    #
+    #     SIRA VE DAYANIKLILIK:
+    #       a) daily_visits YOKSA (sıfırdan kurulan veritabanı) boş olarak
+    #          oluşturulur — böylece aşağıdaki SELECT her iki durumda da çalışır,
+    #       b) toplama ON CONFLICT DO NOTHING ile yazılır; migration bir şekilde
+    #          yarıda kalıp tekrar denenirse sayılar İKİ KEZ eklenmez,
+    #       c) eski tablo düşürülür.
+    ("2026_08_daily_visits_to_counter", [
+        # (a) yoksa oluştur — iki motorda da geçerli en sade tanım.
+        "CREATE TABLE IF NOT EXISTS daily_visits ("
+        " id INTEGER PRIMARY KEY, visit_date DATE, platform VARCHAR(10),"
+        " visitor_key VARCHAR(48))"
+        if not _IS_PG else
+        "CREATE TABLE IF NOT EXISTS daily_visits ("
+        " id SERIAL PRIMARY KEY, visit_date DATE, platform VARCHAR(10),"
+        " visitor_key VARCHAR(48))",
+        # (b) gün+ortam bazında topla ve sayaca aktar.
+        "INSERT INTO daily_stats (stat_date, platform, metric, count) "
+        "SELECT visit_date, platform, 'visitors', COUNT(*) "
+        "FROM daily_visits GROUP BY visit_date, platform "
+        "ON CONFLICT DO NOTHING",
+        # (c) eski tabloya artık yazılmıyor.
+        "DROP TABLE IF EXISTS daily_visits",
+    ]),
 ]
 
 

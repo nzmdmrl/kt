@@ -80,40 +80,12 @@ async def dashboard(admin: User = Depends(get_admin_user), db: AsyncSession = De
         .where(ArenaHistory.created_at >= day_start)
     )).scalar_one() or 0
 
-    # --- Ortama göre bugünün sayıları (mobil uygulama / mobil tarayıcı / masaüstü)
-    # ziyaretçi   : daily_visits tablosundaki tekil kayıtlar (app/api/routes/stats.py)
-    # yeni üye    : bugün açılan hesaplar, açıldığı ortama göre
-    # doğrulama   : bugün e-posta+şifre eklenen hesaplar, doğrulandığı ortama göre
-    from app.models.daily_visit import DailyVisit
-    from datetime import date as _date
-    today = _date.today()
-
-    async def _by_platform(stmt_builder) -> dict:
-        out = {"app": 0, "mobile": 0, "desktop": 0}
-        try:
-            for platform, n in (await db.execute(stmt_builder())).all():
-                if platform in out:
-                    out[platform] = int(n or 0)
-        except Exception as e:
-            print(f"[admin özet] ortam sayımı atlandı: {type(e).__name__}: {e}")
-        out["total"] = out["app"] + out["mobile"] + out["desktop"]
-        return out
-
-    visitors = await _by_platform(lambda: (
-        select(DailyVisit.platform, func.count(DailyVisit.id))
-        .where(DailyVisit.visit_date == today)
-        .group_by(DailyVisit.platform)
-    ))
-    signups = await _by_platform(lambda: (
-        select(User.signup_platform, func.count(User.id))
-        .where(User.created_at >= day_start)
-        .group_by(User.signup_platform)
-    ))
-    verifications = await _by_platform(lambda: (
-        select(User.verified_platform, func.count(User.id))
-        .where(User.verified_at >= day_start)
-        .group_by(User.verified_platform)
-    ))
+    # --- Ortama göre BUGÜNÜN sayıları.
+    # Hesap tek yerde: app/game/platform_stats.py. Aralıklı sürümü ayrı uçta
+    # (/admin/platform-stats?range=...); burası geriye dönük uyumluluk için
+    # "bugün"ü döndürmeye devam eder.
+    from app.game.platform_stats import platform_stats as _pstats
+    _today_stats = await _pstats(db, "today")
 
     return {
         "total_users": total_users,
@@ -123,9 +95,9 @@ async def dashboard(admin: User = Depends(get_admin_user), db: AsyncSession = De
         "top_players": [{"username": u.username, "elo": u.elo, "wins": u.wins} for u in top],
         # Ortam kırılımı — mevcut alanların YANINA eklendi, hiçbiri değişmedi.
         "platforms": {
-            "visitors": visitors,
-            "signups": signups,
-            "verifications": verifications,
+            "visitors": _today_stats["visitors"],
+            "signups": _today_stats["signups"],
+            "verifications": _today_stats["verifications"],
         },
         "live": {
             "online": pc["online"],
@@ -136,6 +108,26 @@ async def dashboard(admin: User = Depends(get_admin_user), db: AsyncSession = De
             "arena_today": round(float(arena_today)),
         },
     }
+
+
+@router.get("/platform-stats")
+async def get_platform_stats(
+    range: str = Query("today", max_length=12),
+    admin: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Ortam kırılımlı sayılar — seçilen aralık için.
+
+    range: today | yesterday | week | month
+
+    YENİ VERİ YAZILMAZ. Ziyaretçi sayısı, `daily_stats` tablosundaki GÜNLÜK
+    sayaç satırlarının toplamıdır; yeni üye ve doğrulama `users` tablosundan
+    tarih aralığıyla hesaplanır. Ayrıntı: app/game/platform_stats.py.
+    """
+    from app.game.platform_stats import platform_stats, RANGES, RANGE_LABELS
+    data = await platform_stats(db, range)
+    data["ranges"] = [{"key": k, "label": RANGE_LABELS[k]} for k in RANGES]
+    return data
 
 
 @router.get("/titles")

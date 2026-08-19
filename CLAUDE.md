@@ -430,6 +430,36 @@ Aynı kod hem sitede hem uygulamada çalışır (uygulama web içeriğini canlı
   NOT: testlerde lig ucu `/api/league/leaderboard` — `/api/league` 404 döner
   (Aşama 4 testindeki bir kontrol bu yüzden boşa geçiyordu, düzeltildi).
 
+
+**Ara iş 3 (ziyaret sayacı + aralıklar) — TAMAM:**
+- **Ziyaret kaydı SAYACA çevrildi.** Eski `daily_visits` ZİYARETÇİ BAŞINA satır
+  yazıyordu (visit_date, platform, visitor_key) — tablo ziyaretçi sayısıyla
+  büyüyordu. Yeni `daily_stats` gün + ortam + ölçü başına TEK satır tutar
+  (`app/models/daily_stat.py`). Günde en fazla 3 satır oluşur.
+- **Mevcut veri korunarak taşındı**: migration 17
+  (`2026_08_daily_visits_to_counter`) eski satırları gün/ortam bazında toplayıp
+  sayaca yazar, sonra eski tabloyu düşürür. `ON CONFLICT DO NOTHING` sayesinde
+  tekrar çalışsa da sayılar iki katlanmaz. Gerçek Postgres'te veriyle sınandı.
+- **Tekilleştirme cihaza taşındı**: `VisitPing.tsx` artık oturum başına değil
+  GÜNDE BİR KEZ sinyal gönderir (localStorage'da tarih damgası). Sunucuda
+  kimlik tutulmuyor; IP/user agent hâlâ SAKLANMIYOR.
+- **Aralıklar**: `GET /admin/platform-stats?range=today|yesterday|week|month`
+  (`app/game/platform_stats.py`). YENİ VERİ YAZMAZ:
+  ziyaretçi = aralıktaki GÜNLÜK sayaç satırlarının toplamı,
+  yeni üye/doğrulama = `users` tablosundan tarih aralığıyla KESİN hesap.
+  "Bu hafta" pazartesiden bugüne, "bu ay" ayın 1'inden bugüne.
+- Arayüz: 📊 Özet'te tablonun üstünde aralık seçici; tablo aynı (3 ortam ×
+  ziyaretçi/yeni üye/doğrulama). Altında "ziyaretçi = günlük tekil toplamı"
+  açıklaması. `/admin/dashboard` yanıtındaki `platforms` (bugün) DURUYOR.
+- **Kilitlenme notu**: sayaç `INSERT ... ON CONFLICT DO UPDATE count = count+1`
+  tek cümledir; PostgreSQL satır kilidini yalnız o cümle boyunca tutar. Aynı
+  gün+ortam satırına yazan istekler sıraya girer ("hot row"). Bugünkü hacimde
+  (günde birkaç bin yazım) görünmez; saniyede yüzlerce yazıma çıkılırsa
+  çözümler: satırı N parçaya bölmek (okurken toplamak), bellekte biriktirip
+  periyodik yazmak ya da Redis INCR + periyodik aktarım.
+- Testler: `hesap_silme_ve_uye_yonetimi_senaryo.py` 110 senaryoya çıktı
+  (sayaç kurgusu + dört aralık), `frontend/tests/hesap_silme_ve_panel.mjs` 49.
+
 - SONRAKİ AŞAMA: 5) mobilden Google/Play Games düğmelerinin sökülmesi.
 
 ### Misafir (üye olmayan ziyaretçi) erişimi
