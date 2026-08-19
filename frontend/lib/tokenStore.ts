@@ -28,7 +28,7 @@
  *
  * EKLENTİYE ERİŞİM: @capacitor/preferences paketi frontend'e KURULMAZ. Eklenti
  * native tarafta zaten var (mobile/package.json + capacitor.plugins.json), biz
- * de köprüdeki proxy'yi lib/playGames.ts'teki yöntemle kendimiz kuruyoruz:
+ * de köprüdeki proxy'yi registerPlugin ile kendimiz kuruyoruz:
  * registerPlugin("Preferences"). İsim, native tarafta kayıtlı adla aynıdır.
  * Tarayıcıda bu kod hiç çalışmaz — önce detectPlatform() kontrol edilir.
  */

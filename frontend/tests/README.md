@@ -51,6 +51,10 @@ docker run --rm --network host -v "$PWD/tests":/w -w /w \
   admin panelinde üye pasife alma/geri alma, cihaz simgeleri, durum süzgeçleri
   ve "Bugün — Ortama Göre" tablosu.
   ÖN KOŞUL: `isim_kontrol_paneli.mjs` ile aynı kurulum (admin hesabı + işaretli isim).
+- `mobil_google_yok.mjs` — Aşama 5 kanıtı: uygulama kullanıcı ajanıyla (KelimeApp/)
+  açılan sayfada Google KİMLİK trafiği olmadığını, Google/Play Games düğmesinin
+  çizilmediğini ve indirilen JS paketlerinde capgo/PlayGames izi kalmadığını
+  doğrular. (fonts.googleapis.com yazı tipi isteği ayrı raporlanır — kimlik değil.)
 - `isim_kontrol_paneli.mjs` — admin panelindeki 🔎 İsim Kontrol ve ⚡ Hızlı Giriş
   sekmeleri: işaretlenen isimlerin listelenmesi, temiz/pasife al/IP gölge ban
   işlemleri, ayarların kaydedilmesi ve eski sekmelerin bozulmadığı.

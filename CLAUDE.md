@@ -512,7 +512,49 @@ Aynı kod hem sitede hem uygulamada çalışır (uygulama web içeriğini canlı
 - Testler: `backend/tests/rezerve_adlar_senaryo.py` (90 senaryo, SQLite +
   PostgreSQL), tarayıcı paketi 62 senaryoya çıktı.
 
-- SONRAKİ AŞAMA: 5) mobilden Google/Play Games düğmelerinin sökülmesi.
+**Aşama 5 (mobil temizlik) — TAMAM. Hızlı Giriş projesi bitti.**
+İki adımda yapıldı (önce JS, doğrulandı; sonra native, doğrulandı).
+
+*Arayüz / JS:*
+- `lib/nativeGoogle.ts`, `lib/playGames.ts`, `components/PlayGamesAuth.tsx`,
+  `lib/debugLastError.ts` ve (artıksız kalan) `lib/guestAccess.ts` SİLİNDİ.
+- `GoogleSignIn.tsx` artık YALNIZ WEB: uygulamada `isNative` ise hiç çizilmez.
+  `/giris` → `googleAvailable = platformReady && !isNative && googleConfigured`.
+- `lib/auth.tsx`: `loginGoogleNative`, `playGamesSilent/Complete/Link` ve
+  çıkıştaki native Google oturum bırakma adımı kalktı. `loginGoogle` (web) DURUYOR.
+- `/menu` teşhis kutusundan Google/SocialLogin/PlayGames satırları ve
+  "signIn dene" düğmesi çıktı; yerine `Preferences (jeton deposu): VAR/YOK`
+  satırı kondu (kritik olan o).
+- Ölü misafir kodu: `ArenaGame` + `MatchGame` (`isGuest` teşvik kartları),
+  `useArena` (gid+ad ile bağlanma yolu).
+
+*Native:*
+- `PlayGamesPlugin.java` SİLİNDİ; `MainActivity` sade `BridgeActivity` oldu.
+- `play-services-games-v2` bağımlılığı ve `playServicesGamesVersion` kalktı.
+- Manifest'ten `com.google.android.gms.games.APP_ID`, strings.xml'den
+  `game_services_project_id` kalktı.
+- `@capgo/capacitor-social-login` hem `mobile/package.json` hem
+  `frontend/package.json` içinden kalktı; `capacitor.config.ts`'teki
+  `SocialLogin` bloğu ve üretilmiş gradle/asset kayıtları temizlendi.
+- `androidx.browser` force bloğu KALDI ama gerekçesi güncellendi: artık capgo
+  için değil, compileSdk 35 tavanı için bir emniyet.
+- versionCode 8→9, versionName 1.7→1.8.
+
+*Dokunulmayanlar (tek tek doğrulandı):* AdMob (bağımlılık + manifest
+APPLICATION_ID + admob_app_id), Firebase Messaging (push-notifications eklentisi
++ google-services plugin), POST_NOTIFICATIONS izni, **Capacitor Preferences**
+(jeton deposu — `native_test.mjs` ile çalıştığı kanıtlandı), app/browser/share/
+splash-screen/status-bar/speech-recognition. Backend'e HİÇ dokunulmadı
+(Google ve Play Games uçları duruyor, sitede Google girişi çalışıyor).
+
+*Not:* `google-services.json` repoda YOK (`.gitignore:32`), yalnız Mac'te
+duruyor — bu yüzden değişmesi mümkün değil.
+
+*Kalan tek Google isteği:* `fonts.googleapis.com` (yazı tipi). Kimlik/giriş
+değil; istenirse yazı tipleri self-host edilerek o da kaldırılabilir.
+
+- Testler: `frontend/tests/mobil_google_yok.mjs` (7 senaryo) + mevcut tarayıcı
+  paketleri (62 / 50 / 31 / 9) — hepsi 0 hata.
 
 ### Misafir (üye olmayan ziyaretçi) erişimi
 - **1v1**: misafir oynayabilir. Maç kaydedilir ama misafir adı gizli → "Misafir" olarak yazılır.

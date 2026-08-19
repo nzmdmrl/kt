@@ -8,7 +8,6 @@ import { getThemeMode, setThemeMode, effectiveTheme } from "@/lib/theme";
 import { isSoundEnabled, setSoundEnabled } from "@/lib/sound";
 import { usePlatform } from "@/lib/platform";
 import { useAppConfig, type FlagsConfig } from "@/lib/appConfig";
-import { readDebugError, clearDebugError, type DebugError } from "@/lib/debugLastError";
 import { apiUrl } from "@/lib/api";
 
 // Menü — ayar odaklı. Mod butonları ana sayfada olduğu için burada YOK.
@@ -219,25 +218,22 @@ function readTokenLines(): string[] {
 }
 
 /**
- * Ortam raporu: butonun HANGİ yolu seçtiğini ve eklentinin köprüde gerçekten
- * kayıtlı olup olmadığını söyler.
+ * Ortam raporu — Capacitor köprüsünün gerçekten kurulu olup olmadığını söyler.
  *
- * Neden gerekli: telefon hiç /api/auth/google/native'e ulaşmıyor, yalnızca
- * /api/auth/google/status görünüyor. O ucu HEM giriş sayfası HEM de web
- * butonu çağırdığı için sunucu günlüğünden hangi yolun seçildiği anlaşılmıyor.
- * Aşağıdaki satırlar bunu cihazda kesinleştirir.
+ * Aşama 5'te Google ve Play Games satırları KALDIRILDI: mobilden Google
+ * tamamen söküldü (native eklenti, Play Games kütüphanesi, manifest kayıtları),
+ * artık raporlanacak bir şey yok. Geriye kalanlar oturum jetonu teşhisi için.
  */
 async function readEnvLines(
   platform: string,
   isNative: boolean,
   ready: boolean,
-  clientId: string,
 ): Promise<string[]> {
   const out: string[] = [];
   out.push(`platform: ${platform} · isNative: ${isNative} · ready: ${ready}`);
 
   // detectPlatform'un baktığı İKİ ham işaret ayrı ayrı gösterilir; biri tutup
-  // diğeri tutmuyorsa sorun tespitte, eklentide değildir.
+  // diğeri tutmuyorsa sorun tespitte, köprüde değildir.
   let ua = "";
   try {
     ua = navigator.userAgent || "";
@@ -255,97 +251,12 @@ async function readEnvLines(
   } catch {}
   out.push(`Capacitor köprüsü: ${bridge}`);
 
-  // ---- eklenti gerçekten pakete girmiş ve köprüye kayıtlı mı? ----
-  // Play sürümü eklenti eklenmeden ÖNCE üretilmişse burası "YOK" der ve
-  // aranan cevap budur.
-  let registered = "?";
+  // Jeton depolaması KRİTİK: doğrulanmamış hesabın tek dayanağı bu eklenti.
+  let prefs = "?";
   try {
-    const p = (window as any).Capacitor?.Plugins?.SocialLogin;
-    registered = p ? "VAR" : "YOK";
+    prefs = (window as any).Capacitor?.Plugins?.Preferences ? "VAR" : "YOK";
   } catch {}
-  let available = "?";
-  try {
-    const { Capacitor } = await import("@capacitor/core");
-    available = String(Capacitor.isPluginAvailable("SocialLogin"));
-  } catch (e: any) {
-    available = `(@capacitor/core yüklenemedi: ${e?.message ?? e})`;
-  }
-  out.push(`SocialLogin köprüde: ${registered} · isPluginAvailable: ${available}`);
-
-  // JS tarafı (chunk) inebiliyor mu — ağ/paket sorunu ile native kayıt sorununu ayırır.
-  let mod = "?";
-  try {
-    const m = await import("@capgo/capacitor-social-login");
-    mod = m?.SocialLogin ? "yüklendi" : "yüklendi ama SocialLogin dışa aktarılmamış";
-  } catch (e: any) {
-    mod = `YÜKLENEMEDİ: ${e?.message ?? e}`;
-  }
-  out.push(`SocialLogin JS modülü: ${mod}`);
-
-  // ---- Play Games (sessiz giriş) ----
-  // DİKKAT: bizim eklentimizin npm paketi YOK, bu yüzden köprüdeki hazır
-  // Capacitor.Plugins listesinde GÖRÜNMEZ — orası npm eklentileriyle dolar.
-  // Doğru soru isPluginAvailable ve registerPlugin ile kurulan proxy'dir
-  // (frontend/lib/playGames.ts). İlk hatanın sebebi tam olarak buydu.
-  let pgBridge = "?";
-  try {
-    pgBridge = (window as any).Capacitor?.Plugins?.PlayGames ? "VAR" : "YOK (normal)";
-  } catch {}
-  let pgAvailable = "?";
-  try {
-    const { Capacitor } = await import("@capacitor/core");
-    pgAvailable = String(Capacitor.isPluginAvailable("PlayGames"));
-  } catch (e: any) {
-    pgAvailable = `(@capacitor/core yüklenemedi: ${e?.message ?? e})`;
-  }
-  out.push(`PlayGames köprüde: ${pgBridge} · isPluginAvailable: ${pgAvailable}`);
-
-  try {
-    const { playGamesPlugin } = await import("@/lib/playGames");
-    const { pg, how } = await playGamesPlugin();
-    out.push(`PlayGames proxy: ${pg ? "kuruldu" : "YOK"} (${how})`);
-    if (pg) {
-      try {
-        const auth = await pg.isAuthenticated();
-        out.push(`PlayGames oturum: ${auth?.authenticated ? "AÇIK" : "kapalı"}`);
-      } catch (e: any) {
-        out.push(`PlayGames oturum sorgusu HATA: ${e?.message ?? e}`);
-      }
-    }
-  } catch (e: any) {
-    out.push(`PlayGames modülü yüklenemedi: ${e?.message ?? e}`);
-  }
-
-  try {
-    const res = await fetch(apiUrl("/api/auth/play-games/status"), { cache: "no-store" });
-    const j = await res.json().catch(() => ({}));
-    out.push(`PlayGames sunucu: ${res.status} · configured=${j?.configured} · id=${String(j?.client_id || "").slice(0, 12)}…`);
-  } catch (e: any) {
-    out.push(`PlayGames sunucu: ULAŞILAMADI (${e?.message ?? e})`);
-  }
-
-  try {
-    const { readTrace } = await import("@/lib/playGames");
-    const t = readTrace();
-    out.push(
-      t
-        ? `PlayGames son adım: ${t.step}${t.detail ? " — " + t.detail : ""} (${fmtTime(t.at)})`
-        : "PlayGames son adım: (hiç çalışmadı)"
-    );
-  } catch {}
-
-  // ---- buton hangi yolu seçer (GoogleSignIn.tsx ile AYNI mantık) ----
-  const path = !ready
-    ? "(platform henüz belli değil)"
-    : isNative
-      ? clientId
-        ? "NATIVE eklenti"
-        : "ÇİZİLMİYOR — client id boş"
-      : "WEB (Google Identity Services)";
-  out.push(`Google butonu yolu: ${path}`);
-  out.push(
-    `client id: ${clientId ? `${clientId.slice(0, 14)}… (${clientId.length} krkt)` : "BOŞ"}`,
-  );
+  out.push(`Preferences (jeton deposu): ${prefs}`);
 
   return out;
 }
@@ -356,12 +267,10 @@ function TokenDebug() {
   const [lines, setLines] = useState<string[] | null>(null);
   const [envLines, setEnvLines] = useState<string[]>([]);
   const [version, setVersion] = useState("okunuyor…");
-  const [lastErr, setLastErr] = useState<DebugError | null>(null);
-  // Artınca ortam raporu yeniden okunur ("yenile" / "signIn dene" düğmeleri).
+  // Artınca ortam raporu yeniden okunur ("yenile" düğmesi).
   const [nonce, setNonce] = useState(0);
 
   const flags: FlagsConfig = (config?.["app.flags"] as FlagsConfig) || {};
-  const clientId = (flags.google_web_client_id || "").trim();
   const enabled = ready && isNative && flags.debug_panel === true;
 
   // localStorage effect'te okunur: sunucu ve istemcinin ilk boyaması aynı kalsın.
@@ -371,7 +280,6 @@ function TokenDebug() {
       return;
     }
     setLines(readTokenLines());
-    setLastErr(readDebugError());
   }, [enabled]);
 
   // Sürüm adı manifest'ten gelir; WebView okuyamaz, native eklenti okur.
@@ -400,7 +308,7 @@ function TokenDebug() {
       return;
     }
     let alive = true;
-    readEnvLines(platform, isNative, ready, clientId)
+    readEnvLines(platform, isNative, ready)
       .then((l) => {
         if (alive) setEnvLines(l);
       })
@@ -410,7 +318,7 @@ function TokenDebug() {
     return () => {
       alive = false;
     };
-  }, [enabled, platform, isNative, ready, clientId, nonce]);
+  }, [enabled, platform, isNative, ready, nonce]);
 
   if (!enabled || !lines) return null;
 
@@ -446,33 +354,6 @@ function TokenDebug() {
         <button onClick={() => setNonce((n) => n + 1)} style={dbgBtn}>
           yenile
         </button>
-        {/* Uygulamayı kapatıp açmadan Play Games girişini elle tetikler.
-            playGamesSilentCode'daki "bir kez" kilidini AŞAR — teşhis içindir. */}
-        <button
-          onClick={async () => {
-            try {
-              const { playGamesPlugin, recordTrace } = await import("@/lib/playGames");
-              const { pg } = await playGamesPlugin();
-              if (!pg) { recordTrace("elle signIn", "eklenti yok"); setNonce((n) => n + 1); return; }
-              recordTrace("elle signIn", "deneniyor");
-              const res = await pg.signIn();
-              // HAM yanıt: eklenti başarısızlıkta da teşhis alanları döndürüyor
-              // (taskSuccessful / statusCode / statusName / probe). Kırpmadan yaz.
-              recordTrace(
-                `elle signIn sonucu authenticated=${res?.authenticated === true}`,
-                JSON.stringify(res ?? null).slice(0, 600),
-              );
-            } catch (e: any) {
-              const { recordTrace } = await import("@/lib/playGames");
-              recordTrace("elle signIn HATASI", `[${e?.code ?? ""}] ${String(e?.message ?? e).slice(0, 250)}`);
-            } finally {
-              setNonce((n) => n + 1);
-            }
-          }}
-          style={dbgBtn}
-        >
-          Play Games: signIn dene
-        </button>
       </div>
 
       <div style={{ borderTop: "1px dashed var(--border-soft)", margin: "8px 0 6px" }} />
@@ -480,40 +361,6 @@ function TokenDebug() {
         <div key={i}>{l}</div>
       ))}
 
-      <div style={{ borderTop: "1px dashed var(--border-soft)", margin: "8px 0 6px" }} />
-
-      {lastErr ? (
-        <>
-          <div style={{ fontWeight: 700 }}>
-            son giriş hatası · {fmtTime(lastErr.at)} · aşama: {lastErr.stage}
-          </div>
-          {lastErr.code && <div>kod: {lastErr.code}</div>}
-          {lastErr.name && <div>tür: {lastErr.name}</div>}
-          <div style={{ color: "var(--accent-hot)" }}>{lastErr.message || "(mesaj boş)"}</div>
-          {lastErr.extra && <div>ek: {lastErr.extra}</div>}
-          <button
-            onClick={() => {
-              clearDebugError();
-              setLastErr(null);
-            }}
-            style={{
-              marginTop: 6,
-              padding: "3px 8px",
-              fontSize: 10,
-              fontFamily: "inherit",
-              borderRadius: 6,
-              border: "1px solid var(--border-soft)",
-              background: "var(--bg-elevated)",
-              color: "var(--text-dim)",
-              cursor: "pointer",
-            }}
-          >
-            temizle
-          </button>
-        </>
-      ) : (
-        <div>son giriş hatası: yok</div>
-      )}
     </div>
   );
 }

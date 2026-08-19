@@ -26,7 +26,6 @@ export default function MatchGame({
   botId,
   onRematch,
   onLeave,
-  isGuest,
   invitable,
   adMode = "duello",
 }: {
@@ -39,7 +38,6 @@ export default function MatchGame({
   botId?: number;
   onRematch?: () => void;
   onLeave?: () => void;   // rakip beklerken "Geri" (oda kur/katıl akışı)
-  isGuest?: boolean;
   invitable?: boolean;    // özel oda: beklerken davet paneli (link + sosyal + arkadaşlar)
   /** Geçiş reklamı mod anahtarı: pratik (bota karşı) / oda (özel oda) / duello. */
   adMode?: AdMode;
@@ -506,31 +504,9 @@ export default function MatchGame({
           <div style={{ fontSize: 12, color: "var(--text-dim)" }}>kelimetahmin.com</div>
         </div>
 
-        {/* Kazanımlar: ELO / XP / rozet — sırayla, sayaç + seslerle (sadece üyeler) */}
-        {!isGuest && <MatchRewards rewards={rewards} />}
+        {/* Kazanımlar: ELO / XP / rozet — sırayla, sayaç + seslerle */}
+        <MatchRewards rewards={rewards} />
         <TitleCelebration title={celebrateTitle} onClose={() => setCelebrateTitle(null)} />
-
-        {/* Misafir teşviki: üye olursa kazanımları profilinde toplar */}
-        {isGuest && (
-          <div style={{
-            marginTop: 6, padding: "18px 18px", borderRadius: 14,
-            background: "linear-gradient(135deg, rgba(224,148,10,.15), rgba(196,74,126,.12))",
-            border: "1px solid var(--accent)", textAlign: "center",
-          }}>
-            <div style={{ fontSize: 28, marginBottom: 6 }}>🎁</div>
-            <div style={{ fontWeight: 800, color: "var(--text-strong)", fontSize: 16, marginBottom: 4 }}>
-              Kazanımların kaybolmasın!
-            </div>
-            <div style={{ color: "var(--text-soft)", fontSize: 14, lineHeight: 1.5, marginBottom: 14 }}>
-              Üye olarak ELO, XP, rozet ve unvanlarını profilinde topla; sıralamalarda yer al ve arkadaşlarınla oyna.
-            </div>
-            <a href="/giris" style={{
-              display: "inline-block", padding: "12px 28px", borderRadius: 11, border: "none",
-              background: "var(--accent)", color: "#1a1330", fontWeight: 800, fontSize: 15,
-              textDecoration: "none",
-            }}>Ücretsiz Üye Ol →</a>
-          </div>
-        )}
 
         {/* Butonlar: Rövanş + Yeni Rakip */}
         <div style={{ display: "grid", gap: 10 }}>

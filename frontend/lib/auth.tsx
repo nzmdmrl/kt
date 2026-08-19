@@ -2,7 +2,6 @@
 
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { apiUrl } from "./api";
-import { detectPlatform } from "./platform";
 import {
   TOKEN_KEY, readTokenSync, restoreToken, saveToken, clearToken,
   rememberAccount, forgetLastAccount, type LastAccount,
@@ -52,25 +51,12 @@ type AuthContextType = {
     captchaToken?: string | null
   ) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
-  /** Web akışı — Google Identity Services butonundan gelen id_token. */
+  /**
+   * Google ile giriş — YALNIZCA TARAYICIDA (Google Identity Services).
+   * Uygulamada Google tamamen söküldü (Aşama 5); orada giriş yolu "Hızlı Giriş"
+   * ve e-posta/şifredir. Sunucu ucu (/api/auth/google) sitede çalışmaya devam eder.
+   */
   loginGoogle: (idToken: string) => Promise<void>;
-  /**
-   * Uygulama akışı — cihazın native hesap seçicisinden gelen id_token.
-   * Yanıt web akışıyla BİREBİR aynıdır ({token, user}), aynı applyAuth'tan geçer;
-   * token değişince NativeBootstrap bekleyen push token'ını yeniden kaydeder.
-   */
-  loginGoogleNative: (idToken: string) => Promise<void>;
-  /**
-   * Play Games SESSİZ girişi (uygulama açılışı). İki sonuçtan biri döner:
-   *  - "signed-in": oturum açıldı, iş bitti,
-   *  - "new": bu kimlik yeni — HESAP AÇILMADI, isim ekranı gösterilmeli.
-   * Ayrıntı: backend/app/api/routes/auth.py → play_games_login.
-   */
-  playGamesSilent: (serverAuthCode: string) => Promise<PlayGamesSilentResult>;
-  /** İsim ekranı — hesap burada açılır. */
-  playGamesComplete: (pendingToken: string, name: string) => Promise<void>;
-  /** "Zaten hesabım var" — kimliği ŞU AN girişli hesaba bağlar. */
-  playGamesLink: (pendingToken: string) => Promise<void>;
   /** Hızlı Giriş — sadece isimle hesap açar, oturumu hemen başlatır. */
   quickSignup: (name: string) => Promise<void>;
   /**
@@ -103,10 +89,6 @@ export type VerifyResult =
 export type TransferSummary = {
   xp_added: number; matches_added: number; from_username: string; to_username: string;
 };
-
-export type PlayGamesSilentResult =
-  | { status: "signed-in" }
-  | { status: "new"; pendingToken: string; suggestedName: string | null };
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
@@ -262,87 +244,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [applyAuth]
   );
 
-  // Web ve uygulama akışı aynı gövdeyi gönderir, aynı yanıtı alır; tek fark uç.
-  const postGoogleToken = useCallback(
-    async (path: string, idToken: string) => {
-      const res = await fetch(apiUrl(path), {
+  const loginGoogle = useCallback(
+    async (idToken: string) => {
+      const res = await fetch(apiUrl("/api/auth/google"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id_token: idToken }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.detail || "Google girişi başarısız");
-      applyAuth(data);
-    },
-    [applyAuth]
-  );
-
-  const loginGoogle = useCallback(
-    (idToken: string) => postGoogleToken("/api/auth/google", idToken),
-    [postGoogleToken]
-  );
-
-  const loginGoogleNative = useCallback(
-    (idToken: string) => postGoogleToken("/api/auth/google/native", idToken),
-    [postGoogleToken]
-  );
-
-  // --- Play Games ---------------------------------------------------------
-  // Üç uç da aynı applyAuth'tan geçer; oturum jetonu bu dosyanın dışına çıkmaz.
-  const playGamesSilent = useCallback(
-    async (serverAuthCode: string): Promise<PlayGamesSilentResult> => {
-      const saved = readTokenSync();
-      const res = await fetch(apiUrl("/api/auth/play-games"), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          // Kişi zaten girişliyse kimlik O hesaba bağlanır (yeni hesap açılmaz).
-          ...(saved ? { Authorization: `Bearer ${saved}` } : {}),
-        },
-        body: JSON.stringify({ server_auth_code: serverAuthCode }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.detail || "Play Games girişi başarısız");
-      if (data.new_account) {
-        return {
-          status: "new",
-          pendingToken: String(data.pending_token || ""),
-          suggestedName: data.suggested_name || null,
-        };
-      }
-      applyAuth(data);
-      return { status: "signed-in" };
-    },
-    [applyAuth]
-  );
-
-  const playGamesComplete = useCallback(
-    async (pendingToken: string, name: string) => {
-      const res = await fetch(apiUrl("/api/auth/play-games/complete"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pending_token: pendingToken, name }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.detail || "Hesap oluşturulamadı");
-      applyAuth(data);
-    },
-    [applyAuth]
-  );
-
-  const playGamesLink = useCallback(
-    async (pendingToken: string) => {
-      // Bu çağrı e-posta girişinin HEMEN ardından yapılır; jeton state'e daha
-      // yansımamış olabilir, bu yüzden localStorage'dan okunur.
-      const saved = readTokenSync();
-      if (!saved) throw new Error("Önce giriş yapmalısın");
-      const res = await fetch(apiUrl("/api/auth/play-games/link"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${saved}` },
-        body: JSON.stringify({ pending_token: pendingToken }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.detail || "Play Games hesabı bağlanamadı");
       applyAuth(data);
     },
     [applyAuth]
@@ -395,7 +305,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const transferAccount = useCallback(
     async (transferToken: string): Promise<TransferSummary> => {
       // Bu çağrı e-posta girişinin HEMEN ardından yapılır; jeton state'e daha
-      // yansımamış olabilir, bu yüzden depodan okunur (playGamesLink ile aynı sebep).
+      // yansımamış olabilir, bu yüzden depodan okunur.
       const saved = readTokenSync();
       if (!saved) throw new Error("Önce giriş yapmalısın");
       const res = await fetch(apiUrl("/api/auth/transfer"), {
@@ -455,21 +365,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setToken(null);
     setUser(null);
 
-    // 2) UYGULAMADA ayrıca cihazın Google oturumu bırakılır. Yoksa Credential
-    //    Manager son hesabı hatırlar ve bir dahaki "Google ile giriş"te seçici
-    //    soru sormadan aynı hesaptan devam edebilir. Ateşle-unut: sonucu
-    //    beklenmez, hatası yutulur (ayrıntı için lib/nativeGoogle.ts).
-    //    Web'de eklenti CHUNK'I BİLE indirilmez — önce platform kontrol edilir.
-    if (detectPlatform() !== "web") {
-      void import("./nativeGoogle").then((m) => m.nativeGoogleSignOut()).catch(() => {});
-    }
+    // NOT: eskiden burada cihazın Google oturumu da bırakılırdı. Aşama 5'te
+    // mobilden Google tamamen söküldüğü için o adım kalktı — uygulamada
+    // bırakılacak bir Google oturumu yok.
   }, [user]);
 
   return (
     <AuthContext.Provider
       value={{
-        user, token, loading, register, login, loginGoogle, loginGoogleNative,
-        playGamesSilent, playGamesComplete, playGamesLink,
+        user, token, loading, register, login, loginGoogle,
         quickSignup, verifyAccount, transferAccount, refreshUser,
         continueAsLast, logout,
       }}

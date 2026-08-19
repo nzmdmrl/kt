@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { API_BASE } from "./api";
-import { guestId } from "./guestAccess";
 
 function wsBase(): string {
   if (API_BASE) return API_BASE.replace(/^http/, "ws");
@@ -70,7 +69,7 @@ const initialState: ArenaState = {
   error: null,
 };
 
-export function useArena(enabled: boolean, customCode?: string, guestName?: string) {
+export function useArena(enabled: boolean, customCode?: string) {
   const [state, setState] = useState<ArenaState>(initialState);
   const [connected, setConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
@@ -78,13 +77,11 @@ export function useArena(enabled: boolean, customCode?: string, guestName?: stri
   useEffect(() => {
     if (!enabled) return;
     const token = typeof window !== "undefined" ? localStorage.getItem("kt_token") : null;
-    // Üye: token ile. Misafir: gid + ad ile (admin ayarı açıksa sunucu kabul eder).
-    if (!token && !guestName) return;
+    // Yalnız üye bağlanır. Misafirlik Aşama 2'de kalktı (herkesin hesabı var),
+    // ölü kalan gid+ad yolu da Aşama 5 temizliğinde silindi.
+    if (!token) return;
 
-    let url = `${wsBase()}/api/ws/arena?`;
-    url += token
-      ? `token=${encodeURIComponent(token)}`
-      : `gid=${encodeURIComponent(guestId())}&name=${encodeURIComponent(guestName || "Misafir")}`;
+    let url = `${wsBase()}/api/ws/arena?token=${encodeURIComponent(token)}`;
     if (customCode) url += `&custom=${encodeURIComponent(customCode)}`;
     const ws = new WebSocket(url);
     wsRef.current = ws;
@@ -163,7 +160,7 @@ export function useArena(enabled: boolean, customCode?: string, guestName?: stri
     };
 
     return () => { try { ws.close(); } catch {} wsRef.current = null; };
-  }, [enabled, customCode, guestName]);
+  }, [enabled, customCode]);
 
   const answer = useCallback((guess: string) => {
     const ws = wsRef.current;

@@ -7,7 +7,6 @@ import ChallengeWatcher from "@/components/ChallengeWatcher";
 import ArenaCallWatcher from "@/components/ArenaCallWatcher";
 import UiClickSound from "@/components/UiClickSound";
 import NativeBootstrap from "@/components/NativeBootstrap";
-import PlayGamesAuth from "@/components/PlayGamesAuth";
 import MicNoticeHost from "@/lib/micNotice";
 import { AccountGateProvider } from "@/lib/accountGate";
 import VisitPing from "@/components/VisitPing";
@@ -31,9 +30,6 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         <UiClickSound />
         {/* Native kabuk: push + AdMob + geri tuşu. Tarayıcıda tamamen etkisiz. */}
         <NativeBootstrap />
-        {/* Uygulama açılışında Play Games sessiz girişi + "isim belirle" ekranı.
-            Tarayıcıda tamamen etkisiz (tek istek bile yapmaz). */}
-        <PlayGamesAuth />
         {/* Mikrofon ilk kullanıldığında çıkan bilgilendirme balonu (useSpeech tetikler) */}
         <MicNoticeHost />
         {children}

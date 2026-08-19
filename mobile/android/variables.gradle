@@ -9,22 +9,12 @@ ext {
     androidxFragmentVersion = '1.8.4'
     coreSplashScreenVersion = '1.0.1'
     androidxWebkitVersion = '1.12.1'
-    // androidx.browser — Custom Tabs. Doğrudan bizim bağımlılığımız değil, üç
-    // yerden geliyor: @capacitor/browser, @capgo/capacitor-social-login'in Apple
-    // sağlayıcısı ve Google sağlayıcısının çektiği androidbrowserhelper.
+    // androidx.browser — Custom Tabs. Doğrudan bizim bağımlılığımız değil,
+    // @capacitor/browser üzerinden geliyor ve o bu değişkeni KENDİ okur.
     //
-    // @capacitor/browser bu değişkeni KENDİ OKUR (varsayılanı da 1.8.0 —
-    // dolayısıyla onun için değişen bir şey yok). capgo eklentisi ise sürümü
-    // sabit yazdığı için değişkeni görmez; onu build.gradle'daki `force`
-    // hizaya sokar — GEREKÇE için oradaki uzun nota bak.
-    //
-    // 1.8.0 tavan: 1.9.0 ve 1.10.0 aar-metadata'da minCompileSdk=36 istiyor,
+    // 1.8.0 bir TAVAN: 1.9.0 ve üstü aar-metadata'da minCompileSdk=36 istiyor,
     // biz compileSdk 35'teyiz. compileSdk 36'ya çıkılırsa buradan yükseltilir.
     androidxBrowserVersion = '1.8.0'
-    // Play Games Services v2 (Play Games girisi fizibilite testi).
-    // npm eklentisi YOK — mobile/android icindeki yerel Capacitor eklentimiz
-    // dogrudan bu kutuphaneyi kullanir. Firebase gerektirmez.
-    playServicesGamesVersion = '21.0.0'
     junitVersion = '4.13.2'
     androidxJunitVersion = '1.2.1'
     androidxEspressoCoreVersion = '3.6.1'

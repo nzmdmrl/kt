@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { getJSON } from "@/lib/api";
 import { usePlatform } from "@/lib/platform";
-import { useAppConfig, type FlagsConfig } from "@/lib/appConfig";
 import Logo from "@/components/Logo";
 import GoogleSignIn from "@/components/GoogleSignIn";
 import Recaptcha from "@/components/Recaptcha";
@@ -53,17 +52,14 @@ export default function GirisPage() {
   // Giriş/kayıt arasında geçişte tekrar alanı kalmasın.
   useEffect(() => { setPassword2(""); }, [mode]);
 
-  // Google butonu bu ortamda gösterilebilir mi?
-  // UYGULAMADA env'e BAKILMAZ: native giriş app_settings'teki Web istemci
-  // kimliğiyle çalışır (GOOGLE_CLIENT_SECRET uygulama akışında hiç kullanılmaz).
-  // Platform tespiti bitene kadar (ready=false) bölüm çizilmez — kısa bir an için
-  // yanlış butonun görünüp değişmesi olmasın.
+  // Google butonu YALNIZCA TARAYICIDA çıkar.
+  // UYGULAMADA HİÇ ÇIKMAZ: Aşama 5'te mobil taraftan Google tamamen söküldü
+  // (native eklenti, Play Games kütüphanesi ve manifest kayıtları dahil).
+  // Mobilde giriş yolu "Hızlı Giriş" (isimle hesap açma) ve e-posta/şifredir.
+  // Platform tespiti bitene kadar (ready=false) bölüm çizilmez — kısa bir an
+  // için butonun görünüp kaybolması olmasın.
   const { isNative, ready: platformReady } = usePlatform();
-  const appConfig = useAppConfig();
-  const nativeGoogleId = (
-    ((appConfig?.["app.flags"] as FlagsConfig)?.google_web_client_id) || ""
-  ).trim();
-  const googleAvailable = platformReady && (isNative ? !!nativeGoogleId : googleConfigured);
+  const googleAvailable = platformReady && !isNative && googleConfigured;
 
   async function submit() {
     setErr("");

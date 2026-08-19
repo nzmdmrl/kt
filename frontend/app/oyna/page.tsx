@@ -328,7 +328,6 @@ export default function OynaPage() {
           bot={bot}
           botElo={botElo}
           botId={botId}
-          isGuest={!user}
           invitable={roomFlow && !bot}
           onLeave={roomFlow ? leaveRoom : undefined}
           // Geçiş reklamı mod anahtarı (admin panelinden ayrı ayrı kapatılabilir).

@@ -60,12 +60,6 @@
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="@string/admob_app_id" />
 
-        <!-- Play Games Services v2: bu meta-data OLMADAN kutuphane baslangicta
-             hata firlatir. Deger strings.xml'deki proje kimligidir. -->
-        <meta-data
-            android:name="com.google.android.gms.games.APP_ID"
-            android:value="@string/game_services_project_id" />
-
         <!-- Bildirim ikonu: bunlar tanımlı DEĞİLKEN Android launcher ikonuna
              düşüyor ve durum çubuğunda beyaz leke çiziyordu. Siluet
              @drawable/ic_stat_notify, tint rengi @color/notification_color. -->
