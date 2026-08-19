@@ -384,8 +384,14 @@ class GenBotsIn(BaseModel):
 
 @router.post("/bots/generate")
 async def gen_bots(data: GenBotsIn, admin: User = Depends(get_admin_user), db: AsyncSession = Depends(get_db)):
-    created = await generate_bots(db, min(data.count, 200), data.lang)
-    return {"created": created}
+    requested = min(data.count, 200)
+    created = await generate_bots(db, requested, data.lang)
+    # Botlar TEK ADLA üretiliyor (soyad yok) — havuz tükenirse istenen sayı
+    # tamamlanamaz. Panel bunu kullanıcıya söyleyebilsin diye kalan da dönülür.
+    from app.game.bot_names import pool_for
+    used = set((await db.execute(select(Bot.name).where(Bot.lang == data.lang))).scalars().all())
+    pool_left = len([n for n in pool_for(data.lang) if n not in used])
+    return {"created": created, "requested": requested, "pool_left": pool_left}
 
 
 @router.post("/bots/{bot_id}/toggle")
@@ -516,8 +522,10 @@ async def remove_word(data: WordIn, admin: User = Depends(get_admin_user), db: A
 
 # ---------------------------------------------------------------- 👥 Üyeler
 #
-# Salt okuma + TEK yazma işlemi: reklamsız (ad_free) anahtarı.
-# Bilerek YOK: silme, yasaklama, şifre sıfırlama, başka alanların düzenlenmesi.
+# Yazma işlemleri: reklamsız (ad_free) anahtarı, hesap durumu (pasif/gölge ban)
+# ve üye profili (görünen ad, kullanıcı adı, e-posta, şifre).
+# Bilerek YOK: satır silme — kullanıcı satırı silinirse rakiplerin maç geçmişi
+# ve lig kayıtları da bozulur (kullanıcının kendi silme hakkı anonimleştirir).
 #
 # GÜVENLİK: yanıt alanları AÇIKÇA seçilir (model nesnesi hiç serileştirilmez).
 # password_hash, google_sub ve oturum/token bilgisi HİÇBİR koşulda dönmez.
@@ -684,6 +692,121 @@ async def set_user_status(
 
     await db.commit()
     return {"ok": True, "user": _admin_user_row(user)}
+
+
+class UserProfileIn(BaseModel):
+    """Admin üye düzenleme. VERİLMEYEN (None) alana dokunulmaz.
+
+    email: "" gönderilirse e-posta SİLİNİR (hesap doğrulanmamışa döner).
+    password: "" gönderilirse şifre değiştirilmez (boş şifre kaydedilmez).
+    """
+    display_name: str | None = None
+    username: str | None = None
+    email: str | None = None
+    password: str | None = None
+
+
+@router.put("/users/{user_id}/profile")
+async def edit_user_profile(
+    user_id: int,
+    data: UserProfileIn,
+    admin: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Üyenin görünen adını, kullanıcı adını, e-postasını ve şifresini belirler.
+
+    Kurallar kullanıcının kendi düzenleme uçlarıyla AYNI (app/game/name_rules.py):
+    kullanıcı adı a-z0-9'a çevrilir, benzersizlik harf duyarsızdır. İki fark:
+      - REZERVE adlar admin için serbesttir (destek/sistem hesabı açmak için),
+      - kullanıcı adı kotası (30 günde 2) YAKILMAZ — kota kullanıcının kendi
+        hakkıdır, yönetici düzeltmesi onu tüketmemeli.
+    Ad değişikliği moderasyona DÜŞMEZ: adı yönetici koydu, onaylı sayılır.
+    """
+    from app.core.auth_service import EMAIL_RE, get_user_by_email, get_user_by_username
+    from app.core.security import hash_password
+    from app.game import name_rules
+
+    user = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
+    if user.deleted:
+        raise HTTPException(status_code=400, detail="Silinmiş hesap düzenlenemez.")
+
+    changed: list[str] = []
+
+    if data.display_name is not None:
+        try:
+            name = await name_rules.clean_display_name(db, data.display_name)
+        except name_rules.NameError_ as e:
+            raise HTTPException(400, str(e))
+        if name != user.display_name:
+            user.display_name = name
+            user.name_status = "approved"
+            changed.append("görünen ad")
+
+    if data.username is not None:
+        typed = (data.username or "").strip()
+        uname = name_rules.slugify_username(typed)
+        lim = await name_rules.limits(db)
+        lo, hi = lim["username_min_len"], lim["username_max_len"]
+        if not uname:
+            raise HTTPException(400, "Kullanıcı adı en az bir harf ya da rakam içermeli.")
+        if len(uname) < lo:
+            raise HTTPException(400, f"Kullanıcı adı en az {lo} karakter olmalı (“{typed}” → “{uname}”).")
+        if len(uname) > hi:
+            raise HTTPException(400, f"Kullanıcı adı en fazla {hi} karakter olabilir.")
+        if uname != user.username:
+            other = await get_user_by_username(db, uname)
+            if other and other.id != user.id:
+                raise HTTPException(409, "Bu kullanıcı adı başka bir hesapta.")
+            old = user.username
+            user.username = uname
+            user.name_status = "approved"
+            # Maç geçmişi username tutuyor; eski ad kalırsa geçmiş maçlar
+            # profilden ve karşılıklı skordan düşerdi.
+            from app.models.match_history import MatchHistory
+            from sqlalchemy import update as sa_update
+            await db.execute(sa_update(MatchHistory).where(MatchHistory.p1_username == old).values(p1_username=uname))
+            await db.execute(sa_update(MatchHistory).where(MatchHistory.p2_username == old).values(p2_username=uname))
+            changed.append("kullanıcı adı")
+
+    if data.email is not None:
+        email = (data.email or "").strip().lower()
+        if email:
+            if not EMAIL_RE.match(email):
+                raise HTTPException(400, "Geçerli bir e-posta gir.")
+            other = await get_user_by_email(db, email)
+            if other and other.id != user.id:
+                raise HTTPException(409, "Bu e-posta başka bir hesapta kayıtlı.")
+            if email != (user.email or ""):
+                user.email = email
+                changed.append("e-posta")
+        elif user.email:
+            # E-postayı SİLMEK hesabın kurtarma yolunu kaldırır: doğrulanmış
+            # sayılamaz. Şifre de anlamsız kalacağı için birlikte temizlenir.
+            user.email = None
+            user.password_hash = None
+            user.verified = False
+            changed.append("e-posta silindi")
+
+    if data.password:
+        if len(data.password) < 6:
+            raise HTTPException(400, "Şifre en az 6 karakter olmalı.")
+        user.password_hash = hash_password(data.password)
+        changed.append("şifre")
+
+    # E-posta + şifre = kurtarma yolu var demektir; hesap doğrulanmış sayılır.
+    if user.email and user.password_hash and not user.verified:
+        user.verified = True
+        user.verified_at = datetime.now(timezone.utc)
+        changed.append("doğrulandı")
+
+    if not changed:
+        return {"ok": True, "changed": [], "user": _admin_user_row(user)}
+
+    await db.commit()
+    await db.refresh(user)
+    return {"ok": True, "changed": changed, "user": _admin_user_row(user)}
 
 
 class AdFreeIn(BaseModel):

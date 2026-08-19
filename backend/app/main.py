@@ -162,6 +162,15 @@ async def on_startup():
     except Exception as e:
         print(f"[startup] veri migration hatası: {e}")
 
+    # Bot adlarındaki soyisimleri bir kez temizle (tek ada indir).
+    try:
+        from app.services.bot_name_cleanup import cleanup_bot_names
+        n = await cleanup_bot_names()
+        if n:
+            print(f"[startup] {n} botun adı tek ada indirildi.")
+    except Exception as e:
+        print(f"[startup] bot adı temizleme hatası: {e}")
+
     # Unvanları seed et (yoksa) ve cache'e yükle.
     try:
         from app.core.database import AsyncSessionLocal as _ASL

@@ -655,13 +655,24 @@ function SettingRow({ s, saved, onSave }: { s: any; saved: boolean; onSave: (k: 
 function Bots() {
   const [bots, setBots] = useState<any[]>([]);
   const [count, setCount] = useState("10");
+  const [note, setNote] = useState("");
   useEffect(() => { load(); }, []);
   function load() {
     fetch(apiUrl("/api/admin/bots"), { headers: authHeaders() }).then((r) => r.json()).then((d) => setBots(d.bots || []));
   }
   function generate() {
     fetch(apiUrl("/api/admin/bots/generate"), { method: "POST", headers: authHeaders(), body: JSON.stringify({ count: parseInt(count), lang: "tr" }) })
-      .then((r) => r.json()).then(() => load());
+      .then((r) => r.json()).then((d) => {
+        // Botlar tek adla üretiliyor (soyad yok); ad havuzu tükenirse istenen
+        // sayı tamamlanamaz — sessiz kalmayıp söylüyoruz.
+        if (d && typeof d.created === "number" && d.created < (d.requested ?? 0)) {
+          setNote(`${d.created} bot üretildi. Ad havuzunda kullanılabilir ${d.pool_left ?? 0} ad kaldı.`);
+        } else if (d && typeof d.created === "number") {
+          setNote(`${d.created} bot üretildi.`);
+        }
+        setTimeout(() => setNote(""), 4000);
+        load();
+      });
   }
   function toggle(id: number) {
     fetch(apiUrl(`/api/admin/bots/${id}/toggle`), { method: "POST", headers: authHeaders() }).then(() => load());
@@ -671,6 +682,7 @@ function Bots() {
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
         <input value={count} onChange={(e) => setCount(e.target.value)} style={{ width: 60, padding: 8, borderRadius: 8, border: "1px solid var(--tile-border)", background: "var(--bg-elevated)", color: "var(--text-strong)", textAlign: "center" }} />
         <button onClick={generate} style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "var(--accent)", color: "#1a1330", fontWeight: 600, cursor: "pointer" }}>Bot Üret</button>
+        {note && <span style={{ fontSize: 12.5, color: "var(--text-dim)" }}>{note}</span>}
       </div>
       <div style={{ display: "grid", gap: 6, maxHeight: 400, overflowY: "auto" }}>
         {bots.map((b) => (
@@ -1063,12 +1075,12 @@ function ModToggle({ label, hint, value, onChange }: {
   );
 }
 
-// ---- 👥 Üyeler: üye arama + reklamsız anahtarı --------------------------
+// ---- 👥 Üyeler: arama + reklamsız + durum + profil düzenleme -------------
 //
-// SALT OKUMA + tek yazma işlemi (ad_free). Silme / yasaklama / şifre sıfırlama
-// ve başka alanların düzenlenmesi BİLEREK yok.
+// Yazma işlemleri: ad_free anahtarı, pasife alma / gölge ban ve ✏️ Düzenle
+// (görünen ad, kullanıcı adı, e-posta, şifre). Satır SİLME bilerek yok.
 //
-// Tüm üyeler listelenmez: en az 2 harf yazılınca arama yapılır, en fazla 25 satır.
+// Liste sayfalanır; arama kutusu boşken tüm üyeler gelir.
 
 type AdminUser = {
   id: number;
@@ -1260,6 +1272,8 @@ function Users() {
   const [busy, setBusy] = useState<number | null>(null);
   const [saved, setSaved] = useState<number | null>(null);
   const [msg, setMsg] = useState("");
+  /** Düzenleme modalında açık olan üye (null = kapalı). */
+  const [editing, setEditing] = useState<AdminUser | null>(null);
 
   /** Yavaş dönen eski isteğin yeni sonucu ezmesini engeller. */
   const reqRef = useRef(0);
@@ -1372,6 +1386,9 @@ function Users() {
         • <b>Gerçek silme YOKTUR</b> — kullanıcı satırı silinirse rakiplerin maç
         geçmişi de bozulur. Kullanıcının kendi silme hakkı ayrıdır ve o da
         hesabı anonimleştirir (“Silinmiş üye”).<br />
+        • <b>✏️ Düzenle</b>: görünen ad, kullanıcı adı, e-posta ve şifre. Kullanıcı adı
+        değişince profil adresi ve maç geçmişi bağlantıları birlikte taşınır; kullanıcının
+        30 günlük değişim hakkı yakılmaz. E-posta + şifre girilirse hesap doğrulanmış sayılır.<br />
         • Cihaz simgesi: 📱 mobil uygulama · 🌐 mobil tarayıcı · 🖥️ masaüstü.
       </div>
 
@@ -1510,6 +1527,18 @@ function Users() {
               </span>
             </div>
 
+            {/* Düzenleme — yönetici hesabında da açık (silinmişte değil) */}
+            {!u.deleted && (
+              <ActionBtn
+                disabled={busy === u.id}
+                tone="plain"
+                onClick={() => setEditing(u)}
+                title="Görünen ad, kullanıcı adı, e-posta ve şifreyi düzenle"
+              >
+                ✏️ Düzenle
+              </ActionBtn>
+            )}
+
             {/* Üye yönetimi — silinmiş ve yönetici hesaplarda gizli */}
             {!u.deleted && !u.is_admin && (
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap", flexShrink: 0 }}>
@@ -1545,6 +1574,195 @@ function Users() {
           disabled={loading} onPage={setPage}
         />
       )}
+
+      {editing && (
+        <UserEditModal
+          user={editing}
+          onClose={() => setEditing(null)}
+          onSaved={(row, note) => {
+            setRows((rs) => rs.map((x) => (x.id === row.id ? { ...x, ...row } : x)));
+            setEditing(null);
+            setMsg(note);
+            setTimeout(() => setMsg(""), 4000);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+// ---- Üye düzenleme modalı ---------------------------------------------------
+//
+// Yalnız DEĞİŞEN alanlar gönderilir; sunucu da verilmeyen alana dokunmaz.
+// Kullanıcı adı kuralı backend'deki slugify_username ile aynı (a-z0-9); burada
+// sadece "ne kaydedilecek" önizlemesi gösterilir, dönüşümü sunucu yapar.
+
+const TR_SLUG_MAP: Record<string, string> = {
+  "ç": "c", "Ç": "c", "ğ": "g", "Ğ": "g", "ı": "i", "I": "i", "İ": "i",
+  "ö": "o", "Ö": "o", "ş": "s", "Ş": "s", "ü": "u", "Ü": "u",
+};
+
+function slugifyUsername(raw: string): string {
+  const mapped = [...(raw || "")].map((ch) => TR_SLUG_MAP[ch] ?? ch).join("").toLowerCase();
+  return mapped.replace(/[^a-z0-9]/g, "");
+}
+
+function UserEditModal({
+  user, onClose, onSaved,
+}: {
+  user: AdminUser;
+  onClose: () => void;
+  onSaved: (row: AdminUser, note: string) => void;
+}) {
+  const [displayName, setDisplayName] = useState(user.display_name || "");
+  const [username, setUsername] = useState(user.username || "");
+  const [email, setEmail] = useState(user.email || "");
+  const [pw, setPw] = useState("");
+  const [pw2, setPw2] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  const slug = slugifyUsername(username);
+  const pwMismatch = pw.length > 0 && pw2.length > 0 && pw !== pw2;
+
+  async function save() {
+    setErr("");
+    if (pw && pw.length < 6) { setErr("Şifre en az 6 karakter olmalı."); return; }
+    if (pw && pw !== pw2) { setErr("Şifreler aynı değil."); return; }
+
+    const body: Record<string, string> = {};
+    if (displayName.trim() !== (user.display_name || "")) body.display_name = displayName.trim();
+    if (slug !== (user.username || "")) body.username = username.trim();
+    if (email.trim().toLowerCase() !== (user.email || "").toLowerCase()) body.email = email.trim();
+    if (pw) body.password = pw;
+
+    if (Object.keys(body).length === 0) { onClose(); return; }
+    if (body.email === "" && user.email && !confirm(
+      `${user.display_name} hesabının E-POSTASI SİLİNECEK.\n\n` +
+      "Şifre de temizlenir ve hesap 'doğrulanmamış' duruma döner: kullanıcı " +
+      "yalnız cihazındaki oturumla girebilir.\n\nDevam?"
+    )) return;
+
+    setBusy(true);
+    try {
+      const r = await fetch(apiUrl(`/api/admin/users/${user.id}/profile`), {
+        method: "PUT", headers: authHeaders(), body: JSON.stringify(body),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) { setErr(j.detail || "Kaydedilemedi."); return; }
+      const changed: string[] = Array.isArray(j.changed) ? j.changed : [];
+      onSaved(j.user as AdminUser, changed.length ? `Güncellendi: ${changed.join(", ")}.` : "Değişiklik yok.");
+    } catch {
+      setErr("Bağlantı hatası.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const inputStyle: React.CSSProperties = {
+    width: "100%", padding: "11px 12px", borderRadius: 10,
+    border: "1px solid var(--tile-border)", background: "var(--bg-elevated)",
+    color: "var(--text-strong)", fontSize: 15,
+  };
+  const labelStyle: React.CSSProperties = {
+    fontSize: 12.5, color: "var(--text-dim)", fontWeight: 700, marginBottom: 4, display: "block",
+  };
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", zIndex: 200,
+        display: "grid", placeItems: "center", padding: 16,
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: "var(--bg-panel)", borderRadius: 16, padding: 20,
+          width: "min(460px, 100%)", maxHeight: "calc(100vh - 60px)", overflowY: "auto",
+          border: "1px solid var(--border-soft)", display: "grid", gap: 12,
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <h3 style={{ margin: 0, fontSize: 17, color: "var(--text-strong)" }}>
+            ✏️ Üye #{user.id}
+          </h3>
+          <button onClick={onClose} style={{
+            border: "none", background: "transparent", color: "var(--text-dim)",
+            fontSize: 20, cursor: "pointer", lineHeight: 1,
+          }}>✕</button>
+        </div>
+
+        <div>
+          <label style={labelStyle}>Görünen ad</label>
+          <input value={displayName} onChange={(e) => setDisplayName(e.target.value)}
+            maxLength={24} style={inputStyle} autoComplete="off" />
+          <p style={{ fontSize: 11.5, color: "var(--text-dim)", margin: "4px 2px 0" }}>
+            Oyun içinde herkesin gördüğü ad. Yönetici koyduğu için ad moderasyonuna düşmez.
+          </p>
+        </div>
+
+        <div>
+          <label style={labelStyle}>Kullanıcı adı</label>
+          <input value={username} onChange={(e) => setUsername(e.target.value)}
+            maxLength={20} style={inputStyle} autoComplete="off" spellCheck={false} />
+          <p style={{ fontSize: 11.5, color: "var(--text-dim)", margin: "4px 2px 0" }}>
+            Kaydedilecek: <b className="brand-mono" style={{ color: "var(--text-soft)" }}>{slug || "—"}</b>
+            {" "}· yalnız a-z ve 0-9 (Türkçe harfler çevrilir). Profil adresi ve maç
+            geçmişi bağlantıları birlikte taşınır; kullanıcının 30 günlük değişim hakkı yakılmaz.
+          </p>
+        </div>
+
+        <div>
+          <label style={labelStyle}>E-posta</label>
+          <input value={email} onChange={(e) => setEmail(e.target.value)}
+            type="email" style={inputStyle} autoComplete="off" spellCheck={false}
+            placeholder="boş = e-posta yok" />
+          <p style={{ fontSize: 11.5, color: "var(--text-dim)", margin: "4px 2px 0" }}>
+            E-posta + şifre birlikte varsa hesap <b>doğrulanmış</b> sayılır.
+            Alanı boşaltmak e-postayı ve şifreyi siler.
+          </p>
+        </div>
+
+        <div style={{ display: "grid", gap: 8 }}>
+          <div>
+            <label style={labelStyle}>Yeni şifre (boş = değiştirme)</label>
+            <input value={pw} onChange={(e) => setPw(e.target.value)}
+              type="password" style={inputStyle} autoComplete="new-password" />
+          </div>
+          <div>
+            <label style={labelStyle}>Yeni şifre (tekrar)</label>
+            <input value={pw2} onChange={(e) => setPw2(e.target.value)}
+              type="password" autoComplete="new-password"
+              style={{ ...inputStyle, borderColor: pwMismatch ? "var(--accent-hot)" : "var(--tile-border)" }} />
+            {pwMismatch && (
+              <p style={{ fontSize: 11.5, color: "var(--accent-hot)", margin: "4px 2px 0" }}>
+                Şifreler aynı değil.
+              </p>
+            )}
+          </div>
+          <p style={{ fontSize: 11.5, color: "var(--text-dim)", margin: 0 }}>
+            Kullanıcının eski şifresi sorulmaz — yönetici doğrudan belirler.
+          </p>
+        </div>
+
+        {err && <p style={{ fontSize: 13, color: "var(--accent-hot)", margin: 0 }}>{err}</p>}
+
+        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+          <button onClick={onClose} disabled={busy} style={{
+            padding: "10px 16px", borderRadius: 10, cursor: "pointer",
+            border: "1px solid var(--border-soft)", background: "transparent",
+            color: "var(--text-soft)", fontWeight: 700, fontSize: 13.5,
+          }}>Vazgeç</button>
+          <button onClick={save} disabled={busy || pwMismatch} style={{
+            padding: "10px 18px", borderRadius: 10, border: "none",
+            cursor: busy || pwMismatch ? "default" : "pointer",
+            background: "var(--accent)", color: "#1a1330", fontWeight: 800, fontSize: 13.5,
+            opacity: busy || pwMismatch ? 0.6 : 1,
+          }}>{busy ? "Kaydediliyor…" : "Kaydet"}</button>
+        </div>
+      </div>
     </div>
   );
 }

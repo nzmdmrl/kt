@@ -139,7 +139,10 @@ class ArenaManager:
             return None
         import uuid as _uuid
         from app.game.bot_names import random_bot_names, avatar_url_for
-        bn = random_bot_names(1)[0]
+        # Botlar tek adla görünüyor; aynı arenada iki "Murat" olmasın diye
+        # maçtaki adlar havuzdan elenir.
+        used = {p.name for p in match.players.values()}
+        bn = random_bot_names(1, exclude=used)[0]
         bpid = f"bot:{_uuid.uuid4().hex[:6]}"
         match.add_player(bpid, bn, avatar_url_for(bn), is_bot=True)
         return {"pid": bpid, "name": bn, "avatar_url": avatar_url_for(bn), "is_bot": True}
@@ -183,7 +186,10 @@ class ArenaManager:
             return None
         import uuid as _uuid
         from app.game.bot_names import random_bot_names, avatar_url_for
-        bn = random_bot_names(1)[0]
+        # Botlar tek adla görünüyor; aynı arenada iki "Murat" olmasın diye
+        # maçtaki adlar havuzdan elenir.
+        used = {p.name for p in match.players.values()}
+        bn = random_bot_names(1, exclude=used)[0]
         bpid = f"bot:{_uuid.uuid4().hex[:6]}"
         match.add_player(bpid, bn, avatar_url_for(bn), is_bot=True)
         return {"pid": bpid, "name": bn, "avatar_url": avatar_url_for(bn), "is_bot": True}

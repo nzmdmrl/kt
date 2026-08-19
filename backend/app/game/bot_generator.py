@@ -14,7 +14,7 @@ from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.bot import Bot
-from app.game.bot_names import NAME_POOLS, avatar_url_for
+from app.game.bot_names import NAME_POOLS, avatar_url_for, pool_for
 
 
 async def bot_count(db: AsyncSession, lang: str | None = None) -> int:
@@ -27,22 +27,24 @@ async def bot_count(db: AsyncSession, lang: str | None = None) -> int:
 
 async def generate_bots(db: AsyncSession, count: int, lang: str = "tr") -> int:
     """Belirtilen dilde `count` adet bot üretir. Üretilen sayıyı döner."""
-    pool = NAME_POOLS.get(lang)
-    if not pool:
+    if lang not in NAME_POOLS:
         return 0
-    first_names, last_parts = pool
+    # Botlar TEK ADLA görünür (soyad/baş harf yok) — havuz bu yüzden geniş.
+    first_names = pool_for(lang)
 
     # Var olan isimleri çekip çakışmayı azalt.
     res = await db.execute(select(Bot.name).where(Bot.lang == lang))
     existing = set(res.scalars().all())
 
+    # Havuzu karıştırıp sırayla gezmek, rastgele çekip çakışma beklemekten
+    # hem hızlı hem de "havuz bitti" durumunu net gösterir.
+    candidates = [n for n in first_names if n not in existing]
+    random.shuffle(candidates)
+
     created = 0
-    attempts = 0
-    while created < count and attempts < count * 5:
-        attempts += 1
-        name = f"{random.choice(first_names)} {random.choice(last_parts)}"
-        if name in existing:
-            continue
+    for name in candidates:
+        if created >= count:
+            break
         existing.add(name)
         # ELO dağılımı: çoğu orta seviyede, az sayıda uç.
         elo = int(random.gauss(1050, 250))
