@@ -91,6 +91,22 @@ class User(Base):
     solo_matches: Mapped[int] = mapped_column(Integer, default=0)
     solo_best_score: Mapped[int] = mapped_column(Integer, default=0)
 
+    # --- Hızlı Giriş (isimle hesap açma) ---
+    # verified: hesabın KURTARILABİLİR bir kimliği var mı?
+    #   True  -> e-posta (+şifre) ya da Google/Play Games bağlı; cihaz/jeton
+    #            kaybolsa bile kişi hesabına yeniden girebilir.
+    #   False -> hesap YALNIZCA cihazdaki oturum jetonuna dayanıyor (isimle
+    #            açılmış hızlı hesap). Jeton silinirse hesap erişilemez olur —
+    #            bu yüzden arayüz kullanıcıyı e-posta+şifre eklemeye teşvik eder.
+    # Mevcut kullanıcılar geriye dönük doldurulur (app/core/migrations.py → 16).
+    verified: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Hesabın açıldığı IP — aynı IP'den sınırsız hesap açılmasını engellemek için.
+    # Yalnız kayıt anında yazılır, sonra güncellenmez (kullanıcı IP'si zaten değişir).
+    signup_ip: Mapped[str | None] = mapped_column(String(45), nullable=True, index=True)
+    # Gölge ban: hesap kendini normal sanır ama eşleşmelerde/listelerde saklanır.
+    # ŞU AN SADECE ALAN — davranışı Aşama 4'te (admin paneli) yazılacak.
+    shadow_banned: Mapped[bool] = mapped_column(Boolean, default=False)
+
     # Yetki
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
 
@@ -154,6 +170,10 @@ class User(Base):
         data["has_password"] = self.password_hash is not None
         data["google_linked"] = self.google_sub is not None
         data["play_games_linked"] = self.play_games_id is not None
+        # Hesap kurtarılabilir mi (e-posta/şifre ya da Google bağlı mı)?
+        # Arayüz buna bakıp "Hesabını doğrula" uyarısını gösterir.
+        # shadow_banned BİLEREK dönmez — gölge ban, banlanana görünmez olmalı.
+        data["verified"] = bool(self.verified)
         # Reklamsız hak: istemci reklam yollarını buna göre kapatır (AdSense,
         # AdMob bandı, geçiş reklamı). Herkese açık görünümde YER ALMAZ.
         data["ad_free"] = bool(self.ad_free)

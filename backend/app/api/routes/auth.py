@@ -1,4 +1,5 @@
-"""Kimlik doğrulama uçları: kayıt, giriş, /me, Google OAuth (web + native)."""
+"""Kimlik doğrulama uçları: kayıt, giriş, /me, Google OAuth (web + native),
+Play Games ve Hızlı Giriş (isimle hesap açma + sonradan doğrulama/taşıma)."""
 
 from __future__ import annotations
 
@@ -16,6 +17,7 @@ from app.core import captcha
 from app.core.security import create_access_token, create_pending_token, decode_pending_token
 from app.core.deps import get_current_user, get_optional_user
 from app.core import auth_service
+from app.core import account_transfer
 from app.models.user import User
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -59,6 +61,22 @@ class PlayGamesLinkIn(BaseModel):
     pending_token: str
 
 
+class QuickIn(BaseModel):
+    # "Hızlı Giriş" — kullanıcının yazdığı TEK isim. Başka hiçbir alan yok.
+    name: str
+
+
+class VerifyIn(BaseModel):
+    # Hızlı hesabı kalıcı hâle getirme: e-posta + şifre ekleme.
+    email: str
+    password: str
+
+
+class TransferIn(BaseModel):
+    # /auth/verify "bu e-posta başkasına ait" dediğinde verdiği jeton.
+    transfer_token: str
+
+
 def _auth_response(user: User) -> dict:
     token = create_access_token(user.id)
     return {"token": token, "user": user.to_private()}
@@ -82,7 +100,8 @@ async def register(data: RegisterIn, request: Request, db: AsyncSession = Depend
         raise HTTPException(status_code=400, detail=str(e))
     try:
         user = await auth_service.register_email(
-            db, data.email, data.password, data.display_name
+            db, data.email, data.password, data.display_name,
+            signup_ip=captcha.client_ip(request),
         )
     except auth_service.AuthError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -155,7 +174,7 @@ async def _verify_google_id_token(id_token: str, expected_aud: str) -> dict:
     return info
 
 
-async def _google_sign_in(db: AsyncSession, info: dict) -> dict:
+async def _google_sign_in(db: AsyncSession, info: dict, signup_ip: str | None = None) -> dict:
     """Doğrulanmış Google iddialarıyla oturum açar/hesap oluşturur.
 
     Web ve uygulama akışı için TEK yol: hesap oluşturma varsayılanları, mevcut
@@ -173,21 +192,24 @@ async def _google_sign_in(db: AsyncSession, info: dict) -> dict:
         email=email,
         name=info.get("name"),
         picture=info.get("picture"),
+        # Yeni hesap açılırsa kayıt IP'si yazılır (hesap sayımı için); mevcut
+        # hesaba girişte kullanılmaz.
+        signup_ip=signup_ip,
     )
     return _auth_response(user)
 
 
 @router.post("/google")
-async def google_login(data: GoogleIn, db: AsyncSession = Depends(get_db)):
+async def google_login(data: GoogleIn, request: Request, db: AsyncSession = Depends(get_db)):
     """Web akışı — Google Identity Services butonundan gelen id_token."""
     if not settings.google_oauth_configured:
         raise HTTPException(status_code=503, detail="Google girişi yapılandırılmamış.")
     info = await _verify_google_id_token(data.id_token, settings.GOOGLE_CLIENT_ID)
-    return await _google_sign_in(db, info)
+    return await _google_sign_in(db, info, captcha.client_ip(request))
 
 
 @router.post("/google/native")
-async def google_login_native(data: GoogleIn, db: AsyncSession = Depends(get_db)):
+async def google_login_native(data: GoogleIn, request: Request, db: AsyncSession = Depends(get_db)):
     """Uygulama akışı — cihazın native Google hesap seçicisinden gelen id_token.
 
     NEDEN AYRI UÇ: Google, gömülü WebView içinde OAuth'a izin vermiyor, bu yüzden
@@ -211,7 +233,7 @@ async def google_login_native(data: GoogleIn, db: AsyncSession = Depends(get_db)
             detail="Uygulama içi Google girişi yapılandırılmamış.",
         )
     info = await _verify_google_id_token(data.id_token, client_id)
-    return await _google_sign_in(db, info)
+    return await _google_sign_in(db, info, captcha.client_ip(request))
 
 
 # ---- Play Games (yalnız Android uygulaması) ----
@@ -406,6 +428,128 @@ async def play_games_link(
     except auth_service.AuthError as e:
         raise HTTPException(status_code=409, detail=str(e))
     return _auth_response(user)
+
+
+# ---- Hızlı Giriş (isimle hesap) ----
+#
+# AKIŞ (kod bilmeyen için özet):
+#   1. Kişi tek bir isim yazar          -> POST /auth/quick     (hesap açılır, jeton verilir)
+#   2. İsterse e-posta+şifre ekler      -> POST /auth/verify    (hesap "doğrulanmış" olur)
+#   3. Yazdığı e-posta başkasınınsa     -> /auth/verify "email_in_use" der + taşıma jetonu verir
+#   4. Kişi o hesaba giriş yapıp        -> POST /auth/transfer  (ilerleme oraya taşınır)
+#
+# 1. adımdaki jeton MOBİLDE HAYATİDİR: doğrulanmamış hesabın başka dayanağı yok.
+# Bu yüzden jeton ömrü 1 yıldır (app/core/security.py) ve uygulama onu native
+# depolamada tutar.
+
+TRANSFER_PENDING = "quick_transfer"
+# Taşıma jetonu ömrü: kişi arada ESKİ hesabına giriş yapacak (şifresini
+# hatırlayacak, gerekirse sıfırlayacak) — 20 dk yetmeyebilir.
+TRANSFER_MINUTES = 60
+
+
+@router.get("/quick/status")
+async def quick_status(db: AsyncSession = Depends(get_db)):
+    """Arayüz "İsimle başla" düğmesini gösterecek mi, buradan öğrenir."""
+    from app.game import settings_service
+    return {
+        "enabled": await settings_service.get_bool(db, "quick_signup_enabled", True),
+    }
+
+
+@router.post("/quick")
+async def quick_signup(data: QuickIn, request: Request, db: AsyncSession = Depends(get_db)):
+    """Sadece isimle hesap açar.
+
+    Yanıt biçimi e-posta girişiyle BİREBİR AYNIDIR ({token, user}) — sistemin
+    geri kalanı (WebSocket kimliği, admin kontrolü, push cihaz kaydı, arayüzdeki
+    oturum yönetimi) bu hesabın nasıl açıldığını hiç bilmez.
+    """
+    from app.game import settings_service
+    if not await settings_service.get_bool(db, "quick_signup_enabled", True):
+        raise HTTPException(status_code=503, detail="İsimle giriş şu an kapalı.")
+    try:
+        user = await auth_service.create_quick_user(
+            db, data.name, signup_ip=captcha.client_ip(request)
+        )
+    except auth_service.AuthError as e:
+        # IP sınırına takılma da buraya düşer; ayrı durum kodu vermek yerine
+        # kullanıcıya gösterilecek Türkçe mesaj tek kanaldan gider.
+        raise HTTPException(status_code=400, detail=str(e))
+    return _auth_response(user)
+
+
+@router.post("/verify")
+async def verify_account(
+    data: VerifyIn,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Hızlı hesaba e-posta + şifre ekler ("hesabımı doğrula").
+
+    İKİ farklı BAŞARILI yanıt döner — ikisi de HTTP 200'dür, çünkü ikincisi bir
+    hata değil, kullanıcının izleyeceği başka bir yoldur:
+
+    a) {"ok": true, "token": ..., "user": ...}
+       E-posta boştaydı; hesap artık doğrulanmış.
+
+    b) {"ok": false, "email_in_use": true, "message": ..., "transfer_token": ...,
+        "progress": {...}}
+       E-posta BAŞKA bir hesapta kayıtlı. Kişi büyük ihtimalle kendi eski
+       hesabını yazdı. Arayüz "o hesaba giriş yap, buradaki ilerlemeni oraya
+       taşıyalım" der; giriş yapınca elindeki transfer_token ile /auth/transfer
+       çağrılır. progress, "ne taşınacak" önizlemesidir.
+    """
+    try:
+        user = await auth_service.verify_account(db, user, data.email, data.password)
+    except auth_service.EmailInUse:
+        return {
+            "ok": False,
+            "email_in_use": True,
+            "message": (
+                "Bu e-posta zaten kayıtlı. O hesaba giriş yapıp buradaki "
+                "ilerlemeni oraya taşıyabilirsin."
+            ),
+            "transfer_token": create_pending_token(
+                TRANSFER_PENDING, str(user.id), minutes=TRANSFER_MINUTES
+            ),
+            "progress": {
+                "display_name": user.display_name,
+                "level": user.to_public()["level"],
+                "xp": user.xp or 0,
+                "matches_played": user.matches_played or 0,
+                "wins": user.wins or 0,
+            },
+        }
+    except auth_service.AuthError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"ok": True, **_auth_response(user)}
+
+
+@router.post("/transfer")
+async def transfer_account(
+    data: TransferIn,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Hızlı hesabın ilerlemesini, GİRİŞ YAPILMIŞ hesaba taşır.
+
+    Authorization başlığı HEDEF hesabındır (kişi az önce e-posta ile girdi);
+    transfer_token ise kaynağı (hızlı hesabı) taşır. Kaynak hesap taşıma
+    sonunda SİLİNİR — bu yüzden yalnızca e-postası/şifresi/Google bağlantısı
+    olmayan, doğrulanmamış hesaplar kaynak olabilir (bkz. account_transfer).
+    """
+    src_id = decode_pending_token(TRANSFER_PENDING, data.transfer_token)
+    if not src_id:
+        raise HTTPException(status_code=401, detail="Taşıma süresi doldu, tekrar dene.")
+    source = await auth_service.get_user_by_id(db, int(src_id))
+    if not source:
+        raise HTTPException(status_code=404, detail="Taşınacak hesap bulunamadı.")
+    try:
+        moved = await account_transfer.transfer_progress(db, source, user)
+    except account_transfer.TransferError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    return {"ok": True, "moved": moved, **_auth_response(user)}
 
 
 # ---- profil ----

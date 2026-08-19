@@ -228,6 +228,37 @@ Aşağıdakiler canlıda çalışıyor veya son push'a dahil. Detaylı geçmiş 
   (`app/services/notification_cleanup.py`, startup'ta task). Süre `GET /notifications` yanıtında
   `retention_days` olarak döner ve sayfanın altında kullanıcıya yazılır.
 
+### Hızlı Giriş (isimle hesap) — Aşama 1: BACKEND TAMAM
+Mobil uygulamada Google girişi ("[16] Account reauth failed") ve Play Games
+(SIGN_IN_REQUIRED) çalışmadığı için Google'a bağımlı olmayan giriş yolu.
+Aynı kod hem sitede hem uygulamada çalışır (uygulama web içeriğini canlıdan yükler).
+
+- `POST /auth/quick {name}` → `{token, user}` (web girişiyle **birebir aynı** biçim).
+  Görünen ad yazıldığı gibi kalır, username ondan türetilir (`unique_username_from_name` —
+  Play Games ile AYNI fonksiyon: Türkçe→ASCII, boşluk silinir, küçük harf, doluysa
+  2'den başlayan sıra no). En az 3 harf/rakam. E-posta boş, `verified=False`.
+- `GET /auth/quick/status` → `{enabled}` (public).
+- `POST /auth/verify {email, password}` (girişli) → e-posta+şifre ekler, `verified=True`.
+  E-posta BAŞKASINDAYSA **hata değil**: HTTP 200 + `{ok:false, email_in_use:true,
+  transfer_token, progress}` döner (60 dk ömürlü jeton).
+- `POST /auth/transfer {transfer_token}` (hedef hesapla girişli) → ilerlemeyi taşır.
+  Mantık `app/core/account_transfer.py`: sayaçlar toplanır, ELO/en iyi skor MAX alınır,
+  benzersizlik kısıtlı tablolar (lig puanı, maraton bölümü, toplanan kelime, arkadaşlık,
+  günün kelimesi) birleştirilir, maç geçmişindeki username yeniden yazılır, kaynak SİLİNİR.
+  **Güvenlik**: kaynak yalnızca e-postasız/şifresiz/Google'sız, doğrulanmamış, admin
+  olmayan hesap olabilir (`can_absorb`) — aksi halde 409.
+- `users` yeni sütunlar: `verified`, `signup_ip`, `shadow_banned` (sonuncusu Aşama 4 için
+  şimdilik sadece alan). Mevcut kullanıcılar migration 16 ile `verified=True` yapılır.
+- Admin ayarları (⚙️ Ayarlar → **Hızlı Giriş** grubu): `quick_signup_enabled`,
+  `quick_signup_ip_limit` (varsayılan 10, 0 = sınırsız). IP sayımı `signup_ip` üzerinden,
+  her yöntemle açılan hesabı kapsar.
+- **Oturum jetonu ömrü 30 gün → 365 gün** (`TOKEN_EXPIRE_DAYS`): doğrulanmamış hesabın
+  tek dayanağı o jeton; mobilde Capacitor Preferences'ta saklanacak (Aşama 2).
+- Testler: `backend/tests/hizli_giris_senaryo.py` — 82 senaryo, SQLite + PostgreSQL'de
+  geçiyor. Canlı DB'ye bağlanmayı reddeder (adında `kt_test` yoksa durur).
+- SONRAKİ AŞAMALAR: 2) arayüz + mobil native depolama, 3) bildirim/teşvik,
+  4) admin paneli + gölge ban, 5) mobilden Google/Play Games düğmelerinin sökülmesi.
+
 ### Misafir (üye olmayan ziyaretçi) erişimi
 - **1v1**: misafir oynayabilir. Maç kaydedilir ama misafir adı gizli → "Misafir" olarak yazılır.
   Üye + misafir maçında ÜYE elo/xp alır (misafir hiçbir şey kazanmaz).

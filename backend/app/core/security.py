@@ -18,7 +18,14 @@ from app.core.config import get_settings
 
 settings = get_settings()
 
-TOKEN_EXPIRE_DAYS = 30
+# Oturum jetonu ömrü.
+#
+# NEDEN 1 YIL: "Hızlı Giriş" ile açılan (henüz doğrulanmamış) hesabın TEK dayanağı
+# cihazdaki bu jetondur — e-posta/şifre yok, jeton düşerse kişi hesabına bir daha
+# giremez. Mobil uygulama jetonu native depolamada (Capacitor Preferences) tutar;
+# oradan silinmesi için kullanıcının uygulamayı kaldırması gerekir. Kısa ömür,
+# uygulamayı haftalarca açmayan kullanıcıyı hesabından ederdi.
+TOKEN_EXPIRE_DAYS = 365
 
 
 def _prepare(password: str) -> bytes:
@@ -67,8 +74,16 @@ def decode_token(token: str) -> int | None:
 PENDING_EXPIRE_MINUTES = 20
 
 
-def create_pending_token(kind: str, subject: str) -> str:
-    expire = datetime.now(timezone.utc) + timedelta(minutes=PENDING_EXPIRE_MINUTES)
+def create_pending_token(kind: str, subject: str, minutes: int | None = None) -> str:
+    """kind: jetonun türü, subject: taşınan kimlik. minutes ile ömür uzatılabilir.
+
+    Ömür neden ayarlanabilir: Play Games sessiz girişinde kullanıcı hemen adını
+    yazar (20 dk bol), ama hesap taşımada kişinin ARADA başka hesabına giriş
+    yapması gerekir (şifresini hatırlamak, sıfırlamak) — orası daha uzun sürer.
+    """
+    expire = datetime.now(timezone.utc) + timedelta(
+        minutes=minutes if minutes and minutes > 0 else PENDING_EXPIRE_MINUTES
+    )
     payload = {"typ": kind, "pid": subject, "exp": expire}
     return jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
 

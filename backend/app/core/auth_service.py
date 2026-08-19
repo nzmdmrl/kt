@@ -17,6 +17,20 @@ class AuthError(Exception):
     """Kayıt/giriş hatası — istemciye mesajla döner."""
 
 
+class EmailInUse(AuthError):
+    """Doğrulamada girilen e-posta BAŞKA bir hesaba ait.
+
+    Bu bir "hata" değil, bir YOL AYRIMI: kullanıcı büyük ihtimalle siteye daha
+    önce kaydolmuş kendi hesabını yazıyor. Bu yüzden çağıran taraf 400 dönmez;
+    "o hesaba giriş yap, buradaki ilerlemeni oraya taşıyalım" akışını başlatır
+    (bkz. app/core/account_transfer.py). other_id, o hesabın kimliğidir.
+    """
+
+    def __init__(self, other_id: int):
+        super().__init__("Bu e-posta zaten başka bir hesapta kayıtlı.")
+        self.other_id = other_id
+
+
 async def get_user_by_email(db: AsyncSession, email: str) -> User | None:
     res = await db.execute(select(User).where(User.email == email.lower()))
     return res.scalar_one_or_none()
@@ -101,7 +115,8 @@ def _initial_name_status() -> str:
 
 
 async def register_email(
-    db: AsyncSession, email: str, password: str, display_name: str
+    db: AsyncSession, email: str, password: str, display_name: str,
+    signup_ip: str | None = None,
 ) -> User:
     email = email.strip().lower()
     if "@" not in email or "." not in email:
@@ -125,6 +140,9 @@ async def register_email(
         display_name=display_name,
         # Ad moderasyonu kapalıysa yeni kayıt doğrudan onaylı sayılır.
         name_status=_initial_name_status(),
+        # E-posta + şifre var -> hesap kurtarılabilir, doğrulanmış sayılır.
+        verified=True,
+        signup_ip=signup_ip,
     )
     db.add(user)
     await db.commit()
@@ -142,7 +160,8 @@ async def login_email(db: AsyncSession, email: str, password: str) -> User:
 
 
 async def get_or_create_google_user(
-    db: AsyncSession, sub: str, email: str | None, name: str | None, picture: str | None
+    db: AsyncSession, sub: str, email: str | None, name: str | None, picture: str | None,
+    signup_ip: str | None = None,
 ) -> User:
     """Google ile giriş: mevcut kullanıcıyı bul veya yeni oluştur."""
     user = await get_user_by_google_sub(db, sub)
@@ -172,6 +191,9 @@ async def get_or_create_google_user(
         display_name=display,
         avatar_url=picture,
         name_status=_initial_name_status(),
+        # Google hesabı bağlı -> kişi cihazını değiştirse bile geri girebilir.
+        verified=True,
+        signup_ip=signup_ip,
     )
     db.add(user)
     await db.commit()
@@ -227,8 +249,110 @@ async def create_play_games_user(
         display_name=display,
         avatar_url=picture,
         name_status=_initial_name_status(),
+        # E-posta yok ama Play Games kimliği bağlı: kişi cihazını değiştirse bile
+        # sessiz girişle aynı hesaba döner -> kurtarılabilir, doğrulanmış sayılır.
+        verified=True,
     )
     db.add(user)
+    await db.commit()
+    await db.refresh(user)
+    return user
+
+
+# ---------------------------------------------------------------- Hızlı Giriş
+#
+# Kullanıcı tek bir isim yazar, hesap ANINDA açılır: e-posta yok, şifre yok.
+# Hesabın tek dayanağı cihazda saklanan oturum jetonudur (mobilde Capacitor
+# Preferences, webde localStorage). Kişi isterse sonradan e-posta + şifre ekleyip
+# hesabını "doğrular" (verify_account) — böylece cihaz kaybolsa da geri girebilir.
+
+
+async def count_accounts_from_ip(db: AsyncSession, ip: str | None) -> int:
+    """Bu IP'den şimdiye kadar açılmış hesap sayısı (her yöntem dahil)."""
+    if not ip:
+        return 0
+    from sqlalchemy import func as sa_func
+    res = await db.execute(
+        select(sa_func.count()).select_from(User).where(User.signup_ip == ip)
+    )
+    return int(res.scalar() or 0)
+
+
+async def quick_signup_limit(db: AsyncSession) -> int:
+    """Aynı IP'den açılabilecek en fazla hesap (0 = sınırsız). Admin ayarı."""
+    from app.game import settings_service
+    return max(0, await settings_service.get_int(db, "quick_signup_ip_limit", 10))
+
+
+async def create_quick_user(
+    db: AsyncSession, display_name: str, signup_ip: str | None = None
+) -> User:
+    """İsimle hesap açar. IP sınırını AŞMIŞSA AuthError fırlatır.
+
+    Görünen ad kullanıcının yazdığı gibi kalır ("Ayşe Gül"); kullanıcı adı ondan
+    türetilir (Türkçe harfler ASCII'ye, boşluklar silinir, küçük harf, doluysa
+    2'den başlayan sıra numarası: "aysegul", "aysegul2"...). Bu dönüşüm Play
+    Games akışıyla AYNI fonksiyonlardır — iki yol birbirinden ayrışmasın diye.
+    """
+    from app.game import name_rules
+    try:
+        display = await name_rules.clean_display_name(db, display_name)
+    except name_rules.NameError_ as e:
+        raise AuthError(str(e))
+
+    # IP sınırı: ad doğrulandıktan SONRA bakılır ki, sınıra takılan kişi önce
+    # "adın çok kısa" gibi gerçek bir düzeltmeyi görmesin diye sıra karışmasın.
+    limit = await quick_signup_limit(db)
+    if limit and await count_accounts_from_ip(db, signup_ip) >= limit:
+        raise AuthError(
+            "Bu bağlantıdan açılabilecek hesap sayısına ulaşıldı. "
+            "Zaten hesabın varsa e-posta ile giriş yapabilirsin."
+        )
+
+    # Kullanıcı adı türetimi: kısa/uygunsuzsa AuthError -> ekranda uyarı çıkar.
+    username = await unique_username_from_name(db, display)
+    user = User(
+        email=None,
+        username=username,
+        display_name=display,
+        name_status=_initial_name_status(),
+        # Kurtarılabilir kimlik YOK -> doğrulanmamış.
+        verified=False,
+        signup_ip=signup_ip,
+    )
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+    return user
+
+
+EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+async def verify_account(
+    db: AsyncSession, user: User, email: str, password: str
+) -> User:
+    """Hızlı hesaba e-posta + şifre ekler ve hesabı 'doğrulanmış' yapar.
+
+    Hatalar:
+      AuthError   -> e-posta biçimi / şifre kısa / hesapta zaten e-posta var
+      EmailInUse  -> e-posta BAŞKA bir hesapta; çağıran taraf taşıma akışını başlatır
+    """
+    email = (email or "").strip().lower()
+    if not EMAIL_RE.match(email):
+        raise AuthError("Geçerli bir e-posta gir.")
+    if len(password or "") < 6:
+        raise AuthError("Şifre en az 6 karakter olmalı.")
+    if user.email:
+        raise AuthError("Bu hesapta zaten bir e-posta kayıtlı.")
+
+    other = await get_user_by_email(db, email)
+    if other and other.id != user.id:
+        raise EmailInUse(other.id)
+
+    user.email = email
+    user.password_hash = hash_password(password)
+    user.verified = True
     await db.commit()
     await db.refresh(user)
     return user

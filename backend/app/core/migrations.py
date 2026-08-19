@@ -456,6 +456,27 @@ DATA_MIGRATIONS: list[tuple[str, list[str]]] = [
         "CREATE UNIQUE INDEX IF NOT EXISTS ix_users_play_games_id "
         "ON users (play_games_id)",
     ]),
+
+    # 16) "Hızlı Giriş" için users tablosuna eklenen alanların hazırlanması.
+    #
+    #     a) users.verified geriye dönük doldurma. Sütunu otomatik migration
+    #        (app/core/database.py) DEFAULT FALSE ile ekler — yani bu değişiklikten
+    #        önce kaydolmuş HERKES bir anda "doğrulanmamış" görünürdü. Oysa
+    #        e-postası, şifresi ya da Google/Play Games bağlantısı olan hesap
+    #        tanım gereği kurtarılabilirdir: cihaz kaybolsa bile kişi geri girer.
+    #        Doğrulanmamış kalması gereken tek grup, bundan SONRA isimle açılacak
+    #        hızlı hesaplardır.
+    #
+    #     b) users.signup_ip için indeks. Hızlı kayıtta "bu IP'den kaç hesap
+    #        açılmış" sorusu HER istekte sorulur; indekssiz sorgu kullanıcı tablosunu
+    #        baştan sona tarardı. Modeldeki index=True yalnızca SIFIRDAN kurulan
+    #        veritabanını kapsar, canlıdaki tabloyu değil (bkz. 15).
+    ("2026_08_users_verified_backfill", [
+        f"UPDATE users SET verified = {_TRUE} WHERE "
+        "email IS NOT NULL OR password_hash IS NOT NULL "
+        "OR google_sub IS NOT NULL OR play_games_id IS NOT NULL",
+        "CREATE INDEX IF NOT EXISTS ix_users_signup_ip ON users (signup_ip)",
+    ]),
 ]
 
 

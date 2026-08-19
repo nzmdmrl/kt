@@ -33,3 +33,6 @@ mobile/android/app/google-services.json
 mobile/ios/App/Pods
 mobile/*.keystore
 mobile/android/keystore.properties
+
+# Test veritabanı (senaryo testleri geçici dosya yazar)
+*.db

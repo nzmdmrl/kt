@@ -87,6 +87,12 @@ DEFAULT_SETTINGS = {
     "guest_match_enabled": {"value": "true", "label": "Misafirler 1v1 düello oynayabilsin", "type": "bool", "group": "Misafir"},
     "guest_arena_enabled": {"value": "true", "label": "Misafirler arenaya katılabilsin", "type": "bool", "group": "Misafir"},
     "guest_daily_enabled": {"value": "true", "label": "Misafirler günün kelimesini çözebilsin", "type": "bool", "group": "Misafir"},
+
+    # Hızlı Giriş — kullanıcı sadece isim yazarak hesap açar (e-posta/şifre sonra
+    # "hesabımı doğrula" adımında eklenir). Mobil uygulamada Google girişi
+    # çalışmadığı için ana giriş yolu budur.
+    "quick_signup_enabled": {"value": "true", "label": "Hızlı giriş (isimle hesap açma) açık", "type": "bool", "group": "Hızlı Giriş"},
+    "quick_signup_ip_limit": {"value": "10", "label": "Aynı IP'den açılabilecek en fazla hesap (0 = sınırsız)", "type": "int", "group": "Hızlı Giriş"},
     # Ad kuralları — kayıt ve profil düzenlemede geçerli (hem sunucu hem arayüz uyar).
     # Sunucu sınırı: kullanıcı adı en fazla 32, görünen ad en fazla 48 karakter (DB sütunu).
     "username_min_len": {"value": "3", "label": "Kullanıcı adı: en az karakter", "type": "int", "group": "Adlar & Listeler"},
