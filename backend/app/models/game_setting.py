@@ -121,6 +121,12 @@ DEFAULT_SETTINGS = {
     # İkisini EŞİTLERSEN işaretlenen her isim otomatik pasife alınır.
     # auto_disable = 100 yaparsan hiçbiri otomatik kapanmaz, hepsini elle incelersin.
     "name_flag_threshold": {"value": "40", "label": "İsim Kontrol listesine düşme eşiği (0-100)", "type": "int", "group": "İsim Denetimi"},
+    # Rezerve bir ada denk gelen kullanıcı adı ÜRETİMİNDE ne yapılsın:
+    #   neutral -> tarafsız tabana kaydır ("Admin" yazan kişi -> oyuncu4)
+    #   number  -> sıra numarası ekle ("Admin" -> admin2)
+    # Varsayılan neutral: "admin2" hâlâ yetkili izlenimi verir.
+    # (Kullanıcı adını DEĞİŞTİRME yolunda ikisi de geçerli değil; orada hata verilir.)
+    "reserved_fallback": {"value": "neutral", "label": "Rezerve ada denk gelince (neutral: tarafsız ad · number: admin2 gibi)", "type": "str", "group": "İsim Denetimi"},
     "name_auto_disable_threshold": {"value": "85", "label": "Otomatik pasife alma eşiği (0-100 · listeye düşme eşiğiyle aynı = hepsi pasif)", "type": "int", "group": "İsim Denetimi"},
     # Ad kuralları — kayıt ve profil düzenlemede geçerli (hem sunucu hem arayüz uyar).
     # Sunucu sınırı: kullanıcı adı en fazla 32, görünen ad en fazla 48 karakter (DB sütunu).

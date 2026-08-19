@@ -25,6 +25,7 @@ const TABS = [
   { key: "namemod", label: "🏷️ Ad Mod" },
   { key: "nameflags", label: "🔎 İsim Kontrol" },
   { key: "quickauth", label: "⚡ Hızlı Giriş" },
+  { key: "reserved", label: "🔒 Rezerve Adlar" },
   { key: "homebtn", label: "🏠 Ana Sayfa" },
   { key: "sharepm", label: "💬 Sonuç PM" },
   { key: "seo", label: "🔍 SEO" },
@@ -114,6 +115,7 @@ export default function AdminPage() {
       {tab === "namemod" && <NameMod onChanged={loadCounts} />}
       {tab === "nameflags" && <NameFlags onChanged={loadCounts} />}
       {tab === "quickauth" && <QuickAuth />}
+      {tab === "reserved" && <ReservedNames />}
       {tab === "homebtn" && <HomeButtons />}
       {tab === "sharepm" && <SharePM />}
       {tab === "seo" && <Seo />}
@@ -1545,6 +1547,251 @@ function Users() {
       )}
     </div>
   );
+}
+
+// ============================================================================
+// 🔒 Rezerve Adlar — kimsenin alamayacağı kullanıcı adları.
+//
+// Liste KODDA DEĞİL veritabanındadır; buradan yönetilir. Kontrol harf
+// duyarsızdır ve adın çevrilmiş hâline bakar: "ADMIN", "Admin", "admın"
+// hepsi aynı kayda düşer.
+// ============================================================================
+function ReservedNames() {
+  const [d, setD] = useState<any>(null);
+  const [name, setName] = useState("");
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [popup, setPopup] = useState("");
+  const [msg, setMsg] = useState("");
+  const [q, setQ] = useState("");
+
+  function load() {
+    fetch(apiUrl("/api/admin/reserved-names"), { headers: authHeaders() })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((x) => { if (x) setD(x); })
+      .catch(() => setPopup("Liste yüklenemedi."));
+  }
+  useEffect(() => { load(); }, []);
+
+  async function add() {
+    const n = name.trim();
+    if (!n) return;
+    setBusy(true);
+    try {
+      const r = await fetch(apiUrl("/api/admin/reserved-names"), {
+        method: "POST", headers: authHeaders(),
+        body: JSON.stringify({ name: n, note: note.trim() }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) { setPopup(j.detail || "Eklenemedi."); return; }
+      setName(""); setNote("");
+      setMsg(
+        j.users_using?.length
+          ? `“${j.name}” eklendi — DİKKAT: bu adı şu an kullanan ${j.users_using.length} hesap var (aşağıda).`
+          : `“${j.name}” listeye eklendi.`
+      );
+      setTimeout(() => setMsg(""), 4000);
+      load();
+    } catch { setPopup("Bağlantı hatası."); }
+    finally { setBusy(false); }
+  }
+
+  async function remove(n: string) {
+    if (!confirm(`“${n}” listeden çıkarılsın mı?\n\nBu addan sonra herkes tarafından alınabilir hâle gelir.`)) return;
+    setBusy(true);
+    try {
+      const r = await fetch(apiUrl(`/api/admin/reserved-names/${encodeURIComponent(n)}`), {
+        method: "DELETE", headers: authHeaders(),
+      });
+      if (!r.ok) { setPopup("Silinemedi."); return; }
+      load();
+    } finally { setBusy(false); }
+  }
+
+  async function setFallback(mode: string) {
+    setBusy(true);
+    try {
+      const r = await fetch(apiUrl("/api/admin/reserved-names/fallback"), {
+        method: "PUT", headers: authHeaders(), body: JSON.stringify({ mode }),
+      });
+      if (!r.ok) { setPopup("Kaydedilemedi."); return; }
+      setD((x: any) => ({ ...x, fallback: mode }));
+    } finally { setBusy(false); }
+  }
+
+  if (!d) return <p style={{ color: "var(--text-soft)" }}>Yükleniyor…</p>;
+
+  const term = q.trim().toLowerCase();
+  const shown = term
+    ? d.names.filter((x: any) => `${x.name} ${x.note}`.toLowerCase().includes(term))
+    : d.names;
+
+  return (
+    <div style={{ display: "grid", gap: 14 }}>
+      {popup && <AlertPopup message={popup} onClose={() => setPopup("")} />}
+
+      <div style={{ background: "var(--bg-panel)", borderRadius: 12, padding: 14, fontSize: 13, color: "var(--text-dim)", lineHeight: 1.7 }}>
+        Buradaki adları kimse alamaz. Kontrol <b>harf duyarsızdır</b> ve adın
+        çevrilmiş hâline bakar: <code>admin</code> listedeyse{" "}
+        <code>ADMIN</code>, <code>Admin</code>, <code>admın</code> ve{" "}
+        <code>A-d-m-i-n</code> hepsi engellenir.<br />
+        • <b>Kullanıcı adı değiştirirken</b> rezerve ad denenirse açık hata verilir.<br />
+        • <b>İsim yazma popup&apos;ında</b> kullanıcı durdurulmaz — oyuna girer, kullanıcı
+        adı aşağıdaki kurala göre kendiliğinden verilir.<br />
+        • Bu liste kodda sabit değildir; buradan eklenip silinir.
+      </div>
+
+      {/* Rezerve ada denk gelince ne olsun? */}
+      <div style={{ background: "var(--bg-panel)", borderRadius: 12, padding: 14 }}>
+        <div style={{ fontWeight: 700, color: "var(--text-strong)", fontSize: 14, marginBottom: 4 }}>
+          İsim popup&apos;ında rezerve ada denk gelince
+        </div>
+        <div style={{ color: "var(--text-dim)", fontSize: 12.5, lineHeight: 1.6, marginBottom: 10 }}>
+          Kullanıcı &ldquo;Admin&rdquo; yazdı diyelim — görünen adı yine
+          &ldquo;Admin&rdquo; olur (o ayrıca isim denetiminden geçer), ama
+          kullanıcı adı için bir karar gerekir.
+        </div>
+        <div style={{ display: "grid", gap: 8 }}>
+          {[
+            {
+              key: "neutral",
+              baslik: `Tarafsız ad ver (${d.neutral_base}, ${d.neutral_base}2 …)`,
+              aciklama: "Önerilen. “admin2” hâlâ yetkili izlenimi verir — kötü niyetli kişinin aradığı tam da budur. Tarafsız taban bu izlenimi tamamen ortadan kaldırır.",
+            },
+            {
+              key: "number",
+              baslik: "Sıra numarası ekle (admin2, admin3 …)",
+              aciklama: "Yazdığı ada yakın kalır ama “ikinci admin” izlenimi doğurabilir.",
+            },
+          ].map((o) => {
+            const on = d.fallback === o.key;
+            return (
+              <button key={o.key} onClick={() => setFallback(o.key)} disabled={busy}
+                style={{
+                  textAlign: "left", padding: "11px 13px", borderRadius: 10, cursor: "pointer",
+                  border: `1px solid ${on ? "var(--accent)" : "var(--border-soft)"}`,
+                  background: on ? "rgba(255,193,74,.10)" : "transparent",
+                }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 14 }}>{on ? "◉" : "○"}</span>
+                  <span style={{ fontWeight: 700, color: "var(--text-strong)", fontSize: 13.5 }}>
+                    {o.baslik}
+                  </span>
+                </div>
+                <div style={{ color: "var(--text-dim)", fontSize: 12, marginTop: 4, marginLeft: 22, lineHeight: 1.5 }}>
+                  {o.aciklama}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Bu adı kullanan mevcut hesaplar */}
+      {d.users_using?.length > 0 && (
+        <div style={{
+          background: "rgba(255,90,90,.10)", border: "1px solid var(--accent-hot)",
+          borderRadius: 12, padding: "12px 14px",
+        }}>
+          <div style={{ fontWeight: 700, color: "var(--accent-hot)", fontSize: 14, marginBottom: 6 }}>
+            ⚠️ Rezerve bir adı ŞU AN kullanan {d.users_using.length} hesap var
+          </div>
+          {d.users_using.map((u: any) => (
+            <div key={u.id} style={{ fontSize: 12.5, color: "var(--text-soft)", padding: "2px 0" }}>
+              #{u.id} <b className="brand-mono">{u.username}</b> · {u.display_name} ·{" "}
+              {u.email || "e-posta yok"} · {u.matches_played} maç
+            </div>
+          ))}
+          <div style={{ fontSize: 11.5, color: "var(--text-dim)", marginTop: 6 }}>
+            Bu hesaplar kendiliğinden değiştirilmez — kararı sen verirsin.
+          </div>
+        </div>
+      )}
+
+      {/* Ekleme */}
+      <div style={{ background: "var(--bg-panel)", borderRadius: 12, padding: 14, display: "grid", gap: 8 }}>
+        <div style={{ fontWeight: 700, color: "var(--text-strong)", fontSize: 14 }}>Yeni rezerve ad</div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") add(); }}
+            placeholder="ör. yonetim"
+            style={{
+              flex: "1 1 160px", padding: "10px 12px", borderRadius: 10,
+              border: "1px solid var(--tile-border)", background: "var(--bg-elevated)",
+              color: "var(--text-strong)", fontSize: 14,
+            }}
+          />
+          <input
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") add(); }}
+            placeholder="gerekçe (isteğe bağlı)"
+            style={{
+              flex: "2 1 220px", padding: "10px 12px", borderRadius: 10,
+              border: "1px solid var(--tile-border)", background: "var(--bg-elevated)",
+              color: "var(--text-strong)", fontSize: 14,
+            }}
+          />
+          <button onClick={add} disabled={busy || !name.trim()} style={{
+            padding: "10px 18px", borderRadius: 10, border: "none",
+            cursor: busy || !name.trim() ? "default" : "pointer",
+            background: "var(--accent)", color: "#1a1330", fontWeight: 800, fontSize: 14,
+            opacity: busy || !name.trim() ? 0.55 : 1,
+          }}>Ekle</button>
+        </div>
+        {name.trim() && (
+          <div style={{ fontSize: 12, color: "var(--accent)" }}>
+            Kaydedilecek: <b className="brand-mono">{slugifyForPreview(name) || "—"}</b>
+          </div>
+        )}
+        {msg && <div style={{ fontSize: 12.5, color: "var(--tile-correct)" }}>{msg}</div>}
+      </div>
+
+      {/* Liste */}
+      <input
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        placeholder={`🔎 Listede ara (${d.count} ad)`}
+        style={{
+          padding: "10px 12px", borderRadius: 10, border: "1px solid var(--tile-border)",
+          background: "var(--bg-elevated)", color: "var(--text-strong)", fontSize: 14,
+        }}
+      />
+
+      <div style={{ display: "grid", gap: 6 }}>
+        {shown.length === 0 && (
+          <p style={{ color: "var(--text-dim)", textAlign: "center", padding: 16 }}>
+            {term ? "Bu aramaya uyan ad yok." : "Liste boş."}
+          </p>
+        )}
+        {shown.map((x: any) => (
+          <div key={x.name} style={{
+            background: "var(--bg-panel)", borderRadius: 10, padding: "9px 12px",
+            display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
+          }}>
+            <b className="brand-mono" style={{ color: "var(--text-strong)", fontSize: 13.5 }}>{x.name}</b>
+            <span style={{ flex: 1, color: "var(--text-dim)", fontSize: 12.5 }}>{x.note}</span>
+            <button onClick={() => remove(x.name)} disabled={busy} style={{
+              padding: "5px 11px", borderRadius: 8, cursor: "pointer",
+              border: "1px solid var(--border-soft)", background: "transparent",
+              color: "var(--accent-hot)", fontSize: 12, fontWeight: 700,
+            }}>Çıkar</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Panelde "ne kaydedilecek" önizlemesi — backend'deki slugify_username ile aynı. */
+function slugifyForPreview(raw: string): string {
+  const map: Record<string, string> = {
+    "ç": "c", "Ç": "c", "ğ": "g", "Ğ": "g", "ı": "i", "I": "i", "İ": "i",
+    "ö": "o", "Ö": "o", "ş": "s", "Ş": "s", "ü": "u", "Ü": "u",
+  };
+  return [...(raw || "")].map((c) => map[c] ?? c).join("").toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
 // ---- Kural dışı kalmış kullanıcı adları ------------------------------------

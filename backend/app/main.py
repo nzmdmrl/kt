@@ -323,6 +323,19 @@ async def on_startup():
         _asyncio.create_task(notification_cleanup_loop())
     except Exception as e:
         print(f"[startup] Bildirim temizlik görevi atlandı: {e}")
+    # Rezerve kullanıcı adları — tablo BOŞSA başlangıç listesi bir kez yazılır.
+    # Admin panelden silerse geri getirilmez.
+    try:
+        from app.core.database import AsyncSessionLocal as _ASL2
+        from app.game import reserved_names as _rn
+        async with _ASL2() as db:
+            n = await _rn.seed_if_empty(db)
+            await _rn.load(db)          # cache'e al
+            if n:
+                print(f"[rezerve ad] {n} başlangıç adı seed edildi.")
+    except Exception as e:
+        print(f"[rezerve ad] seed atlandı: {e}")
+
     # Kullanıcı adı denetimi: harf duyarsız benzersiz indeksi kurmayı dener.
     # HİÇBİR KAYDI DEĞİŞTİRMEZ; çakışma varsa yalnız log'a yazar.
     try:

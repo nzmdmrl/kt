@@ -487,6 +487,31 @@ Aynı kod hem sitede hem uygulamada çalışır (uygulama web içeriğini canlı
   PostgreSQL). Canlıdaki çakışma durumu Postgres'te birebir taklit edilip
   açılışın çökmediği ve kayıtlara dokunmadığı doğrulandı.
 
+
+**Ara iş 5 (rezerve kullanıcı adları) — TAMAM:**
+- `admin`, `yonetici`, `destek`, `kelimetahmin`, `sistem`, `bot`, `me` gibi
+  adları kimse alamıyor. Liste **kodda sabit DEĞİL**: `reserved_usernames`
+  tablosu, admin → **🔒 Rezerve Adlar** sekmesinden ekle/sil/listele.
+  Başlangıçta 45 ad seed edilir (yalnız tablo BOŞSA; admin silerse geri gelmez).
+- Kontrol `app/game/reserved_names.py`: süreç içi cache, admin değişince
+  invalidate. HARF DUYARSIZ ve `slugify_username`'den geçmiş hâle bakar —
+  `ADMIN`, `Admin`, `admın`, `A-d-m-i-n` hepsi yakalanır. Eşleşme TAM addır
+  (ör. `destekekibi` serbest; bulanık taklitleri Aşama 4'ün isim denetimi yakalar).
+- Nerede çalışır: `_first_free` (isimden türetme, Google, e-posta kaydı, Play
+  Games — hepsi buradan geçer) ve `clean_username` (ad değiştirme).
+- Davranış:
+  - **ad değiştirirken** → açık hata ("bu ad site tarafından ayrılmış"),
+  - **isim popup'ında** → kullanıcı DURDURULMAZ. Varsayılan `neutral`:
+    kullanıcı adı tarafsız tabana kaydırılır (`oyuncu`, `oyuncu2`…).
+    NEDEN: `admin2` hâlâ "ikinci admin" izlenimi verir. Görünen ad yazıldığı
+    gibi kalır ve zaten isim denetiminden geçer.
+    Admin ayarı `reserved_fallback` = `neutral` | `number` (panelde iki seçenek).
+  - `oyuncu` tabanı rezerve EDİLEMEZ (yedek yol tıkanmasın diye uç engelliyor).
+- Panel ayrıca rezerve bir adı ŞU AN kullanan hesapları listeler — değiştirmez.
+- Canlı kontrol: rezerve listedeki bir adı kullanan hesap YOK (13 üye).
+- Testler: `backend/tests/rezerve_adlar_senaryo.py` (90 senaryo, SQLite +
+  PostgreSQL), tarayıcı paketi 62 senaryoya çıktı.
+
 - SONRAKİ AŞAMA: 5) mobilden Google/Play Games düğmelerinin sökülmesi.
 
 ### Misafir (üye olmayan ziyaretçi) erişimi

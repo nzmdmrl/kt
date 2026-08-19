@@ -94,10 +94,19 @@ async def _first_free(db: AsyncSession, base: str) -> str:
     """base, base2, base3... sırasıyla dener; boşta olan ilkini döner.
 
     Numara 2'den başlar: "nazim" doluysa sıradaki "nazim2" olur ("nazim1" değil).
+
+    REZERVE ADLAR ATLANIR: "admin" rezerveyse aday olarak seçilmez. Tabanın
+    kendisi rezerveyse ne olacağını `safe_base` belirler (tarafsız tabana
+    kaydır ya da numara ekle) — bkz. app/game/reserved_names.py.
     """
+    from app.game import reserved_names
+    base = await reserved_names.safe_base(db, base)
     candidate = base
     i = 1
-    while await get_user_by_username(db, candidate):
+    while (
+        await get_user_by_username(db, candidate)
+        or await reserved_names.is_reserved(db, candidate)
+    ):
         i += 1
         candidate = f"{base}{i}"
     return candidate

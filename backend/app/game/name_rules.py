@@ -129,6 +129,16 @@ async def clean_username(db: AsyncSession, raw: str) -> str:
         )
     if len(name) > hi:
         raise NameError_(f"Kullanıcı adı en fazla {hi} karakter olabilir (girilen: {len(name)}).")
+
+    # REZERVE ADLAR: kişi burada bilerek bir ad SEÇİYOR. Sessizce başka bir ad
+    # vermek yanıltıcı olurdu; açıkça reddedilir. (İsim popup'ında ise kullanıcı
+    # durdurulmaz, kullanıcı adı kendiliğinden kaydırılır — bkz. _first_free.)
+    from app.game import reserved_names
+    if await reserved_names.is_reserved(db, name):
+        raise NameError_(
+            f"“{name}” kullanılamaz — bu ad site tarafından ayrılmış. "
+            "Başka bir kullanıcı adı seç."
+        )
     return name
 
 

@@ -243,6 +243,142 @@ async def remove_ip_ban(
     return {"ok": True, "affected_users": len(users)}
 
 
+# ---------------------------------------------------------------- Rezerve adlar
+#
+# Kimsenin alamayacağı kullanıcı adları. Liste KODDA DEĞİL veritabanındadır;
+# buradan eklenir/silinir. Kontrol harf duyarsızdır ve adın çevrilmiş hâline
+# bakar ("ADMIN", "Admin", "admın" hepsi aynı kayda düşer).
+
+
+@router.get("/reserved-names")
+async def list_reserved(
+    admin: User = Depends(get_admin_user), db: AsyncSession = Depends(get_db),
+):
+    """Rezerve adlar + davranış ayarı + listeyi ŞU AN kullanan hesaplar."""
+    from sqlalchemy import select as _sel
+    from app.game import reserved_names
+    from app.models.reserved_username import ReservedUsername
+
+    rows = (await db.execute(
+        _sel(ReservedUsername).order_by(ReservedUsername.name)
+    )).scalars().all()
+    names = [r.name for r in rows]
+
+    # Listedeki bir adı KULLANAN mevcut hesaplar (harf duyarsız).
+    # SADECE LİSTELENİR — hiçbir kayıt değiştirilmez.
+    users_using: list[dict] = []
+    if names:
+        found = (await db.execute(
+            _sel(User).where(func.lower(User.username).in_(names)).order_by(User.id)
+        )).scalars().all()
+        users_using = [{
+            "id": u.id,
+            "username": u.username,
+            "display_name": u.display_name,
+            "email": u.email,
+            "matches_played": u.matches_played or 0,
+            "xp": u.xp or 0,
+            "deleted": bool(u.deleted),
+        } for u in found]
+
+    return {
+        "names": [{"name": r.name, "note": r.note or "",
+                   "created_at": r.created_at.isoformat() if r.created_at else None}
+                  for r in rows],
+        "count": len(rows),
+        "fallback": reserved_names.fallback_mode(),
+        "neutral_base": reserved_names.NEUTRAL_BASE,
+        "users_using": users_using,
+    }
+
+
+class ReservedIn(BaseModel):
+    name: str
+    note: str = ""
+
+
+@router.post("/reserved-names")
+async def add_reserved(
+    data: ReservedIn,
+    admin: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Yeni rezerve ad ekler. Girilen ad normalleştirilerek kaydedilir."""
+    from sqlalchemy import select as _sel
+    from app.game import reserved_names
+    from app.game.name_rules import slugify_username
+    from app.models.reserved_username import ReservedUsername
+
+    key = slugify_username(data.name)
+    if not key:
+        raise HTTPException(400, "Ad en az bir harf ya da rakam içermeli.")
+    if len(key) > 32:
+        raise HTTPException(400, "Ad en fazla 32 karakter olabilir.")
+    if key == reserved_names.NEUTRAL_BASE:
+        # Yedek taban rezerve edilirse "tarafsız ada kaydırma" yolu tıkanır.
+        raise HTTPException(
+            400,
+            f"“{key}” rezerve edilemez — rezerve ada denk gelen hesaplara "
+            "yedek kullanıcı adı bu tabandan üretiliyor.",
+        )
+
+    exists = (await db.execute(
+        _sel(ReservedUsername).where(ReservedUsername.name == key)
+    )).scalar_one_or_none()
+    if exists:
+        raise HTTPException(409, f"“{key}” zaten listede.")
+
+    db.add(ReservedUsername(name=key, note=(data.note or "")[:120]))
+    await db.commit()
+    reserved_names.invalidate()
+
+    # Bu adı kullanan hesap var mı? (bilgi amaçlı — değiştirilmez)
+    using = (await db.execute(
+        _sel(User).where(func.lower(User.username) == key)
+    )).scalars().all()
+    return {
+        "ok": True, "name": key,
+        "users_using": [{"id": u.id, "username": u.username} for u in using],
+    }
+
+
+@router.delete("/reserved-names/{name}")
+async def remove_reserved(
+    name: str, admin: User = Depends(get_admin_user), db: AsyncSession = Depends(get_db),
+):
+    """Rezerve adı listeden çıkarır (ad yeniden alınabilir hâle gelir)."""
+    from sqlalchemy import delete as _del
+    from app.game import reserved_names
+    from app.game.name_rules import slugify_username
+    from app.models.reserved_username import ReservedUsername
+
+    key = slugify_username(name)
+    res = await db.execute(_del(ReservedUsername).where(ReservedUsername.name == key))
+    await db.commit()
+    reserved_names.invalidate()
+    if not res.rowcount:
+        raise HTTPException(404, "Bu ad listede yok.")
+    return {"ok": True, "name": key}
+
+
+class ReservedFallbackIn(BaseModel):
+    mode: str
+
+
+@router.put("/reserved-names/fallback")
+async def set_reserved_fallback(
+    data: ReservedFallbackIn,
+    admin: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Rezerve ada denk gelince ne yapılacağı: neutral | number."""
+    if data.mode not in ("neutral", "number"):
+        raise HTTPException(400, "Geçersiz seçenek.")
+    from app.game.settings_service import set_setting
+    await set_setting(db, "reserved_fallback", data.mode)
+    return {"ok": True, "mode": data.mode}
+
+
 # ---------------------------------------------------------------- Hızlı Giriş
 
 def _int_setting(key: str, default: int) -> int:

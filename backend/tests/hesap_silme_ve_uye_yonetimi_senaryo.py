@@ -160,7 +160,10 @@ async def main() -> None:
         print("\n4) Admin özet — ortam kırılımı")
         r = await c.post("/api/auth/register",
                          json={"email": "admin@ornek.com", "password": "adminsifre",
-                               "display_name": "Yonetim"},
+                               # "Yonetim" artık REZERVE bir kullanıcı adı;
+                               # arama testinin ada göre eşleşmesi için iki
+                               # kelimeli bir ad kullanılıyor (yonetimhesabi).
+                               "display_name": "Yonetim Hesabi"},
                          headers={"user-agent": UA_DESKTOP, "x-forwarded-for": "9.9.9.1"})
         admin_id, admin_tok = r.json()["user"]["id"], r.json()["token"]
         await db_exec("UPDATE users SET is_admin = :v WHERE id = :i", v=True, i=admin_id)

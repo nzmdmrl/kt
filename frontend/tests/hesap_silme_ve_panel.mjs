@@ -218,6 +218,30 @@ console.log("\n4) Admin — üye yönetimi, cihaz simgesi, ortam istatistikleri"
   t = await txt(page);
   check("silinmiş üyeler süzülebiliyor", t.includes("Silinmiş üye") || t.includes("Sonuç yok"), t.slice(0, 300));
 
+  // --- 🔒 Rezerve Adlar sekmesi
+  await page.click("text=🔒 Rezerve Adlar");
+  await page.waitForTimeout(2200);
+  t = await txt(page);
+  check("rezerve adlar sekmesi açıldı", t.includes("Buradaki adları kimse alamaz"), t.slice(0, 300));
+  for (const ad of ["admin", "yonetici", "moderator", "destek", "kelimetahmin", "sistem", "bot"])
+    check(`"${ad}" listede`, t.includes(ad), "");
+  check("davranış seçeneği var",
+    t.includes("Tarafsız ad ver") && t.includes("Sıra numarası ekle"), t.slice(0, 900));
+  check("kullanan hesap uyarısı yok (temiz)", !t.includes("ŞU AN kullanan"), "");
+
+  // Ekle → listede görün → sil
+  await page.fill('input[placeholder="ör. yonetim"]', "ŞAMPİYON");
+  await page.waitForTimeout(400);
+  check("ne kaydedileceği önizleniyor", (await txt(page)).includes("sampiyon"), "");
+  await page.getByRole("button", { name: "Ekle", exact: true }).click();
+  await page.waitForTimeout(2200);
+  t = await txt(page);
+  check("yeni ad eklendi", t.includes("sampiyon"), t.slice(0, 400));
+  await page.locator('div:has(> b:text-is("sampiyon")) button:text-is("Çıkar")').first().click();
+  await page.waitForTimeout(2200);
+  check("ad listeden çıkarıldı",
+    !(await txt(page)).split("Listede ara")[1]?.includes("sampiyon"), "");
+
   // Eski sekmeler
   for (const [tab, marker] of [["⚙️ Ayarlar", "Değişiklikler yeni başlayan"], ["⚡ Hızlı Giriş", "Doğrulanmamış hesap"], ["🔎 İsim Kontrol", "arka planda denetlenir"]]) {
     await page.click(`text=${tab}`);
