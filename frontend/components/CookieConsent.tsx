@@ -6,16 +6,26 @@
  * "Bant + varsayılan açık" modeli: ziyaretçi karar verene kadar ölçüm çalışır,
  * "Reddet" derse anında durur. Karar verildikten sonra bant bir daha gösterilmez;
  * tercih /cerez sayfasından değiştirilebilir.
+ *
+ * MOBİL UYGULAMADA GÖSTERİLMEZ: uygulama bir web sitesi değil, kurulmuş bir
+ * uygulamadır; çerez bandı oyun ekranının üstünde gereksiz yer kaplıyordu.
+ * Tercih yolu kapanmaz — aynı anahtar uygulama içinden de erişilebilen
+ * ☰ Menü → 🍪 Çerezler (/cerez) sayfasında duruyor.
+ *
+ * Tespit `detectPlatform()` ile YAPILIR, usePlatform() ile değil: bu bileşen
+ * layout'ta <Providers> DIŞINDA duruyor, yani platform context'ine erişemez.
  */
 
 import { useEffect, useState } from "react";
 import { GA_ID, getConsent, setConsent, onConsentChange } from "@/lib/analytics";
+import { detectPlatform } from "@/lib/platform";
 
 export default function CookieConsent() {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
     if (!GA_ID) return; // ölçüm yapılandırılmamışsa bant da gösterme
+    if (detectPlatform() !== "web") return;   // mobil uygulamada bant yok
     if (getConsent() === null) setShow(true);
     // /cerez sayfasından tercih sıfırlanırsa bandı tekrar aç
     return onConsentChange((c) => setShow(c === null));

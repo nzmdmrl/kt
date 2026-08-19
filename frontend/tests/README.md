@@ -57,6 +57,11 @@ docker run --rm --network host -v "$PWD/tests":/w -w /w \
   denk geliyor mu, dışarıda bırakılması gereken yollar (hesap-silme, yasal
   sayfalar, yönetim) gerçekten dışarıda mı. Manifest'i doğrudan okur:
   `MANIFEST=<yol> BASE=<adres> node app_links_yollar.mjs`.
+- `cerez_bandi_mobil.mjs` — çerez bandı: mobil tarayıcıda çıkıyor ve karar
+  verilince kapanıyor, mobil UYGULAMADA (KelimeApp/ ve Capacitor köprüsü)
+  hiç çıkmıyor; ölçüm tercihi anahtarı /cerez sayfasında iki ortamda da
+  çalışıyor. ÖN KOŞUL: frontend `NEXT_PUBLIC_GA_ID` ile derlenmiş olmalı
+  (bant yalnız ölçüm yapılandırılmışsa çıkar).
 - `mobil_google_yok.mjs` — Aşama 5 kanıtı: uygulama kullanıcı ajanıyla (KelimeApp/)
   açılan sayfada Google KİMLİK trafiği olmadığını, Google/Play Games düğmesinin
   çizilmediğini ve indirilen JS paketlerinde capgo/PlayGames izi kalmadığını
