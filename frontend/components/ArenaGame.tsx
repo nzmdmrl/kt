@@ -11,6 +11,7 @@ import TitleCelebration from "./TitleCelebration";
 import { useSpeech } from "@/lib/useSpeech";
 import { exitWithAd, noteMatchFinished, type AdMode } from "@/lib/interstitial";
 import { useArenaGaps } from "@/lib/uiSettings";
+import { avatarSrc } from "@/lib/avatar";
 
 // Arena maç ekranı — eşleşme, senkron sorular (anagram), sonuç.
 export default function ArenaGame({ onExit, customCode }: { onExit: () => void; customCode?: string }) {
@@ -240,7 +241,7 @@ export default function ArenaGame({ onExit, customCode }: { onExit: () => void; 
                   border: "1px solid var(--border-soft)",
                   animation: "slideIn .3s ease",
                 }}>
-                  <img src={p.avatar_url || `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(p.name)}`}
+                  <img src={avatarSrc(p.avatar_url, p.name)}
                     alt={p.name}
                     style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--bg-elevated)" }} />
                   <span style={{ color: "var(--text-strong)", fontWeight: 600, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
@@ -578,7 +579,7 @@ function ArenaShell({ children, onExit, players, answers, showResults, fillTo }:
                     }}
                   />
                 )}
-                <img src={p.avatar_url || `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(p.name)}`}
+                <img src={avatarSrc(p.avatar_url, p.name)}
                   alt={p.name}
                   style={{
                     width: 48, height: 48, borderRadius: "50%", objectFit: "cover",
@@ -642,7 +643,7 @@ function ArenaResult({ ranking, rewards, onExit, adMode, totalWords }: { ranking
   const second = ranking.find((p) => p.rank === 2);
   const third = ranking.find((p) => p.rank === 3);
 
-  const avatar = (p?: ArenaPlayer) => p?.avatar_url || `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(p?.name || "?")}`;
+  const avatar = (p?: ArenaPlayer) => avatarSrc(p?.avatar_url, p?.name);
 
   // Podyum sütunu (kürsü)
   const Podium = ({ p, place, h }: { p?: ArenaPlayer; place: 1 | 2 | 3; h: number }) => {
@@ -871,7 +872,7 @@ function ArenaScoreGrid({ players, total, answer, onExit }: {
                 {p.correct_count}/{total}
               </div>
               {/* Oyuncu — tablonun hemen altında, sütunla hizalı */}
-              <img src={p.avatar_url || `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(p.name)}`}
+              <img src={avatarSrc(p.avatar_url, p.name)}
                 alt={p.name}
                 style={{ width: 44, height: 44, borderRadius: "50%", border: "2px solid var(--border-soft)", background: "var(--bg-elevated)", objectFit: "cover" }} />
               <div style={{ width: 52, fontSize: 10, color: "var(--text-dim)", textAlign: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>

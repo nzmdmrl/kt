@@ -5,6 +5,7 @@ import { apiUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import Logo from "@/components/Logo";
 import AlertPopup from "@/components/AlertPopup";
+import { avatarSrc } from "@/lib/avatar";
 
 function authHeaders(): HeadersInit {
   const t = typeof window !== "undefined" ? localStorage.getItem("kt_token") : null;
@@ -2385,7 +2386,7 @@ function NameFlags({ onChanged }: { onChanged: () => void }) {
               <div key={f.id} style={{ background: "var(--bg-panel)", borderRadius: 12, padding: 12, display: "grid", gap: 8 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={f.avatar_url || `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(f.flagged_username || "?")}`}
+                  <img src={avatarSrc(f.avatar_url, f.flagged_username)}
                     alt="" style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--bg-elevated)", flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 160 }}>
                     <div style={{ fontWeight: 800, color: "var(--text-strong)", fontSize: 15 }}>
@@ -2684,7 +2685,7 @@ function NameMod({ onChanged }: { onChanged: () => void }) {
               borderRadius: 12, padding: "10px 12px", flexWrap: "wrap",
             }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={u.avatar_url || `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(u.display_name || "?")}`}
+              <img src={avatarSrc(u.avatar_url, u.username || u.display_name)}
                 alt="" style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--bg-elevated)", flexShrink: 0 }} />
               <div style={{ flex: 1, minWidth: 140 }}>
                 <div style={{ fontWeight: 700, color: "var(--text-strong)", fontSize: 14 }}>{u.display_name}</div>

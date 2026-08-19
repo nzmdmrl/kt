@@ -7,6 +7,7 @@ import ProfileEditModal from "@/components/ProfileEditModal";
 import PresenceBadge from "@/components/PresenceBadge";
 import { CHALLENGE_SENT_EVENT } from "@/components/ChallengeWatcher";
 import Logo from "@/components/Logo";
+import { avatarSrc } from "@/lib/avatar";
 
 type Badge = { code: string; name: string; desc: string; icon: string; tier: string; earned: boolean };
 type Profile = {
@@ -201,15 +202,16 @@ export default function ProfilePage({ params }: { params: { username: string } }
         )}
         {/* Avatar + seviye rozeti (mobilde avatarın altında ortalı) */}
         <div className="hm-avatar-col">
-          {/* Kendi profilimde onay bekleyen fotoğrafımı da görürüm (auth'tan gelir). */}
-          {(isMe && user?.avatar_url ? user.avatar_url : profile.avatar_url) ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={(isMe && user?.avatar_url ? user.avatar_url : profile.avatar_url) || undefined} alt="" className="hm-avatar" />
-          ) : (
-            <div className="hm-avatar prof-avatar-fallback">
-              <span className="brand-mono">{profile.display_name.charAt(0).toUpperCase()}</span>
-            </div>
-          )}
+          {/* Kendi profilimde onay bekleyen fotoğrafımı da görürüm (auth'tan gelir).
+              Avatar boşsa ana sayfayla AYNI yedek kullanılır — eskiden burada
+              yalnız baş harf çıkıyor, kişi ana sayfadaki yüzü profilinde
+              bulamıyordu. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={avatarSrc(isMe && user?.avatar_url ? user.avatar_url : profile.avatar_url, profile.username)}
+            alt=""
+            className="hm-avatar"
+          />
           {profile.level_info && <span className="hm-badge hm-badge--under">Lv {profile.level_info.level}</span>}
         </div>
         <div className="hm-profile">

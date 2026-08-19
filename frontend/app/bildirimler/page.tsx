@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { apiUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import Logo from "@/components/Logo";
+import { avatarSrc } from "@/lib/avatar";
 
 type Notif = { id: number; kind?: string; title: string; body: string; read: boolean; created_at: string; link?: string; icon?: string };
 
@@ -123,7 +124,7 @@ export default function BildirimlerPage() {
           <div style={{ display: "grid", gap: 8, marginBottom: 24 }}>
             {requests.map((r) => (
               <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: "var(--bg-panel)", borderRadius: 10 }}>
-                <img src={r.avatar_url || `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(r.display_name)}`}
+                <img src={avatarSrc(r.avatar_url, r.username || r.display_name)}
                   alt={r.display_name} style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--bg-elevated)" }} />
                 <a href={`/profil/${r.username}`} style={{ flex: 1, minWidth: 0, color: "var(--text-strong)", fontWeight: 600, textDecoration: "none", fontSize: 14 }}>{r.display_name}</a>
                 <button onClick={() => respondRequest(r.id, true)}

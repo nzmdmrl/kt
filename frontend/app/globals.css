@@ -581,8 +581,6 @@ body.has-native-banner.kt-game-screen:not(.has-bottom-nav) { padding-bottom: var
 
 /* Profil sayfası — ana sayfadaki profil kartının aynısı, ufak eklerle */
 .prof-card { position: relative; }
-.hm-avatar.prof-avatar-fallback { display: grid; place-items: center; }
-.prof-avatar-fallback .brand-mono { font-size: 26px; color: var(--accent); }
 .prof-username { font-size: 13px; color: var(--text-dim); }
 /* Arkadaş sayısı — isim satırının sağına hizalı */
 .prof-friends { margin-left: auto; }

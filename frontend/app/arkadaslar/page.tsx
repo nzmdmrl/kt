@@ -13,6 +13,7 @@ import { useAuth } from "@/lib/auth";
 import Logo from "@/components/Logo";
 import AccountRequired from "@/components/AccountRequired";
 import { FRIEND_LABELS, labelInfo, type Friend, type FriendLabelKey } from "@/lib/friendLabels";
+import { avatarSrc } from "@/lib/avatar";
 
 const STATUS_DOT: Record<string, string> = {
   online: "#3aa76d",
@@ -121,7 +122,7 @@ export default function ArkadaslarPage() {
             }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <img
-                  src={f.avatar_url || `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(f.display_name)}`}
+                  src={avatarSrc(f.avatar_url, f.username || f.display_name)}
                   alt="" style={{ width: 44, height: 44, borderRadius: "50%", background: "var(--bg-elevated)", flexShrink: 0 }}
                 />
                 <a href={`/profil/${f.username}`} style={{ flex: 1, minWidth: 0, textDecoration: "none" }}>

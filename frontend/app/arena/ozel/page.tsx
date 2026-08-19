@@ -11,6 +11,7 @@ import AccountRequired from "@/components/AccountRequired";
 import { SITE_URL } from "@/lib/site";
 
 import { FRIEND_LABELS, type Friend, type FriendLabelKey } from "@/lib/friendLabels";
+import { avatarSrc } from "@/lib/avatar";
 type SavedArena = { id: number; name: string; size: number; wait_seconds: number; bots_enabled: boolean; word_plan: number[] };
 
 export default function OzelArenaPage() {
@@ -175,7 +176,7 @@ export default function OzelArenaPage() {
           <div style={{ display: "grid", gap: 8 }}>
             {friends.filter((f) => !labelFilter || f.label === labelFilter).map((f) => (
               <div key={f.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: "var(--bg-panel)", borderRadius: 10 }}>
-                <img src={f.avatar_url || `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(f.display_name)}`} alt="" style={{ width: 36, height: 36, borderRadius: "50%", background: "var(--bg-elevated)" }} />
+                <img src={avatarSrc(f.avatar_url, f.username || f.display_name)} alt="" style={{ width: 36, height: 36, borderRadius: "50%", background: "var(--bg-elevated)" }} />
                 <span style={{ flex: 1, minWidth: 0, color: "var(--text-strong)", fontWeight: 600, fontSize: 14, display: "flex", alignItems: "center", gap: 6 }}>
                   <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.display_name}</span>
                   {f.label && (

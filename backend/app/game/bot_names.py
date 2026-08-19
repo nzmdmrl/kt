@@ -80,10 +80,12 @@ def first_name_of(full: str) -> str:
 
 
 def avatar_url_for(seed: str) -> str:
-    """DiceBear ile deterministik avatar URL'i (harici, key gerektirmez)."""
-    # 'thumbs' stili nötr ve hoş; seed isme göre sabit avatar verir.
-    from urllib.parse import quote
-    return f"https://api.dicebear.com/7.x/thumbs/svg?seed={quote(seed)}"
+    """DiceBear ile deterministik avatar URL'i (harici, key gerektirmez).
+
+    Üyelerin varsayılan avatarıyla aynı kaynaktan gelir (app/game/avatars.py).
+    """
+    from app.game.avatars import dicebear_url
+    return dicebear_url(seed)
 
 
 def random_bot_names(count: int, lang: str = "tr", exclude: set[str] | None = None) -> list[str]:

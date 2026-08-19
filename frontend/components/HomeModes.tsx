@@ -8,6 +8,7 @@ import { useAccountGate } from "@/lib/accountGate";
 import { useIsoLayoutEffect } from "@/lib/useIsoLayoutEffect";
 import AnimatedWordmark from "@/components/AnimatedWordmark";
 import { HOME_BUTTON_DEFAULTS, type HomeButtons } from "@/lib/homeButtons";
+import { avatarSrc } from "@/lib/avatar";
 
 type LevelInfo = { level: number; xp: number; level_xp: number; level_need: number };
 type TitleInfo = {
@@ -113,7 +114,7 @@ export default function HomeModes({ style = "stil2", buttons }: {
       .then((r) => r.json()).then((d) => setDailyRank(d?.entry?.rank ?? null)).catch(() => setDailyRank(null));
   }, [user]);
 
-  const avatar = user?.avatar_url || `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(user?.username || "guest")}`;
+  const avatar = avatarSrc(user?.avatar_url, user?.username || "guest");
   const level = lvl?.level ?? user?.level ?? 1;
   const pct = title?.title_progress ?? 0;   // backend 0-100 döner
   const profileHref = `/profil/${encodeURIComponent(user?.username || "")}`;

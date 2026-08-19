@@ -25,6 +25,7 @@ import { useRouter } from "next/navigation";
 import { useAuth, type TransferSummary } from "@/lib/auth";
 import Logo from "@/components/Logo";
 import AlertPopup from "@/components/AlertPopup";
+import { avatarSrc } from "@/lib/avatar";
 
 type Step =
   | { name: "form" }
@@ -120,7 +121,7 @@ export default function DogrulaPage() {
         {/* --- Kim olduğun (her adımda üstte durur) --- */}
         <div style={{ textAlign: "center", marginBottom: 18 }}>
           <img
-            src={user.avatar_url || `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(user.username)}`}
+            src={avatarSrc(user.avatar_url, user.username)}
             alt=""
             style={{ width: 62, height: 62, borderRadius: "50%", border: "2px solid var(--border-soft)" }}
           />

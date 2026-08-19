@@ -14,6 +14,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { apiUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import Logo from "@/components/Logo";
+import { avatarSrc } from "@/lib/avatar";
 
 const MIN_CHARS = 2;
 /** Her tuşta istek atmamak için bekleme (ms). */
@@ -160,7 +161,7 @@ export default function UyeAraPage() {
             display: "flex", alignItems: "center", gap: 12,
           }}>
             <img
-              src={row.avatar_url || `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(row.display_name)}`}
+              src={avatarSrc(row.avatar_url, row.username || row.display_name)}
               alt=""
               style={{ width: 44, height: 44, borderRadius: "50%", background: "var(--bg-elevated)", flexShrink: 0 }}
             />

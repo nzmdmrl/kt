@@ -511,6 +511,26 @@ DATA_MIGRATIONS: list[tuple[str, list[str]]] = [
         # (c) eski tabloya artık yazılmıyor.
         "DROP TABLE IF EXISTS daily_visits",
     ]),
+
+    # 18) Avatarı olmayan hesaplara hazır avatar yazılır.
+    #
+    #     SORUN: isimle (ve e-postayla) açılan hesaplarda users.avatar_url BOŞ
+    #     kalıyordu. Arayüz her ekranda kendi yedeğini üretiyordu — ana sayfa
+    #     kullanıcı adına, arkadaş listesi görünen ada, maç ekranı maçtaki ada
+    #     göre. Sonuç: aynı kişi her yerde BAŞKA bir yüzle, profil sayfasında
+    #     ise sadece baş harfiyle görünüyordu.
+    #
+    #     Yazılan adres, ana sayfanın BUGÜN gösterdiği yedeğin AYNISIDIR
+    #     (thumbs stili, tohum = kullanıcı adı) — kimsenin avatarı değişmez,
+    #     yalnız diğer ekranlar da aynı yüzü göstermeye başlar.
+    #     Silinmiş hesaplara dokunulmaz (avatarları bilerek temizlenmiştir).
+    ("2026_08_default_avatars_backfill", [
+        "UPDATE users SET avatar_url = "
+        "'https://api.dicebear.com/7.x/thumbs/svg?seed=' || username "
+        "WHERE (avatar_url IS NULL OR avatar_url = '') "
+        f"AND (deleted IS NULL OR deleted = {_FALSE}) "
+        "AND username IS NOT NULL AND username <> ''",
+    ]),
 ]
 
 

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { apiUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { avatarSrc } from "@/lib/avatar";
 
 type LevelInfo = { level: number; xp: number; level_xp: number; level_need: number };
 type TitleInfo = { title: string; title_icon?: string; next_title: string | null; xp_to_next: number; title_progress: number };
@@ -31,7 +32,7 @@ export default function HomeHero() {
     }
   }, [user]);
 
-  const avatar = user?.avatar_url || `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(user?.username || "guest")}`;
+  const avatar = avatarSrc(user?.avatar_url, user?.username || "guest");
   const level = lvl?.level ?? user?.level ?? 1;
   const pct = title?.title_progress ?? 0;
 

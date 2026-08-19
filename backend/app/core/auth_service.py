@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User
 from app.core.security import hash_password, verify_password
+from app.game.avatars import default_avatar_url
 
 USERNAME_RE = re.compile(r"^[a-zA-Z0-9_]{3,32}$")
 
@@ -162,6 +163,9 @@ async def register_email(
         username=username,
         password_hash=hash_password(password),
         display_name=display_name,
+        # Hazır avatar kayıtta yazılır — yoksa her ekran kendi yedeğini
+        # üretiyor ve kişi her yerde başka bir yüz görüyordu.
+        avatar_url=default_avatar_url(username),
         # Ad moderasyonu kapalıysa yeni kayıt doğrudan onaylı sayılır.
         name_status=_initial_name_status(),
         # E-posta + şifre var -> hesap kurtarılabilir, doğrulanmış sayılır.
@@ -217,7 +221,8 @@ async def get_or_create_google_user(
         username=username,
         google_sub=sub,
         display_name=display,
-        avatar_url=picture,
+        # Google fotoğrafı varsa o, yoksa hazır avatar.
+        avatar_url=picture or default_avatar_url(username),
         name_status=_initial_name_status(),
         # Google hesabı bağlı -> kişi cihazını değiştirse bile geri girebilir.
         verified=True,
@@ -279,7 +284,7 @@ async def create_play_games_user(
         username=username,
         play_games_id=player_id,
         display_name=display,
-        avatar_url=picture,
+        avatar_url=picture or default_avatar_url(username),
         name_status=_initial_name_status(),
         # E-posta yok ama Play Games kimliği bağlı: kişi cihazını değiştirse bile
         # sessiz girişle aynı hesaba döner -> kurtarılabilir, doğrulanmış sayılır.
@@ -348,6 +353,8 @@ async def create_quick_user(
         email=None,
         username=username,
         display_name=display,
+        # Hazır avatar: profilde, maçta ve listelerde AYNI yüz görünsün.
+        avatar_url=default_avatar_url(username),
         name_status=_initial_name_status(),
         # Kurtarılabilir kimlik YOK -> doğrulanmamış.
         verified=False,

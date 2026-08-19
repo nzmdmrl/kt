@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { SITE_URL } from "@/lib/site";
 import ShareButtons from "@/components/ShareButtons";
 import LinkCopyBox from "@/components/LinkCopyBox";
+import { avatarSrc } from "@/lib/avatar";
 
 type Friend = { id: number; username: string; display_name: string; avatar_url: string | null };
 
@@ -72,7 +73,7 @@ export default function RoomInvite({ code }: { code: string }) {
                   }}
                 >
                   <img
-                    src={f.avatar_url || `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(f.display_name)}`}
+                    src={avatarSrc(f.avatar_url, f.username || f.display_name)}
                     alt=""
                     style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--bg-elevated)" }}
                   />

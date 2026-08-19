@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth";
 import Logo from "@/components/Logo";
 import ArenaGame from "@/components/ArenaGame";
 import AccountRequired from "@/components/AccountRequired";
+import { avatarSrc } from "@/lib/avatar";
 
 type LobbyInfo = {
   code: string; name: string; size: number; wait_seconds: number; seconds_left: number;
@@ -95,7 +96,7 @@ export default function OzelArenaLobbyPage({ params }: { params: { code: string 
       <div style={{ display: "grid", gap: 8, marginBottom: 20 }}>
         {info.players.map((p) => (
           <div key={p.pid} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: "var(--bg-panel)", borderRadius: 10 }}>
-            <img src={p.avatar_url || `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(p.name)}`} alt="" style={{ width: 36, height: 36, borderRadius: "50%", background: "var(--bg-elevated)" }} />
+            <img src={avatarSrc(p.avatar_url, p.name)} alt="" style={{ width: 36, height: 36, borderRadius: "50%", background: "var(--bg-elevated)" }} />
             <span style={{ color: "var(--text-strong)", fontWeight: 600, fontSize: 14 }}>{p.name}</span>
           </div>
         ))}

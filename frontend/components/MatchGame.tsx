@@ -16,6 +16,7 @@ import MultiScoreBar from "./MultiScoreBar";
 import RoomInvite from "./RoomInvite";
 import { useMatchNameMax, shortMatchName } from "@/lib/uiSettings";
 import { adExitProps, noteMatchFinished, type AdMode } from "@/lib/interstitial";
+import { avatarSrc } from "@/lib/avatar";
 
 export default function MatchGame({
   code,
@@ -923,7 +924,7 @@ function MultiResult({ players, result, myId, rounds, onExit, adMode }: {
                 {medal || `${r.rank}.`}
               </span>
               <img
-                src={avatarOf(r.player_id) || `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(r.name)}`}
+                src={avatarSrc(avatarOf(r.player_id), r.name)}
                 alt="" style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--bg-elevated)" }}
               />
               <span style={{ flex: 1, minWidth: 0, fontWeight: isMe ? 800 : 600, fontSize: 14, color: isMe ? "var(--accent)" : "var(--text-strong)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
