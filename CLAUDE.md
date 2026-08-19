@@ -288,7 +288,37 @@ Aynı kod hem sitede hem uygulamada çalışır (uygulama web içeriğini canlı
 - Testler: `frontend/tests/` (Playwright, 49 + 9 senaryo) — kurulum README'de.
   Backend senaryoları: `backend/tests/hizli_giris_senaryo.py` (83 senaryo).
 
-- SONRAKİ AŞAMALAR: 3) bildirim/teşvik, 4) admin paneli + gölge ban,
+
+**Aşama 3 (bildirimler) — TAMAM:**
+- Yeni bildirim türü **`verify_reminder`** (katalog grubu `system`, rota `/dogrula`).
+  Birinci ve ikinci hatırlatma AYNI türü kullanır — kullanıcı tek anahtarla
+  ikisini birden kapatabilsin. Katalog satırı `is_active=True`: ikinci hatırlatma
+  türden değil, AYARDAN kapalıdır (admin tek düğmeyle açsın).
+- Servis `app/services/verify_reminder.py`, startup'ta **saatte bir** çalışan döngü
+  (main.py). Maç/arena koduna HİÇ dokunulmadı — riski sıfır tutmak için.
+- Kime gider: `verified=false` **VE** e-posta/şifre/Google/Play Games'i olmayan
+  (emniyet kemeri) **VE** en az `verify_reminder_min_games` (varsayılan 3) oyun
+  oynamış (1v1 + arena + maraton) **VE** daha önce gönderilmemiş.
+  Doğrulanmış hesaba ASLA gitmez (sorguda süzülür + gönderim öncesi tekrar bakılır).
+- **Kalıcı damga tablosu `verify_reminders`** (`app/models/verify_reminder.py`,
+  database.py import listesinde): user_id + first_sent_at / second_sent_at /
+  cancelled_at. NEDEN AYRI TABLO: `notifications` satırları 30 günde bir siliniyor;
+  onlara bakarak "iki kez gitmesin" kuralı uygulanamazdı.
+- İkinci hatırlatma: birinciden `verify_reminder_2_days` (7) gün sonra, **ama
+  `verify_reminder_2_enabled` VARSAYILAN OLARAK false** — panelden açılana kadar
+  tek satır bile gitmez. Kişi arada doğrularsa `cancelled_at` yazılır, bir daha gitmez.
+- Push, uygulama içi satır COMMIT EDİLDİKTEN SONRA ateşle-unut gönderilir; push
+  izni/tercihi kapalı kullanıcı hatırlatmayı yine zil listesinde görür.
+- Metinler kodda varsayılan; `notification_types.title_template/body_template`
+  doluysa ONLAR kullanılır → Aşama 4'te panelden deploy'suz düzenlenebilir.
+- Ayarlar (⚙️ → Hızlı Giriş): `verify_reminder_enabled`, `verify_reminder_min_games`,
+  `verify_reminder_2_enabled`, `verify_reminder_2_days`.
+- Frontend: `/bildirimler` eylem etiketi "Profili doğrula →" eklendi (başka
+  değişiklik gerekmedi, liste tür-bağımsız çalışıyor).
+- Testler: `backend/tests/dogrulama_hatirlatma_senaryo.py` — 51 senaryo,
+  SQLite + PostgreSQL'de geçiyor.
+
+- SONRAKİ AŞAMALAR: 4) admin paneli + gölge ban,
   5) mobilden Google/Play Games düğmelerinin sökülmesi.
 
 ### Misafir (üye olmayan ziyaretçi) erişimi

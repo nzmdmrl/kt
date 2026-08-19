@@ -169,6 +169,15 @@ DEFAULT_TYPES: list[tuple[str, str, str, str, bool, str, str, int, bool]] = [
     ("support_reply", "system", "Destek yanıtları",
      "Açtığın destek talebine ekibimiz yanıt verdiğinde.",
      True, "system", "/destek/{ticket}", 10, True),
+    # Hesabını isimle açıp henüz e-posta/şifre eklememiş kullanıcıya nazik
+    # hatırlatma. Hem birinci hem (açılırsa) ikinci hatırlatma AYNI türü
+    # kullanır: kullanıcı tek bir anahtarla ikisini birden kapatabilsin.
+    # Kimin ne zaman aldığı `verify_reminders` tablosunda tutulur.
+    # DOĞRULANMIŞ hesaba hiç gönderilmez, bu yüzden ayar sayfasında görse bile
+    # rahatsız edici olmaz.
+    ("verify_reminder", "system", "Hesap doğrulama hatırlatması",
+     "Hesabını e-posta ve şifreyle kaydetmediysen ara sıra hatırlatalım.",
+     True, "system", "/dogrula", 15, True),
 
     # --- PASİF (planlanan; bugün üretilmiyor, ayar sayfasında GÖRÜNMEZ) ---
     ("match_result", "game", "Maç sonuçları",

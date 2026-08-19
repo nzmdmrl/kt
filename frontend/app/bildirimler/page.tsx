@@ -27,6 +27,8 @@ const ACTION_LABELS: Record<string, string> = {
   award_monthly: "Lige git →",
   award_yearly: "Lige git →",
   support: "Destek talebine git →",
+  // Hızlı Giriş ile açılmış, henüz e-posta/şifre eklememiş hesaba hatırlatma.
+  verify_reminder: "Profili doğrula →",
 };
 
 // Eşlenmemiş yeni bir tür yanlış yönlendirme yazmasın diye nötr yedek.

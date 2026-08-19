@@ -96,6 +96,15 @@ DEFAULT_SETTINGS = {
     # Ana sayfadaki "Profili doğrula ve kaydet" şeridi kapatılınca kaç gün
     # görünmesin. Süre dolunca şerit kendiliğinden geri gelir (0 = bir daha çıkmaz).
     "verify_banner_days": {"value": "3", "label": "Doğrulama şeridi kapatılınca kaç gün gizlensin (0 = bir daha çıkmasın)", "type": "int", "group": "Hızlı Giriş"},
+
+    # Doğrulama hatırlatma bildirimleri (app/services/verify_reminder.py).
+    # Yalnızca DOĞRULANMAMIŞ hesaplara gider; doğrulayana asla gitmez.
+    "verify_reminder_enabled": {"value": "true", "label": "Doğrulama hatırlatması gönderilsin", "type": "bool", "group": "Hızlı Giriş"},
+    "verify_reminder_min_games": {"value": "3", "label": "Hatırlatma için en az oyun sayısı (1v1 + arena + maraton)", "type": "int", "group": "Hızlı Giriş"},
+    # İKİNCİ hatırlatma BİLEREK KAPALI gelir — Nazım panelden açana kadar
+    # hiç gönderilmez (Aşama 3 kararı).
+    "verify_reminder_2_enabled": {"value": "false", "label": "İkinci (7 gün sonraki) hatırlatma gönderilsin", "type": "bool", "group": "Hızlı Giriş"},
+    "verify_reminder_2_days": {"value": "7", "label": "İkinci hatırlatma birinciden kaç gün sonra", "type": "int", "group": "Hızlı Giriş"},
     # Ad kuralları — kayıt ve profil düzenlemede geçerli (hem sunucu hem arayüz uyar).
     # Sunucu sınırı: kullanıcı adı en fazla 32, görünen ad en fazla 48 karakter (DB sütunu).
     "username_min_len": {"value": "3", "label": "Kullanıcı adı: en az karakter", "type": "int", "group": "Adlar & Listeler"},

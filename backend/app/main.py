@@ -321,6 +321,14 @@ async def on_startup():
         _asyncio.create_task(notification_cleanup_loop())
     except Exception as e:
         print(f"[startup] Bildirim temizlik görevi atlandı: {e}")
+    # Doğrulama hatırlatması döngüsü (isimle açılmış, henüz e-posta/şifre
+    # eklememiş kullanıcılara nazik hatırlatma). Saatte bir çalışır.
+    try:
+        import asyncio as _asyncio
+        from app.services.verify_reminder import verify_reminder_loop
+        _asyncio.create_task(verify_reminder_loop())
+    except Exception as e:
+        print(f"[startup] Doğrulama hatırlatma görevi atlandı: {e}")
     # Oyun ayarlarını cache'e yükle (admin panelden değişebilir).
     try:
         from app.core.database import AsyncSessionLocal
