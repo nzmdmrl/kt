@@ -23,6 +23,8 @@ const TABS = [
   { key: "users", label: "👥 Üyeler" },
   { key: "photomod", label: "🖼️ Foto Mod" },
   { key: "namemod", label: "🏷️ Ad Mod" },
+  { key: "nameflags", label: "🔎 İsim Kontrol" },
+  { key: "quickauth", label: "⚡ Hızlı Giriş" },
   { key: "homebtn", label: "🏠 Ana Sayfa" },
   { key: "sharepm", label: "💬 Sonuç PM" },
   { key: "seo", label: "🔍 SEO" },
@@ -41,6 +43,8 @@ export default function AdminPage() {
   const [modCounts, setModCounts] = useState<{ avatars: number; names: number }>({ avatars: 0, names: 0 });
   // Yanıt bekleyen destek talebi sayısı (sekme rozeti).
   const [supportWaiting, setSupportWaiting] = useState(0);
+  // İncelenmeyi bekleyen isim işareti sayısı (🔎 İsim Kontrol rozeti).
+  const [nameFlags, setNameFlags] = useState(0);
 
   function loadCounts() {
     fetch(apiUrl("/api/admin/moderation/counts"), { headers: authHeaders() })
@@ -50,6 +54,10 @@ export default function AdminPage() {
     fetch(apiUrl("/api/admin/support?limit=1"), { headers: authHeaders() })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => { if (d) setSupportWaiting(d.waiting || 0); })
+      .catch(() => {});
+    fetch(apiUrl("/api/admin/name-flags/counts"), { headers: authHeaders() })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d) setNameFlags(d.pending || 0); })
       .catch(() => {});
   }
   useEffect(() => {
@@ -68,7 +76,10 @@ export default function AdminPage() {
       <h1 className="brand-mono" style={{ fontSize: 26, marginBottom: 16 }}>Yönetim Paneli</h1>
       <div style={{ display: "flex", gap: 6, marginBottom: 20, flexWrap: "wrap" }}>
         {TABS.map((t) => {
-          const badge = t.key === "photomod" ? modCounts.avatars : t.key === "namemod" ? modCounts.names : t.key === "support" ? supportWaiting : 0;
+          const badge = t.key === "photomod" ? modCounts.avatars
+            : t.key === "namemod" ? modCounts.names
+            : t.key === "nameflags" ? nameFlags
+            : t.key === "support" ? supportWaiting : 0;
           return (
             <button key={t.key} onClick={() => setTab(t.key)} style={{
               padding: "10px 14px", borderRadius: 10, border: "none", cursor: "pointer",
@@ -101,6 +112,8 @@ export default function AdminPage() {
       {tab === "users" && <Users />}
       {tab === "photomod" && <PhotoMod onChanged={loadCounts} />}
       {tab === "namemod" && <NameMod onChanged={loadCounts} />}
+      {tab === "nameflags" && <NameFlags onChanged={loadCounts} />}
+      {tab === "quickauth" && <QuickAuth />}
       {tab === "homebtn" && <HomeButtons />}
       {tab === "sharepm" && <SharePM />}
       {tab === "seo" && <Seo />}
@@ -1391,6 +1404,367 @@ function PhotoMod({ onChanged }: { onChanged: () => void }) {
 
 // ---- 🏷️ Ad Mod: görünen ad + kullanıcı adı onayı -----------------------
 // Reddedilirse ad "user123456" biçimine döner ve kullanıcıya bildirim gider.
+// ============================================================================
+// 🔎 İsim Kontrol — otomatik denetimin işaretlediği isimler.
+//
+// Denetim iki katmanlıdır: yerel Türkçe kara liste (anında) + OpenAI (yaratıcı
+// yazımlar). Yüksek güvenli olanlar hesabı kendiliğinden pasife alır ve buraya
+// "otomatik kapatıldı" olarak düşer; sınırdakiler sadece listelenir, kullanıcı
+// oynamaya devam eder.
+//
+// Üç işlem: onayla (temiz) · pasife al · IP'ye gölge ban.
+// ============================================================================
+function NameFlags({ onChanged }: { onChanged: () => void }) {
+  const [data, setData] = useState<any>(null);
+  const [status, setStatus] = useState<"pending" | "blocked" | "clean" | "all">("pending");
+  const [busy, setBusy] = useState<number | null>(null);
+  const [popup, setPopup] = useState("");
+  const [bans, setBans] = useState<any[]>([]);
+  const [showBans, setShowBans] = useState(false);
+
+  function load(st = status) {
+    setData(null);
+    fetch(apiUrl(`/api/admin/name-flags?status=${st}`), { headers: authHeaders() })
+      .then((r) => r.json()).then(setData).catch(() => setData({ flags: [] }));
+  }
+  function loadBans() {
+    fetch(apiUrl("/api/admin/ip-bans"), { headers: authHeaders() })
+      .then((r) => r.json()).then((d) => setBans(d.bans || [])).catch(() => {});
+  }
+  useEffect(() => { load(status); /* eslint-disable-next-line */ }, [status]);
+  useEffect(() => { if (showBans) loadBans(); }, [showBans]);
+
+  async function act(id: number, action: "clean" | "disable" | "ban-ip") {
+    if (action === "ban-ip" && !confirm(
+      "Bu IP'ye GÖLGE BAN uygulanacak.\n\nKullanıcıya hiçbir şey söylenmez: hesabı " +
+      "kapanmaz, hata görmez. Ama sıralamalarda ve aramada görünmez olur ve " +
+      "yalnız botlarla eşleşir. Aynı IP'den açılmış diğer hesaplar da işaretlenir.\n\nDevam?"
+    )) return;
+    setBusy(id);
+    try {
+      const r = await fetch(apiUrl(`/api/admin/name-flags/${id}/${action}`), {
+        method: "POST", headers: authHeaders(),
+        body: action === "ban-ip" ? JSON.stringify({ reason: "İsim ihlali" }) : undefined,
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) { setPopup(j.detail || "İşlem başarısız."); return; }
+      if (action === "ban-ip") setPopup(`IP banlandı: ${j.ip} · ${j.affected_users} hesap işaretlendi.`);
+      if (action === "clean" && j.reopened) setPopup("İsim temiz sayıldı; hesap yeniden açıldı.");
+      load(status);
+      onChanged();
+      if (showBans) loadBans();
+    } catch { setPopup("Bağlantı hatası."); }
+    finally { setBusy(null); }
+  }
+
+  async function unban(ip: string) {
+    if (!confirm(`${ip} banı kaldırılsın mı? Bu IP'den açılmış hesapların gölge banı da kalkar.`)) return;
+    const r = await fetch(apiUrl(`/api/admin/ip-bans/${encodeURIComponent(ip)}`), {
+      method: "DELETE", headers: authHeaders(),
+    });
+    if (r.ok) { loadBans(); load(status); }
+  }
+
+  const flags: any[] = data?.flags || [];
+
+  return (
+    <div style={{ display: "grid", gap: 12 }}>
+      {popup && <AlertPopup message={popup} onClose={() => setPopup("")} />}
+
+      <p style={{ color: "var(--text-dim)", fontSize: 13, lineHeight: 1.6 }}>
+        İsimler <strong>arka planda</strong> denetlenir; kullanıcı hesabını açar açmaz oynamaya başlar.
+        Puan <strong>{data?.flag_threshold ?? 40}</strong> ve üstü buraya düşer,{" "}
+        <strong>{data?.auto_disable_threshold ?? 85}</strong> ve üstü hesabı kendiliğinden pasife alır.
+        Eşikleri ⚡ Hızlı Giriş sekmesinden değiştirebilirsin.
+        {data && data.ai_configured === false && (
+          <><br /><span style={{ color: "var(--accent-hot)" }}>
+            ⚠ OPENAI_API_KEY tanımlı değil — şu an yalnız yerel kara liste çalışıyor.
+          </span></>
+        )}
+      </p>
+
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+        {(["pending", "blocked", "clean", "all"] as const).map((st) => (
+          <button key={st} onClick={() => setStatus(st)} style={{
+            padding: "8px 14px", borderRadius: 20, cursor: "pointer", fontSize: 13, fontWeight: 700,
+            border: `1px solid ${status === st ? "var(--accent)" : "var(--border-soft)"}`,
+            background: status === st ? "var(--accent)" : "var(--bg-panel)",
+            color: status === st ? "#1a1330" : "var(--text-soft)",
+          }}>
+            {st === "pending" ? "Bekleyen" : st === "blocked" ? "Engellenen" : st === "clean" ? "Temiz" : "Hepsi"}
+          </button>
+        ))}
+        <button onClick={() => setShowBans((v) => !v)} style={{
+          marginLeft: "auto", padding: "8px 14px", borderRadius: 20, cursor: "pointer",
+          fontSize: 13, fontWeight: 700, border: "1px solid var(--border-soft)",
+          background: "var(--bg-panel)", color: "var(--text-soft)",
+        }}>🚫 IP banları {showBans ? "▲" : "▼"}</button>
+      </div>
+
+      {showBans && (
+        <div style={{ background: "var(--bg-panel)", borderRadius: 12, padding: 12, display: "grid", gap: 8 }}>
+          {bans.length === 0 ? (
+            <p style={{ color: "var(--text-dim)", fontSize: 13, margin: 0 }}>Banlı IP yok.</p>
+          ) : bans.map((b) => (
+            <div key={b.ip} style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <code style={{ color: "var(--text-strong)", fontSize: 13 }}>{b.ip}</code>
+              <span style={{ color: "var(--text-dim)", fontSize: 12 }}>{b.reason} · {b.accounts} hesap</span>
+              <button onClick={() => unban(b.ip)} style={{
+                marginLeft: "auto", padding: "6px 12px", borderRadius: 8, cursor: "pointer",
+                border: "1px solid var(--border-soft)", background: "transparent",
+                color: "var(--text-soft)", fontSize: 12.5, fontWeight: 700,
+              }}>Banı kaldır</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!data ? (
+        <p style={{ color: "var(--text-soft)" }}>Yükleniyor…</p>
+      ) : flags.length === 0 ? (
+        <p style={{ color: "var(--text-dim)" }}>Bu listede kayıt yok.</p>
+      ) : (
+        <div style={{ display: "grid", gap: 10 }}>
+          {flags.map((f) => {
+            const acc = f.account;
+            return (
+              <div key={f.id} style={{ background: "var(--bg-panel)", borderRadius: 12, padding: 12, display: "grid", gap: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={f.avatar_url || `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(f.flagged_username || "?")}`}
+                    alt="" style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--bg-elevated)", flexShrink: 0 }} />
+                  <div style={{ flex: 1, minWidth: 160 }}>
+                    <div style={{ fontWeight: 800, color: "var(--text-strong)", fontSize: 15 }}>
+                      {f.flagged_display_name || "(boş)"}
+                    </div>
+                    <a href={`/profil/${f.current_username || f.flagged_username}`} target="_blank" rel="noreferrer"
+                      style={{ color: "var(--accent)", fontSize: 12.5, textDecoration: "none" }}>
+                      @{f.flagged_username} ↗
+                    </a>
+                    {f.current_username && f.current_username !== f.flagged_username && (
+                      <span style={{ color: "var(--text-dim)", fontSize: 12 }}> · şimdi @{f.current_username}</span>
+                    )}
+                  </div>
+                  <div style={{
+                    padding: "6px 12px", borderRadius: 20, fontWeight: 900, fontSize: 14,
+                    background: f.score >= (data.auto_disable_threshold ?? 85) ? "var(--accent-hot)" : "var(--bg-elevated)",
+                    color: f.score >= (data.auto_disable_threshold ?? 85) ? "#fff" : "var(--text-strong)",
+                  }}>%{f.score}</div>
+                </div>
+
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", fontSize: 12 }}>
+                  <Chip>{f.layer === "both" ? "iki katman" : f.layer === "ai" ? "yapay zekâ" : "kara liste"}</Chip>
+                  <Chip>{f.source === "rename" ? "ad değişikliği" : "kayıt"}</Chip>
+                  {f.signup_ip && <Chip>IP {f.signup_ip}</Chip>}
+                  {f.action === "auto_disabled" && <Chip tone="hot">otomatik kapatıldı</Chip>}
+                  {acc?.disabled && <Chip tone="hot">hesap pasif</Chip>}
+                  {acc?.shadow_banned && <Chip tone="hot">gölge banlı</Chip>}
+                  {acc && !acc.disabled && !acc.shadow_banned && <Chip tone="ok">hesap aktif</Chip>}
+                  {!acc && <Chip>hesap silinmiş</Chip>}
+                  {acc && <Chip>{acc.matches_played} maç</Chip>}
+                </div>
+
+                <div style={{ color: "var(--text-soft)", fontSize: 12.5, lineHeight: 1.5 }}>{f.reason}</div>
+
+                {f.status === "pending" && (
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <button disabled={busy === f.id} onClick={() => act(f.id, "clean")} style={{
+                      padding: "8px 14px", borderRadius: 10, border: "none", cursor: "pointer",
+                      background: "var(--tile-correct)", color: "#fff", fontWeight: 800, fontSize: 13,
+                    }}>✓ Temiz</button>
+                    <button disabled={busy === f.id || !acc} onClick={() => act(f.id, "disable")} style={{
+                      padding: "8px 14px", borderRadius: 10, border: "none", cursor: "pointer",
+                      background: "var(--accent-hot)", color: "#fff", fontWeight: 800, fontSize: 13,
+                      opacity: acc ? 1 : 0.5,
+                    }}>⛔ Pasife al</button>
+                    <button disabled={busy === f.id || !f.signup_ip} onClick={() => act(f.id, "ban-ip")} style={{
+                      padding: "8px 14px", borderRadius: 10, cursor: "pointer",
+                      border: "1px solid var(--border-soft)", background: "transparent",
+                      color: "var(--text-strong)", fontWeight: 800, fontSize: 13,
+                      opacity: f.signup_ip ? 1 : 0.5,
+                    }}>🕶️ IP'ye gölge ban</button>
+                  </div>
+                )}
+                {f.status !== "pending" && (
+                  <div style={{ color: "var(--text-dim)", fontSize: 12 }}>
+                    Karar: {f.status === "clean" ? "temiz" : "engellendi"}
+                    {f.reviewed_at ? ` · ${new Date(f.reviewed_at).toLocaleString("tr")}` : ""}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Chip({ children, tone }: { children: React.ReactNode; tone?: "hot" | "ok" }) {
+  const bg = tone === "hot" ? "rgba(255,90,90,.16)" : tone === "ok" ? "rgba(63,195,86,.16)" : "var(--bg-elevated)";
+  const col = tone === "hot" ? "var(--accent-hot)" : tone === "ok" ? "var(--tile-correct)" : "var(--text-dim)";
+  return (
+    <span style={{ padding: "3px 9px", borderRadius: 20, background: bg, color: col, fontWeight: 700 }}>
+      {children}
+    </span>
+  );
+}
+
+// ============================================================================
+// ⚡ Hızlı Giriş — isimle hesap açma, doğrulama ve isim denetimi ayarları.
+// Aynı kayıtlar ⚙️ Ayarlar sekmesinde de var; burası hepsini anlamlı sırada,
+// açıklamalarıyla toplar.
+// ============================================================================
+function QuickAuth() {
+  const [data, setData] = useState<any>(null);
+  const [saved, setSaved] = useState("");
+  const [popup, setPopup] = useState("");
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+
+  function load() {
+    fetch(apiUrl("/api/admin/quick-auth"), { headers: authHeaders() })
+      .then((r) => r.json()).then((d) => { setData(d); setDrafts({}); }).catch(() => {});
+  }
+  useEffect(() => { load(); }, []);
+
+  function save(key: string, value: string) {
+    fetch(apiUrl("/api/admin/quick-auth"), {
+      method: "PUT", headers: authHeaders(), body: JSON.stringify({ key, value }),
+    }).then(async (r) => {
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) { setPopup(j.detail || "Kaydedilemedi."); load(); return; }
+      setData((d: any) => ({
+        ...d,
+        fields: d.fields.map((f: any) => (f.key === key ? { ...f, value: j.value } : f)),
+      }));
+      setDrafts((p) => { const n = { ...p }; delete n[key]; return n; });
+      setSaved(key); setTimeout(() => setSaved(""), 1500);
+    }).catch(() => setPopup("Bağlantı hatası."));
+  }
+
+  if (!data) return <p style={{ color: "var(--text-soft)" }}>Yükleniyor…</p>;
+
+  const st = data.stats || {};
+
+  return (
+    <div style={{ display: "grid", gap: 12 }}>
+      {popup && <AlertPopup message={popup} onClose={() => setPopup("")} />}
+
+      {/* Durum özeti */}
+      <div style={{ display: "grid", gap: 8, gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))" }}>
+        {[
+          ["Doğrulanmamış hesap", st.unverified, "🔓"],
+          ["Pasif hesap", st.disabled, "⛔"],
+          ["Gölge banlı", st.shadow_banned, "🕶️"],
+          ["Bekleyen isim", st.pending_flags, "🔎"],
+        ].map(([label, n, icon]) => (
+          <div key={String(label)} style={{ background: "var(--bg-panel)", borderRadius: 12, padding: "12px 14px" }}>
+            <div style={{ fontSize: 20 }}>{icon as string}</div>
+            <div style={{ fontSize: 22, fontWeight: 900, color: "var(--text-strong)" }}>{Number(n || 0).toLocaleString("tr")}</div>
+            <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{label as string}</div>
+          </div>
+        ))}
+      </div>
+
+      {data.ai_configured === false && (
+        <div style={{
+          background: "rgba(255,90,90,.12)", border: "1px solid var(--accent-hot)",
+          borderRadius: 12, padding: "10px 14px", color: "var(--accent-hot)", fontSize: 13,
+        }}>
+          ⚠ OPENAI_API_KEY tanımlı değil — isim denetiminin ikinci katmanı çalışmıyor,
+          yalnızca yerel kara liste devrede.
+        </div>
+      )}
+
+      {data.fields.map((f: any) => {
+        const draft = drafts[f.key];
+        const cur = draft !== undefined ? draft : f.value;
+        const dirty = draft !== undefined && draft !== f.value;
+        return (
+          <div key={f.key} style={{ background: "var(--bg-panel)", borderRadius: 12, padding: "12px 14px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              <div style={{ flex: 1, minWidth: 200 }}>
+                <div style={{ fontWeight: 700, color: "var(--text-strong)", fontSize: 14 }}>{f.label}</div>
+                <div style={{ color: "var(--text-dim)", fontSize: 12, lineHeight: 1.5, marginTop: 3 }}>{f.help}</div>
+              </div>
+
+              {f.type === "bool" ? (
+                <button
+                  onClick={() => save(f.key, f.value === "true" ? "false" : "true")}
+                  style={{
+                    width: 54, height: 30, borderRadius: 20, border: "none", cursor: "pointer",
+                    background: f.value === "true" ? "var(--tile-correct)" : "var(--bg-elevated)",
+                    position: "relative", flexShrink: 0,
+                  }}
+                  aria-label={f.label}
+                >
+                  <span style={{
+                    position: "absolute", top: 3, left: f.value === "true" ? 27 : 3,
+                    width: 24, height: 24, borderRadius: "50%", background: "#fff",
+                    transition: "left .15s ease",
+                  }} />
+                </button>
+              ) : f.type === "int" ? (
+                <input
+                  type="number" value={cur}
+                  onChange={(e) => setDrafts((p) => ({ ...p, [f.key]: e.target.value }))}
+                  onBlur={() => dirty && save(f.key, cur)}
+                  onKeyDown={(e) => { if (e.key === "Enter") save(f.key, cur); }}
+                  style={{
+                    width: 90, padding: "9px 10px", borderRadius: 10, textAlign: "center",
+                    border: "1px solid var(--tile-border)", background: "var(--bg-elevated)",
+                    color: "var(--text-strong)", fontSize: 14, flexShrink: 0,
+                  }}
+                />
+              ) : null}
+            </div>
+
+            {(f.type === "str" || f.type === "text") && (
+              <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                {f.type === "text" ? (
+                  <textarea
+                    value={cur} rows={3}
+                    maxLength={data.text_max}
+                    onChange={(e) => setDrafts((p) => ({ ...p, [f.key]: e.target.value }))}
+                    placeholder="Boş = varsayılan metin"
+                    style={{
+                      flex: 1, padding: "10px 12px", borderRadius: 10, resize: "vertical",
+                      border: "1px solid var(--tile-border)", background: "var(--bg-elevated)",
+                      color: "var(--text-strong)", fontSize: 13.5, fontFamily: "inherit", lineHeight: 1.5,
+                    }}
+                  />
+                ) : (
+                  <input
+                    value={cur}
+                    maxLength={data.text_max}
+                    onChange={(e) => setDrafts((p) => ({ ...p, [f.key]: e.target.value }))}
+                    placeholder="Boş = varsayılan"
+                    style={{
+                      flex: 1, padding: "10px 12px", borderRadius: 10,
+                      border: "1px solid var(--tile-border)", background: "var(--bg-elevated)",
+                      color: "var(--text-strong)", fontSize: 14,
+                    }}
+                  />
+                )}
+                <button onClick={() => save(f.key, cur)} disabled={!dirty} style={{
+                  padding: "10px 16px", borderRadius: 10, border: "none",
+                  cursor: dirty ? "pointer" : "default", alignSelf: "flex-start",
+                  background: dirty ? "var(--accent)" : "var(--bg-elevated)",
+                  color: dirty ? "#1a1330" : "var(--text-dim)", fontWeight: 800, fontSize: 13,
+                }}>Kaydet</button>
+              </div>
+            )}
+
+            {saved === f.key && (
+              <div style={{ color: "var(--tile-correct)", fontSize: 12, marginTop: 6 }}>✓ Kaydedildi</div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function NameMod({ onChanged }: { onChanged: () => void }) {
   const { flags, setFlag } = useModFlags();
   const [users, setUsers] = useState<any[]>([]);

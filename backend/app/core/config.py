@@ -57,6 +57,12 @@ class Settings:
     RECAPTCHA_SITE_KEY: str = os.getenv("RECAPTCHA_SITE_KEY", "")
     RECAPTCHA_SECRET: str = os.getenv("RECAPTCHA_SECRET", "")
 
+    # --- OpenAI (isim denetiminin İKİNCİ katmanı) ---
+    # Coolify'da backend servisine OPENAI_API_KEY olarak girilir.
+    # BOŞSA: yalnızca yerel Türkçe kara liste çalışır, hiçbir dış istek yapılmaz,
+    # site normal davranır (özellik "yapılandırılmadı" durumunda kalır).
+    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
+
     # --- JWT (Faz 3) ---
     JWT_SECRET: str = os.getenv("JWT_SECRET", "degistir-beni-guclu-bir-secret-ile")
     JWT_ALGORITHM: str = "HS256"
@@ -72,6 +78,10 @@ class Settings:
     @property
     def recaptcha_configured(self) -> bool:
         return bool(self.RECAPTCHA_SITE_KEY and self.RECAPTCHA_SECRET)
+
+    @property
+    def openai_configured(self) -> bool:
+        return bool(self.OPENAI_API_KEY)
 
 
 @lru_cache

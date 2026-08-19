@@ -60,7 +60,10 @@ async def join_queue(data: JoinIn, user: User | None = Depends(get_optional_user
     elo = user.elo if user else data.elo
     name = user.display_name if user else data.name
     pid = f"u{user.id}" if user else data.player_id
-    entry = await matchmaker.join(pid, name, elo)
+    # GÖLGE BAN: banlı oyuncu izole kuyruğa girer — gerçek oyuncuyla asla
+    # eşleşmez, süre dolunca bota düşer. Ekranda hiçbir fark görmez.
+    isolated = bool(user and getattr(user, "shadow_banned", False))
+    entry = await matchmaker.join(pid, name, elo, isolated=isolated)
     return {
         "player_id": pid,
         "in_queue": True,

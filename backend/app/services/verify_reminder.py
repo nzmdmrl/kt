@@ -108,23 +108,23 @@ def _second_days() -> int:
     return max(1, cached_int("verify_reminder_2_days", 7))
 
 
-async def _templates(db: AsyncSession) -> tuple[str, str]:
-    """Katalogdaki düzenlenebilir metinler; boşsa koddaki varsayılanlar.
+def _text(key: str, fallback: str) -> str:
+    """Panelden girilen metin; boşsa koddaki varsayılan.
 
-    Aşama 4'te admin bu iki alanı panelden değiştirebilecek — o zaman kod
-    değişikliği ve deploy gerekmeyecek.
+    Admin → ⚡ Hızlı Giriş sekmesinden değiştirilir, deploy gerekmez.
     """
-    try:
-        row = (await db.execute(
-            text("SELECT title_template, body_template FROM notification_types "
-                 "WHERE code = :c"),
-            {"c": TYPE_CODE},
-        )).first()
-    except Exception:
-        return FIRST_TITLE, FIRST_BODY
-    title = (row[0] or "").strip() if row else ""
-    body = (row[1] or "").strip() if row else ""
-    return title or FIRST_TITLE, body or FIRST_BODY
+    from app.game.settings_service import cached_str
+    return (cached_str(key, "") or "").strip() or fallback
+
+
+def first_texts() -> tuple[str, str]:
+    return _text("verify_reminder_title", FIRST_TITLE), \
+           _text("verify_reminder_body", FIRST_BODY)
+
+
+def second_texts() -> tuple[str, str]:
+    return _text("verify_reminder_2_title", SECOND_TITLE), \
+           _text("verify_reminder_2_body", SECOND_BODY)
 
 
 # ---------------------------------------------------------------- yardımcılar
@@ -164,7 +164,7 @@ async def run_once(db: AsyncSession) -> dict[str, int]:
     # (user_id, title, body) — commit'ten SONRA push atılacaklar.
     pending_push: list[tuple[int, str, str]] = []
 
-    title_1, body_1 = await _templates(db)
+    title_1, body_1 = first_texts()
 
     # --- 1) Doğrulamış olanların bekleyen ikinci hatırlatması iptal edilir.
     # Kişi birinci hatırlatmadan sonra hesabını doğruladıysa bir daha rahatsız
@@ -231,9 +231,10 @@ async def run_once(db: AsyncSession) -> dict[str, int]:
         for rem, u in rows2:
             if u.verified or not _is_unrecoverable(u):
                 continue
-            await _send(db, u, SECOND_TITLE, SECOND_BODY)
+            title_2, body_2 = second_texts()
+            await _send(db, u, title_2, body_2)
             rem.second_sent_at = now
-            pending_push.append((u.id, SECOND_TITLE, SECOND_BODY))
+            pending_push.append((u.id, title_2, body_2))
             stats["second"] += 1
 
     await db.commit()

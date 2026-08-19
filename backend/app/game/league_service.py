@@ -96,6 +96,9 @@ async def leaderboard(
             (DailyScore.best_score if scope == "daily" else func.sum(DailyScore.best_score)).label("score"),
         )
         .join(User, User.id == DailyScore.user_id)
+        # GÖLGE BAN: banlı oyuncu sıralamada BAŞKALARINA görünmez. Kendi
+        # puanı yazılmaya devam eder (fark etmesin diye), sadece listelenmez.
+        .where(User.shadow_banned.isnot(True))
     )
     if start is not None:
         q = q.where(DailyScore.score_date >= start, DailyScore.score_date <= end)
@@ -127,7 +130,13 @@ async def leaderboard(
 async def leaderboard_count(db: AsyncSession, scope: str = "daily", ref: date | None = None) -> int:
     """Bir kapsamdaki toplam oyuncu sayısı (sayfalama için)."""
     start, end = _period_bounds(scope, ref)
-    q = select(func.count(func.distinct(DailyScore.user_id)))
+    # Sayı da aynı süzgeci kullanmalı, yoksa sayfalama listeyle tutmaz.
+    q = (
+        select(func.count(func.distinct(DailyScore.user_id)))
+        .select_from(DailyScore)
+        .join(User, User.id == DailyScore.user_id)
+        .where(User.shadow_banned.isnot(True))
+    )
     if start is not None:
         q = q.where(DailyScore.score_date >= start, DailyScore.score_date <= end)
     return int((await db.execute(q)).scalar_one() or 0)

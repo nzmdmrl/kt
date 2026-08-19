@@ -215,6 +215,9 @@ async def search_users(
     stmt = select(User).where(
         func.lower(User.username).like(like) | func.lower(User.display_name).like(like)
     )
+    # GÖLGE BAN: banlı hesap aramada çıkmaz (kendisi bunu fark edemez).
+    # Pasife alınmış hesaplar da listelenmez.
+    stmt = stmt.where(User.shadow_banned.isnot(True), User.disabled.isnot(True))
     if viewer:
         stmt = stmt.where(User.id != viewer.id)   # kendini arama sonucunda gösterme
     # Kullanıcı adı ARADIĞI metinle BAŞLAYANLAR önce gelsin.

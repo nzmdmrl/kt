@@ -110,6 +110,9 @@ async def change_display_name(data: DisplayNameIn, user: User = Depends(get_curr
     # Ad değişti — moderasyon açıksa yeniden onaya düşer (admin → 🏷️ Ad Mod).
     user.name_status = "pending" if _flag("name_moderation_enabled") else "approved"
     await db.commit()
+    # Otomatik isim denetimi de yeniden çalışır (arka planda, kullanıcı beklemez).
+    from app.services.name_review import review_name_bg
+    review_name_bg(user.id, "rename")
     return {"ok": True, "display_name": name}
 
 
@@ -162,6 +165,8 @@ async def change_username(data: UsernameIn, user: User = Depends(get_current_use
     await db.commit()
 
     left, next_at = await _username_quota(db, user.id)
+    from app.services.name_review import review_name_bg
+    review_name_bg(user.id, "rename")
     return {"ok": True, "username": uname, "username_changes_left": left,
             "username_next_change_at": next_at.isoformat() if next_at else None}
 

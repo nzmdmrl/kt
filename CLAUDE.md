@@ -318,8 +318,54 @@ Aynı kod hem sitede hem uygulamada çalışır (uygulama web içeriğini canlı
 - Testler: `backend/tests/dogrulama_hatirlatma_senaryo.py` — 51 senaryo,
   SQLite + PostgreSQL'de geçiyor.
 
-- SONRAKİ AŞAMALAR: 4) admin paneli + gölge ban,
-  5) mobilden Google/Play Games düğmelerinin sökülmesi.
+
+**Aşama 4 (isim denetimi + admin paneli) — TAMAM:**
+- **İki katmanlı isim denetimi**, hesap açmayı HİÇ BEKLETMEZ (arka plan görevi):
+  1. `app/game/name_filter.py` — yerel Türkçe kara liste. Normalleştirme:
+     Türkçe/Kiril→ASCII, leet (1→i, 0→o, $→s…), harf tekrarı, boşluk/nokta.
+     İki ölçekte bakar: bütün isim + her kelime ayrı (yoksa "Admin Yardımcı"
+     yakalanmıyordu). Üç eşleşme biçimi: içinde-geçme / tam-kelime / yalnız-tam-isim.
+     **YANLIŞ ALARM KORUMASI**: whitelist, eşleşen küfür masum bir kelimenin
+     parçasıysa (ve harf tekrarı sadeleşmiş hâlinde de) o eşleşmeyi düşürür.
+     Gerçek örnekler: "Nazım"→"nazi", "Gaye"→"gay", "Sikke"→"sik", "Betül"→"bet",
+     "Mal Müdürü"→"mal" hepsi yakalanıyordu; hepsi düzeltildi.
+  2. `app/services/name_ai.py` — OpenAI (`OPENAI_API_KEY`, Coolify backend env).
+     Model admin ayarı (`name_ai_model`, varsayılan gpt-4o-mini), JSON yanıt,
+     isim VERİ olarak verilir (prompt injection'a karşı), bellek içi önbellek.
+     Anahtar yoksa/hata olursa sessizce atlanır, yerel katmanla devam edilir.
+- Karar `app/services/name_review.py`: `max(kara liste, yapay zekâ)`.
+  `>= name_flag_threshold` (40) → İsim Kontrol listesine düşer, kullanıcı oynar.
+  `>= name_auto_disable_threshold` (85) → hesap **pasife alınır** + adminlere
+  bildirim + push. İkisini eşitlersen işaretlenen her isim kapanır; 100 yaparsan
+  hiçbiri kapanmaz. Kara liste zaten pasife alma eşiğini geçtiyse modele
+  SORULMAZ (para tasarrufu).
+- Tetiklenen yerler: `/auth/quick`, `/auth/register`, `/account/display-name`,
+  `/account/username` — hepsi commit sonrası `review_name_bg()`.
+- `users` yeni sütunlar: `disabled`, `disabled_reason`, `disabled_at`.
+  `get_current_user` pasif hesaba 403 + neden döner (`get_optional_user` → None).
+- **Gölge ban artık GERÇEKTEN gizliyor** (Aşama 1'deki `shadow_banned` alanı):
+  lig sıralaması + sayacı (`league_service`), üye arama (`profile.py`) ve
+  eşleşme (izole kuyruk → yalnız botla oynar, `matchmaking.py`).
+  Banlı IP'den açılan YENİ hesap da işaretli doğar (`auth_service.create_quick_user`).
+  Kullanıcıya hiçbir yerde bildirilmez; `to_private()` de sızdırmaz.
+- Yeni tablolar: `name_flags` (`app/models/name_flag.py`), `ip_bans`
+  (`app/models/ip_ban.py`) — ikisi de database.py import listesinde.
+- Admin uçları `app/api/routes/quick_auth.py`: `/admin/name-flags` (+ counts,
+  clean / disable / ban-ip), `/admin/ip-bans` (liste, sil), `/admin/quick-auth`
+  (GET tüm ayarlar + durum sayıları, PUT tek ayar — doğrulamalı).
+- Admin paneli iki yeni sekme (`frontend/app/yonetim/page.tsx`):
+  **🔎 İsim Kontrol** (rozetli; isim, katman, %güven, IP, hesap durumu, gerekçe +
+  üç işlem + IP ban listesi) ve **⚡ Hızlı Giriş** (durum kutuları + Aşama 1-4'ün
+  tüm ayarları tek ekranda, bildirim metinleri dahil).
+- Hatırlatma metinleri artık `game_settings`'ten okunuyor
+  (`verify_reminder_title/body`, `_2_title/_2_body`; boş = koddaki varsayılan) —
+  panelden değiştirilir, deploy gerekmez.
+- Testler: `backend/tests/isim_denetimi_senaryo.py` (151 senaryo, SQLite +
+  PostgreSQL) ve `frontend/tests/isim_kontrol_paneli.mjs` (36 tarayıcı senaryosu).
+- **OpenAI maliyeti**: isim başına ~300 girdi + ~25 çıktı jetonu →
+  gpt-4o-mini ile ~0,00006 $ (1.000 isim ≈ 6 sent, 10.000 yeni kullanıcı ≈ 0,60 $).
+
+- SONRAKİ AŞAMA: 5) mobilden Google/Play Games düğmelerinin sökülmesi.
 
 ### Misafir (üye olmayan ziyaretçi) erişimi
 - **1v1**: misafir oynayabilir. Maç kaydedilir ama misafir adı gizli → "Misafir" olarak yazılır.

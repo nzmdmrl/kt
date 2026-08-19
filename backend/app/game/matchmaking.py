@@ -35,6 +35,10 @@ class QueueEntry:
     # Eşleşilen insanın adı/ELO'su (VS ekranında gösterilir). Bot maçında boş kalır.
     opponent_name: Optional[str] = None
     opponent_elo: Optional[int] = None
+    # GÖLGE BAN: izole giriş hiç kimseyle eşleşmez ve kimse onunla eşleşmez.
+    # Kuyrukta normal görünür, bu yüzden istemci "rakip aranıyor" der ve süre
+    # dolunca her zamanki gibi bota düşer — kullanıcı farkı anlayamaz.
+    isolated: bool = False
 
 
 class Matchmaker:
@@ -46,7 +50,8 @@ class Matchmaker:
         alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
         return "".join(secrets.choice(alphabet) for _ in range(6))
 
-    async def join(self, player_id: str, name: str, elo: int) -> QueueEntry:
+    async def join(self, player_id: str, name: str, elo: int,
+                   isolated: bool = False) -> QueueEntry:
         """Kuyruğa gir. Uygun bekleyen varsa anında eşleş."""
         async with self._lock:
             # Zaten kuyruktaysa mevcut girişi döndür.
@@ -59,12 +64,14 @@ class Matchmaker:
             for e in self.waiting.values():
                 if e.matched or e.player_id == player_id:
                     continue
+                if e.isolated or isolated:
+                    continue   # gölge banlı iki yönde de eşleşmez
                 diff = abs(e.elo - elo)
                 if diff < best_diff and diff <= 300:
                     best = e
                     best_diff = diff
 
-            entry = QueueEntry(player_id=player_id, name=name, elo=elo)
+            entry = QueueEntry(player_id=player_id, name=name, elo=elo, isolated=isolated)
 
             if best is not None:
                 # Eşleş: ortak oda kodu.

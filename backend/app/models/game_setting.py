@@ -105,6 +105,23 @@ DEFAULT_SETTINGS = {
     # hiç gönderilmez (Aşama 3 kararı).
     "verify_reminder_2_enabled": {"value": "false", "label": "İkinci (7 gün sonraki) hatırlatma gönderilsin", "type": "bool", "group": "Hızlı Giriş"},
     "verify_reminder_2_days": {"value": "7", "label": "İkinci hatırlatma birinciden kaç gün sonra", "type": "int", "group": "Hızlı Giriş"},
+    # Hatırlatma metinleri — panelden değiştirilir, deploy gerekmez.
+    # BOŞ bırakılırsa koddaki varsayılan kullanılır (app/services/verify_reminder.py).
+    # Sütun sınırı 256 karakter (game_settings.value).
+    "verify_reminder_title": {"value": "", "label": "1. hatırlatma başlığı (boş = varsayılan)", "type": "str", "group": "Hızlı Giriş"},
+    "verify_reminder_body": {"value": "", "label": "1. hatırlatma metni (boş = varsayılan)", "type": "str", "group": "Hızlı Giriş"},
+    "verify_reminder_2_title": {"value": "", "label": "2. hatırlatma başlığı (boş = varsayılan)", "type": "str", "group": "Hızlı Giriş"},
+    "verify_reminder_2_body": {"value": "", "label": "2. hatırlatma metni (boş = varsayılan)", "type": "str", "group": "Hızlı Giriş"},
+
+    # --- İsim denetimi (iki katman: yerel kara liste + OpenAI) ---
+    "name_check_enabled": {"value": "true", "label": "İsim denetimi açık", "type": "bool", "group": "İsim Denetimi"},
+    "name_check_ai_enabled": {"value": "true", "label": "İkinci katman (OpenAI) kullanılsın", "type": "bool", "group": "İsim Denetimi"},
+    "name_ai_model": {"value": "gpt-4o-mini", "label": "OpenAI modeli", "type": "str", "group": "İsim Denetimi"},
+    # Puan 0-100. flag: listeye düşme eşiği · auto_disable: otomatik pasife alma.
+    # İkisini EŞİTLERSEN işaretlenen her isim otomatik pasife alınır.
+    # auto_disable = 100 yaparsan hiçbiri otomatik kapanmaz, hepsini elle incelersin.
+    "name_flag_threshold": {"value": "40", "label": "İsim Kontrol listesine düşme eşiği (0-100)", "type": "int", "group": "İsim Denetimi"},
+    "name_auto_disable_threshold": {"value": "85", "label": "Otomatik pasife alma eşiği (0-100 · listeye düşme eşiğiyle aynı = hepsi pasif)", "type": "int", "group": "İsim Denetimi"},
     # Ad kuralları — kayıt ve profil düzenlemede geçerli (hem sunucu hem arayüz uyar).
     # Sunucu sınırı: kullanıcı adı en fazla 32, görünen ad en fazla 48 karakter (DB sütunu).
     "username_min_len": {"value": "3", "label": "Kullanıcı adı: en az karakter", "type": "int", "group": "Adlar & Listeler"},

@@ -24,6 +24,14 @@ async def get_current_user(
     user = await get_user_by_id(db, user_id)
     if not user:
         raise HTTPException(status_code=401, detail="Kullanıcı bulunamadı.")
+    # Pasife alınmış hesap (isim denetimi ya da admin kararı) hiçbir işlem
+    # yapamaz. Gölge bandan FARKLI: gölge ban gizlidir, bu açıkça söylenir.
+    if getattr(user, "disabled", False):
+        raise HTTPException(
+            status_code=403,
+            detail=(user.disabled_reason or "Hesabın askıya alındı.")
+            + " Destek üzerinden bize yazabilirsin.",
+        )
     return user
 
 
@@ -38,7 +46,12 @@ async def get_optional_user(
     user_id = decode_token(token)
     if user_id is None:
         return None
-    return await get_user_by_id(db, user_id)
+    user = await get_user_by_id(db, user_id)
+    # Pasif hesap "giriş yapmamış" sayılır — istisna fırlatılmaz, çünkü bu
+    # dependency zorunlu değil (çağıran taraf None'ı zaten karşılıyor).
+    if user is not None and getattr(user, "disabled", False):
+        return None
+    return user
 
 
 async def get_admin_user(

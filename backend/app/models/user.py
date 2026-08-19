@@ -103,9 +103,18 @@ class User(Base):
     # Hesabın açıldığı IP — aynı IP'den sınırsız hesap açılmasını engellemek için.
     # Yalnız kayıt anında yazılır, sonra güncellenmez (kullanıcı IP'si zaten değişir).
     signup_ip: Mapped[str | None] = mapped_column(String(45), nullable=True, index=True)
-    # Gölge ban: hesap kendini normal sanır ama eşleşmelerde/listelerde saklanır.
-    # ŞU AN SADECE ALAN — davranışı Aşama 4'te (admin paneli) yazılacak.
+    # Gölge ban: hesap kendini normal sanır ama listelerde/eşleşmede saklanır.
+    # Admin bir IP'yi banlayınca o IP'den açılan/açılmış hesaplara işlenir
+    # (app/api/routes/quick_auth.py). Kullanıcıya HİÇBİR yerde bildirilmez.
     shadow_banned: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    # Hesap pasife alındı mı (isim denetimi yüksek güvenle uygunsuz bulduysa ya
+    # da admin elle kapattıysa). Pasif hesap giriş yapamaz: get_current_user 403
+    # döner ve arayüz nedeni gösterir. shadow_banned'dan FARKLIDIR — gölge ban
+    # gizlidir, bu açıkça engeller.
+    disabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    disabled_reason: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    disabled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Yetki
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)

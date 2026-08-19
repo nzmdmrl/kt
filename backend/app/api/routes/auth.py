@@ -105,6 +105,8 @@ async def register(data: RegisterIn, request: Request, db: AsyncSession = Depend
         )
     except auth_service.AuthError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    from app.services.name_review import review_name_bg
+    review_name_bg(user.id, "signup")
     return _auth_response(user)
 
 
@@ -482,6 +484,9 @@ async def quick_signup(data: QuickIn, request: Request, db: AsyncSession = Depen
         # IP sınırına takılma da buraya düşer; ayrı durum kodu vermek yerine
         # kullanıcıya gösterilecek Türkçe mesaj tek kanaldan gider.
         raise HTTPException(status_code=400, detail=str(e))
+    # İsim denetimi ARKA PLANDA — kullanıcı beklemez, oyununa hemen başlar.
+    from app.services.name_review import review_name_bg
+    review_name_bg(user.id, "signup")
     return _auth_response(user)
 
 

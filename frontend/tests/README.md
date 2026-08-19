@@ -41,3 +41,8 @@ docker run --rm --network host -v "$PWD/tests":/w -w /w \
 - `hizli_giris_mobil.mjs` — uygulama (Capacitor) taklidi: jetonun native depoya
   da yazılması ve tarayıcı verisi silinince oturumun oradan geri gelmesi.
   Capacitor Preferences eklentisi SAHTE bir köprüyle taklit edilir.
+- `isim_kontrol_paneli.mjs` — admin panelindeki 🔎 İsim Kontrol ve ⚡ Hızlı Giriş
+  sekmeleri: işaretlenen isimlerin listelenmesi, temiz/pasife al/IP gölge ban
+  işlemleri, ayarların kaydedilmesi ve eski sekmelerin bozulmadığı.
+  ÖN KOŞUL: test backend'inde `admin@t.com` / `adminsifre` hesabı admin olmalı
+  ve en az bir işaretli isim bulunmalı (bkz. dosyanın başındaki not).

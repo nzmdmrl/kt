@@ -319,6 +319,9 @@ async def create_quick_user(
         # Kurtarılabilir kimlik YOK -> doğrulanmamış.
         verified=False,
         signup_ip=signup_ip,
+        # Bu IP admin tarafından GÖLGE banlanmışsa hesap açılır ama işaretlenir.
+        # Kullanıcıya hiçbir şey söylenmez — gölge banın anlamı budur.
+        shadow_banned=await is_ip_banned(db, signup_ip),
     )
     db.add(user)
     await db.commit()
@@ -356,3 +359,12 @@ async def verify_account(
     await db.commit()
     await db.refresh(user)
     return user
+
+
+async def is_ip_banned(db: AsyncSession, ip: str | None) -> bool:
+    """Bu IP admin tarafından gölge banlanmış mı? (app/models/ip_ban.py)"""
+    if not ip:
+        return False
+    from app.models.ip_ban import IpBan
+    res = await db.execute(select(IpBan.ip).where(IpBan.ip == ip))
+    return res.scalar_one_or_none() is not None
