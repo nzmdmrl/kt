@@ -228,7 +228,11 @@ async def list_friends(user: User = Depends(get_current_user), db=Depends(get_db
                 FriendLabel.owner_id == user.id, FriendLabel.friend_id.in_(friend_ids),
             )))).scalars().all()
         }
-        users = (await db.execute(select(User).where(User.id.in_(friend_ids)))).scalars().all()
+        # Silinen hesaplar arkadaş listesinde görünmez. (Silme sırasında
+        # arkadaşlık satırları zaten kaldırılıyor; bu ikinci savunma hattı.)
+        users = (await db.execute(select(User).where(
+            User.id.in_(friend_ids), User.deleted.isnot(True),
+        ))).scalars().all()
         friends = [{
             "id": u.id, "username": u.username, "display_name": u.display_name,
             "avatar_url": u.public_avatar,

@@ -216,8 +216,11 @@ async def search_users(
         func.lower(User.username).like(like) | func.lower(User.display_name).like(like)
     )
     # GÖLGE BAN: banlı hesap aramada çıkmaz (kendisi bunu fark edemez).
-    # Pasife alınmış hesaplar da listelenmez.
-    stmt = stmt.where(User.shadow_banned.isnot(True), User.disabled.isnot(True))
+    # Pasife alınmış ve SİLİNMİŞ hesaplar da listelenmez.
+    stmt = stmt.where(
+        User.shadow_banned.isnot(True), User.disabled.isnot(True),
+        User.deleted.isnot(True),
+    )
     if viewer:
         stmt = stmt.where(User.id != viewer.id)   # kendini arama sonucunda gösterme
     # Kullanıcı adı ARADIĞI metinle BAŞLAYANLAR önce gelsin.
@@ -254,7 +257,9 @@ async def search_users(
 async def public_profile(username: str, request: Request, db: AsyncSession = Depends(get_db)):
     res = await db.execute(select(User).where(User.username == username))
     user = res.scalar_one_or_none()
-    if not user:
+    # Silinen hesabın profili AÇILMAZ. Satır anonim olarak duruyor (rakiplerin
+    # maç geçmişi bozulmasın diye) ama kimse profiline bakamaz.
+    if not user or user.deleted:
         raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
     data = await _build_profile(db, user)
     # Bakan kişi giriş yapmışsa, aralarındaki arkadaşlık durumunu ekle.
@@ -275,7 +280,7 @@ async def user_matches(username: str, db: AsyncSession = Depends(get_db), limit:
     from sqlalchemy import or_
 
     user = (await db.execute(select(User).where(User.username == username))).scalar_one_or_none()
-    if not user:
+    if not user or user.deleted:
         raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
 
     rows = (await db.execute(

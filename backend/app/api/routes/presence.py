@@ -7,7 +7,7 @@ Online durumu uçları.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -20,10 +20,25 @@ router = APIRouter(prefix="/presence", tags=["presence"])
 
 
 @router.post("/heartbeat")
-async def heartbeat(user: User = Depends(get_current_user)):
+async def heartbeat(
+    request: Request,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
     # Maç durumu WS tarafında ayrı set edilir; burada sadece "canlı" işaretle.
     cur = presence_service.get_status(user.id)
     presence_service.heartbeat(user.id, in_match=(cur == "in_match"))
+    # Kullanıcının SON kullandığı ortam (admin üye listesindeki cihaz simgesi).
+    # Heartbeat her sayfada 30 sn'de bir geldiği için en güncel bilgi burasıdır.
+    # Yalnız DEĞİŞTİYSE yazılır — her 30 saniyede bir UPDATE atılmasın.
+    try:
+        from app.core.platform import platform_from_request
+        p = platform_from_request(request)
+        if user.last_platform != p:
+            user.last_platform = p
+            await db.commit()
+    except Exception:
+        pass
     return {"ok": True}
 
 

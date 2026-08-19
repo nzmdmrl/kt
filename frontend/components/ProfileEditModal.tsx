@@ -1,12 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/auth";
 import { apiUrl } from "@/lib/api";
 import AlertPopup from "@/components/AlertPopup";
 import PhotoUpload from "@/components/PhotoUpload";
 
 // Profil düzenleme modalı: görünen ad/username/email/şifre + gizlilik ayarları.
 export default function ProfileEditModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+  const router = useRouter();
+  const { logout } = useAuth();
   const [data, setData] = useState<any>(null);
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
@@ -267,8 +271,141 @@ export default function ProfileEditModal({ onClose, onSaved }: { onClose: () => 
         )}
       </Section>
 
+      {/* Tehlikeli Bölge — hesabı kalıcı olarak silme.
+          Google Play ve App Store, uygulama İÇİNDEN hesap silmeyi zorunlu
+          tutuyor ve bu hakkın herkese açık olmasını istiyor: doğrulanmış da
+          doğrulanmamış da silebilir. */}
+      <DangerZone onDone={() => { logout(); router.push("/"); }} />
+
       {popup && <AlertPopup message={popup} onClose={() => setPopup("")} />}
     </Overlay>
+  );
+}
+
+// ---- Tehlikeli Bölge: hesabı sil -------------------------------------------
+function DangerZone({ onDone }: { onDone: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [info, setInfo] = useState<any>(null);
+  const [confirmText, setConfirmText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  function token() { return typeof window !== "undefined" ? localStorage.getItem("kt_token") : null; }
+
+  function openPanel() {
+    setOpen(true); setErr(""); setConfirmText("");
+    fetch(apiUrl("/api/account/delete-info"), {
+      headers: { Authorization: `Bearer ${token()}` },
+    }).then((r) => r.json()).then(setInfo).catch(() => setErr("Bilgiler yüklenemedi."));
+  }
+
+  async function doDelete() {
+    if (!info) return;
+    setBusy(true); setErr("");
+    try {
+      const body = info.mode === "password"
+        ? { password: confirmText }
+        : { name: confirmText };
+      const r = await fetch(apiUrl("/api/account/delete"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
+        body: JSON.stringify(body),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) { setErr(j.detail || "Hesap silinemedi."); return; }
+      onDone();
+    } catch {
+      setErr("Bağlantı hatası.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Section title="⚠️ Tehlikeli Bölge">
+      {!open ? (
+        <>
+          <div style={{ ...hint, marginTop: 0 }}>
+            Hesabını kalıcı olarak silebilirsin. Bu işlem geri alınamaz.
+          </div>
+          <button
+            onClick={openPanel}
+            style={{
+              marginTop: 8, padding: "10px 16px", borderRadius: 10, cursor: "pointer",
+              border: "1px solid var(--accent-hot)", background: "transparent",
+              color: "var(--accent-hot)", fontWeight: 800, fontSize: 14,
+            }}
+          >
+            Hesabımı sil
+          </button>
+        </>
+      ) : (
+        <div style={{
+          border: "1px solid var(--accent-hot)", borderRadius: 12, padding: 14,
+          background: "rgba(217,90,90,.07)",
+        }}>
+          <div style={{ fontWeight: 800, color: "var(--accent-hot)", fontSize: 15, marginBottom: 8 }}>
+            Hesabın kalıcı olarak silinecek
+          </div>
+          <ul style={{
+            margin: "0 0 12px", paddingLeft: 18, color: "var(--text-soft)",
+            fontSize: 13, lineHeight: 1.8,
+          }}>
+            <li>Seviyen, XP&apos;n ve <b>tüm ilerlemen</b> silinir</li>
+            <li><b>Rozetlerin, kupaların ve madalyaların</b> silinir</li>
+            <li>Lig <b>sıralamalarından</b> ve üye aramasından çıkarsın</li>
+            <li>Arkadaş listelerinden kaldırılırsın</li>
+            <li>Maçların rakiplerinin geçmişinde <b>“Silinmiş üye”</b> olarak kalır</li>
+            <li style={{ color: "var(--accent-hot)", fontWeight: 700 }}>
+              Bu işlem <u>geri alınamaz</u>; aynı hesaba bir daha giriş yapamazsın
+            </li>
+          </ul>
+
+          {!info ? (
+            <p style={{ color: "var(--text-soft)", fontSize: 13 }}>Yükleniyor…</p>
+          ) : (
+            <>
+              <label style={{ display: "block", fontSize: 12.5, color: "var(--text-dim)", fontWeight: 600, marginBottom: 6 }}>
+                {info.label}
+              </label>
+              <input
+                type={info.mode === "password" ? "password" : "text"}
+                value={confirmText}
+                onChange={(e) => { setConfirmText(e.target.value); setErr(""); }}
+                placeholder={info.mode === "password" ? "Şifren" : info.display_name}
+                style={{ ...input, marginBottom: 8 }}
+                autoComplete={info.mode === "password" ? "current-password" : "off"}
+              />
+              {err && <p style={{ color: "var(--accent-hot)", fontSize: 13, margin: "0 0 8px" }}>{err}</p>}
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button
+                  onClick={doDelete}
+                  disabled={busy || !confirmText.trim()}
+                  style={{
+                    padding: "10px 16px", borderRadius: 10, border: "none",
+                    cursor: busy || !confirmText.trim() ? "default" : "pointer",
+                    background: "var(--accent-hot)", color: "#fff", fontWeight: 800, fontSize: 14,
+                    opacity: busy || !confirmText.trim() ? 0.55 : 1,
+                  }}
+                >
+                  {busy ? "Siliniyor…" : "Evet, hesabımı sil"}
+                </button>
+                <button
+                  onClick={() => { setOpen(false); setConfirmText(""); setErr(""); }}
+                  style={{
+                    padding: "10px 16px", borderRadius: 10, cursor: "pointer",
+                    border: "1px solid var(--border-soft)", background: "transparent",
+                    color: "var(--text-strong)", fontWeight: 700, fontSize: 14,
+                  }}
+                >
+                  Vazgeç
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </Section>
   );
 }
 

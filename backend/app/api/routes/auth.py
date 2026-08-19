@@ -14,6 +14,7 @@ from app.api.routes import app_settings as app_settings_routes
 from app.core.database import get_db
 from app.core.config import get_settings
 from app.core import captcha
+from app.core.platform import platform_from_request
 from app.core.security import create_access_token, create_pending_token, decode_pending_token
 from app.core.deps import get_current_user, get_optional_user
 from app.core import auth_service
@@ -102,6 +103,7 @@ async def register(data: RegisterIn, request: Request, db: AsyncSession = Depend
         user = await auth_service.register_email(
             db, data.email, data.password, data.display_name,
             signup_ip=captcha.client_ip(request),
+            platform=platform_from_request(request),
         )
     except auth_service.AuthError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -176,7 +178,8 @@ async def _verify_google_id_token(id_token: str, expected_aud: str) -> dict:
     return info
 
 
-async def _google_sign_in(db: AsyncSession, info: dict, signup_ip: str | None = None) -> dict:
+async def _google_sign_in(db: AsyncSession, info: dict, signup_ip: str | None = None,
+                          platform: str | None = None) -> dict:
     """Doğrulanmış Google iddialarıyla oturum açar/hesap oluşturur.
 
     Web ve uygulama akışı için TEK yol: hesap oluşturma varsayılanları, mevcut
@@ -197,6 +200,7 @@ async def _google_sign_in(db: AsyncSession, info: dict, signup_ip: str | None = 
         # Yeni hesap açılırsa kayıt IP'si yazılır (hesap sayımı için); mevcut
         # hesaba girişte kullanılmaz.
         signup_ip=signup_ip,
+        platform=platform,
     )
     return _auth_response(user)
 
@@ -207,7 +211,7 @@ async def google_login(data: GoogleIn, request: Request, db: AsyncSession = Depe
     if not settings.google_oauth_configured:
         raise HTTPException(status_code=503, detail="Google girişi yapılandırılmamış.")
     info = await _verify_google_id_token(data.id_token, settings.GOOGLE_CLIENT_ID)
-    return await _google_sign_in(db, info, captcha.client_ip(request))
+    return await _google_sign_in(db, info, captcha.client_ip(request), platform_from_request(request))
 
 
 @router.post("/google/native")
@@ -235,7 +239,7 @@ async def google_login_native(data: GoogleIn, request: Request, db: AsyncSession
             detail="Uygulama içi Google girişi yapılandırılmamış.",
         )
     info = await _verify_google_id_token(data.id_token, client_id)
-    return await _google_sign_in(db, info, captcha.client_ip(request))
+    return await _google_sign_in(db, info, captcha.client_ip(request), platform_from_request(request))
 
 
 # ---- Play Games (yalnız Android uygulaması) ----
@@ -478,7 +482,8 @@ async def quick_signup(data: QuickIn, request: Request, db: AsyncSession = Depen
         raise HTTPException(status_code=503, detail="İsimle giriş şu an kapalı.")
     try:
         user = await auth_service.create_quick_user(
-            db, data.name, signup_ip=captcha.client_ip(request)
+            db, data.name, signup_ip=captcha.client_ip(request),
+            platform=platform_from_request(request),
         )
     except auth_service.AuthError as e:
         # IP sınırına takılma da buraya düşer; ayrı durum kodu vermek yerine
@@ -493,6 +498,7 @@ async def quick_signup(data: QuickIn, request: Request, db: AsyncSession = Depen
 @router.post("/verify")
 async def verify_account(
     data: VerifyIn,
+    request: Request,
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
@@ -512,7 +518,10 @@ async def verify_account(
        çağrılır. progress, "ne taşınacak" önizlemesidir.
     """
     try:
-        user = await auth_service.verify_account(db, user, data.email, data.password)
+        user = await auth_service.verify_account(
+            db, user, data.email, data.password,
+            platform=platform_from_request(request),
+        )
     except auth_service.EmailInUse:
         return {
             "ok": False,

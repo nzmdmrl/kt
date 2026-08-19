@@ -46,6 +46,11 @@ docker run --rm --network host -v "$PWD/tests":/w -w /w \
   ("<İsim> olarak devam et") aynı hesaba dönülmesi, "Farklı isimle başla"nın
   hatırayı silmesi, doğrulanmış hesabın hatıra bırakmaması; ayrıca /dogrula
   sayfasındaki şifre tekrarı doğrulaması.
+- `hesap_silme_ve_panel.mjs` — hesap silme (profil → ⚠️ Tehlikeli Bölge ve
+  girişsiz `/hesap-silme` sayfası), doğrulama şeridinin masaüstü üst boşluğu,
+  admin panelinde üye pasife alma/geri alma, cihaz simgeleri, durum süzgeçleri
+  ve "Bugün — Ortama Göre" tablosu.
+  ÖN KOŞUL: `isim_kontrol_paneli.mjs` ile aynı kurulum (admin hesabı + işaretli isim).
 - `isim_kontrol_paneli.mjs` — admin panelindeki 🔎 İsim Kontrol ve ⚡ Hızlı Giriş
   sekmeleri: işaretlenen isimlerin listelenmesi, temiz/pasife al/IP gölge ban
   işlemleri, ayarların kaydedilmesi ve eski sekmelerin bozulmadığı.

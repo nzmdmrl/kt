@@ -274,6 +274,49 @@ async def delete_photo(user: User = Depends(get_current_user), db: AsyncSession 
     return {"ok": True, "avatar_url": user.public_avatar}
 
 
+# ---------------------------------------------------------------- hesap silme
+#
+# Google Play / App Store zorunluluğu: kullanıcı hesabını uygulama İÇİNDEN
+# silebilmeli. Hak HERKESE açıktır (doğrulanmış da doğrulanmamış da).
+# Silme, satırı yok etmez; anonimleştirir — ayrıntı ve gerekçe:
+# app/services/account_delete.py.
+
+
+@router.get("/delete-info")
+async def delete_info(user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    """Silme ekranı: hangi onay isteniyor + ne kaybedilecek."""
+    from app.services.account_delete import confirmation_hint
+    return {
+        **confirmation_hint(user),
+        "display_name": user.display_name,
+        "username": user.username,
+        "xp": user.xp or 0,
+        "matches_played": user.matches_played or 0,
+        "verified": bool(user.verified),
+    }
+
+
+class DeleteAccountIn(BaseModel):
+    # Şifresi olan kullanıcı şifresini, olmayan görünen adını yazar.
+    password: str = ""
+    name: str = ""
+
+
+@router.post("/delete")
+async def delete_account(
+    data: DeleteAccountIn,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.services.account_delete import delete_own_account, DeleteError
+    try:
+        await delete_own_account(db, user, data.password, data.name)
+    except DeleteError as e:
+        raise HTTPException(400, str(e))
+    # Jeton artık işe yaramaz (hesap disabled) — istemci de kendi tarafını temizler.
+    return {"ok": True}
+
+
 class PrivacyIn(BaseModel):
     show_online: bool | None = None
     allow_challenges: bool | None = None

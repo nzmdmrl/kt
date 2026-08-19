@@ -98,7 +98,8 @@ async def leaderboard(
         .join(User, User.id == DailyScore.user_id)
         # GÖLGE BAN: banlı oyuncu sıralamada BAŞKALARINA görünmez. Kendi
         # puanı yazılmaya devam eder (fark etmesin diye), sadece listelenmez.
-        .where(User.shadow_banned.isnot(True))
+        # SİLİNEN HESAP da sıralamadan çıkar (satır anonim olarak durur).
+        .where(User.shadow_banned.isnot(True), User.deleted.isnot(True))
     )
     if start is not None:
         q = q.where(DailyScore.score_date >= start, DailyScore.score_date <= end)
@@ -135,7 +136,7 @@ async def leaderboard_count(db: AsyncSession, scope: str = "daily", ref: date | 
         select(func.count(func.distinct(DailyScore.user_id)))
         .select_from(DailyScore)
         .join(User, User.id == DailyScore.user_id)
-        .where(User.shadow_banned.isnot(True))
+        .where(User.shadow_banned.isnot(True), User.deleted.isnot(True))
     )
     if start is not None:
         q = q.where(DailyScore.score_date >= start, DailyScore.score_date <= end)

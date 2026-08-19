@@ -55,6 +55,15 @@ export default function ProfilePage({ params }: { params: { username: string } }
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
   const [editOpen, setEditOpen] = useState(false);
+
+  // /hesap-silme sayfasından "Profil ayarlarına git" ile gelinince düzenleme
+  // ekranı kendiliğinden açılsın (?duzenle=1).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (new URLSearchParams(window.location.search).get("duzenle") === "1") {
+      setEditOpen(true);
+    }
+  }, []);
   const [recentMatches, setRecentMatches] = useState<any[]>([]);
   const [h2h, setH2h] = useState<H2H | null>(null);
   const [oppStatus, setOppStatus] = useState("");

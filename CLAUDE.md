@@ -390,6 +390,46 @@ Aynı kod hem sitede hem uygulamada çalışır (uygulama web içeriğini canlı
 - Testler: `frontend/tests/hesap_kaybi_ve_sifre.mjs` (31 tarayıcı senaryosu).
   `hizli_giris_arayuz.mjs` şifre tekrarına göre güncellendi (50 senaryo).
 
+
+**Ara iş 2 (hesap silme + üye yönetimi + ortam istatistikleri) — TAMAM:**
+- **Şerit boşluğu**: `.vb-row` masaüstünde `margin-top: 18px` aldı (yalnız
+  ≥721px medya sorgusunda — mobil görünüm dokunulmadan bırakıldı).
+- **Kullanıcının kendi hesabını silmesi** (Google Play / App Store zorunluluğu):
+  - `app/services/account_delete.py` → satır SİLİNMEZ, **anonimleştirilir**:
+    ad "Silinmiş üye", username `silinmisuye001` (sıralı), e-posta/şifre/
+    Google/Play Games/avatar temizlenir, `deleted=True` + `disabled=True`.
+    NEDEN: satır silinseydi RAKİPLERİN maç geçmişi de bozulurdu.
+  - Maç geçmişi satırları KALIR; adı "Silinmiş üye" olur, profil bağlantısı
+    kaldırılır. Arkadaşlıklar, etiketler, push cihazları gerçekten silinir.
+  - Sıralama, üye arama, arkadaş listesi ve profil sayfası `deleted` süzgeciyle
+    kapatıldı (league_service, profile.py, friends.py).
+  - Onay: şifresi olan ŞİFRESİNİ, olmayan GÖRÜNEN ADINI yazar
+    (`GET /account/delete-info` hangisini isteyeceğini söyler).
+    HERKES silebilir — doğrulanmış da doğrulanmamış da (Play şartı).
+  - Arayüz: profil → Düzenle → **⚠️ Tehlikeli Bölge** (ne kaybedileceği madde
+    madde yazılı). `?duzenle=1` ile doğrudan açılır.
+  - **Girişsiz sayfa `/hesap-silme`** (Play'in istediği uygulama dışı adres):
+    ne silinir/ne kalır + girişsizler için talep formu (destek biletine düşer).
+    Altbilgide bağlantısı var, SEO anahtarı `account_delete`.
+- **Admin → 👥 Üyeler**: `PUT /admin/users/{id}/status` ile **pasife alma /
+  geri alma** (giriş engellenir, maç geçmişi ve sıralamalar BOZULMAZ) ve
+  **gölge ban** (kullanıcı fark etmez, listelerden gizlenir). Gerçek silme YOK.
+  Süzgeçler: Tümü / Aktif / Pasif / Gölge banlı / Silinmiş (sayılarıyla).
+  Satırlarda PASİF / GÖLGE BAN / SİLİNMİŞ / DOĞRULANMAMIŞ rozetleri.
+- **Cihaz simgesi**: 📱 mobil uygulama · 🌐 mobil tarayıcı · 🖥️ masaüstü.
+  Ayrım `app/core/platform.py` → user agent'taki `KelimeApp/` işareti.
+  `users.signup_platform` kayıtta, `users.last_platform` heartbeat/ziyarette yazılır.
+- **Özet → "Bugün — Ortama Göre"**: ziyaretçi / yeni üye / doğrulama sayıları
+  üç ortam için. Ziyaretçi kaynağı yeni `daily_visits` tablosu
+  (`POST /api/stats/visit`, oturum başına bir kez, `components/VisitPing.tsx`).
+  Kişisel veri tutulmaz (IP/user agent SAKLANMAZ). Mevcut özet alanları aynen duruyor.
+- `users` yeni sütunlar: `deleted`, `deleted_at`, `signup_platform`,
+  `last_platform`, `verified_at`, `verified_platform`.
+- Testler: `backend/tests/hesap_silme_ve_uye_yonetimi_senaryo.py` (96 senaryo,
+  SQLite + PostgreSQL) ve `frontend/tests/hesap_silme_ve_panel.mjs` (41 tarayıcı).
+  NOT: testlerde lig ucu `/api/league/leaderboard` — `/api/league` 404 döner
+  (Aşama 4 testindeki bir kontrol bu yüzden boşa geçiyordu, düzeltildi).
+
 - SONRAKİ AŞAMA: 5) mobilden Google/Play Games düğmelerinin sökülmesi.
 
 ### Misafir (üye olmayan ziyaretçi) erişimi

@@ -370,8 +370,8 @@ async def main() -> None:
         await db_exec(
             "INSERT INTO daily_scores (user_id, score_date, best_score, matches) "
             "VALUES (:i, :d, 500, 1)", i=g2_id, d=date.today())
-        r = await c.get("/api/league?scope=all")
-        names = [e["username"] for e in r.json().get("entries", r.json().get("leaderboard", []))]
+        r = await c.get("/api/league/leaderboard?scope=all")
+        names = [e["username"] for e in r.json()["entries"]]
         check("lig sıralamasında çıkmıyor",
               all(not n.startswith("golge") for n in names), str(names)[:200])
 

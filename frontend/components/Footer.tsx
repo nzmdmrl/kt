@@ -12,6 +12,9 @@ export default function Footer() {
     { href: "/gizlilik", label: "Gizlilik & KVKK" },
     { href: "/kosullar", label: "Kullanım Koşulları" },
     { href: "/cerez", label: "Çerez Politikası" },
+    // Google Play / App Store: hesap silme adresi uygulama dışından da
+    // erişilebilir olmalı — bu yüzden altbilgide duruyor.
+    { href: "/hesap-silme", label: "Hesap Silme" },
     { href: "/uye-ara", label: "Üye Ara" },
     { href: "/iletisim", label: "İletişim" },
     { href: "/destek", label: "Destek" },

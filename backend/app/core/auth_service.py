@@ -13,6 +13,11 @@ from app.core.security import hash_password, verify_password
 USERNAME_RE = re.compile(r"^[a-zA-Z0-9_]{3,32}$")
 
 
+def _now():
+    from datetime import datetime, timezone
+    return datetime.now(timezone.utc)
+
+
 class AuthError(Exception):
     """Kayıt/giriş hatası — istemciye mesajla döner."""
 
@@ -116,7 +121,7 @@ def _initial_name_status() -> str:
 
 async def register_email(
     db: AsyncSession, email: str, password: str, display_name: str,
-    signup_ip: str | None = None,
+    signup_ip: str | None = None, platform: str | None = None,
 ) -> User:
     email = email.strip().lower()
     if "@" not in email or "." not in email:
@@ -142,7 +147,11 @@ async def register_email(
         name_status=_initial_name_status(),
         # E-posta + şifre var -> hesap kurtarılabilir, doğrulanmış sayılır.
         verified=True,
+        verified_at=_now(),
+        verified_platform=platform,
         signup_ip=signup_ip,
+        signup_platform=platform,
+        last_platform=platform,
     )
     db.add(user)
     await db.commit()
@@ -161,7 +170,7 @@ async def login_email(db: AsyncSession, email: str, password: str) -> User:
 
 async def get_or_create_google_user(
     db: AsyncSession, sub: str, email: str | None, name: str | None, picture: str | None,
-    signup_ip: str | None = None,
+    signup_ip: str | None = None, platform: str | None = None,
 ) -> User:
     """Google ile giriş: mevcut kullanıcıyı bul veya yeni oluştur."""
     user = await get_user_by_google_sub(db, sub)
@@ -193,7 +202,11 @@ async def get_or_create_google_user(
         name_status=_initial_name_status(),
         # Google hesabı bağlı -> kişi cihazını değiştirse bile geri girebilir.
         verified=True,
+        verified_at=_now(),
+        verified_platform=platform,
         signup_ip=signup_ip,
+        signup_platform=platform,
+        last_platform=platform,
     )
     db.add(user)
     await db.commit()
@@ -285,7 +298,8 @@ async def quick_signup_limit(db: AsyncSession) -> int:
 
 
 async def create_quick_user(
-    db: AsyncSession, display_name: str, signup_ip: str | None = None
+    db: AsyncSession, display_name: str, signup_ip: str | None = None,
+    platform: str | None = None,
 ) -> User:
     """İsimle hesap açar. IP sınırını AŞMIŞSA AuthError fırlatır.
 
@@ -319,6 +333,8 @@ async def create_quick_user(
         # Kurtarılabilir kimlik YOK -> doğrulanmamış.
         verified=False,
         signup_ip=signup_ip,
+        signup_platform=platform,
+        last_platform=platform,
         # Bu IP admin tarafından GÖLGE banlanmışsa hesap açılır ama işaretlenir.
         # Kullanıcıya hiçbir şey söylenmez — gölge banın anlamı budur.
         shadow_banned=await is_ip_banned(db, signup_ip),
@@ -333,7 +349,8 @@ EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
 async def verify_account(
-    db: AsyncSession, user: User, email: str, password: str
+    db: AsyncSession, user: User, email: str, password: str,
+    platform: str | None = None,
 ) -> User:
     """Hızlı hesaba e-posta + şifre ekler ve hesabı 'doğrulanmış' yapar.
 
@@ -356,6 +373,9 @@ async def verify_account(
     user.email = email
     user.password_hash = hash_password(password)
     user.verified = True
+    # Admin özet ekranı "bugün hangi ortamdan kaç doğrulama" sayısını buradan okur.
+    user.verified_at = _now()
+    user.verified_platform = platform
     await db.commit()
     await db.refresh(user)
     return user

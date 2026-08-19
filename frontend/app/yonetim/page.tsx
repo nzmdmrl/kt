@@ -157,6 +157,11 @@ function Dashboard({ onDenied }: { onDenied: () => void }) {
         </div>
       </div>
 
+      {/* Ortama göre bugün — mobil uygulama / mobil tarayıcı / masaüstü.
+          Ziyaretçi: bugün siteye/uygulamaya giren TEKİL kişi sayısı.
+          Yeni üye:  bugün açılan hesaplar. Doğrulama: bugün e-posta+şifre eklenenler. */}
+      <PlatformStats data={data.platforms} />
+
       {/* Genel toplamlar */}
       <div>
         <h3 style={{ fontSize: 15, color: "var(--text-soft)", marginBottom: 10 }}>Genel</h3>
@@ -1074,7 +1079,30 @@ type AdminUser = {
   ad_free: boolean;
   ad_free_since: string | null;
   ad_free_source: string | null;
+  disabled: boolean;
+  disabled_reason: string | null;
+  shadow_banned: boolean;
+  deleted: boolean;
+  verified: boolean;
+  /** app = mobil uygulama · mobile = mobil tarayıcı · desktop = masaüstü */
+  platform: "app" | "mobile" | "desktop" | null;
 };
+
+// Üye listesindeki cihaz simgesi. Ayrım, mobil uygulamanın user agent'ına
+// eklediği "KelimeApp/" işaretinden yapılır (backend: app/core/platform.py).
+const PLATFORM_ICON: Record<string, { icon: string; label: string }> = {
+  app: { icon: "📱", label: "Mobil uygulama" },
+  mobile: { icon: "🌐", label: "Mobil tarayıcı" },
+  desktop: { icon: "🖥️", label: "Masaüstü" },
+};
+
+const USER_FILTERS = [
+  { key: "", label: "Tümü" },
+  { key: "active", label: "Aktif" },
+  { key: "disabled", label: "Pasif" },
+  { key: "banned", label: "Gölge banlı" },
+  { key: "deleted", label: "Silinmiş" },
+] as const;
 
 const USER_MIN_CHARS = 2;
 
@@ -1093,8 +1121,79 @@ function fmtDate(iso: string | null): string {
   }
 }
 
+// ---- 📊 Özet: ortam kırılımı ------------------------------------------------
+// Üç satır (mobil uygulama / masaüstü / mobil tarayıcı), her satırda üç sayı.
+// Ayrım mobil uygulamanın user agent'ındaki "KelimeApp/" işaretinden yapılır.
+function PlatformStats({ data }: { data?: any }) {
+  if (!data) return null;
+  const rows = [
+    { key: "app", icon: "📱", label: "Mobil uygulama" },
+    { key: "mobile", icon: "🌐", label: "Mobil tarayıcı" },
+    { key: "desktop", icon: "🖥️", label: "Masaüstü" },
+  ];
+  const cols = [
+    { key: "visitors", label: "Ziyaretçi" },
+    { key: "signups", label: "Yeni üye" },
+    { key: "verifications", label: "Doğrulama" },
+  ];
+  const val = (col: string, plat: string) => Number(data?.[col]?.[plat] ?? 0);
+
+  return (
+    <div>
+      <h3 style={{ fontSize: 15, color: "var(--text-soft)", marginBottom: 10 }}>
+        Bugün — Ortama Göre
+      </h3>
+      <div style={{ background: "var(--bg-panel)", borderRadius: 12, overflow: "hidden" }}>
+        <div style={{
+          display: "grid", gridTemplateColumns: "1.6fr repeat(3, 1fr)",
+          padding: "10px 14px", borderBottom: "1px solid var(--border-soft)",
+          fontSize: 12, color: "var(--text-dim)", fontWeight: 700,
+        }}>
+          <span />
+          {cols.map((c) => <span key={c.key} style={{ textAlign: "center" }}>{c.label}</span>)}
+        </div>
+        {rows.map((r) => (
+          <div key={r.key} style={{
+            display: "grid", gridTemplateColumns: "1.6fr repeat(3, 1fr)",
+            padding: "12px 14px", borderBottom: "1px solid var(--border-soft)",
+            alignItems: "center",
+          }}>
+            <span style={{ fontSize: 13.5, color: "var(--text-strong)", fontWeight: 600 }}>
+              {r.icon} {r.label}
+            </span>
+            {cols.map((c) => (
+              <span key={c.key} style={{
+                textAlign: "center", fontSize: 19, fontWeight: 900,
+                color: val(c.key, r.key) > 0 ? "var(--text-strong)" : "var(--text-dim)",
+              }}>
+                {val(c.key, r.key).toLocaleString("tr")}
+              </span>
+            ))}
+          </div>
+        ))}
+        <div style={{
+          display: "grid", gridTemplateColumns: "1.6fr repeat(3, 1fr)",
+          padding: "10px 14px", alignItems: "center",
+          background: "var(--bg-elevated)",
+        }}>
+          <span style={{ fontSize: 13, color: "var(--text-dim)", fontWeight: 700 }}>Toplam</span>
+          {cols.map((c) => (
+            <span key={c.key} style={{
+              textAlign: "center", fontSize: 15, fontWeight: 800, color: "var(--accent)",
+            }}>
+              {Number(data?.[c.key]?.total ?? 0).toLocaleString("tr")}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Users() {
   const [q, setQ] = useState("");
+  const [status, setStatus] = useState("");
+  const [counts, setCounts] = useState<Record<string, number>>({});
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(20);
 
@@ -1110,7 +1209,7 @@ function Users() {
   const reqRef = useRef(0);
 
   // Arama ya da sayfa boyu değişince başa dön.
-  useEffect(() => { setPage(0); }, [q, pageSize]);
+  useEffect(() => { setPage(0); }, [q, pageSize, status]);
 
   // Tek yükleme noktası: arama, sayfa ve sayfa boyu aynı effect'i tetikler.
   // Debounce sayesinde "q değişti -> page 0'a döndü" ikilisinde tek istek gider.
@@ -1118,7 +1217,7 @@ function Users() {
     const t = setTimeout(() => { void load(); }, 300);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, page, pageSize]);
+  }, [q, page, pageSize, status]);
 
   async function load() {
     const mine = ++reqRef.current;
@@ -1126,6 +1225,7 @@ function Users() {
     try {
       const params = new URLSearchParams({
         q: q.trim(),
+        status,
         limit: String(pageSize),
         offset: String(page * pageSize),
       });
@@ -1136,6 +1236,7 @@ function Users() {
       setRows(Array.isArray(d.users) ? d.users : []);
       setTotal(typeof d.total_users === "number" ? d.total_users : null);
       setMatched(typeof d.matched === "number" ? d.matched : 0);
+      setCounts(d.counts || {});
     } catch {
       if (mine !== reqRef.current) return;
       setMsg("Üyeler getirilemedi.");
@@ -1166,6 +1267,34 @@ function Users() {
     }
   }
 
+  async function setUserStatus(u: AdminUser, patch: { disabled?: boolean; shadow_banned?: boolean }) {
+    if (busy) return;
+    if (patch.disabled === true && !confirm(
+      `${u.display_name} PASİFE alınacak.\n\nGiriş yapamaz ve nedenini görür. ` +
+      `Maç geçmişi, sıralamalar ve arkadaşlıkları OLDUĞU GİBİ kalır; istediğinde geri alabilirsin.\n\nDevam?`
+    )) return;
+    if (patch.shadow_banned === true && !confirm(
+      `${u.display_name} GÖLGE BANLANACAK.\n\nKullanıcı hiçbir şey fark etmez: hesabı açık kalır, ` +
+      `hata görmez. Ama sıralamalarda ve aramada görünmez olur, gerçek oyuncularla eşleşmez.\n\nDevam?`
+    )) return;
+    setBusy(u.id); setMsg("");
+    try {
+      const r = await fetch(apiUrl(`/api/admin/users/${u.id}/status`), {
+        method: "PUT", headers: authHeaders(), body: JSON.stringify(patch),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) { setMsg(j.detail || "İşlem başarısız."); return; }
+      setRows((rs) => rs.map((x) => (x.id === u.id ? { ...x, ...(j.user || {}) } : x)));
+      setSaved(u.id);
+      setTimeout(() => setSaved(null), 1500);
+      void load();
+    } catch {
+      setMsg("Bağlantı hatası.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
   const pageCount = Math.max(1, Math.ceil(matched / pageSize));
   const from = matched === 0 ? 0 : page * pageSize + 1;
   const to = Math.min(matched, (page + 1) * pageSize);
@@ -1180,7 +1309,14 @@ function Users() {
         ve geçiş reklamı kapanır, geçiş reklamının maç sayacı bile artmaz.<br />
         • Buradan verilen hak <span className="brand-mono">manual</span> kaynağıyla işaretlenir.
         Kapatınca ne zaman/nereden verildiği bilgisi silinmez.<br />
-        • Bu sekmede silme, yasaklama, şifre sıfırlama YOKTUR.
+        • <b>Pasife al</b>: kullanıcı giriş yapamaz, nedenini görür — geri alınabilir.
+        Maç geçmişi, sıralamalar ve arkadaşlıklar bozulmaz.<br />
+        • <b>Gölge ban</b>: kullanıcı hiçbir şey fark etmez ama listelerde görünmez
+        ve gerçek oyuncularla eşleşmez (yalnız botla oynar).<br />
+        • <b>Gerçek silme YOKTUR</b> — kullanıcı satırı silinirse rakiplerin maç
+        geçmişi de bozulur. Kullanıcının kendi silme hakkı ayrıdır ve o da
+        hesabı anonimleştirir (“Silinmiş üye”).<br />
+        • Cihaz simgesi: 📱 mobil uygulama · 🌐 mobil tarayıcı · 🖥️ masaüstü.
       </div>
 
       <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
@@ -1216,6 +1352,23 @@ function Users() {
         </label>
       </div>
 
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        {USER_FILTERS.map((f) => {
+          const on = status === f.key;
+          const n = f.key === "" ? counts.all : counts[f.key];
+          return (
+            <button key={f.key || "all"} onClick={() => setStatus(f.key)} style={{
+              padding: "7px 13px", borderRadius: 20, cursor: "pointer", fontSize: 13, fontWeight: 700,
+              border: `1px solid ${on ? "var(--accent)" : "var(--border-soft)"}`,
+              background: on ? "var(--accent)" : "var(--bg-panel)",
+              color: on ? "#1a1330" : "var(--text-soft)",
+            }}>
+              {f.label}{typeof n === "number" ? ` (${n.toLocaleString("tr")})` : ""}
+            </button>
+          );
+        })}
+      </div>
+
       {msg && <p style={{ fontSize: 13, color: "var(--accent-hot)", margin: 0 }}>{msg}</p>}
 
       <Pager
@@ -1237,8 +1390,19 @@ function Users() {
           }}>
             <div style={{ flex: "1 1 260px", minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                {/* Cihaz simgesi — hangi ortamdan geldiği */}
+                <span
+                  title={PLATFORM_ICON[u.platform || ""]?.label || "Ortam bilinmiyor"}
+                  style={{ fontSize: 16, lineHeight: 1 }}
+                >
+                  {PLATFORM_ICON[u.platform || ""]?.icon || "❔"}
+                </span>
                 <a href={`/profil/${u.username}`} target="_blank" rel="noreferrer"
-                  style={{ color: "var(--text-strong)", fontWeight: 700, fontSize: 15, textDecoration: "none" }}>
+                  style={{
+                    color: "var(--text-strong)", fontWeight: 700, fontSize: 15, textDecoration: "none",
+                    opacity: u.deleted ? 0.55 : 1,
+                    textDecorationLine: u.deleted ? "line-through" : "none",
+                  }}>
                   {u.display_name}
                 </a>
                 <span className="brand-mono" style={{ fontSize: 12, color: "var(--text-dim)" }}>@{u.username}</span>
@@ -1247,6 +1411,10 @@ function Users() {
                     ADMIN
                   </span>
                 )}
+                {u.deleted && <StatusTag tone="dim">SİLİNMİŞ</StatusTag>}
+                {!u.deleted && u.disabled && <StatusTag tone="hot">PASİF</StatusTag>}
+                {!u.deleted && u.shadow_banned && <StatusTag tone="hot">GÖLGE BAN</StatusTag>}
+                {!u.deleted && !u.verified && <StatusTag tone="dim">DOĞRULANMAMIŞ</StatusTag>}
               </div>
               <div style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 3 }}>
                 #{u.id} · {u.email || "e-posta yok"} · Kayıt: {fmtDate(u.created_at)} · {PRESENCE_TEXT[u.presence] || "—"}
@@ -1283,6 +1451,32 @@ function Users() {
                 {saved === u.id ? "✓" : ""}
               </span>
             </div>
+
+            {/* Üye yönetimi — silinmiş ve yönetici hesaplarda gizli */}
+            {!u.deleted && !u.is_admin && (
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", flexShrink: 0 }}>
+                <ActionBtn
+                  disabled={busy === u.id}
+                  tone={u.disabled ? "ok" : "hot"}
+                  onClick={() => setUserStatus(u, { disabled: !u.disabled })}
+                  title={u.disabled
+                    ? "Pasiflikten çıkar — kullanıcı yeniden giriş yapabilir"
+                    : "Pasife al — kullanıcı giriş yapamaz (geri alınabilir)"}
+                >
+                  {u.disabled ? "↩︎ Geri al" : "⛔ Pasife al"}
+                </ActionBtn>
+                <ActionBtn
+                  disabled={busy === u.id}
+                  tone={u.shadow_banned ? "ok" : "plain"}
+                  onClick={() => setUserStatus(u, { shadow_banned: !u.shadow_banned })}
+                  title={u.shadow_banned
+                    ? "Gölge banı kaldır"
+                    : "Gölge banla — kullanıcı fark etmez, listelerde görünmez"}
+                >
+                  {u.shadow_banned ? "↩︎ Banı kaldır" : "🕶️ Gölge ban"}
+                </ActionBtn>
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -1294,6 +1488,40 @@ function Users() {
         />
       )}
     </div>
+  );
+}
+
+/** Üye satırındaki küçük durum rozeti (PASİF / GÖLGE BAN / SİLİNMİŞ). */
+function StatusTag({ children, tone }: { children: React.ReactNode; tone: "hot" | "dim" }) {
+  const hot = tone === "hot";
+  return (
+    <span style={{
+      fontSize: 10.5, fontWeight: 800, letterSpacing: .3,
+      color: hot ? "var(--accent-hot)" : "var(--text-dim)",
+      border: `1px solid ${hot ? "var(--accent-hot)" : "var(--border-soft)"}`,
+      borderRadius: 6, padding: "1px 6px",
+    }}>{children}</span>
+  );
+}
+
+/** Üye yönetimi düğmesi. */
+function ActionBtn({
+  children, onClick, disabled, tone, title,
+}: {
+  children: React.ReactNode; onClick: () => void; disabled?: boolean;
+  tone: "hot" | "ok" | "plain"; title?: string;
+}) {
+  const colors = {
+    hot: { bg: "transparent", bd: "var(--accent-hot)", fg: "var(--accent-hot)" },
+    ok: { bg: "transparent", bd: "var(--tile-correct)", fg: "var(--tile-correct)" },
+    plain: { bg: "transparent", bd: "var(--border-soft)", fg: "var(--text-soft)" },
+  }[tone];
+  return (
+    <button onClick={onClick} disabled={disabled} title={title} style={{
+      padding: "7px 11px", borderRadius: 9, cursor: disabled ? "default" : "pointer",
+      border: `1px solid ${colors.bd}`, background: colors.bg, color: colors.fg,
+      fontWeight: 700, fontSize: 12.5, opacity: disabled ? 0.5 : 1, whiteSpace: "nowrap",
+    }}>{children}</button>
   );
 }
 

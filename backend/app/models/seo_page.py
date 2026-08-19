@@ -147,6 +147,22 @@ SEO_PAGES: list[dict] = [
         "keywords": "kelime tahmin giriş, ücretsiz üyelik, kayıt ol",
     },
     {
+        # Google Play "hesap silme" politikasının istediği, uygulama DIŞINDAN
+        # erişilebilen adres. indexable=True: mağaza denetçisi ve kullanıcı
+        # aramayla da bulabilsin.
+        "key": "account_delete",
+        "path": "/hesap-silme",
+        "label": "Hesap Silme (/hesap-silme)",
+        "indexable": True,
+        "priority": 0.3,
+        "title": "Hesap Silme",
+        "description": (
+            "Kelime Tahmin hesabını kalıcı olarak nasıl silersin; "
+            "hangi veriler silinir, hangileri kalır."
+        ),
+        "keywords": "hesap silme, hesabımı sil, kelime tahmin hesap silme",
+    },
+    {
         # Hızlı Giriş ile açılan hesabın e-posta+şifre eklediği sayfa.
         # indexable=False: kişiye özel bir işlem ekranı, aramada çıkmasın.
         "key": "verify",

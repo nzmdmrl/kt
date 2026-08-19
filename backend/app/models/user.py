@@ -116,6 +116,23 @@ class User(Base):
     disabled_reason: Mapped[str | None] = mapped_column(String(160), nullable=True)
     disabled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
+    # Kullanıcı hesabını KENDİ sildi mi (Google Play / App Store zorunluluğu).
+    # Satır SİLİNMEZ, anonimleştirilir: ad "Silinmiş üye", username
+    # "silinmisuye001", e-posta/şifre/avatar boşaltılır. Sebep: maç geçmişi
+    # kayıtları rakiplerin geçmişinde duruyor; satır silinseydi onların
+    # geçmişi de bozulurdu. Ayrıntı: app/api/routes/account.py → delete_account.
+    deleted: Mapped[bool] = mapped_column(Boolean, default=False)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    # Hangi ortamdan geldi — admin panelindeki cihaz simgesi ve özet sayıları.
+    # Değerler: "app" (mobil uygulama) | "mobile" (mobil tarayıcı) | "desktop"
+    signup_platform: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    last_platform: Mapped[str | None] = mapped_column(String(10), nullable=True)
+
+    # Hesabın ne zaman ve hangi ortamdan doğrulandığı (özet istatistikleri).
+    verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    verified_platform: Mapped[str | None] = mapped_column(String(10), nullable=True)
+
     # Yetki
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
 

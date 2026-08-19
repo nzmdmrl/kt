@@ -10,6 +10,7 @@ import NativeBootstrap from "@/components/NativeBootstrap";
 import PlayGamesAuth from "@/components/PlayGamesAuth";
 import MicNoticeHost from "@/lib/micNotice";
 import { AccountGateProvider } from "@/lib/accountGate";
+import VisitPing from "@/components/VisitPing";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -19,6 +20,8 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         {/* Hesap kapısı: "isimle hesap aç" popup'ını her sayfadan açılabilir kılar.
             AuthProvider'ın İÇİNDE olmalı — useAuth'a bakar. */}
         <AccountGateProvider>
+        {/* Oturum başına bir kez ziyaret sinyali (admin özet sayıları) */}
+        <VisitPing />
         {/* Her sayfada çalışan global presence + maç teklifi izleyici */}
         <HeartbeatPinger />
         <ChallengeWatcher />

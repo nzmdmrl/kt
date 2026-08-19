@@ -1040,7 +1040,11 @@ html[data-style="stil2"]:not([data-theme="light"]) .hm-s2 .hm-profile {
   display: flex; align-items: center; gap: 10px;
   max-width: 520px; margin: 0 auto 10px; padding: 0 16px;
 }
-@media (min-width: 721px) { .vb-row { max-width: 760px; padding: 0 18px; } }
+/* Masaüstünde şerit üst bara (TopBar) yapışık duruyordu — nefes payı verildi.
+   Mobilde şeridin üstünde bar yok, orada boşluk GEREKMİYOR (dokunulmadı). */
+@media (min-width: 721px) {
+  .vb-row { max-width: 760px; padding: 0 18px; margin-top: 18px; }
+}
 
 .vb-btn {
   flex: 1; display: flex; align-items: center; gap: 10px;

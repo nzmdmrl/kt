@@ -80,12 +80,53 @@ async def dashboard(admin: User = Depends(get_admin_user), db: AsyncSession = De
         .where(ArenaHistory.created_at >= day_start)
     )).scalar_one() or 0
 
+    # --- Ortama göre bugünün sayıları (mobil uygulama / mobil tarayıcı / masaüstü)
+    # ziyaretçi   : daily_visits tablosundaki tekil kayıtlar (app/api/routes/stats.py)
+    # yeni üye    : bugün açılan hesaplar, açıldığı ortama göre
+    # doğrulama   : bugün e-posta+şifre eklenen hesaplar, doğrulandığı ortama göre
+    from app.models.daily_visit import DailyVisit
+    from datetime import date as _date
+    today = _date.today()
+
+    async def _by_platform(stmt_builder) -> dict:
+        out = {"app": 0, "mobile": 0, "desktop": 0}
+        try:
+            for platform, n in (await db.execute(stmt_builder())).all():
+                if platform in out:
+                    out[platform] = int(n or 0)
+        except Exception as e:
+            print(f"[admin özet] ortam sayımı atlandı: {type(e).__name__}: {e}")
+        out["total"] = out["app"] + out["mobile"] + out["desktop"]
+        return out
+
+    visitors = await _by_platform(lambda: (
+        select(DailyVisit.platform, func.count(DailyVisit.id))
+        .where(DailyVisit.visit_date == today)
+        .group_by(DailyVisit.platform)
+    ))
+    signups = await _by_platform(lambda: (
+        select(User.signup_platform, func.count(User.id))
+        .where(User.created_at >= day_start)
+        .group_by(User.signup_platform)
+    ))
+    verifications = await _by_platform(lambda: (
+        select(User.verified_platform, func.count(User.id))
+        .where(User.verified_at >= day_start)
+        .group_by(User.verified_platform)
+    ))
+
     return {
         "total_users": total_users,
         "total_matches": int(total_matches),
         "total_bots": total_bots,
         "active_bots": active_bots,
         "top_players": [{"username": u.username, "elo": u.elo, "wins": u.wins} for u in top],
+        # Ortam kırılımı — mevcut alanların YANINA eklendi, hiçbiri değişmedi.
+        "platforms": {
+            "visitors": visitors,
+            "signups": signups,
+            "verifications": verifications,
+        },
         "live": {
             "online": pc["online"],
             "in_match_users": pc["in_match"],
@@ -494,12 +535,21 @@ def _admin_user_row(u: User) -> dict:
         "ad_free": bool(u.ad_free),
         "ad_free_since": u.ad_free_since.isoformat() if u.ad_free_since else None,
         "ad_free_source": u.ad_free_source,
+        # Hesap durumu — listede rozetle gösterilir, süzgeçte kullanılır.
+        "disabled": bool(getattr(u, "disabled", False)),
+        "disabled_reason": getattr(u, "disabled_reason", None),
+        "shadow_banned": bool(getattr(u, "shadow_banned", False)),
+        "deleted": bool(getattr(u, "deleted", False)),
+        "verified": bool(getattr(u, "verified", False)),
+        # Cihaz simgesi: app | mobile | desktop (bilinmiyorsa None).
+        "platform": getattr(u, "last_platform", None) or getattr(u, "signup_platform", None),
     }
 
 
 @router.get("/users")
 async def list_users(
     q: str = Query("", max_length=64),
+    status: str = Query("", max_length=16),
     limit: int = Query(USER_PAGE_SIZE_DEFAULT, ge=1, le=USER_PAGE_SIZE_MAX),
     offset: int = Query(0, ge=0),
     admin: User = Depends(get_admin_user),
@@ -519,6 +569,7 @@ async def list_users(
 
     stmt = select(User)
     count_stmt = select(func.count(User.id))
+    filtered = False
     if term:
         like = f"%{term.lower()}%"
         cond = (
@@ -527,8 +578,39 @@ async def list_users(
         )
         stmt = stmt.where(cond)
         count_stmt = count_stmt.where(cond)
+        filtered = True
 
-    matched = (await db.execute(count_stmt)).scalar_one() if term else total
+    # Durum süzgeci: active | disabled | banned | deleted (varsayılan: hepsi).
+    status_conds = {
+        "active": (User.disabled.isnot(True), User.deleted.isnot(True),
+                   User.shadow_banned.isnot(True)),
+        "disabled": (User.disabled.is_(True), User.deleted.isnot(True)),
+        "banned": (User.shadow_banned.is_(True),),
+        "deleted": (User.deleted.is_(True),),
+    }
+    if status in status_conds:
+        for c in status_conds[status]:
+            stmt = stmt.where(c)
+            count_stmt = count_stmt.where(c)
+        filtered = True
+
+    matched = (await db.execute(count_stmt)).scalar_one() if filtered else total
+
+    # Sekmedeki süzgeç düğmelerinin yanındaki sayılar.
+    async def _count(*conds):
+        qq = select(func.count(User.id))
+        for c in conds:
+            qq = qq.where(c)
+        return int((await db.execute(qq)).scalar_one() or 0)
+
+    counts = {
+        "all": total,
+        "active": await _count(User.disabled.isnot(True), User.deleted.isnot(True),
+                               User.shadow_banned.isnot(True)),
+        "disabled": await _count(User.disabled.is_(True), User.deleted.isnot(True)),
+        "banned": await _count(User.shadow_banned.is_(True)),
+        "deleted": await _count(User.deleted.is_(True)),
+    }
 
     rows = (
         await db.execute(stmt.order_by(User.id.desc()).limit(limit).offset(offset))
@@ -538,10 +620,59 @@ async def list_users(
         "users": [_admin_user_row(u) for u in rows],
         "total_users": total,
         "matched": matched,
+        "counts": counts,
+        "status": status,
         "query": term,
         "limit": limit,
         "offset": offset,
     }
+
+
+class UserStatusIn(BaseModel):
+    """Admin üye durumu. Verilmeyen alana DOKUNULMAZ."""
+    # Pasife alma: kullanıcı giriş yapamaz, nedenini görür. GERİ ALINABİLİR.
+    # Maç geçmişi, sıralamalar ve arkadaşlıklar OLDUĞU GİBİ kalır.
+    disabled: bool | None = None
+    # Gölge ban: kullanıcı hiçbir şey fark etmez, ama listelerde görünmez ve
+    # gerçek oyuncularla eşleşmez (yalnız botla oynar).
+    shadow_banned: bool | None = None
+    reason: str = ""
+
+
+@router.put("/users/{user_id}/status")
+async def set_user_status(
+    user_id: int,
+    data: UserStatusIn,
+    admin: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Üyeyi pasife alır / geri alır / gölge banlar. SİLMEZ.
+
+    Gerçek silme YOKTUR: kullanıcı satırı silinirse rakiplerin maç geçmişi,
+    lig kayıtları ve arkadaşlıkları da bozulur. Kullanıcının kendi silme hakkı
+    ayrıdır ve o da anonimleştirir (app/services/account_delete.py).
+    """
+    user = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
+    if user.is_admin:
+        raise HTTPException(status_code=400, detail="Yönetici hesabına bu işlem uygulanamaz.")
+    if user.deleted:
+        raise HTTPException(status_code=400, detail="Silinmiş hesap üzerinde işlem yapılamaz.")
+
+    if data.disabled is not None:
+        user.disabled = bool(data.disabled)
+        if data.disabled:
+            user.disabled_reason = (data.reason or "Yönetici kararı")[:160]
+            user.disabled_at = datetime.now(timezone.utc)
+        else:
+            user.disabled_reason = None
+            user.disabled_at = None
+    if data.shadow_banned is not None:
+        user.shadow_banned = bool(data.shadow_banned)
+
+    await db.commit()
+    return {"ok": True, "user": _admin_user_row(user)}
 
 
 class AdFreeIn(BaseModel):

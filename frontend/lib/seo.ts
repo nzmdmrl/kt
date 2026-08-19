@@ -81,6 +81,12 @@ const FALLBACK: Record<string, { title: string; description: string; path: strin
     path: "/giris",
     indexable: true,
   },
+  account_delete: {
+    title: "Hesap Silme",
+    description: "Kelime Tahmin hesabını kalıcı olarak nasıl silersin; hangi veriler silinir, hangileri kalır.",
+    path: "/hesap-silme",
+    indexable: true,
+  },
   verify: {
     title: "Profili Doğrula ve Kaydet",
     description: "E-posta ve şifre ekleyerek hesabını kalıcı hâle getir; başka bir cihazda da aynı ilerlemeyle oyna.",
