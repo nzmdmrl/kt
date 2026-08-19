@@ -749,7 +749,7 @@ export default function NativeBootstrap() {
 
     void setupStatusBar(platform);
     void setupPush(platform, go, () => syncRef.current(), pushTokenRef);
-    void setupAppLifecycle();
+    void setupAppLifecycle(go);
     // Soğuk açılış: bildirime tıklanarak gelinmiş olabilir, rozet baştan sönsün.
     void clearDeliveredNotifications("açılış");
     // AdMob BURADA kurulmaz: reklamsız hak netleşmeden reklam açılmasın diye
@@ -1394,9 +1394,36 @@ async function clearDeliveredNotifications(reason: string) {
 
 // ------------------------------------------------------------ UYGULAMA YAŞAM DÖNGÜSÜ
 
-async function setupAppLifecycle() {
+async function setupAppLifecycle(go: (route: unknown) => void) {
   try {
     const { App } = await import("@capacitor/app");
+
+    // --- App Links: dışarıdan gelen kelimetahmin.com linki -----------------
+    // WhatsApp'tan gelen https://www.kelimetahmin.com/oda/ABC linkine
+    // dokunulunca Android uygulamayı açar ve TAM ADRESİ verir. `go` bunu
+    // normalizeRoute ile uygulama içi yola çevirir; BAŞKA alan adı gelirse
+    // yok sayar. Sayfa yeniden yüklenmez, içeride yönlendirilir.
+    //
+    // İki durumda da tetiklenir: uygulama KAPALIYKEN (soğuk açılış) ve
+    // AÇIKKEN (launchMode=singleTask -> onNewIntent). Soğuk açılışta router
+    // henüz hazır olmayabilir; `go` kendi kuyruğuyla bunu çözüyor
+    // (bkz. pendingRouteRef).
+    await App.addListener("appUrlOpen", (event) => {
+      log("dışarıdan link:", event?.url);
+      go(event?.url);
+    });
+
+    // Olay bazen dinleyici bağlanmadan ÖNCE gelir (çok hızlı soğuk açılış);
+    // uygulamanın hangi adresle açıldığı ayrıca sorulur.
+    try {
+      const launch = await App.getLaunchUrl();
+      if (launch?.url) {
+        log("açılış linki:", launch.url);
+        go(launch.url);
+      }
+    } catch {
+      // getLaunchUrl her platformda yok — sorun değil, dinleyici yeterli.
+    }
 
     await App.addListener("backButton", ({ canGoBack }) => {
       try {

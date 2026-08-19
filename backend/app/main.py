@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
 from app.core.database import init_models
-from app.api.routes import health, words, room, match, auth, matchmaking, league, profile, daily, admin, sounds, notifications, home, account, presence, challenge, solo, arena, friends, music, seo, app_settings, notification_prefs, announcements, devices, pages, share_texts, home_buttons, moderation, support, quick_auth, stats
+from app.api.routes import health, words, room, match, auth, matchmaking, league, profile, daily, admin, sounds, notifications, home, account, presence, challenge, solo, arena, friends, music, seo, app_settings, notification_prefs, announcements, devices, pages, share_texts, home_buttons, moderation, support, quick_auth, stats, app_links
 
 settings = get_settings()
 
@@ -79,6 +79,7 @@ app.include_router(pages.router, prefix="/api")  # duzenlenebilir sayfa icerikle
 app.include_router(support.router, prefix="/api")  # destek biletleri (iletisim formu -> bilet)
 app.include_router(quick_auth.router, prefix="/api")  # admin: Isim Kontrol + Hizli Giris ayarlari
 app.include_router(stats.router, prefix="/api")  # ziyaret sayaci (admin ozet istatistikleri)
+app.include_router(app_links.router, prefix="/api")  # /.well-known/assetlinks.json kaynagi
 
 
 @app.on_event("startup")

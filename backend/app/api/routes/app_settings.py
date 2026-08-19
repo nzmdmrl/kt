@@ -158,6 +158,22 @@ DEFAULT_APP_SETTINGS: dict[str, tuple[dict, bool]] = {
         },
         True,
     ),
+    # Android App Links — dışarıdan gelen kelimetahmin.com linklerinin
+    # TARAYICI yerine UYGULAMADA açılması için gereken doğrulama bilgisi.
+    # /.well-known/assetlinks.json bu satırdan üretilir
+    # (app/api/routes/app_links.py). Parmak izi Play Console'dan alınır ve
+    # panele yapıştırılır — deploy gerekmez.
+    #   package : uygulama paket adı
+    #   sha256  : Play uygulama imzalama sertifikasının SHA-256'sı.
+    #             LİSTEDİR: Play sertifikası + (istenirse) yükleme sertifikası
+    #             ve yerel debug anahtarı birlikte yazılabilir.
+    "app.applinks": (
+        {
+            "package": "com.kelimetahmin.app",
+            "sha256": [],
+        },
+        False,
+    ),
     "app.stores": (
         {
             "badges_enabled": False,
@@ -224,6 +240,7 @@ SETTING_LABELS: dict[str, str] = {
     "app.stores": "Uygulama mağaza rozetleri",
     "app.flags": "Davranış ayarları",
     "app.mic": "🎤 Mikrofon (sesli tahmin)",
+    "app.applinks": "🔗 App Links (linkler uygulamada açılsın)",
 }
 
 
@@ -307,7 +324,11 @@ async def _all_rows(db: AsyncSession) -> list[dict]:
             "key": r[0],
             "value": _as_dict(r[1]),
             "is_public": bool(r[2]),
-            "updated_at": r[3].isoformat() if r[3] is not None else None,
+            # PostgreSQL datetime, SQLite (test) düz metin döner — ikisini de karşıla.
+            "updated_at": (
+                r[3].isoformat() if hasattr(r[3], "isoformat")
+                else (str(r[3]) if r[3] is not None else None)
+            ),
         }
         for r in res.fetchall()
     ]

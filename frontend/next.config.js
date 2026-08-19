@@ -9,7 +9,17 @@ const nextConfig = {
   async rewrites() {
     const api = (process.env.NEXT_PUBLIC_API_BASE || "").replace(/\/$/, "");
     if (!api) return [];
-    return [{ source: "/favicon.ico", destination: `${api}/api/seo/favicon.ico` }];
+    return [
+      { source: "/favicon.ico", destination: `${api}/api/seo/favicon.ico` },
+      // Android App Links doğrulama dosyası. Parmak izi admin panelinden
+      // yönetilsin diye statik dosya değil, backend üretir.
+      // DİKKAT: Android bu adresi çekerken YÖNLENDİRME İZLEMEZ — dosya
+      // intent-filter'daki HER alan adında doğrudan 200 dönmelidir.
+      {
+        source: "/.well-known/assetlinks.json",
+        destination: `${api}/api/app-links/assetlinks.json`,
+      },
+    ];
   },
 };
 module.exports = nextConfig;

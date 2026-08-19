@@ -44,6 +44,68 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!--
+                ANDROID APP LINKS — disaridan gelen kelimetahmin.com linkleri
+                TARAYICI yerine UYGULAMADA acilir.
+
+                android:autoVerify="true": Android, kurulumdan sonra
+                https://<host>/.well-known/assetlinks.json dosyasini indirir ve
+                icindeki paket adi + SHA-256 parmak izi bu uygulamayla tutuyorsa
+                linkleri sessizce uygulamaya baglar (kullaniciya "hangisiyle
+                acilsin" diye sorulmaz).
+
+                NEDEN SADECE www: dogrulama sirasinda Android yonlendirme
+                IZLEMEZ. Apex (kelimetahmin.com) her istegi www'ye 301 atiyor,
+                dolayisiyla orada assetlinks.json dogrudan 200 DONEMEZ ve o host
+                asla dogrulanamaz. Apex'i beyan etmek dogrulanmamis bir host
+                birakirdi; yazmiyoruz.
+                Pratikte kayip yok: uygulamanin ve sitenin urettigi TUM paylasim
+                linkleri window.location.origin'den gelir, o da www'dur
+                (frontend/lib/shareText.ts, RoomInvite, arena daveti).
+                Elle "kelimetahmin.com/..." yazan biri tarayicida acar.
+
+                YOL LISTESI — hepsi degil, SECILI yollar. Disarida birakilanlar
+                bilerek tarayicida acilir:
+                  /hesap-silme  -> Google Play politikasi bu adresin uygulama
+                                   OLMADAN da acilabilmesini istiyor,
+                  /gizlilik /kosullar /cerez /iletisim /hakkimizda
+                  /nasil-oynanir -> yasal ve tanitim sayfalari,
+                  /yonetim      -> yonetim paneli (masaustu icin),
+                  /giris        -> paylasilan bir adres degil.
+                Yeni bir yol eklemek gerekirse buraya bir <data> satiri yazmak
+                ve yeni AAB yayinlamak yeterli (assetlinks.json degismez).
+            -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="https" android:host="www.kelimetahmin.com" />
+
+                <!-- Ana sayfa (yalniz tam eslesme; pathPrefix "/" her seyi kapardi) -->
+                <data android:path="/" />
+
+                <!-- Oyun ve davet baglantilari -->
+                <data android:pathPrefix="/oda" />
+                <data android:pathPrefix="/oyna" />
+                <data android:pathPrefix="/arena" />
+                <data android:pathPrefix="/solo" />
+                <data android:pathPrefix="/gunun-kelimesi" />
+
+                <!-- Sosyal ve kisisel sayfalar -->
+                <data android:pathPrefix="/profil" />
+                <data android:pathPrefix="/lig" />
+                <data android:pathPrefix="/arkadaslar" />
+                <data android:pathPrefix="/uye-ara" />
+                <data android:pathPrefix="/bildirimler" />
+                <data android:pathPrefix="/gecmis" />
+                <data android:pathPrefix="/duyurular" />
+
+                <!-- Hesap akislari -->
+                <data android:pathPrefix="/dogrula" />
+                <data android:pathPrefix="/destek" />
+            </intent-filter>
+
         </activity>
 
         <provider

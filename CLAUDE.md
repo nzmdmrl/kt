@@ -512,6 +512,37 @@ Aynı kod hem sitede hem uygulamada çalışır (uygulama web içeriğini canlı
 - Testler: `backend/tests/rezerve_adlar_senaryo.py` (90 senaryo, SQLite +
   PostgreSQL), tarayıcı paketi 62 senaryoya çıktı.
 
+### App Links (dışarıdan gelen linkler uygulamada açılır) — TAMAM
+- **Doğrulama dosyası**: `/.well-known/assetlinks.json`. Statik DEĞİL —
+  `frontend/next.config.js` rewrite'ı backend'e yönlendirir
+  (`app/api/routes/app_links.py`), o da `app_settings` → **`app.applinks`**
+  satırından üretir. Parmak izi admin panelinden (📱 Mobil & Reklam →
+  🔗 App Links) girilir, **deploy gerekmez**. Birden fazla SHA-256 yazılabilir
+  (Play imzalama + yükleme anahtarı). Değer normalleştirilir: küçük harf,
+  boşluk ve iki noktasız 64 hane de kabul edilir.
+- **Manifest**: `android:autoVerify="true"` intent-filter, host **yalnız
+  `www.kelimetahmin.com`**.
+  NEDEN apex YOK: Android doğrulamada YÖNLENDİRME İZLEMEZ; apex her isteği
+  www'ye 301 attığı için orada dosya doğrudan 200 dönemez ve host asla
+  doğrulanamaz. Pratikte kayıp yok — uygulamanın/sitenin ürettiği tüm paylaşım
+  linkleri `window.location.origin`'den gelir, o da www'dur.
+  (Apex'i Traefik'ten servis etmek denendi: `frontend` DNS adı iki Coolify
+  uygulaması arasında çakışıyor, deploy'a dayanıklı değil.)
+- **Yakalanan yollar** (14 önek + ana sayfa): `/`, `/oda`, `/oyna`, `/arena`,
+  `/solo`, `/gunun-kelimesi`, `/profil`, `/lig`, `/arkadaslar`, `/uye-ara`,
+  `/bildirimler`, `/gecmis`, `/duyurular`, `/dogrula`, `/destek`.
+  **Bilerek dışarıda**: `/hesap-silme` (Play politikası tarayıcıdan erişim
+  ister), yasal/tanıtım sayfaları, `/yonetim`, `/giris`.
+- **Derin link yakalama**: `NativeBootstrap` → `App.addListener("appUrlOpen")`
+  + `App.getLaunchUrl()`. Gelen adres mevcut `go()` / `normalizeRoute()`
+  yolundan geçer (push bildirimi tıklamasıyla AYNI mekanizma; soğuk açılışta
+  router hazır olana kadar kuyrukta bekler). Sayfa yeniden yüklenmez.
+- Yan düzeltme: `app_settings._all_rows` SQLite'ta `updated_at` metin dönerken
+  patlıyordu (canlıda Postgres olduğu için görünmüyordu) — iki motora da dayanıklı.
+- Testler: `backend/tests/app_links_senaryo.py` (35, SQLite + PostgreSQL) ve
+  `frontend/tests/app_links_yollar.mjs` (31 — manifest ile siteyi karşılaştırır).
+- versionCode'a DOKUNULMADI (Nazım Mac'te 11 yapacak).
+
 **Aşama 5 (mobil temizlik) — TAMAM. Hızlı Giriş projesi bitti.**
 İki adımda yapıldı (önce JS, doğrulandı; sonra native, doğrulandı).
 

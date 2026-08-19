@@ -3167,6 +3167,28 @@ type MobileField = {
 };
 
 const MOBILE_FIELDS: Record<string, MobileField[]> = {
+  // 🔗 App Links — dışarıdan gelen linklerin uygulamada açılması.
+  // Parmak izi Play Console > Test ve yayınlama > Uygulama bütünlüğü >
+  // Uygulama imzalama > "Uygulama imzalama anahtarı sertifikası" altındaki
+  // SHA-256 değeridir. Buraya yapıştırılınca /.well-known/assetlinks.json
+  // ANINDA güncellenir; deploy gerekmez.
+  "app.applinks": [
+    {
+      path: "package",
+      label: "Uygulama paket adı",
+      hint: "com.kelimetahmin.app — Play Console'daki paket adıyla birebir aynı olmalı",
+    },
+    {
+      path: "sha256",
+      label: "SHA-256 sertifika parmak izleri (her satıra bir tane)",
+      type: "lines",
+      hint: "Play Console → Test ve yayınlama → Uygulama bütünlüğü → Uygulama imzalama. "
+        + "“Uygulama imzalama anahtarı sertifikası” altındaki SHA-256'yı kopyala. "
+        + "İstersen ikinci satıra “Yükleme anahtarı sertifikası” SHA-256'sını da ekle "
+        + "(kendi imzaladığın APK'yı test ederken gerekir). Büyük/küçük harf ve "
+        + "iki nokta önemli değil, sunucu düzeltir.",
+    },
+  ],
   "ads.adsense": [
     { path: "enabled", label: "AdSense reklamları açık", type: "bool" },
     { path: "client", label: "Yayıncı kimliği", hint: "ca-pub-0000000000000000" },

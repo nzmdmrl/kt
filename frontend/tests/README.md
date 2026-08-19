@@ -51,6 +51,12 @@ docker run --rm --network host -v "$PWD/tests":/w -w /w \
   admin panelinde üye pasife alma/geri alma, cihaz simgeleri, durum süzgeçleri
   ve "Bugün — Ortama Göre" tablosu.
   ÖN KOŞUL: `isim_kontrol_paneli.mjs` ile aynı kurulum (admin hesabı + işaretli isim).
+- `app_links_yollar.mjs` — App Links kurulumu: `/.well-known/assetlinks.json`
+  sitede yönlendirmesiz ve `application/json` olarak servis ediliyor mu,
+  AndroidManifest'te beyan edilen HER yol öneki gerçekten çalışan bir sayfaya
+  denk geliyor mu, dışarıda bırakılması gereken yollar (hesap-silme, yasal
+  sayfalar, yönetim) gerçekten dışarıda mı. Manifest'i doğrudan okur:
+  `MANIFEST=<yol> BASE=<adres> node app_links_yollar.mjs`.
 - `mobil_google_yok.mjs` — Aşama 5 kanıtı: uygulama kullanıcı ajanıyla (KelimeApp/)
   açılan sayfada Google KİMLİK trafiği olmadığını, Google/Play Games düğmesinin
   çizilmediğini ve indirilen JS paketlerinde capgo/PlayGames izi kalmadığını
