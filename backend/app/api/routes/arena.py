@@ -568,7 +568,7 @@ async def arena_ws(
 
     if user:
         pid = f"u{user.id}"
-        name = user.username or user.display_name or "Oyuncu"
+        name = user.display_name or user.username or "Oyuncu"
         avatar = user.public_avatar or ""
     else:
         # Misafir katılımı (admin ayarıyla açılır). Ödül/XP/kupa verilmez —
