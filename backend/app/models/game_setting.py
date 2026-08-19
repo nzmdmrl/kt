@@ -48,6 +48,15 @@ DEFAULT_SETTINGS = {
     "solo_star2_min": {"value": "30", "label": "Maraton 2 yıldız için min kalan süre (sn)", "type": "int", "group": "Maraton"},
     "solo_jokers_enabled": {"value": "0", "label": "Maraton joker sistemi açık (1/0)", "type": "bool", "group": "Jokerler"},
     "solo_joker_per_level": {"value": "1", "label": "Maraton bölüm başına joker hakkı", "type": "int", "group": "Jokerler"},
+    # --- Günün Kelimesi günlük bildirimi (admin → 📣 Günün Bildirimi) ---
+    # VARSAYILAN KAPALI: metinler gözden geçirilip panelden açılana kadar
+    # tek bildirim bile gitmez.
+    "daily_word_push_enabled": {"value": "0", "label": "Günün Kelimesi bildirimi açık", "type": "bool", "group": "Günün Bildirimi"},
+    "daily_word_push_hour": {"value": "10", "label": "Gönderim saati (Türkiye saati, 0-23)", "type": "int", "group": "Günün Bildirimi"},
+    "daily_word_push_active_days": {"value": "30", "label": "Son kaç gün içinde aktif olanlara", "type": "int", "group": "Günün Bildirimi"},
+    "daily_word_push_title": {"value": "Günün Kelimesi", "label": "Bildirim başlığı", "type": "str", "group": "Günün Bildirimi"},
+    "daily_word_push_length": {"value": "5", "label": "İpucu hangi uzunluktaki kelimeden (4-6)", "type": "int", "group": "Günün Bildirimi"},
+    "daily_word_push_box": {"value": "⬜", "label": "Gizli harf kutusu (emoji)", "type": "str", "group": "Günün Bildirimi"},
     "arena_seconds_4": {"value": "10", "label": "Arena 4 harfli süre (sn)", "type": "int", "group": "Arena"},
     "arena_seconds_5": {"value": "15", "label": "Arena 5 harfli süre (sn)", "type": "int", "group": "Arena"},
     "arena_seconds_6": {"value": "20", "label": "Arena 6 harfli süre (sn)", "type": "int", "group": "Arena"},

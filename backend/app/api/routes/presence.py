@@ -7,6 +7,8 @@ Online durumu uçları.
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
+
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -34,8 +36,21 @@ async def heartbeat(
     try:
         from app.core.platform import platform_from_request
         p = platform_from_request(request)
+        dirty = False
         if user.last_platform != p:
             user.last_platform = p
+            dirty = True
+        # "Son aktif" damgası — günlük Günün Kelimesi bildirimi kime gideceğini
+        # buradan bilir. SAATTE BİR yazılır: heartbeat 30 sn'de bir geliyor,
+        # her seferinde UPDATE atmanın anlamı yok.
+        now = datetime.now(timezone.utc)
+        last = user.last_active_at
+        if last is not None and last.tzinfo is None:
+            last = last.replace(tzinfo=timezone.utc)
+        if last is None or (now - last) > timedelta(hours=1):
+            user.last_active_at = now
+            dirty = True
+        if dirty:
             await db.commit()
     except Exception:
         pass

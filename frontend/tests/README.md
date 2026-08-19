@@ -57,6 +57,13 @@ docker run --rm --network host -v "$PWD/tests":/w -w /w \
   denk geliyor mu, dışarıda bırakılması gereken yollar (hesap-silme, yasal
   sayfalar, yönetim) gerçekten dışarıda mı. Manifest'i doğrudan okur:
   `MANIFEST=<yol> BASE=<adres> node app_links_yollar.mjs`.
+- `alt_menu_ve_gunluk_bildirim.mjs` — alt menü panelinin 10px aşağı inmesi
+  (öğeler yerinde, yuvarlak Ana düğmesi panelden taşıyor) ve admin
+  📣 Günün Bildirimi sekmesi: metin listesi, kutulu önizleme, aç/kapa
+  anahtarının sunucuya yazılması, yeni metin ekleme. Testin sonunda kendi
+  değişikliklerini geri alır (tekrar tekrar çalıştırılabilir).
+  ÖN KOŞUL: `ADMIN_TOKEN=<yönetici jetonu> node alt_menu_ve_gunluk_bildirim.mjs`
+  (hesabı açıp test veritabanında `is_admin=1` yapmak çağırana ait).
 - `maraton_joker_arayuz.mjs` — Maraton joker düğmesi (★ Harf Aç): hakkın
   gösterilmesi, tıklayınca ızgarada bir harfin açılması, hak bitince düğmenin
   pasifleşmesi; ayrıca alt menüde ana dışındaki 4 öğenin 7px yukarı alınması.

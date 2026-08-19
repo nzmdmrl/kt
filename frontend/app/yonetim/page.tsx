@@ -29,6 +29,7 @@ const TABS = [
   { key: "reserved", label: "🔒 Rezerve Adlar" },
   { key: "homebtn", label: "🏠 Ana Sayfa" },
   { key: "sharepm", label: "💬 Sonuç PM" },
+  { key: "dailypush", label: "📣 Günün Bildirimi" },
   { key: "seo", label: "🔍 SEO" },
   { key: "mobile", label: "📱 Mobil & Reklam" },
   { key: "notiftypes", label: "🔔 Bildirim Türleri" },
@@ -119,6 +120,7 @@ export default function AdminPage() {
       {tab === "reserved" && <ReservedNames />}
       {tab === "homebtn" && <HomeButtons />}
       {tab === "sharepm" && <SharePM />}
+      {tab === "dailypush" && <DailyPush />}
       {tab === "seo" && <Seo />}
       {tab === "mobile" && <Mobile />}
       {tab === "notiftypes" && <NotificationTypes />}
@@ -1762,6 +1764,251 @@ function UserEditModal({
             background: "var(--accent)", color: "#1a1330", fontWeight: 800, fontSize: 13.5,
             opacity: busy || pwMismatch ? 0.6 : 1,
           }}>{busy ? "Kaydediliyor…" : "Kaydet"}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// 📣 Günün Bildirimi — her gün saat X'te (Türkiye) aktif kullanıcılara push.
+//
+// Metinler listeden RASTGELE seçilir. {kelime} yer tutucusu bugünün kelimesinin
+// ilk + son harfini, aradakileri kutu olarak gösterir: "K⬜⬜⬜M".
+// ============================================================================
+function DailyPush() {
+  const [d, setD] = useState<any>(null);
+  const [msg, setMsg] = useState("");
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [yeni, setYeni] = useState("");
+  const [taslak, setTaslak] = useState<Record<number, string>>({});
+
+  function load() {
+    fetch(apiUrl("/api/admin/daily-push"), { headers: authHeaders() })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((x) => { if (x) setD(x); })
+      .catch(() => setErr("Yüklenemedi."));
+  }
+  useEffect(() => { load(); }, []);
+
+  async function setSetting(key: string, value: string) {
+    setBusy(true); setErr("");
+    try {
+      const r = await fetch(apiUrl("/api/admin/daily-push"), {
+        method: "PUT", headers: authHeaders(), body: JSON.stringify({ key, value }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) { setErr(j.detail || "Kaydedilemedi."); return; }
+      setD(j);
+      setMsg("Kaydedildi.");
+      setTimeout(() => setMsg(""), 2000);
+    } catch { setErr("Bağlantı hatası."); }
+    finally { setBusy(false); }
+  }
+
+  async function addMessage() {
+    const t = yeni.trim();
+    if (!t) return;
+    setBusy(true); setErr("");
+    try {
+      const r = await fetch(apiUrl("/api/admin/daily-push/messages"), {
+        method: "POST", headers: authHeaders(), body: JSON.stringify({ text: t }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) { setErr(j.detail || "Eklenemedi."); return; }
+      setYeni(""); load();
+    } catch { setErr("Bağlantı hatası."); }
+    finally { setBusy(false); }
+  }
+
+  async function updateMessage(id: number, body: { text?: string; active?: boolean }) {
+    setBusy(true); setErr("");
+    try {
+      const r = await fetch(apiUrl(`/api/admin/daily-push/messages/${id}`), {
+        method: "PUT", headers: authHeaders(), body: JSON.stringify(body),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) { setErr(j.detail || "Kaydedilemedi."); return; }
+      setTaslak((t) => { const n = { ...t }; delete n[id]; return n; });
+      load();
+    } catch { setErr("Bağlantı hatası."); }
+    finally { setBusy(false); }
+  }
+
+  async function removeMessage(id: number) {
+    if (!confirm("Bu metin silinsin mi?")) return;
+    setBusy(true);
+    try {
+      await fetch(apiUrl(`/api/admin/daily-push/messages/${id}`), {
+        method: "DELETE", headers: authHeaders(),
+      });
+      load();
+    } finally { setBusy(false); }
+  }
+
+  async function sendTest() {
+    setBusy(true); setErr("");
+    try {
+      const r = await fetch(apiUrl("/api/admin/daily-push/test"), {
+        method: "POST", headers: authHeaders(),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) { setErr(j.detail || "Gönderilemedi."); return; }
+      setMsg(j.sent ? "Deneme bildirimi sana gönderildi." :
+        "Gönderilemedi — push izni/cihaz kaydı yok ya da sessiz saatlerdesin.");
+      setTimeout(() => setMsg(""), 5000);
+    } catch { setErr("Bağlantı hatası."); }
+    finally { setBusy(false); }
+  }
+
+  if (!d) return <p style={{ color: "var(--text-dim)" }}>Yükleniyor…</p>;
+
+  const box: React.CSSProperties = {
+    background: "var(--bg-panel)", borderRadius: 12, padding: 14, display: "grid", gap: 10,
+  };
+  const input: React.CSSProperties = {
+    padding: "10px 12px", borderRadius: 9, border: "1px solid var(--tile-border)",
+    background: "var(--bg-elevated)", color: "var(--text-strong)", fontSize: 14, width: "100%",
+  };
+
+  return (
+    <div style={{ display: "grid", gap: 14 }}>
+      <div style={{ ...box, fontSize: 13, color: "var(--text-dim)", lineHeight: 1.7 }}>
+        Her gün <b>Türkiye saatiyle {d.hour}:00</b>'da, son <b>{d.active_days} gün</b> içinde
+        uygulamaya girmiş üyelere Günün Kelimesi hatırlatması gider.<br />
+        • Metin listeden <b>rastgele</b> seçilir ve <b>kişiye göre</b> değişir.<br />
+        • <span className="brand-mono">{"{kelime}"}</span> = bugünün kelimesinin ilk ve son harfi,
+        arası kutu (<span className="brand-mono">{d.hint || "K⬜⬜⬜M"}</span>).
+        Diğer yer tutucular: <span className="brand-mono">{"{ilk}"}</span>,{" "}
+        <span className="brand-mono">{"{son}"}</span>, <span className="brand-mono">{"{uzunluk}"}</span>.<br />
+        • Bildirim yalnız <b>telefona</b> gider; bildirim listesini şişirmemek için uygulama içi
+        satır yazılmaz.<br />
+        • Kullanıcı isterse kendi bildirim ayarlarından bu türü kapatabilir.<br />
+        • Sessiz saatlerdeki (varsayılan 00:00–08:00) kişilere gönderilmez.
+      </div>
+
+      {err && <p style={{ color: "var(--accent-hot)", fontSize: 13, margin: 0 }}>{err}</p>}
+      {msg && <p style={{ color: "var(--tile-correct)", fontSize: 13, margin: 0 }}>{msg}</p>}
+
+      <div style={box}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+          <div>
+            <div style={{ fontWeight: 700, color: "var(--text-strong)", fontSize: 15 }}>
+              Günlük bildirim {d.enabled ? "açık" : "kapalı"}
+            </div>
+            <div style={{ fontSize: 12.5, color: "var(--text-dim)" }}>
+              Bugün gönderim: {d.last_sent ? d.last_sent : "yapılmadı"} · Alıcı sayısı: {d.recipients}
+            </div>
+          </div>
+          <button
+            onClick={() => setSetting("daily_word_push_enabled", d.enabled ? "0" : "1")}
+            disabled={busy}
+            style={{
+              width: 56, height: 30, borderRadius: 15, border: "none", position: "relative",
+              background: d.enabled ? "var(--accent)" : "var(--bg-elevated)",
+              cursor: busy ? "default" : "pointer", flexShrink: 0,
+            }}
+          >
+            <span style={{
+              position: "absolute", top: 3, left: d.enabled ? 29 : 3,
+              width: 24, height: 24, borderRadius: "50%", background: "#fff", transition: "left .2s",
+            }} />
+          </button>
+        </div>
+
+        <div style={{ display: "grid", gap: 10, gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))" }}>
+          <label style={{ fontSize: 12.5, color: "var(--text-dim)" }}>
+            Saat (0-23)
+            <input type="number" min={0} max={23} defaultValue={d.hour} style={input}
+              onBlur={(e) => e.target.value !== String(d.hour) && setSetting("daily_word_push_hour", e.target.value)} />
+          </label>
+          <label style={{ fontSize: 12.5, color: "var(--text-dim)" }}>
+            Son kaç gün aktif
+            <input type="number" min={1} max={365} defaultValue={d.active_days} style={input}
+              onBlur={(e) => e.target.value !== String(d.active_days) && setSetting("daily_word_push_active_days", e.target.value)} />
+          </label>
+          <label style={{ fontSize: 12.5, color: "var(--text-dim)" }}>
+            Kelime uzunluğu (4-6)
+            <input type="number" min={4} max={6} defaultValue={d.length} style={input}
+              onBlur={(e) => e.target.value !== String(d.length) && setSetting("daily_word_push_length", e.target.value)} />
+          </label>
+          <label style={{ fontSize: 12.5, color: "var(--text-dim)" }}>
+            Kutu simgesi
+            <input defaultValue={d.box} maxLength={4} style={input}
+              onBlur={(e) => e.target.value !== d.box && setSetting("daily_word_push_box", e.target.value)} />
+          </label>
+          <label style={{ fontSize: 12.5, color: "var(--text-dim)", gridColumn: "1 / -1" }}>
+            Bildirim başlığı
+            <input defaultValue={d.title} maxLength={120} style={input}
+              onBlur={(e) => e.target.value !== d.title && setSetting("daily_word_push_title", e.target.value)} />
+          </label>
+        </div>
+      </div>
+
+      {/* Önizleme — telefonda nasıl görünecek */}
+      <div style={box}>
+        <div style={{ fontSize: 12.5, color: "var(--text-dim)", fontWeight: 700 }}>Örnek bildirim (bugün)</div>
+        <div style={{
+          background: "var(--bg-elevated)", borderRadius: 12, padding: "12px 14px",
+          border: "1px solid var(--border-soft)",
+        }}>
+          <div style={{ fontWeight: 800, color: "var(--text-strong)", fontSize: 14 }}>{d.title}</div>
+          <div style={{ color: "var(--text-soft)", fontSize: 14, marginTop: 2 }}>{d.preview}</div>
+        </div>
+        <button onClick={sendTest} disabled={busy} style={{
+          justifySelf: "start", padding: "9px 16px", borderRadius: 9, border: "1px solid var(--accent)",
+          background: "transparent", color: "var(--accent)", fontWeight: 700, fontSize: 13.5,
+          cursor: busy ? "default" : "pointer",
+        }}>📲 Bana deneme gönder</button>
+      </div>
+
+      {/* Metinler */}
+      <div style={box}>
+        <div style={{ fontSize: 12.5, color: "var(--text-dim)", fontWeight: 700 }}>
+          Bildirim metinleri ({d.messages.length})
+        </div>
+        {d.messages.map((m: any) => {
+          const value = taslak[m.id] ?? m.text;
+          const changed = value.trim() !== m.text;
+          return (
+            <div key={m.id} style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              <input
+                value={value}
+                onChange={(e) => setTaslak((t) => ({ ...t, [m.id]: e.target.value }))}
+                style={{ ...input, flex: "1 1 260px", opacity: m.active ? 1 : 0.5 }}
+              />
+              {changed && (
+                <button onClick={() => updateMessage(m.id, { text: value })} disabled={busy} style={{
+                  padding: "9px 14px", borderRadius: 9, border: "none", background: "var(--accent)",
+                  color: "#1a1330", fontWeight: 700, fontSize: 13, cursor: "pointer",
+                }}>Kaydet</button>
+              )}
+              <button onClick={() => updateMessage(m.id, { active: !m.active })} disabled={busy} title={m.active ? "Pasifleştir" : "Aktifleştir"} style={{
+                padding: "9px 12px", borderRadius: 9, cursor: "pointer", fontSize: 13, fontWeight: 700,
+                border: `1px solid ${m.active ? "var(--tile-correct)" : "var(--border-soft)"}`,
+                background: "transparent", color: m.active ? "var(--tile-correct)" : "var(--text-dim)",
+              }}>{m.active ? "Aktif" : "Pasif"}</button>
+              <button onClick={() => removeMessage(m.id)} disabled={busy} title="Sil" style={{
+                padding: "9px 12px", borderRadius: 9, border: "1px solid var(--accent-hot)",
+                background: "transparent", color: "var(--accent-hot)", fontSize: 13, cursor: "pointer",
+              }}>✕</button>
+            </div>
+          );
+        })}
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <input
+            value={yeni}
+            onChange={(e) => setYeni(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && addMessage()}
+            placeholder="Yeni metin — ör. Günün Kelimesi {kelime} bulabildin mi?"
+            style={{ ...input, flex: "1 1 260px" }}
+          />
+          <button onClick={addMessage} disabled={busy || !yeni.trim()} style={{
+            padding: "10px 18px", borderRadius: 9, border: "none", background: "var(--accent)",
+            color: "#1a1330", fontWeight: 700, fontSize: 14,
+            cursor: yeni.trim() ? "pointer" : "default", opacity: yeni.trim() ? 1 : 0.5,
+          }}>Ekle</button>
         </div>
       </div>
     </div>

@@ -69,6 +69,11 @@ async def record_visit(
     # Girişli kullanıcının SON kullandığı ortam — admin üye listesindeki simge.
     if user is not None and user.last_platform != platform:
         user.last_platform = platform
+    # Ziyaret sinyali günde bir gelir; "son aktif" damgasını da burada tazelemek
+    # heartbeat'i kaçıran (ör. sayfayı hemen kapatan) kullanıcıyı da kapsar.
+    if user is not None:
+        from datetime import datetime as _dt, timezone as _tz
+        user.last_active_at = _dt.now(_tz.utc)
 
     try:
         await bump_visit(db, platform)

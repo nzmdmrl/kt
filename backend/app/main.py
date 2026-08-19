@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
 from app.core.database import init_models
-from app.api.routes import health, words, room, match, auth, matchmaking, league, profile, daily, admin, sounds, notifications, home, account, presence, challenge, solo, arena, friends, music, seo, app_settings, notification_prefs, announcements, devices, pages, share_texts, home_buttons, moderation, support, quick_auth, stats, app_links
+from app.api.routes import health, words, room, match, auth, matchmaking, league, profile, daily, admin, sounds, notifications, home, account, presence, challenge, solo, arena, friends, music, seo, app_settings, notification_prefs, announcements, devices, pages, share_texts, home_buttons, moderation, support, quick_auth, stats, app_links, daily_push
 
 settings = get_settings()
 
@@ -61,6 +61,7 @@ app.include_router(sounds.router, prefix="/api")
 app.include_router(notifications.router, prefix="/api")
 app.include_router(home.router, prefix="/api")
 app.include_router(share_texts.router, prefix="/api")
+app.include_router(daily_push.router, prefix="/api")
 app.include_router(home_buttons.router, prefix="/api")
 app.include_router(moderation.router, prefix="/api")
 app.include_router(account.router, prefix="/api")
@@ -284,6 +285,22 @@ async def on_startup():
     except Exception as e:
         print(f"[startup] Paylaşım metni seed hatası: {e}")
 
+    # Günün Kelimesi bildirim metinlerini seed et — sadece tablo BOŞSA.
+    # Admin silerse geri gelmez (paylaşım metinleriyle aynı kural).
+    try:
+        from app.core.database import AsyncSessionLocal
+        from app.models.daily_push_message import DailyPushMessage, DEFAULT_DAILY_PUSH_MESSAGES
+        from sqlalchemy import select as _sel
+        async with AsyncSessionLocal() as db:
+            has_any = (await db.execute(_sel(DailyPushMessage.id).limit(1))).scalar_one_or_none()
+            if has_any is None:
+                for i, t in enumerate(DEFAULT_DAILY_PUSH_MESSAGES):
+                    db.add(DailyPushMessage(text=t, sort_order=i, active=True))
+                await db.commit()
+                print(f"[startup] {len(DEFAULT_DAILY_PUSH_MESSAGES)} günün kelimesi bildirim metni seed edildi.")
+    except Exception as e:
+        print(f"[startup] Günün kelimesi bildirim metni seed hatası: {e}")
+
     # İlk kez ise botları seed et (100 Türkçe bot).
     try:
         from app.core.database import AsyncSessionLocal
@@ -361,6 +378,15 @@ async def on_startup():
         _asyncio.create_task(verify_reminder_loop())
     except Exception as e:
         print(f"[startup] Doğrulama hatırlatma görevi atlandı: {e}")
+    # Günün Kelimesi günlük bildirimi (Türkiye saatiyle, varsayılan 10:00).
+    # Ayar kapalıyken döngü hiçbir şey göndermez, sadece bakıp uyur.
+    try:
+        import asyncio as _asyncio
+        from app.services.daily_word_push import daily_word_push_loop
+        _asyncio.create_task(daily_word_push_loop())
+    except Exception as e:
+        print(f"[startup] Günün kelimesi bildirim görevi atlandı: {e}")
+
     # Oyun ayarlarını cache'e yükle (admin panelden değişebilir).
     try:
         from app.core.database import AsyncSessionLocal

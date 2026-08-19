@@ -198,9 +198,12 @@ DEFAULT_TYPES: list[tuple[str, str, str, str, bool, str, str, int, bool]] = [
     ("system_announcement", "system", "Sistem duyuruları",
      "Yeni özellikler, bakım ve önemli duyurular.",
      True, "system", "/duyurular/{slug}", 10, True),
-    ("daily_reminder", "system", "Günlük hatırlatma",
-     "Günün kelimesini henüz çözmediysen günlük hatırlatma.",
-     False, "system", "", 20, False),
+    # Günün Kelimesi günlük bildirimi — app/services/daily_word_push.py üretir.
+    # Varsayılan AÇIK (default_enabled=True): kullanıcı istemezse bildirim
+    # ayarlarından kapatabilir. Türün kendisi de aktif (is_active=True).
+    ("daily_reminder", "system", "Günün Kelimesi hatırlatması",
+     "Her gün günün kelimesi hazır olduğunda kısa bir hatırlatma.",
+     True, "system", "/gunun-kelimesi", 20, True),
 ]
 
 # Teslim modu seçenekleri. Bugün hiçbiri kullanılmıyor (push henüz yok);

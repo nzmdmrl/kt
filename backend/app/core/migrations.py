@@ -531,6 +531,28 @@ DATA_MIGRATIONS: list[tuple[str, list[str]]] = [
         f"AND (deleted IS NULL OR deleted = {_FALSE}) "
         "AND username IS NOT NULL AND username <> ''",
     ]),
+
+    # 19) Günün Kelimesi günlük bildirimi devreye girdi.
+    #
+    #     `daily_reminder` katalog satırı migration 1'de PASİFE alınmıştı:
+    #     o gün bu bildirimi üreten hiçbir kod yoktu, ayar sayfasında görünüp
+    #     kullanıcıya hiç gelmeyen bir vaat duruyordu. Artık üreten servis var
+    #     (app/services/daily_word_push.py) — satır yeniden açılıyor,
+    #     varsayılan olarak herkeste açık geliyor ve rotası yazılıyor.
+    #
+    #     Bildirimin KENDİSİ yine de kapalıdır: gönderim
+    #     `daily_word_push_enabled` ayarına bakar, o da varsayılan 0.
+    #
+    #     Ayrıca last_active_at boş olan mevcut hesaplara kayıt tarihi yazılır;
+    #     yoksa sütun yeni olduğu için ilk günlerde kimse "aktif" sayılmazdı.
+    ("2026_08_daily_word_push", [
+        f"UPDATE notification_types SET is_active = {_TRUE}, default_enabled = {_TRUE}, "
+        "route_template = '/gunun-kelimesi', "
+        "label = 'Günün Kelimesi hatırlatması', "
+        "description = 'Her gün günün kelimesi hazır olduğunda kısa bir hatırlatma.' "
+        "WHERE code = 'daily_reminder'",
+        "UPDATE users SET last_active_at = created_at WHERE last_active_at IS NULL",
+    ]),
 ]
 
 

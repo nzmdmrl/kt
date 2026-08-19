@@ -80,10 +80,14 @@ export default function BottomNav() {
         background: "var(--bg-panel)",
         borderTop: "1px solid var(--border-soft)",
         borderTopLeftRadius: 22, borderTopRightRadius: 22,
+        // ÜST DOLGU YOK (eskiden 10px): panelin üst kenarı 10px aşağı indi.
+        // Öğeler alta hizalı (alignItems: flex-end) olduğu için YERLERİ
+        // DEĞİŞMEDİ — sadece arka plan aşağı indi, ortadaki yuvarlak düğme
+        // daha çok boşta kaldı.
         // Alt boşluk home indicator / gesture bar kadar artar (masaüstünde 0px).
         // Native bant varken bar ekranın dibinde olmadığı için bu pay 0'a düşer
         // (--kt-nav-safe-bottom, globals.css) — sistem çubuğu iki kez sayılmasın.
-        padding: "10px 6px calc(12px + var(--kt-nav-safe-bottom))", maxWidth: 560, margin: "0 auto",
+        padding: "0 6px calc(12px + var(--kt-nav-safe-bottom))", maxWidth: 560, margin: "0 auto",
         boxShadow: "0 -6px 24px rgba(0,0,0,.22)",
       }}>
         {ITEMS.map((item) => {
@@ -100,7 +104,10 @@ export default function BottomNav() {
                   width: 58, height: 58, borderRadius: "50%",
                   background: "linear-gradient(145deg,var(--accent),var(--accent-hot))",
                   display: "grid", placeItems: "center", fontSize: 28,
-                  boxShadow: "0 6px 18px rgba(224,148,10,.45)", border: "4px solid var(--bg-panel)",
+                  boxShadow: "0 6px 18px rgba(224,148,10,.45)",
+                  // Panel renginde halka: yuvarlak düğme bardan ayrık dursun
+                  // (4px'ten 6px'e çıkarıldı — daha çok "boşta" görünüyor).
+                  border: "6px solid var(--bg-panel)",
                 }}>{item.icon}</span>
                 <span style={{ fontSize: 11, color: active ? "var(--accent)" : "var(--text-soft)", fontWeight: 700 }}>{item.label}</span>
               </button>

@@ -129,6 +129,12 @@ class User(Base):
     signup_platform: Mapped[str | None] = mapped_column(String(10), nullable=True)
     last_platform: Mapped[str | None] = mapped_column(String(10), nullable=True)
 
+    # Kullanıcı en son ne zaman uygulamadaydı. Günlük "Günün Kelimesi"
+    # bildirimi bunu kullanır (son N gün içinde aktif olanlara gider).
+    # Saatte bir tazelenir — her heartbeat'te UPDATE atmamak için (bkz.
+    # app/api/routes/presence.py).
+    last_active_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+
     # Hesabın ne zaman ve hangi ortamdan doğrulandığı (özet istatistikleri).
     verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     verified_platform: Mapped[str | None] = mapped_column(String(10), nullable=True)
