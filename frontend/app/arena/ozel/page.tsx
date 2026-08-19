@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/auth";
 import Logo from "@/components/Logo";
 import ShareButtons from "@/components/ShareButtons";
 import LinkCopyBox from "@/components/LinkCopyBox";
-import GuestJoin from "@/components/GuestJoin";
+import AccountRequired from "@/components/AccountRequired";
 import { SITE_URL } from "@/lib/site";
 
 import { FRIEND_LABELS, type Friend, type FriendLabelKey } from "@/lib/friendLabels";
@@ -92,14 +92,13 @@ export default function OzelArenaPage() {
 
   if (loading) return <Wrap><Center>Yükleniyor…</Center></Wrap>;
   if (!user) {
-    // Arena kurmak + arkadaş davet etmek için hesap gerekiyor (katılmak için gerekmiyor).
+    // Arena kurmak + arkadaş davet etmek hesaba bağlı.
     return (
-      <GuestJoin
-        allowed={false}
+      <AccountRequired
         icon="🎪"
         title="Özel Arena Kur"
         subtitle="Arkadaşlarınla kendi arenanı kur, kodla davet et."
-        note="Arena kurmak ve arkadaş davet etmek için üyelik gerekiyor. Misafirler paylaşılan davet linkiyle katılabilir."
+        note="Kurduğun arenalar hesabında saklanır; aynı ayarlarla tekrar açabilirsin."
       />
     );
   }

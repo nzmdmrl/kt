@@ -216,6 +216,9 @@ export default function ProfileEditModal({ onClose, onSaved }: { onClose: () => 
           </button>
         </div>
         <div style={hint}>
+          Profil adresin: kelimetahmin.com/profil/<b>{data.username}</b>{" "}
+          — arkadaşların seni bu adla bulur.
+          <br />
           {lim.unameMin}-{lim.unameMax} karakter; harf, rakam ve alt çizgi (_).{" "}
           <Counter len={username.trim().length} max={lim.unameMax} />
           <br />

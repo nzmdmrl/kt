@@ -442,6 +442,9 @@ body.has-native-banner.kt-game-screen:not(.has-bottom-nav) { padding-bottom: var
   display: flex; align-items: center; gap: 14px; width: 100%;
   padding: 16px 20px; border-radius: 20px; text-align: left;
   color: #1a1330; text-decoration: none;
+  /* Artık <button> (isim popup'ını açar, sayfa değiştirmez) — tarayıcının
+     varsayılan buton kenarlığı/imleci sıfırlanır ki görünüm aynı kalsın. */
+  border: none; cursor: pointer; font-family: inherit;
   background: linear-gradient(135deg, var(--accent), var(--accent-hot));
   box-shadow: 0 10px 26px var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, .3);
   position: relative; overflow: hidden;
@@ -946,4 +949,113 @@ html[data-style="stil2"]:not([data-theme="light"]) .hm-s2 .hm-profile {
   margin-top: 40px; padding: 24px 20px; border-radius: 18px; text-align: center;
   background: linear-gradient(145deg, rgba(63, 195, 86, .16), rgba(47, 156, 66, .06));
   border: 1px solid rgba(63, 195, 86, .3);
+}
+
+/* ============================================================================
+   İSİM POPUP'I (NamePrompt) — "Hoş geldin, sana nasıl hitap edelim?"
+   Mobilde alttan yükselen tam genişlikte sayfa, masaüstünde ortada kart.
+   Perdeye tıklamak KAPATMAZ (bilinçli) — kapatma yalnız sağ üstteki ✕ ile.
+   ========================================================================== */
+.np-backdrop {
+  position: fixed; inset: 0; z-index: 300;
+  background: rgba(0, 0, 0, .62);
+  display: flex; justify-content: center;
+  /* Mobil: içerik dibe yapışır (bottom sheet) */
+  align-items: flex-end;
+  animation: np-fade .18s ease-out;
+}
+@keyframes np-fade { from { opacity: 0; } to { opacity: 1; } }
+
+.np-sheet {
+  position: relative;
+  width: 100%;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-soft);
+  border-bottom: none;
+  border-radius: 22px 22px 0 0;
+  padding: 26px 20px calc(24px + max(10px, var(--kt-safe-bottom, 0px)));
+  box-shadow: 0 -14px 40px rgba(0, 0, 0, .35);
+  animation: np-rise .24s cubic-bezier(.22, 1, .36, 1);
+}
+@keyframes np-rise { from { transform: translateY(28px); opacity: .6; } to { transform: none; opacity: 1; } }
+
+.np-close {
+  position: absolute; top: 12px; right: 12px;
+  width: 34px; height: 34px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--bg-elevated); border: 1px solid var(--border-soft);
+  color: var(--text-strong); font-size: 21px; line-height: 1; cursor: pointer;
+}
+
+.np-icon { font-size: 34px; line-height: 1; text-align: center; }
+.np-title {
+  font-size: 19px; font-weight: 800; line-height: 1.35; text-align: center;
+  color: var(--text-strong); margin: 10px 0 18px;
+}
+
+.np-input {
+  width: 100%; padding: 15px 16px; border-radius: 13px;
+  border: 1px solid var(--border-soft); background: var(--bg-elevated);
+  color: var(--text-strong); font-size: 17px; font-weight: 600; text-align: center;
+}
+.np-input:focus { outline: none; border-color: var(--accent); }
+
+.np-error { color: var(--accent-hot); font-size: 13.5px; margin: 8px 2px 0; text-align: center; }
+
+.np-cta {
+  width: 100%; margin-top: 14px; padding: 16px; border-radius: 13px;
+  border: none; cursor: pointer;
+  background: linear-gradient(135deg, var(--accent), var(--accent-hot));
+  color: #1a1330; font-weight: 900; font-size: 17px;
+  box-shadow: 0 8px 22px var(--accent-glow);
+}
+.np-cta:disabled { opacity: .6; cursor: default; }
+
+.np-alt {
+  display: block; text-align: center; margin-top: 16px;
+  font-size: 12.5px; color: var(--text-dim); text-decoration: none; opacity: .8;
+}
+.np-alt:hover { text-decoration: underline; }
+
+/* Masaüstü: ortada kart */
+@media (min-width: 721px) {
+  .np-backdrop { align-items: center; padding: 20px; }
+  .np-sheet {
+    width: min(420px, 100%);
+    border: 1px solid var(--border-soft);
+    border-radius: 20px;
+    padding: 30px 26px 26px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, .45);
+    animation: np-pop .2s cubic-bezier(.22, 1, .36, 1);
+  }
+  @keyframes np-pop { from { transform: scale(.96); opacity: 0; } to { transform: none; opacity: 1; } }
+  .np-title { font-size: 21px; }
+}
+
+/* ============================================================================
+   DOĞRULAMA ŞERİDİ (VerifyBanner) — ana sayfanın en üstünde tek satır.
+   Sadece doğrulanmamış (e-postası/şifresi olmayan) hesaplara görünür.
+   ========================================================================== */
+.vb-row {
+  display: flex; align-items: center; gap: 10px;
+  max-width: 520px; margin: 0 auto 10px; padding: 0 16px;
+}
+@media (min-width: 721px) { .vb-row { max-width: 760px; padding: 0 18px; } }
+
+.vb-btn {
+  flex: 1; display: flex; align-items: center; gap: 10px;
+  padding: 11px 14px; border-radius: 13px; cursor: pointer; text-decoration: none;
+  background: linear-gradient(135deg, rgba(255, 193, 74, .18), rgba(255, 122, 89, .12));
+  border: 1px solid rgba(255, 193, 74, .42);
+  color: var(--text-strong); font-weight: 700; font-size: 14px;
+  text-align: left;
+}
+.vb-btn-icon { font-size: 17px; line-height: 1; flex-shrink: 0; }
+.vb-btn-arrow { margin-left: auto; opacity: .7; flex-shrink: 0; }
+
+.vb-close {
+  width: 30px; height: 30px; flex-shrink: 0; border-radius: 50%;
+  display: grid; place-items: center; cursor: pointer;
+  background: var(--bg-elevated); border: 1px solid var(--border-soft);
+  color: var(--text-dim); font-size: 17px; line-height: 1;
 }

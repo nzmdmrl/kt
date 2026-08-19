@@ -5,7 +5,7 @@ import { useSectionMusic } from "@/lib/useSectionMusic";
 import { apiUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import SoloGame from "@/components/SoloGame";
-import GuestJoin from "@/components/GuestJoin";
+import AccountRequired from "@/components/AccountRequired";
 
 type Progress = { current_level: number; total_stars: number; levels: { level: number; stars: number }[] };
 
@@ -49,14 +49,13 @@ export default function SoloPage() {
 
   if (loading) return <Center>Yükleniyor…</Center>;
   if (!user) {
-    // Maraton ilerlemesi hesaba kaydedildiği için üyelik gerekiyor.
+    // Maraton ilerlemesi hesaba kaydedilir — bu yüzden hesap şart.
     return (
-      <GuestJoin
-        allowed={false}
+      <AccountRequired
         icon="🏃"
         title="Maraton"
         subtitle="Bölüm bölüm ilerleyen tek kişilik mod."
-        note="İlerlemen ve yıldızların hesabına kaydedildiği için Maraton sadece üyelere açık."
+        note="İlerlemen ve yıldızların hesabına kaydedilir."
       />
     );
   }

@@ -5,10 +5,9 @@ import { useRouter } from "next/navigation";
 import { apiUrl } from "@/lib/api";
 import { startRadar, stopRadar, playSound, initSound } from "@/lib/sound";
 import { useAuth } from "@/lib/auth";
-import { useGuestAccess } from "@/lib/guestAccess";
 import Logo from "@/components/Logo";
 import MatchGame from "@/components/MatchGame";
-import GuestJoin from "@/components/GuestJoin";
+import AccountRequired from "@/components/AccountRequired";
 import VsScreen from "@/components/VsScreen";
 import TutorialDemo from "@/components/TutorialDemo";
 import { toUpperTr } from "@/lib/turkish";
@@ -33,10 +32,9 @@ type Mode = "menu" | "createSetup" | "adSetup" | "searching" | "vs" | "match";
 export default function OynaPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-  // Misafir 1v1 erişimi admin ayarıyla kapatılabilir (guest_match_enabled).
-  const access = useGuestAccess();
-  const guestBlocked = !user && access !== null && !access.match;
-  const gateReady = !authLoading && (!!user || access !== null);
+  // Misafirlik kalktı: 1v1 için hesap şart (hesap açmak tek isim yazmak).
+  const guestBlocked = !authLoading && !user;
+  const gateReady = !authLoading;
   const [playerId, setPlayerId] = useState("");
   const [name, setName] = useState("");
   const [elo, setElo] = useState(1000);
@@ -303,14 +301,14 @@ export default function OynaPage() {
   if (!gateReady) {
     return <main style={pageStyle}><div style={{ display: "grid", placeItems: "center", minHeight: "50vh", color: "var(--text-soft)" }}>Yükleniyor…</div></main>;
   }
-  // Misafir 1v1 kapalıysa: üyelik ekranı.
+  // Hesapsız kişi: isim popup'ı açılır, adını yazınca hesap açılır ve
+  // `user` dolduğu an bu ekran kendiliğinden düelloya döner.
   if (guestBlocked) {
     return (
-      <GuestJoin
-        allowed={false}
+      <AccountRequired
         icon="🎮"
         title="1v1 Düello"
-        subtitle="Düello şu an sadece üyelere açık."
+        subtitle="Rakibinle sırayla kelime tahmini. İsmini yaz, hemen başla."
       />
     );
   }

@@ -11,7 +11,7 @@ import { useState, useEffect } from "react";
 import { apiUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import Logo from "@/components/Logo";
-import GuestJoin from "@/components/GuestJoin";
+import AccountRequired from "@/components/AccountRequired";
 import { FRIEND_LABELS, labelInfo, type Friend, type FriendLabelKey } from "@/lib/friendLabels";
 
 const STATUS_DOT: Record<string, string> = {
@@ -66,11 +66,10 @@ export default function ArkadaslarPage() {
   if (loading) return <Wrap><Center>Yükleniyor…</Center></Wrap>;
   if (!user) {
     return (
-      <GuestJoin
-        allowed={false}
+      <AccountRequired
         icon="🤝"
         title="Arkadaşlarım"
-        subtitle="Arkadaş listeni görmek için giriş yapmalısın."
+        subtitle="Arkadaş listen hesabına bağlı."
         note="Arkadaşlarını aile / iş / diğer diye etiketleyip özel arena davetinde kolayca seçebilirsin."
       />
     );

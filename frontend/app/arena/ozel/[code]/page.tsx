@@ -4,10 +4,9 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { apiUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { useGuestAccess } from "@/lib/guestAccess";
 import Logo from "@/components/Logo";
 import ArenaGame from "@/components/ArenaGame";
-import GuestJoin from "@/components/GuestJoin";
+import AccountRequired from "@/components/AccountRequired";
 
 type LobbyInfo = {
   code: string; name: string; size: number; wait_seconds: number; seconds_left: number;
@@ -24,9 +23,6 @@ export default function OzelArenaLobbyPage({ params }: { params: { code: string 
   const [info, setInfo] = useState<LobbyInfo | null>(null);
   const [err, setErr] = useState("");
   const [joined, setJoined] = useState(false);
-  const access = useGuestAccess();
-  // Misafir katılımı (özel arenada zaten ödül yok).
-  const [guestName, setGuestName] = useState<string | null>(null);
 
   function token() { return typeof window !== "undefined" ? localStorage.getItem("kt_token") : null; }
 
@@ -38,8 +34,8 @@ export default function OzelArenaLobbyPage({ params }: { params: { code: string 
       .catch(() => setErr("Arena bulunamadı veya süresi doldu."));
   }
 
-  // Üye ya da adını yazmış misafir için lobi bilgisini tazele.
-  const canView = !!user || !!guestName;
+  // Lobi bilgisi yalnız hesabı olan kişi için tazelenir.
+  const canView = !!user;
 
   // Arenayı kuran, davet ekranındaki "Arenaya Katıl" butonuyla ?katil=1 ile
   // gelir — ara lobi adımı olmadan doğrudan arenaya girer (iki aşama kalktı).
@@ -58,26 +54,23 @@ export default function OzelArenaLobbyPage({ params }: { params: { code: string 
     return () => clearInterval(t);
   }, [canView, params.code, joined]);
 
-  if (loading || (!user && access === null)) return <Wrap><Center>Yükleniyor…</Center></Wrap>;
+  if (loading) return <Wrap><Center>Yükleniyor…</Center></Wrap>;
 
-  // Misafir: admin ayarı açıksa isim yazıp katılır, kapalıysa üyelik ekranı.
-  if (!user && !guestName) {
+  // Misafirlik kalktı: davet linkiyle gelen kişi de adını yazıp hesap açar.
+  // Hesap açılınca `user` dolar ve sayfa kendiliğinden lobiye döner.
+  if (!user) {
     return (
-      <GuestJoin
-        allowed={!!access?.arena}
+      <AccountRequired
         icon="🎪"
         title="Özel Arena"
-        subtitle={access?.arena
-          ? "Arkadaşının kurduğu arenaya katılmak üzeresin. İsmini yaz ve gir."
-          : "Özel arena şu an sadece üyelere açık."}
-        onJoin={(n) => setGuestName(n)}
+        subtitle="Arkadaşının kurduğu arenaya katılmak üzeresin. İsmini yaz ve gir."
       />
     );
   }
 
   // Katıldıysa arena oyununu göster (özel kodla WS bağlanır).
   if (joined) {
-    return <ArenaGame customCode={params.code} guestName={guestName ?? undefined} onExit={() => router.push("/")} />;
+    return <ArenaGame customCode={params.code} onExit={() => router.push("/")} />;
   }
 
   if (err) return <Wrap><Center>{err}</Center></Wrap>;

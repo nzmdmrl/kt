@@ -9,12 +9,16 @@ import UiClickSound from "@/components/UiClickSound";
 import NativeBootstrap from "@/components/NativeBootstrap";
 import PlayGamesAuth from "@/components/PlayGamesAuth";
 import MicNoticeHost from "@/lib/micNotice";
+import { AccountGateProvider } from "@/lib/accountGate";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   return (
     // Platform tespiti en dışta: alttaki tüm bileşenler web/native ayrımını görebilsin.
     <PlatformProvider>
       <AuthProvider>
+        {/* Hesap kapısı: "isimle hesap aç" popup'ını her sayfadan açılabilir kılar.
+            AuthProvider'ın İÇİNDE olmalı — useAuth'a bakar. */}
+        <AccountGateProvider>
         {/* Her sayfada çalışan global presence + maç teklifi izleyici */}
         <HeartbeatPinger />
         <ChallengeWatcher />
@@ -30,6 +34,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         {/* Mikrofon ilk kullanıldığında çıkan bilgilendirme balonu (useSpeech tetikler) */}
         <MicNoticeHost />
         {children}
+        </AccountGateProvider>
       </AuthProvider>
     </PlatformProvider>
   );

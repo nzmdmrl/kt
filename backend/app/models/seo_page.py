@@ -147,6 +147,21 @@ SEO_PAGES: list[dict] = [
         "keywords": "kelime tahmin giriş, ücretsiz üyelik, kayıt ol",
     },
     {
+        # Hızlı Giriş ile açılan hesabın e-posta+şifre eklediği sayfa.
+        # indexable=False: kişiye özel bir işlem ekranı, aramada çıkmasın.
+        "key": "verify",
+        "path": "/dogrula",
+        "label": "Profili Doğrula (/dogrula)",
+        "indexable": False,
+        "priority": 0.2,
+        "title": "Profili Doğrula ve Kaydet",
+        "description": (
+            "E-posta ve şifre ekleyerek hesabını kalıcı hâle getir; "
+            "başka bir cihazda da aynı ilerlemeyle oyna."
+        ),
+        "keywords": "hesap doğrulama, hesabımı kaydet, kelime tahmin hesap",
+    },
+    {
         "key": "how",
         "path": "/nasil-oynanir",
         "label": "Nasıl Oynanır (/nasil-oynanir)",

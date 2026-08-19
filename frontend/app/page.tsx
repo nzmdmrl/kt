@@ -4,6 +4,7 @@ import HomeModes from "@/components/HomeModes";
 import HomeBoards from "@/components/HomeBoards";
 import { fetchHomeBoards } from "@/lib/homeData";
 import HomeMusic from "@/components/HomeMusic";
+import VerifyBanner from "@/components/VerifyBanner";
 import TopBar from "@/components/TopBar";
 import Footer from "@/components/Footer";
 import { fetchAppearance } from "@/lib/appearance";
@@ -30,6 +31,9 @@ export default async function Home() {
     <main style={{ flex: 1, width: "100%" }}>
       {/* MOBİL */}
       <div className="home-mobile">
+        {/* Doğrulanmamış hesaplara en üstte tek satır uyarı — kendisi karar verir,
+            doğrulanmış kullanıcıda hiç çizilmez. */}
+        <VerifyBanner />
         <HomeModes style={style} buttons={buttons} />
         <div style={{ maxWidth: 520, margin: "0 auto", padding: "0 16px 40px" }}>
           <HomeBoards initial={boards} />
@@ -39,6 +43,7 @@ export default async function Home() {
       {/* MASAÜSTÜ */}
       <div className="home-desktop">
         <TopBar />
+        <VerifyBanner />
         <HomeModes style={style} buttons={buttons} />
         <div style={{ maxWidth: 760, margin: "0 auto", padding: "0 18px 40px" }}>
           <HomeBoards initial={boards} />

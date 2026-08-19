@@ -256,8 +256,40 @@ Aynı kod hem sitede hem uygulamada çalışır (uygulama web içeriğini canlı
   tek dayanağı o jeton; mobilde Capacitor Preferences'ta saklanacak (Aşama 2).
 - Testler: `backend/tests/hizli_giris_senaryo.py` — 82 senaryo, SQLite + PostgreSQL'de
   geçiyor. Canlı DB'ye bağlanmayı reddeder (adında `kt_test` yoksa durur).
-- SONRAKİ AŞAMALAR: 2) arayüz + mobil native depolama, 3) bildirim/teşvik,
-  4) admin paneli + gölge ban, 5) mobilden Google/Play Games düğmelerinin sökülmesi.
+
+**Aşama 2 (arayüz) — TAMAM:**
+- **İsim popup'ı** `components/NamePrompt.tsx` + sağlayıcı `lib/accountGate.tsx`
+  (Providers'a bağlı). Ayrı sayfa DEĞİL — WebView'de tam sayfa geçişi sorunluydu.
+  Mobilde bottom sheet, masaüstünde ortada kart (`globals.css` → `.np-*`).
+  Otomatik odak, Enter ile gönder, ✕ ile kapanır, DIŞARI TIKLAYINCA KAPANMAZ.
+  Gönderince beklenmez: popup kapanır, hesap arka planda açılır, iş sürer.
+  Kullanılışı: `const { ensureAccount } = useAccountGate(); ensureAccount(() => router.push("/arena"))`.
+  Ne zaman çıkar: ana sayfada oturumda BİR KEZ kendiliğinden (`autoPrompt`,
+  sessionStorage `kt_name_prompt_seen`) + hesapsız kişi bir oyuna tıkladığında.
+  Admin `quick_signup_enabled` kapatırsa popup açılmaz, `/giris`'e düşer.
+- **Misafirlik KALKTI**: `GuestJoin.tsx` SİLİNDİ, yerine `AccountRequired.tsx`
+  (oyna, arena, arena/ozel, arena/ozel/[code], solo, gunun-kelimesi, arkadaslar).
+  Not: `ArenaGame`/`useArena` içindeki `guestName` yolu artık ÇAĞRILMIYOR (ölü kod,
+  ilerde temizlenebilir); backend'in misafir uçları da duruyor ama arayüzden girilmiyor.
+- **Doğrulama şeridi** `components/VerifyBanner.tsx` — ana sayfanın en üstünde,
+  yalnız `verified === false` hesaplara. ✕ ile gizlenir, `verify_banner_days`
+  (admin ayarı, varsayılan 3) gün sonra geri gelir. Kapatma kaydı kullanıcıya özel
+  (`kt_verify_hide_{id}`). Süre `GET /api/auth/quick/status` ile gelir.
+- **Doğrulama sayfası** `/dogrula` — üstte ad + @username, boş e-posta/şifre,
+  e-posta başkasındaysa taşıma adımı (eski hesabın şifresi → login → /auth/transfer).
+  SEO anahtarı `verify` (indexable=False).
+- **Mobilde jeton native depoda**: `lib/tokenStore.ts`. localStorage HEMEN (senkron,
+  web davranışı birebir aynı) + uygulamada Capacitor Preferences'a da yazılır.
+  Açılışta localStorage boşsa native depodan geri yüklenir (`restoreToken`).
+  Eklenti npm'den KURULMAZ — `registerPlugin("Preferences")` ile köprüye bağlanılır
+  (lib/playGames.ts'teki yöntem); eklenti mobile/ tarafında zaten kurulu.
+- Profil düzenlemede kullanıcı adı alanı ZATEN VARDI (ProfileEditModal → "Kullanıcı
+  Adı", 30 günde 2 hak); üstüne "Profil adresin: .../profil/<ad>" açıklaması eklendi.
+- Testler: `frontend/tests/` (Playwright, 49 + 9 senaryo) — kurulum README'de.
+  Backend senaryoları: `backend/tests/hizli_giris_senaryo.py` (83 senaryo).
+
+- SONRAKİ AŞAMALAR: 3) bildirim/teşvik, 4) admin paneli + gölge ban,
+  5) mobilden Google/Play Games düğmelerinin sökülmesi.
 
 ### Misafir (üye olmayan ziyaretçi) erişimi
 - **1v1**: misafir oynayabilir. Maç kaydedilir ama misafir adı gizli → "Misafir" olarak yazılır.

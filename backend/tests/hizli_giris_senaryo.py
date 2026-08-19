@@ -430,6 +430,8 @@ async def main() -> None:
         await set_setting("quick_signup_enabled", "0")
         r = await c.get("/api/auth/quick/status")
         check("durum ucu kapalı diyor", r.json()["enabled"] is False, r.text)
+        check("şerit süresi de aynı uçtan geliyor (arayüz Aşama 2)",
+              r.json().get("verify_banner_days") == 3, r.text)
         r = await c.post("/api/auth/quick", json={"name": "Kapali Test"},
                          headers=ip("5.5.5.1"))
         check("kapalıyken hesap açılamaz (503)", r.status_code == 503, r.text)

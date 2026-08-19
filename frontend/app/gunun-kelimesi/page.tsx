@@ -8,12 +8,11 @@ import { playSound, initSound } from "@/lib/sound";
 import { useSpeech } from "@/lib/useSpeech";
 import Logo from "@/components/Logo";
 import SoundToggle from "@/components/SoundToggle";
-import GuestJoin from "@/components/GuestJoin";
+import AccountRequired from "@/components/AccountRequired";
 import TapHint from "@/components/TapHint";
 import ResultShare from "@/components/ResultShare";
 import { dailyShareText } from "@/lib/shareText";
 import { useAuth } from "@/lib/auth";
-import { useGuestAccess } from "@/lib/guestAccess";
 import { adExitProps, noteMatchFinished } from "@/lib/interstitial";
 
 type Tile = { letter: string; state: "correct" | "present" | "absent" };
@@ -71,11 +70,11 @@ export default function DailyPage() {
   const [finishedNow, setFinishedNow] = useState(false);
   // Oyuncu giriş alanına dokundu mu (ilk kez oynayanlara ok ipucu için).
   const [touched, setTouched] = useState(false);
-  // Misafir erişimi admin ayarıyla kapatılabilir (guest_daily_enabled).
+  // Misafirlik kalktı: günün kelimesi için de hesap şart — çözüm sayacı,
+  // XP ve lig kaydı hesaba yazılabilsin diye.
   const { user, loading: authLoading } = useAuth();
-  const access = useGuestAccess();
-  const guestBlocked = !user && access !== null && !access.daily;
-  const gateReady = !authLoading && (!!user || access !== null);
+  const guestBlocked = !authLoading && !user;
+  const gateReady = !authLoading;
 
   // Günün kelimesi müziği (oynarken).
   useSectionMusic("daily", status === "playing");
@@ -172,11 +171,10 @@ export default function DailyPage() {
   if (!gateReady) return <Wrap><Centered>Yükleniyor…</Centered></Wrap>;
   if (guestBlocked) {
     return (
-      <GuestJoin
-        allowed={false}
+      <AccountRequired
         icon="📅"
         title="Günün Kelimesi"
-        subtitle="Günün kelimesi şu an sadece üyelere açık."
+        subtitle="Herkes bugün aynı kelimeyi çözüyor. İsmini yaz, sen de katıl."
       />
     );
   }

@@ -450,10 +450,16 @@ TRANSFER_MINUTES = 60
 
 @router.get("/quick/status")
 async def quick_status(db: AsyncSession = Depends(get_db)):
-    """Arayüz "İsimle başla" düğmesini gösterecek mi, buradan öğrenir."""
+    """Arayüzün hızlı giriş için ihtiyacı olan public ayarlar.
+
+    enabled            -> "İsimle başla" popup'ı gösterilsin mi,
+    verify_banner_days -> ana sayfadaki "Profili doğrula" şeridi kapatılınca kaç
+                          gün gizli kalsın (0 = bir daha çıkmasın).
+    """
     from app.game import settings_service
     return {
         "enabled": await settings_service.get_bool(db, "quick_signup_enabled", True),
+        "verify_banner_days": await settings_service.get_int(db, "verify_banner_days", 3),
     }
 
 

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { apiUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { useAccountGate } from "@/lib/accountGate";
 import { useIsoLayoutEffect } from "@/lib/useIsoLayoutEffect";
 import AnimatedWordmark from "@/components/AnimatedWordmark";
 import { HOME_BUTTON_DEFAULTS, type HomeButtons } from "@/lib/homeButtons";
@@ -48,7 +49,15 @@ export default function HomeModes({ style = "stil2", buttons }: {
   // Arka plan (dekor) ikonu boşsa sol ikonun aynısı kullanılır.
   const decoIcon = (key: string) => btn(key).deco_icon || btn(key).icon;
   const { user, loading } = useAuth();
+  // Hesap kapısı: hesapsız kişi bir oyuna tıkladığında isim popup'ı açılır,
+  // adını yazınca hesap açılır ve tıkladığı oyun kaldığı yerden başlar.
+  const { ensureAccount, openNamePrompt, autoPrompt } = useAccountGate();
   const router = useRouter();
+
+  /** Oyun aç — hesap yoksa önce isim popup'ı. Lig gibi izleme sayfaları hariç. */
+  function play(href: string) {
+    ensureAccount(() => router.push(href));
+  }
   const [lvl, setLvl] = useState<LevelInfo | null>(null);
   const [title, setTitle] = useState<TitleInfo | null>(null);
   const [soloLevel, setSoloLevel] = useState<number | null>(null);
@@ -89,6 +98,10 @@ export default function HomeModes({ style = "stil2", buttons }: {
     }
   }, [user]);
 
+  // İlk giriş: hesapsız ziyaretçiye isim popup'ı oturumda BİR KEZ kendiliğinden
+  // açılır. Kişi kapatırsa bir daha kendiliğinden çıkmaz (bkz. lib/accountGate).
+  useEffect(() => { autoPrompt(); }, [autoPrompt]);
+
   // 3) Günün kelimesi sayacı (herkese açık) + günlük lig sıram (girişliyse).
   useEffect(() => {
     fetch(apiUrl("/api/daily/stats?length=5"))
@@ -109,7 +122,7 @@ export default function HomeModes({ style = "stil2", buttons }: {
   function joinRoom() {
     const c = joinCode.trim().toUpperCase();
     if (c.length < 4) return;
-    router.push(`/oyna?join=${encodeURIComponent(c)}`);
+    play(`/oyna?join=${encodeURIComponent(c)}`);
   }
 
   // Üst modlar: Arena + Özel Arena + Maraton (1v1'in üstünde)
@@ -214,21 +227,23 @@ export default function HomeModes({ style = "stil2", buttons }: {
         <div className="hm-guest">
           {/* Stil 2'de site adını zaten animasyonlu kutu logosu gösteriyor */}
           {!s2 && <div className="brand-mono hm-guest-title">Kelime Tahmin</div>}
-          <a href="/giris" className="hm-guest-cta">
-            <span className="hm-guest-cta-icon">🔑</span>
+          {/* Hesap açmak artık tek isim yazmak: doğrudan popup'ı açar
+              (giriş sayfasına gitmez — WebView'de tam sayfa geçişi sorunluydu). */}
+          <button type="button" className="hm-guest-cta" onClick={() => openNamePrompt()}>
+            <span className="hm-guest-cta-icon">👋</span>
             <span className="hm-guest-cta-text">
-              <span className="hm-guest-cta-title">Giriş Yap / Kayıt Ol</span>
-              <span className="hm-guest-cta-sub">Ücretsiz üye ol · puanların, rozetlerin kaydedilsin</span>
+              <span className="hm-guest-cta-title">İsmini yaz, hemen oyna</span>
+              <span className="hm-guest-cta-sub">Puanların, rozetlerin ilk maçtan itibaren kaydedilsin</span>
             </span>
             <span className="hm-guest-cta-arrow">→</span>
-          </a>
+          </button>
         </div>
       )}
 
       {/* ARENA + ÖZEL ARENA (en üstte) */}
       <div className="hm-modes-grid hm-top-modes">
         {topModes.map((m) => (
-          <button key={m.href} className="hm-mode" onClick={() => router.push(m.href)} style={bgStyle(m.key)}>
+          <button key={m.href} className="hm-mode" onClick={() => play(m.href)} style={bgStyle(m.key)}>
             <span className="hm-mode-icon">{btn(m.key).icon}</span>
             <span className="hm-mode-text">
               <span className="hm-mode-label">{m.label}</span>
@@ -243,7 +258,7 @@ export default function HomeModes({ style = "stil2", buttons }: {
       <section className="hm-section">
         <h2 className="hm-h2">🎮 1v1 Düello</h2>
 
-        <button className="hm-hero-btn" onClick={() => router.push("/oyna?mode=search")} style={bgStyle("duel")}>
+        <button className="hm-hero-btn" onClick={() => play("/oyna?mode=search")} style={bgStyle("duel")}>
           <span className="hm-hero-icon">{btn("duel").icon}</span>
           <span className="hm-hero-text">
             <span className="hm-hero-title">Oyna</span>
@@ -254,13 +269,13 @@ export default function HomeModes({ style = "stil2", buttons }: {
         </button>
 
         <div className="hm-1v1-grid">
-          <button className="hm-tile hm-tile-bot" onClick={() => router.push("/oyna?mode=bot")} style={bgStyle("bot")}>
+          <button className="hm-tile hm-tile-bot" onClick={() => play("/oyna?mode=bot")} style={bgStyle("bot")}>
             <span className="hm-tile-icon">{btn("bot").icon}</span>
             <span className="hm-tile-label">1vB Pratik</span>
             <span className="hm-tile-desc">Bota karşı</span>
             {deco(decoIcon("bot"))}
           </button>
-          <button className="hm-tile hm-tile-room" onClick={() => router.push("/oyna?mode=create")} style={bgStyle("room")}>
+          <button className="hm-tile hm-tile-room" onClick={() => play("/oyna?mode=create")} style={bgStyle("room")}>
             <span className="hm-tile-icon">{btn("room").icon}</span>
             <span className="hm-tile-label">Özel Oda Kur</span>
             <span className="hm-tile-desc">Arkadaşını davet et</span>
@@ -285,7 +300,13 @@ export default function HomeModes({ style = "stil2", buttons }: {
       {/* GÜNÜN KELİMESİ / LİG (başlıksız) */}
       <div className="hm-modes-grid hm-bottom-modes">
         {bottomModes.map((m) => (
-          <button key={m.href} className="hm-mode" onClick={() => router.push(m.href)} style={bgStyle(m.key)}>
+          <button
+            key={m.href}
+            className="hm-mode"
+            /* Lig bir oyun değil, sıralama tablosu — hesapsız da bakılabilir. */
+            onClick={() => (m.key === "league" ? router.push(m.href) : play(m.href))}
+            style={bgStyle(m.key)}
+          >
             <span className="hm-mode-icon">{btn(m.key).icon}</span>
             <span className="hm-mode-text">
               <span className="hm-mode-label">{m.label}</span>

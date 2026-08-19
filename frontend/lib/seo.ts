@@ -81,6 +81,12 @@ const FALLBACK: Record<string, { title: string; description: string; path: strin
     path: "/giris",
     indexable: true,
   },
+  verify: {
+    title: "Profili Doğrula ve Kaydet",
+    description: "E-posta ve şifre ekleyerek hesabını kalıcı hâle getir; başka bir cihazda da aynı ilerlemeyle oyna.",
+    path: "/dogrula",
+    indexable: false,
+  },
   how: {
     title: "Nasıl Oynanır — Kelime Tahmin Oyunu Kuralları",
     description: "1v1 düello, arena, maraton ve günün kelimesi modlarının kuralları adım adım.",
